@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using StudentAgent;
 using StudentAgent.Auth;
@@ -71,7 +72,7 @@ try
         return Results.Ok(service.GetProcesses());
     });
 
-    app.MapPost("/api/processes/kill", (KillProcessRequest request, ProcessService service) =>
+    app.MapPost("/api/processes/kill", ([FromBody] KillProcessRequest request, [FromServices] ProcessService service) =>
     {
         try
         {
@@ -84,12 +85,12 @@ try
         }
     });
 
-    app.MapGet("/api/files/roots", (FileService service) =>
+    app.MapGet("/api/files/roots", ([FromServices] FileService service) =>
     {
         return Results.Ok(service.GetRoots());
     });
 
-    app.MapGet("/api/files/list", (string? path, FileService service) =>
+    app.MapGet("/api/files/list", (string? path, [FromServices] FileService service) =>
     {
         try
         {
@@ -101,7 +102,7 @@ try
         }
     });
 
-    app.MapDelete("/api/files", (DeleteEntryRequest request, FileService service) =>
+    app.MapDelete("/api/files", ([FromBody] DeleteEntryRequest request, [FromServices] FileService service) =>
     {
         try
         {
@@ -114,7 +115,7 @@ try
         }
     });
 
-    app.MapPost("/api/files/directories", (CreateDirectoryRequest request, FileService service) =>
+    app.MapPost("/api/files/directories", ([FromBody] CreateDirectoryRequest request, [FromServices] FileService service) =>
     {
         try
         {
@@ -127,7 +128,7 @@ try
         }
     });
 
-    app.MapGet("/api/files/download", (string fullPath, FileService service) =>
+    app.MapGet("/api/files/download", (string fullPath, [FromServices] FileService service) =>
     {
         try
         {
@@ -140,7 +141,7 @@ try
         }
     });
 
-    app.MapPost("/api/files/upload", async (HttpRequest request, FileService service, CancellationToken cancellationToken) =>
+    app.MapPost("/api/files/upload", async (HttpRequest request, [FromServices] FileService service, CancellationToken cancellationToken) =>
     {
         if (!request.HasFormContentType)
         {
