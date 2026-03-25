@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Drawing.Drawing2D;
+
 namespace TeacherClient;
 
 partial class MainForm
@@ -133,18 +135,20 @@ partial class MainForm
             Dock = DockStyle.Top,
             GripStyle = ToolStripGripStyle.Hidden,
             AutoSize = false,
-            Height = 42,
+            Height = 48,
             Padding = new Padding(12, 6, 12, 6),
             BackColor = Color.WhiteSmoke,
-            RenderMode = ToolStripRenderMode.System
+            RenderMode = ToolStripRenderMode.System,
+            ShowItemToolTips = true,
+            ImageScalingSize = new Size(18, 18)
         };
 
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect", connectButton_Click, 90));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", refreshAgentsButton_Click, 120));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", connectSelectedAgentButton_Click, 125));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect", ToolbarIconKind.Connect, connectButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
         quickActionsToolStrip.Items.Add(new ToolStripSeparator());
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Processes", refreshProcessesButton_Click, 130));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Files", refreshFilesButton_Click, 110));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Processes", ToolbarIconKind.Processes, refreshProcessesButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Files", ToolbarIconKind.Folder, refreshFilesButton_Click));
 
         var topPanel = new Panel
         {
@@ -315,12 +319,12 @@ partial class MainForm
         agentsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var agentsToolStrip = CreateTabToolStrip();
-        agentsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", refreshAgentsButton_Click, 120));
-        agentsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", connectSelectedAgentButton_Click, 130));
+        agentsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
         agentsToolStrip.Items.Add(new ToolStripSeparator());
-        agentsToolStrip.Items.Add(CreateToolbarButton("Add Manual", addManualAgentButton_Click, 100));
-        agentsToolStrip.Items.Add(CreateToolbarButton("Edit Manual", editManualAgentButton_Click, 100));
-        agentsToolStrip.Items.Add(CreateToolbarButton("Remove Manual", removeManualAgentButton_Click, 110));
+        agentsToolStrip.Items.Add(CreateToolbarButton("Add Manual", ToolbarIconKind.Add, addManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton("Edit Manual", ToolbarIconKind.Edit, editManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton("Remove Manual", ToolbarIconKind.Remove, removeManualAgentButton_Click));
 
         var agentsFilterLayout = new TableLayoutPanel
         {
@@ -386,8 +390,8 @@ partial class MainForm
         processesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var processesToolStrip = CreateTabToolStrip();
-        processesToolStrip.Items.Add(CreateToolbarButton("Refresh", refreshProcessesButton_Click, 90));
-        processesToolStrip.Items.Add(CreateToolbarButton("Terminate Selected", killProcessButton_Click, 150));
+        processesToolStrip.Items.Add(CreateToolbarButton("Refresh", ToolbarIconKind.Refresh, refreshProcessesButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton("Terminate Selected", ToolbarIconKind.Stop, killProcessButton_Click));
 
         processesLayout.Controls.Add(processesToolStrip, 0, 0);
         processesLayout.Controls.Add(processesGrid, 0, 1);
@@ -404,14 +408,14 @@ partial class MainForm
         filesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var filesToolStrip = CreateTabToolStrip();
-        filesToolStrip.Items.Add(CreateToolbarButton("Refresh Both", refreshFilesButton_Click, 110));
+        filesToolStrip.Items.Add(CreateToolbarButton("Refresh Both", ToolbarIconKind.Refresh, refreshFilesButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton("Upload", uploadButton_Click, 80));
-        filesToolStrip.Items.Add(CreateToolbarButton("Download", downloadButton_Click, 90));
+        filesToolStrip.Items.Add(CreateToolbarButton("Upload", ToolbarIconKind.Upload, uploadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton("Download", ToolbarIconKind.Download, downloadButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton("Delete Local", deleteLocalButton_Click, 95));
-        filesToolStrip.Items.Add(CreateToolbarButton("Delete Remote", deleteRemoteButton_Click, 110));
-        filesToolStrip.Items.Add(CreateToolbarButton("New Folder", newRemoteFolderButton_Click, 90));
+        filesToolStrip.Items.Add(CreateToolbarButton("Delete Local", ToolbarIconKind.Remove, deleteLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton("Delete Remote", ToolbarIconKind.Remove, deleteRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton("New Folder", ToolbarIconKind.NewFolder, newRemoteFolderButton_Click));
 
         var filesPanelsLayout = new TableLayoutPanel
         {
@@ -533,23 +537,151 @@ partial class MainForm
             Dock = DockStyle.Fill,
             GripStyle = ToolStripGripStyle.Hidden,
             AutoSize = false,
-            Height = 42,
+            Height = 44,
             Padding = new Padding(4),
             BackColor = Color.White,
-            RenderMode = ToolStripRenderMode.System
+            RenderMode = ToolStripRenderMode.System,
+            ShowItemToolTips = true,
+            ImageScalingSize = new Size(18, 18)
         };
     }
 
-    private static ToolStripButton CreateToolbarButton(string text, EventHandler onClick, int width)
+    private static ToolStripButton CreateToolbarButton(string toolTipText, ToolbarIconKind iconKind, EventHandler onClick)
     {
-        var button = new ToolStripButton(text)
+        var button = new ToolStripButton
         {
-            DisplayStyle = ToolStripItemDisplayStyle.Text,
+            DisplayStyle = ToolStripItemDisplayStyle.Image,
             AutoSize = false,
-            Width = width
+            Width = 34,
+            Height = 34,
+            Image = CreateToolbarIcon(iconKind),
+            ToolTipText = toolTipText,
+            Margin = new Padding(2),
+            ImageTransparentColor = Color.Magenta
         };
         button.Click += onClick;
         return button;
+    }
+
+    private static Bitmap CreateToolbarIcon(ToolbarIconKind iconKind)
+    {
+        var bitmap = new Bitmap(20, 20);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.Clear(Color.Transparent);
+
+        var accent = iconKind switch
+        {
+            ToolbarIconKind.Connect => Color.FromArgb(37, 99, 235),
+            ToolbarIconKind.Refresh => Color.FromArgb(8, 145, 178),
+            ToolbarIconKind.Link => Color.FromArgb(22, 163, 74),
+            ToolbarIconKind.Add => Color.FromArgb(34, 197, 94),
+            ToolbarIconKind.Edit => Color.FromArgb(245, 158, 11),
+            ToolbarIconKind.Remove => Color.FromArgb(220, 38, 38),
+            ToolbarIconKind.Processes => Color.FromArgb(124, 58, 237),
+            ToolbarIconKind.Stop => Color.FromArgb(190, 24, 93),
+            ToolbarIconKind.Folder => Color.FromArgb(217, 119, 6),
+            ToolbarIconKind.Upload => Color.FromArgb(2, 132, 199),
+            ToolbarIconKind.Download => Color.FromArgb(14, 116, 144),
+            ToolbarIconKind.NewFolder => Color.FromArgb(202, 138, 4),
+            _ => Color.FromArgb(71, 85, 105)
+        };
+
+        using var pen = new Pen(accent, 2F)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        };
+
+        using var fillBrush = new SolidBrush(Color.FromArgb(32, accent));
+        using var accentBrush = new SolidBrush(accent);
+
+        graphics.FillEllipse(fillBrush, 1, 1, 18, 18);
+
+        switch (iconKind)
+        {
+            case ToolbarIconKind.Connect:
+                graphics.DrawArc(pen, 4, 4, 8, 8, 40, 280);
+                graphics.DrawLine(pen, 10, 10, 15, 15);
+                graphics.FillEllipse(accentBrush, 13, 13, 3, 3);
+                break;
+            case ToolbarIconKind.Refresh:
+                graphics.DrawArc(pen, 4, 4, 12, 12, 35, 250);
+                graphics.DrawLine(pen, 13, 4, 16, 4);
+                graphics.DrawLine(pen, 16, 4, 16, 7);
+                break;
+            case ToolbarIconKind.Link:
+                graphics.DrawArc(pen, 3, 7, 7, 6, 300, 220);
+                graphics.DrawArc(pen, 10, 7, 7, 6, 120, 220);
+                graphics.DrawLine(pen, 7, 10, 13, 10);
+                break;
+            case ToolbarIconKind.Add:
+                graphics.DrawLine(pen, 10, 5, 10, 15);
+                graphics.DrawLine(pen, 5, 10, 15, 10);
+                break;
+            case ToolbarIconKind.Edit:
+                graphics.DrawLine(pen, 5, 14, 13, 6);
+                graphics.DrawLine(pen, 12, 5, 15, 8);
+                graphics.DrawLine(pen, 5, 14, 4, 16);
+                break;
+            case ToolbarIconKind.Remove:
+                graphics.DrawLine(pen, 6, 6, 14, 14);
+                graphics.DrawLine(pen, 14, 6, 6, 14);
+                break;
+            case ToolbarIconKind.Processes:
+                graphics.DrawRectangle(pen, 4, 5, 4, 10);
+                graphics.DrawRectangle(pen, 9, 8, 4, 7);
+                graphics.DrawRectangle(pen, 14, 3, 2, 12);
+                break;
+            case ToolbarIconKind.Stop:
+                graphics.FillRectangle(accentBrush, 5, 5, 10, 10);
+                break;
+            case ToolbarIconKind.Folder:
+                graphics.DrawRectangle(pen, 4, 7, 12, 8);
+                graphics.DrawLine(pen, 4, 7, 7, 4);
+                graphics.DrawLine(pen, 7, 4, 11, 4);
+                graphics.DrawLine(pen, 11, 4, 12, 7);
+                break;
+            case ToolbarIconKind.Upload:
+                graphics.DrawLine(pen, 10, 15, 10, 5);
+                graphics.DrawLine(pen, 7, 8, 10, 5);
+                graphics.DrawLine(pen, 13, 8, 10, 5);
+                graphics.DrawLine(pen, 5, 15, 15, 15);
+                break;
+            case ToolbarIconKind.Download:
+                graphics.DrawLine(pen, 10, 5, 10, 15);
+                graphics.DrawLine(pen, 7, 12, 10, 15);
+                graphics.DrawLine(pen, 13, 12, 10, 15);
+                graphics.DrawLine(pen, 5, 5, 15, 5);
+                break;
+            case ToolbarIconKind.NewFolder:
+                graphics.DrawRectangle(pen, 3, 8, 11, 7);
+                graphics.DrawLine(pen, 3, 8, 6, 5);
+                graphics.DrawLine(pen, 6, 5, 10, 5);
+                graphics.DrawLine(pen, 10, 5, 11, 8);
+                graphics.DrawLine(pen, 15, 8, 15, 14);
+                graphics.DrawLine(pen, 12, 11, 18, 11);
+                graphics.DrawLine(pen, 15, 8, 15, 14);
+                break;
+        }
+
+        return bitmap;
+    }
+
+    private enum ToolbarIconKind
+    {
+        Connect,
+        Refresh,
+        Link,
+        Add,
+        Edit,
+        Remove,
+        Processes,
+        Stop,
+        Folder,
+        Upload,
+        Download,
+        NewFolder
     }
 
     private static Label CreateInlineLabel(string text)
