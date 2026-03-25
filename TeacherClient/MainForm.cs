@@ -10,12 +10,16 @@ public partial class MainForm : Form
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
+    private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
     private List<ManualAgentEntry> _manualAgents = [];
+    private List<DiscoveredAgentRow> _allAgents = [];
     private BindingList<DiscoveredAgentRow> _agents = new();
     private BindingList<ProcessInfoDto> _processes = new();
     private BindingList<FileSystemEntryDto> _localEntries = new();
     private BindingList<FileSystemEntryDto> _remoteEntries = new();
     private string? _remoteParentPath;
+    private string? _lastConnectedAgentId;
+    private string? _lastConnectedServerUrl;
 
     public MainForm()
     {
@@ -31,15 +35,27 @@ public partial class MainForm : Form
         serverUrlTextBox.Text = "http://127.0.0.1:5055";
         sharedSecretTextBox.Text = "change-this-secret";
         _manualAgents = _manualAgentStore.Load().ToList();
+        groupFilterComboBox.Items.Add("All groups");
+        groupFilterComboBox.SelectedIndex = 0;
+        statusFilterComboBox.Items.AddRange(["All", "Online", "Offline", "Unknown"]);
+        statusFilterComboBox.SelectedIndex = 0;
+        autoReconnectCheckBox.Checked = true;
 
         _agentRefreshTimer.Interval = 15000;
         _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync();
+        _connectionMonitorTimer.Interval = 10000;
+        _connectionMonitorTimer.Tick += async (_, _) => await MonitorConnectionAsync();
         Shown += async (_, _) =>
         {
             await LoadDiscoveredAgentsAsync();
             _agentRefreshTimer.Start();
+            _connectionMonitorTimer.Start();
         };
-        FormClosing += (_, _) => _agentRefreshTimer.Stop();
+        FormClosing += (_, _) =>
+        {
+            _agentRefreshTimer.Stop();
+            _connectionMonitorTimer.Stop();
+        };
     }
 
     private TeacherApiClient CreateClient() => new(serverUrlTextBox.Text.Trim(), sharedSecretTextBox.Text.Trim());
@@ -48,19 +64,7 @@ public partial class MainForm : Form
     {
         try
         {
-            using var cursorScope = new CursorScope(this);
-            var client = CreateClient();
-            var info = await client.GetServerInfoAsync();
-            if (info is null)
-            {
-                SetStatus("Connection failed.");
-                return;
-            }
-
-            SetStatus($"Connected to {info.MachineName} ({info.CurrentUser})");
-            await LoadProcessesAsync();
-            await LoadLocalDirectoryAsync(localPathTextBox.Text);
-            await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+            await ConnectToServerAsync(serverUrlTextBox.Text.Trim(), null, "manual");
         }
         catch (Exception ex)
         {
@@ -203,15 +207,16 @@ public partial class MainForm : Form
         {
             using var cursorScope = new CursorScope(this);
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
-            var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto);
-            var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry);
+            var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
+            var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
+            _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
+            RefreshGroupFilterOptions();
+            ApplyAgentFilters();
 
-            _agents = new BindingList<DiscoveredAgentRow>(merged);
-            agentsGrid.DataSource = _agents;
-            SetStatus(merged.Count == 0
+            SetStatus(_allAgents.Count == 0
                 ? "No agents available."
-                : $"Available agents: {merged.Count} total, {discoveredAgents.Count} discovered, {_manualAgents.Count} manual");
+                : $"Available agents: {_allAgents.Count} total, {discoveredAgents.Count} discovered, {_manualAgents.Count} manual");
         }
         catch (Exception ex)
         {
@@ -481,18 +486,148 @@ public partial class MainForm : Form
             return;
         }
 
-        serverUrlTextBox.Text = $"http://{agent.RespondingAddress}:{agent.Port}";
-        await LoadProcessesAsync();
-        await LoadLocalDirectoryAsync(localPathTextBox.Text);
-        await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
-        SetStatus($"Connected to {agent.Source.ToLowerInvariant()} agent {agent.MachineName}");
+        await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source.ToLowerInvariant());
     }
 
     private void SetStatus(string text) => statusLabel.Text = text;
 
+    private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
+    {
+        using var cursorScope = new CursorScope(this);
+        serverUrlTextBox.Text = serverUrl;
+        var client = CreateClient();
+        var info = await client.GetServerInfoAsync();
+        if (info is null)
+        {
+            SetStatus("Connection failed.");
+            return;
+        }
+
+        _lastConnectedAgentId = agent?.AgentId;
+        _lastConnectedServerUrl = serverUrl;
+        SetStatus($"Connected to {sourceLabel} agent {info.MachineName} ({info.CurrentUser})");
+        await LoadProcessesAsync();
+        await LoadLocalDirectoryAsync(localPathTextBox.Text);
+        await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+    }
+
     private void SaveManualAgents()
     {
         _manualAgentStore.Save(_manualAgents);
+    }
+
+    private void agentFilters_Changed(object? sender, EventArgs e)
+    {
+        ApplyAgentFilters();
+    }
+
+    private void ApplyAgentFilters()
+    {
+        var search = agentSearchTextBox.Text.Trim();
+        var selectedGroup = groupFilterComboBox.SelectedItem?.ToString() ?? "All groups";
+        var selectedStatus = statusFilterComboBox.SelectedItem?.ToString() ?? "All";
+
+        var filtered = _allAgents
+            .Where(agent => selectedGroup == "All groups" ||
+                            string.Equals(agent.GroupName, selectedGroup, StringComparison.OrdinalIgnoreCase))
+            .Where(agent => selectedStatus == "All" ||
+                            string.Equals(agent.Status, selectedStatus, StringComparison.OrdinalIgnoreCase))
+            .Where(agent =>
+                string.IsNullOrWhiteSpace(search) ||
+                agent.MachineName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                agent.RespondingAddress.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                agent.CurrentUser.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                agent.Notes.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                agent.GroupName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                agent.MacAddressesDisplay.Contains(search, StringComparison.OrdinalIgnoreCase));
+
+        _agents = new BindingList<DiscoveredAgentRow>(filtered.ToList());
+        agentsGrid.DataSource = _agents;
+    }
+
+    private void RefreshGroupFilterOptions()
+    {
+        var groups = _allAgents
+            .Select(x => x.GroupName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var currentSelection = groupFilterComboBox.SelectedItem?.ToString() ?? "All groups";
+        groupFilterComboBox.Items.Clear();
+        groupFilterComboBox.Items.Add("All groups");
+        foreach (var group in groups)
+        {
+            groupFilterComboBox.Items.Add(group);
+        }
+
+        groupFilterComboBox.SelectedItem = groupFilterComboBox.Items.Contains(currentSelection)
+            ? currentSelection
+            : "All groups";
+    }
+
+    private async Task<IReadOnlyList<DiscoveredAgentRow>> UpdateAgentStatusesAsync(
+        IReadOnlyList<DiscoveredAgentRow> mergedAgents,
+        IReadOnlyList<DiscoveredAgentRow> discoveredAgents)
+    {
+        var onlineEndpoints = discoveredAgents
+            .Select(x => $"{x.RespondingAddress}:{x.Port}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var updatedAgents = new List<DiscoveredAgentRow>(mergedAgents.Count);
+        foreach (var agent in mergedAgents)
+        {
+            if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
+            {
+                updatedAgents.Add(agent with { Status = "Online" });
+                continue;
+            }
+
+            var reachabilityClient = new TeacherApiClient(
+                $"http://{agent.RespondingAddress}:{agent.Port}",
+                sharedSecretTextBox.Text.Trim());
+
+            var isReachable = await reachabilityClient.IsServerReachableAsync();
+            updatedAgents.Add(agent with
+            {
+                Status = isReachable ? "Online" : "Offline"
+            });
+        }
+
+        return updatedAgents;
+    }
+
+    private async Task MonitorConnectionAsync()
+    {
+        if (!autoReconnectCheckBox.Checked || string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            return;
+        }
+
+        try
+        {
+            var currentClient = new TeacherApiClient(_lastConnectedServerUrl, sharedSecretTextBox.Text.Trim());
+            if (await currentClient.IsServerReachableAsync())
+            {
+                return;
+            }
+
+            var targetAgent = _allAgents.FirstOrDefault(x =>
+                (!string.IsNullOrWhiteSpace(_lastConnectedAgentId) &&
+                 string.Equals(x.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase)) ||
+                string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase));
+
+            if (targetAgent is null || string.Equals(targetAgent.Status, "Offline", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await ConnectToServerAsync($"http://{targetAgent.RespondingAddress}:{targetAgent.Port}", targetAgent, "auto-reconnect");
+        }
+        catch
+        {
+        }
     }
 
     private static IEnumerable<DiscoveredAgentRow> MergeAgents(
@@ -517,6 +652,8 @@ public partial class MainForm : Form
             {
                 merged[$"manual:{existingManual.AgentId}"] = existingManual with
                 {
+                    Source = "Manual+Auto",
+                    Status = "Online",
                     CurrentUser = discovered.CurrentUser,
                     MacAddressesDisplay = string.IsNullOrWhiteSpace(existingManual.MacAddressesDisplay)
                         ? discovered.MacAddressesDisplay
@@ -538,6 +675,8 @@ public partial class MainForm : Form
     private sealed record DiscoveredAgentRow(
         string AgentId,
         string Source,
+        string Status,
+        string GroupName,
         string MachineName,
         string CurrentUser,
         string RespondingAddress,
@@ -555,6 +694,8 @@ public partial class MainForm : Form
             return new DiscoveredAgentRow(
                 dto.AgentId,
                 "Auto",
+                "Online",
+                string.Empty,
                 dto.MachineName,
                 dto.CurrentUser,
                 dto.RespondingAddress,
@@ -571,6 +712,8 @@ public partial class MainForm : Form
             return new DiscoveredAgentRow(
                 entry.Id,
                 "Manual",
+                "Unknown",
+                entry.GroupName,
                 entry.DisplayName,
                 string.Empty,
                 entry.IpAddress,

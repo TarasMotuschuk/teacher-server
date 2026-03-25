@@ -24,6 +24,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - About dialogs/windows in `TeacherClient`, `StudentAgent`, and `TeacherClient.Avalonia`.
 - Project documentation in `README.md`.
 - Contributor guidance in `AGENTS.md`.
+- Agent status filtering, agent grouping, and auto-reconnect behavior in `TeacherClient`.
 
 ### Changed
 
@@ -31,6 +32,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - WinForms control sizing was increased to improve readability on real displays and high DPI environments.
 - Minimal API request binding was corrected for body/service parameters.
 - `TeacherClient` now includes a top menu and discovery-based agent selection flow.
+- Manual agent records now also store a group/class value and participate in filtered agent management.
 
 ### Notes
 

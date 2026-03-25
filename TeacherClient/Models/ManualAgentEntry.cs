@@ -10,6 +10,8 @@ public sealed class ManualAgentEntry
 
     public int Port { get; set; } = 5055;
 
+    public string GroupName { get; set; } = string.Empty;
+
     public string MacAddress { get; set; } = string.Empty;
 
     public string Notes { get; set; } = string.Empty;

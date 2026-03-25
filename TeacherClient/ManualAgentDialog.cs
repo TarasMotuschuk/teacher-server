@@ -22,6 +22,7 @@ public partial class ManualAgentDialog : Form
         displayNameTextBox.Text = entry.DisplayName;
         ipAddressTextBox.Text = entry.IpAddress;
         portNumericUpDown.Value = entry.Port;
+        groupNameTextBox.Text = entry.GroupName;
         macAddressTextBox.Text = entry.MacAddress;
         notesTextBox.Text = entry.Notes;
     }
@@ -34,6 +35,7 @@ public partial class ManualAgentDialog : Form
             DisplayName = displayNameTextBox.Text.Trim(),
             IpAddress = ipAddressTextBox.Text.Trim(),
             Port = Decimal.ToInt32(portNumericUpDown.Value),
+            GroupName = groupNameTextBox.Text.Trim(),
             MacAddress = macAddressTextBox.Text.Trim(),
             Notes = notesTextBox.Text.Trim()
         };

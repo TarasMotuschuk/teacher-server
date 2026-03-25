@@ -11,6 +11,8 @@ partial class ManualAgentDialog
     private TextBox ipAddressTextBox = null!;
     private Label portLabel = null!;
     private NumericUpDown portNumericUpDown = null!;
+    private Label groupNameLabel = null!;
+    private TextBox groupNameTextBox = null!;
     private Label macAddressLabel = null!;
     private TextBox macAddressTextBox = null!;
     private Label notesLabel = null!;
@@ -37,6 +39,8 @@ partial class ManualAgentDialog
         ipAddressTextBox = new TextBox();
         portLabel = new Label();
         portNumericUpDown = new NumericUpDown();
+        groupNameLabel = new Label();
+        groupNameTextBox = new TextBox();
         macAddressLabel = new Label();
         macAddressTextBox = new TextBox();
         notesLabel = new Label();
@@ -48,7 +52,7 @@ partial class ManualAgentDialog
 
         Text = "Manual Agent";
         Width = 520;
-        Height = 380;
+        Height = 430;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
@@ -91,40 +95,52 @@ partial class ManualAgentDialog
         portNumericUpDown.Maximum = 65535;
         portNumericUpDown.Value = 5055;
 
+        groupNameLabel.Left = 16;
+        groupNameLabel.Top = 126;
+        groupNameLabel.Width = 120;
+        groupNameLabel.Height = 45;
+        groupNameLabel.Text = "Group";
+
+        groupNameTextBox.Left = 144;
+        groupNameTextBox.Top = 126;
+        groupNameTextBox.Width = 340;
+        groupNameTextBox.Height = 45;
+        groupNameTextBox.AutoSize = false;
+
         macAddressLabel.Left = 16;
-        macAddressLabel.Top = 126;
+        macAddressLabel.Top = 180;
         macAddressLabel.Width = 120;
         macAddressLabel.Height = 45;
         macAddressLabel.Text = "MAC address";
 
         macAddressTextBox.Left = 144;
-        macAddressTextBox.Top = 126;
+        macAddressTextBox.Top = 180;
         macAddressTextBox.Width = 340;
         macAddressTextBox.Height = 45;
         macAddressTextBox.AutoSize = false;
 
         notesLabel.Left = 16;
-        notesLabel.Top = 180;
+        notesLabel.Top = 234;
         notesLabel.Width = 120;
         notesLabel.Height = 45;
         notesLabel.Text = "Notes";
 
         notesTextBox.Left = 144;
-        notesTextBox.Top = 180;
+        notesTextBox.Top = 234;
         notesTextBox.Width = 340;
         notesTextBox.Height = 90;
         notesTextBox.Multiline = true;
 
         saveButton.Text = "Save";
         saveButton.Left = 314;
-        saveButton.Top = 288;
+        saveButton.Top = 340;
         saveButton.Width = 80;
         saveButton.Height = 45;
         saveButton.Click += saveButton_Click;
 
         cancelButton.Text = "Cancel";
         cancelButton.Left = 404;
-        cancelButton.Top = 288;
+        cancelButton.Top = 340;
         cancelButton.Width = 80;
         cancelButton.Height = 45;
         cancelButton.Click += cancelButton_Click;
@@ -135,6 +151,8 @@ partial class ManualAgentDialog
         Controls.Add(ipAddressTextBox);
         Controls.Add(portLabel);
         Controls.Add(portNumericUpDown);
+        Controls.Add(groupNameLabel);
+        Controls.Add(groupNameTextBox);
         Controls.Add(macAddressLabel);
         Controls.Add(macAddressTextBox);
         Controls.Add(notesLabel);

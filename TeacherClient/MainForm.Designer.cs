@@ -35,6 +35,10 @@ partial class MainForm
     private Button addManualAgentButton = null!;
     private Button editManualAgentButton = null!;
     private Button removeManualAgentButton = null!;
+    private TextBox agentSearchTextBox = null!;
+    private ComboBox groupFilterComboBox = null!;
+    private ComboBox statusFilterComboBox = null!;
+    private CheckBox autoReconnectCheckBox = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -79,6 +83,10 @@ partial class MainForm
         addManualAgentButton = new Button();
         editManualAgentButton = new Button();
         removeManualAgentButton = new Button();
+        agentSearchTextBox = new TextBox();
+        groupFilterComboBox = new ComboBox();
+        statusFilterComboBox = new ComboBox();
+        autoReconnectCheckBox = new CheckBox();
         SuspendLayout();
 
         Text = "Teacher Classroom Client";
@@ -229,6 +237,33 @@ partial class MainForm
         removeManualAgentButton.Height = 45;
         removeManualAgentButton.Click += removeManualAgentButton_Click;
 
+        agentSearchTextBox.Left = 744;
+        agentSearchTextBox.Top = 12;
+        agentSearchTextBox.Width = 180;
+        agentSearchTextBox.Height = 45;
+        agentSearchTextBox.AutoSize = false;
+        agentSearchTextBox.TextChanged += agentFilters_Changed;
+
+        groupFilterComboBox.Left = 936;
+        groupFilterComboBox.Top = 12;
+        groupFilterComboBox.Width = 130;
+        groupFilterComboBox.Height = 45;
+        groupFilterComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        groupFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
+
+        statusFilterComboBox.Left = 1078;
+        statusFilterComboBox.Top = 12;
+        statusFilterComboBox.Width = 90;
+        statusFilterComboBox.Height = 45;
+        statusFilterComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        statusFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
+
+        autoReconnectCheckBox.Left = 1180;
+        autoReconnectCheckBox.Top = 18;
+        autoReconnectCheckBox.Width = 180;
+        autoReconnectCheckBox.Height = 45;
+        autoReconnectCheckBox.Text = "Auto-reconnect";
+
         agentsGrid.Left = 12;
         agentsGrid.Top = 70;
         agentsGrid.Width = 1220;
@@ -243,12 +278,14 @@ partial class MainForm
         agentsGrid.AutoGenerateColumns = false;
         agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Source", DataPropertyName = "Source", Width = 90 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Machine", DataPropertyName = "MachineName", Width = 180 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", DataPropertyName = "Status", Width = 90 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Group", DataPropertyName = "GroupName", Width = 120 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Machine", DataPropertyName = "MachineName", Width = 160 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "User", DataPropertyName = "CurrentUser", Width = 140 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 130 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Port", DataPropertyName = "Port", Width = 70 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MACs", DataPropertyName = "MacAddressesDisplay", Width = 250 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Notes", DataPropertyName = "Notes", Width = 180 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MACs", DataPropertyName = "MacAddressesDisplay", Width = 200 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Notes", DataPropertyName = "Notes", Width = 140 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Version", DataPropertyName = "Version", Width = 100 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Last Seen UTC", DataPropertyName = "LastSeenDisplay", Width = 180 });
 
@@ -257,6 +294,10 @@ partial class MainForm
         agentsTabPage.Controls.Add(addManualAgentButton);
         agentsTabPage.Controls.Add(editManualAgentButton);
         agentsTabPage.Controls.Add(removeManualAgentButton);
+        agentsTabPage.Controls.Add(agentSearchTextBox);
+        agentsTabPage.Controls.Add(groupFilterComboBox);
+        agentsTabPage.Controls.Add(statusFilterComboBox);
+        agentsTabPage.Controls.Add(autoReconnectCheckBox);
         agentsTabPage.Controls.Add(agentsGrid);
 
         refreshProcessesButton.Text = "Refresh";

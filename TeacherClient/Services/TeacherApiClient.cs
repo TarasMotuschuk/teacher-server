@@ -20,6 +20,19 @@ public sealed class TeacherApiClient
     public Task<ServerInfoDto?> GetServerInfoAsync(CancellationToken cancellationToken = default)
         => _httpClient.GetFromJsonAsync<ServerInfoDto>("api/info", cancellationToken);
 
+    public async Task<bool> IsServerReachableAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.GetAsync("health", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<IReadOnlyList<ProcessInfoDto>> GetProcessesAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<ProcessInfoDto>>("api/processes", cancellationToken) ?? [];
 
