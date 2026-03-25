@@ -2,8 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:contracts="clr-namespace:Teacher.Common.Contracts;assembly=Teacher.Common"
-        x:Class="TeacherClient.Avalonia.MainWindow"
+        x:Class="TeacherClient.CrossPlatform.MainWindow"
         mc:Ignorable="d"
         Width="1320"
         Height="820"
@@ -19,15 +18,18 @@
             Padding="12"
             CornerRadius="10"
             Background="#17202A">
-      <Grid ColumnDefinitions="Auto,250,Auto,200,Auto,*" ColumnSpacing="10">
-        <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Server URL" />
+      <Grid ColumnDefinitions="Auto,250,Auto,200,Auto,*">
+        <TextBlock Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" Text="Server URL" />
         <TextBox x:Name="ServerUrlTextBox"
                  Grid.Column="1"
+                 Margin="0,0,10,0"
                  Watermark="http://127.0.0.1:5055" />
-        <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Secret" />
+        <TextBlock Grid.Column="2" Margin="0,0,10,0" VerticalAlignment="Center" Text="Secret" />
         <TextBox x:Name="SharedSecretTextBox"
-                 Grid.Column="3" />
+                 Grid.Column="3"
+                 Margin="0,0,10,0" />
         <Button Grid.Column="4"
+                Margin="0,0,10,0"
                 Width="110"
                 Content="Connect"
                 Click="ConnectButton_OnClick" />
@@ -41,9 +43,9 @@
 
     <TabControl Grid.Row="1" Margin="0,16,0,16">
       <TabItem Header="Processes">
-        <Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Width="110" Content="Refresh" Click="RefreshProcessesButton_OnClick" />
+        <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <Button Width="110" Margin="0,0,10,0" Content="Refresh" Click="RefreshProcessesButton_OnClick" />
             <Button Width="180" Content="Terminate Selected" Click="KillProcessButton_OnClick" />
           </StackPanel>
 
@@ -66,37 +68,38 @@
       </TabItem>
 
       <TabItem Header="Files">
-        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12" Margin="0,12,0,0">
-          <WrapPanel Orientation="Horizontal" ItemHeight="36" ItemWidth="150">
-            <Button Content="Refresh Both" Click="RefreshFilesButton_OnClick" />
-            <Button Content="Upload -&gt;" Click="UploadButton_OnClick" />
-            <Button Content="&lt;- Download" Click="DownloadButton_OnClick" />
-            <Button Content="Delete Local" Click="DeleteLocalButton_OnClick" />
-            <Button Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />
-            <Button Content="New Remote Folder" Click="NewRemoteFolderButton_OnClick" />
+        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+          <WrapPanel Orientation="Horizontal" ItemHeight="36" ItemWidth="150" Margin="0,0,0,12">
+            <Button Margin="0,0,10,10" Content="Refresh Both" Click="RefreshFilesButton_OnClick" />
+            <Button Margin="0,0,10,10" Content="Upload -&gt;" Click="UploadButton_OnClick" />
+            <Button Margin="0,0,10,10" Content="&lt;- Download" Click="DownloadButton_OnClick" />
+            <Button Margin="0,0,10,10" Content="Delete Local" Click="DeleteLocalButton_OnClick" />
+            <Button Margin="0,0,10,10" Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />
+            <Button Margin="0,0,10,10" Content="New Remote Folder" Click="NewRemoteFolderButton_OnClick" />
           </WrapPanel>
 
-          <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16">
-            <StackPanel Grid.Column="0" Spacing="8">
+          <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
+            <StackPanel Grid.Column="0" Margin="0,0,8,0" Spacing="8">
               <TextBlock FontWeight="Bold" Text="Teacher PC" />
-              <Grid ColumnDefinitions="70,*" ColumnSpacing="8">
-                <Button Grid.Column="0" Content="Up" Click="UpLocalButton_OnClick" />
+              <Grid ColumnDefinitions="70,*">
+                <Button Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
                 <TextBox x:Name="LocalPathTextBox" Grid.Column="1" IsReadOnly="True" />
               </Grid>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="8">
               <TextBlock FontWeight="Bold" Text="Student PC" />
-              <Grid ColumnDefinitions="70,*" ColumnSpacing="8">
-                <Button Grid.Column="0" Content="Up" Click="UpRemoteButton_OnClick" />
+              <Grid ColumnDefinitions="70,*">
+                <Button Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
                 <TextBox x:Name="RemotePathTextBox" Grid.Column="1" IsReadOnly="True" />
               </Grid>
             </StackPanel>
           </Grid>
 
-          <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+          <Grid Grid.Row="2" ColumnDefinitions="*,*">
             <DataGrid x:Name="LocalFilesGrid"
                       Grid.Column="0"
+                      Margin="0,0,8,0"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       SelectionMode="Single"

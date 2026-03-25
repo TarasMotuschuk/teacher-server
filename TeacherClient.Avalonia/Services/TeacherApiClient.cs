@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Teacher.Common.Contracts;
 
-namespace TeacherClient.Avalonia.Services;
+namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class TeacherApiClient
 {

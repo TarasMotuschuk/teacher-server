@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace TeacherClient.Avalonia.Dialogs;
+namespace TeacherClient.CrossPlatform.Dialogs;
 
 public partial class TextInputDialog : Window
 {

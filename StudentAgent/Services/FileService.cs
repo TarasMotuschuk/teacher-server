@@ -83,7 +83,7 @@ public sealed class FileService
     private static FileSystemEntryDto MapEntry(FileSystemInfo info)
     {
         var isDirectory = (info.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
-        var size = info is FileInfo fileInfo ? fileInfo.Length : null;
+        long? size = info is FileInfo fileInfo ? fileInfo.Length : null;
 
         return new FileSystemEntryDto(
             info.Name,

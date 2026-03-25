@@ -1,5 +1,5 @@
 using System.Net;
-using Microsoft.Extensions.Options;
+using StudentAgent.Services;
 
 namespace StudentAgent.Auth;
 
@@ -7,12 +7,14 @@ public sealed class SharedSecretMiddleware
 {
     private const string HeaderName = "X-Teacher-Secret";
     private readonly RequestDelegate _next;
-    private readonly AgentOptions _options;
+    private readonly AgentSettingsStore _settingsStore;
+    private readonly AgentLogService _logService;
 
-    public SharedSecretMiddleware(RequestDelegate next, IOptions<AgentOptions> options)
+    public SharedSecretMiddleware(RequestDelegate next, AgentSettingsStore settingsStore, AgentLogService logService)
     {
         _next = next;
-        _options = options.Value;
+        _settingsStore = settingsStore;
+        _logService = logService;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -23,10 +25,12 @@ public sealed class SharedSecretMiddleware
             return;
         }
 
+        var expectedSecret = _settingsStore.Current.SharedSecret;
         if (!context.Request.Headers.TryGetValue(HeaderName, out var headerValue) ||
-            !string.Equals(headerValue.ToString(), _options.SharedSecret, StringComparison.Ordinal))
+            !string.Equals(headerValue.ToString(), expectedSecret, StringComparison.Ordinal))
         {
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            _logService.LogWarning($"Unauthorized access attempt for {context.Request.Method} {context.Request.Path}");
             await context.Response.WriteAsJsonAsync(new { error = "Invalid shared secret." });
             return;
         }

@@ -1,41 +1,41 @@
-namespace TeacherClient;
+namespace StudentAgent.UI;
 
-public sealed class InputDialog : Form
+public sealed class PasswordPromptForm : Form
 {
-    private readonly TextBox _textBox;
+    private readonly TextBox _passwordTextBox;
 
-    public InputDialog(string title, string prompt, string defaultValue = "")
+    public PasswordPromptForm()
     {
-        Text = title;
-        Width = 420;
-        Height = 150;
+        Text = "Enter password";
+        Width = 360;
+        Height = 170;
+        StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
-        StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
         MinimizeBox = false;
 
         var label = new Label
         {
             Left = 12,
-            Top = 14,
-            Width = 380,
-            Text = prompt
+            Top = 18,
+            Width = 320,
+            Text = "Enter the StudentAgent admin password:"
         };
 
-        _textBox = new TextBox
+        _passwordTextBox = new TextBox
         {
             Left = 12,
-            Top = 40,
-            Width = 380,
-            Text = defaultValue
+            Top = 48,
+            Width = 320,
+            UseSystemPasswordChar = true
         };
 
         var okButton = new Button
         {
             Text = "OK",
-            Left = 236,
+            Left = 176,
+            Top = 84,
             Width = 75,
-            Top = 72,
             Height = 32,
             DialogResult = DialogResult.OK
         };
@@ -43,15 +43,15 @@ public sealed class InputDialog : Form
         var cancelButton = new Button
         {
             Text = "Cancel",
-            Left = 317,
+            Left = 257,
+            Top = 84,
             Width = 75,
-            Top = 72,
             Height = 32,
             DialogResult = DialogResult.Cancel
         };
 
         Controls.Add(label);
-        Controls.Add(_textBox);
+        Controls.Add(_passwordTextBox);
         Controls.Add(okButton);
         Controls.Add(cancelButton);
 
@@ -59,5 +59,5 @@ public sealed class InputDialog : Form
         CancelButton = cancelButton;
     }
 
-    public string Value => _textBox.Text.Trim();
+    public string Password => _passwordTextBox.Text.Trim();
 }

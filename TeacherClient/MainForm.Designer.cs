@@ -1,8 +1,11 @@
+#nullable enable
+
 namespace TeacherClient;
 
 partial class MainForm
 {
     private System.ComponentModel.IContainer? components = null;
+    private MenuStrip mainMenuStrip = null!;
     private TabControl mainTabControl = null!;
     private TabPage processesTabPage = null!;
     private TabPage filesTabPage = null!;
@@ -39,6 +42,7 @@ partial class MainForm
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        mainMenuStrip = new MenuStrip();
         mainTabControl = new TabControl();
         processesTabPage = new TabPage();
         filesTabPage = new TabPage();
@@ -67,54 +71,89 @@ partial class MainForm
         Width = 1280;
         Height = 760;
         MinimumSize = new Size(1100, 700);
+        MainMenuStrip = mainMenuStrip;
+
+        var connectionMenuItem = new ToolStripMenuItem("Connection");
+        connectionMenuItem.DropDownItems.Add("Connect", null, connectButton_Click);
+
+        var processesMenuItem = new ToolStripMenuItem("Processes");
+        processesMenuItem.DropDownItems.Add("Refresh", null, refreshProcessesButton_Click);
+        processesMenuItem.DropDownItems.Add("Terminate Selected", null, killProcessButton_Click);
+
+        var filesMenuItem = new ToolStripMenuItem("Files");
+        filesMenuItem.DropDownItems.Add("Refresh Both", null, refreshFilesButton_Click);
+        filesMenuItem.DropDownItems.Add("Upload ->", null, uploadButton_Click);
+        filesMenuItem.DropDownItems.Add("<- Download", null, downloadButton_Click);
+        filesMenuItem.DropDownItems.Add("Delete Local", null, deleteLocalButton_Click);
+        filesMenuItem.DropDownItems.Add("Delete Remote", null, deleteRemoteButton_Click);
+        filesMenuItem.DropDownItems.Add("New Remote Folder", null, newRemoteFolderButton_Click);
+
+        mainMenuStrip.Dock = DockStyle.Top;
+        mainMenuStrip.Items.Add(connectionMenuItem);
+        mainMenuStrip.Items.Add(processesMenuItem);
+        mainMenuStrip.Items.Add(filesMenuItem);
 
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 54
+            Height = 68,
+            Padding = new Padding(12, 10, 12, 10)
         };
+
+        var headerLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 6,
+            RowCount = 1
+        };
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 290));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         var serverLabel = new Label
         {
             Text = "Server URL",
-            Left = 12,
-            Top = 18,
-            AutoSize = true
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Margin = new Padding(0, 8, 8, 0)
         };
 
-        serverUrlTextBox.Left = 82;
-        serverUrlTextBox.Top = 14;
-        serverUrlTextBox.Width = 220;
+        serverUrlTextBox.Dock = DockStyle.Fill;
+        serverUrlTextBox.Margin = new Padding(0, 2, 12, 0);
 
         var secretLabel = new Label
         {
             Text = "Secret",
-            Left = 314,
-            Top = 18,
-            AutoSize = true
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Margin = new Padding(0, 8, 8, 0)
         };
 
-        sharedSecretTextBox.Left = 362;
-        sharedSecretTextBox.Top = 14;
-        sharedSecretTextBox.Width = 180;
+        sharedSecretTextBox.Dock = DockStyle.Fill;
+        sharedSecretTextBox.Margin = new Padding(0, 2, 12, 0);
 
         connectButton.Text = "Connect";
-        connectButton.Left = 554;
-        connectButton.Top = 12;
-        connectButton.Width = 96;
+        connectButton.Dock = DockStyle.Fill;
+        connectButton.Height = 34;
+        connectButton.MinimumSize = new Size(0, 34);
+        connectButton.Margin = new Padding(0, 0, 12, 0);
         connectButton.Click += connectButton_Click;
 
-        statusLabel.Left = 664;
-        statusLabel.Top = 18;
-        statusLabel.Width = 580;
+        statusLabel.Dock = DockStyle.Fill;
+        statusLabel.TextAlign = ContentAlignment.MiddleLeft;
         statusLabel.Text = "Ready";
 
-        topPanel.Controls.Add(serverLabel);
-        topPanel.Controls.Add(serverUrlTextBox);
-        topPanel.Controls.Add(secretLabel);
-        topPanel.Controls.Add(sharedSecretTextBox);
-        topPanel.Controls.Add(connectButton);
-        topPanel.Controls.Add(statusLabel);
+        headerLayout.Controls.Add(serverLabel, 0, 0);
+        headerLayout.Controls.Add(serverUrlTextBox, 1, 0);
+        headerLayout.Controls.Add(secretLabel, 2, 0);
+        headerLayout.Controls.Add(sharedSecretTextBox, 3, 0);
+        headerLayout.Controls.Add(connectButton, 4, 0);
+        headerLayout.Controls.Add(statusLabel, 5, 0);
+        topPanel.Controls.Add(headerLayout);
 
         mainTabControl.Dock = DockStyle.Fill;
         mainTabControl.TabPages.Add(processesTabPage);
@@ -127,12 +166,14 @@ partial class MainForm
         refreshProcessesButton.Left = 12;
         refreshProcessesButton.Top = 12;
         refreshProcessesButton.Width = 100;
+        refreshProcessesButton.Height = 34;
         refreshProcessesButton.Click += refreshProcessesButton_Click;
 
         killProcessButton.Text = "Terminate Selected";
         killProcessButton.Left = 124;
         killProcessButton.Top = 12;
         killProcessButton.Width = 150;
+        killProcessButton.Height = 34;
         killProcessButton.Click += killProcessButton_Click;
 
         processesGrid.Left = 12;
@@ -161,36 +202,42 @@ partial class MainForm
         refreshFilesButton.Left = 12;
         refreshFilesButton.Top = 12;
         refreshFilesButton.Width = 110;
+        refreshFilesButton.Height = 34;
         refreshFilesButton.Click += refreshFilesButton_Click;
 
         uploadButton.Text = "Upload ->";
         uploadButton.Left = 134;
         uploadButton.Top = 12;
         uploadButton.Width = 100;
+        uploadButton.Height = 34;
         uploadButton.Click += uploadButton_Click;
 
         downloadButton.Text = "<- Download";
         downloadButton.Left = 246;
         downloadButton.Top = 12;
         downloadButton.Width = 110;
+        downloadButton.Height = 34;
         downloadButton.Click += downloadButton_Click;
 
         deleteLocalButton.Text = "Delete Local";
         deleteLocalButton.Left = 368;
         deleteLocalButton.Top = 12;
         deleteLocalButton.Width = 100;
+        deleteLocalButton.Height = 34;
         deleteLocalButton.Click += deleteLocalButton_Click;
 
         deleteRemoteButton.Text = "Delete Remote";
         deleteRemoteButton.Left = 480;
         deleteRemoteButton.Top = 12;
         deleteRemoteButton.Width = 110;
+        deleteRemoteButton.Height = 34;
         deleteRemoteButton.Click += deleteRemoteButton_Click;
 
         newRemoteFolderButton.Text = "New Remote Folder";
         newRemoteFolderButton.Left = 602;
         newRemoteFolderButton.Top = 12;
         newRemoteFolderButton.Width = 140;
+        newRemoteFolderButton.Height = 34;
         newRemoteFolderButton.Click += newRemoteFolderButton_Click;
 
         var localLabel = new Label
@@ -205,6 +252,7 @@ partial class MainForm
         upLocalButton.Left = 12;
         upLocalButton.Top = 74;
         upLocalButton.Width = 52;
+        upLocalButton.Height = 32;
         upLocalButton.Click += upLocalButton_Click;
 
         localPathTextBox.Left = 72;
@@ -224,6 +272,7 @@ partial class MainForm
         upRemoteButton.Left = 628;
         upRemoteButton.Top = 74;
         upRemoteButton.Width = 52;
+        upRemoteButton.Height = 32;
         upRemoteButton.Click += upRemoteButton_Click;
 
         remotePathTextBox.Left = 688;
@@ -282,6 +331,8 @@ partial class MainForm
 
         Controls.Add(mainTabControl);
         Controls.Add(topPanel);
+        Controls.Add(mainMenuStrip);
         ResumeLayout(false);
+        PerformLayout();
     }
 }

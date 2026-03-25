@@ -1,6 +1,6 @@
 using Avalonia;
 
-namespace TeacherClient.Avalonia;
+namespace TeacherClient.CrossPlatform;
 
 internal static class Program
 {

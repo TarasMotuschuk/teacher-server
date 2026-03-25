@@ -2,10 +2,10 @@ using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Teacher.Common.Contracts;
-using TeacherClient.Avalonia.Dialogs;
-using TeacherClient.Avalonia.Services;
+using TeacherClient.CrossPlatform.Dialogs;
+using TeacherClient.CrossPlatform.Services;
 
-namespace TeacherClient.Avalonia;
+namespace TeacherClient.CrossPlatform;
 
 public partial class MainWindow : Window
 {
