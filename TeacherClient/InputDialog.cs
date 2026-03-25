@@ -1,63 +1,21 @@
+#nullable enable
+
 namespace TeacherClient;
 
-public sealed class InputDialog : Form
+public partial class InputDialog : Form
 {
-    private readonly TextBox _textBox;
-
-    public InputDialog(string title, string prompt, string defaultValue = "")
+    public InputDialog()
     {
-        Text = title;
-        Width = 420;
-        Height = 150;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        StartPosition = FormStartPosition.CenterParent;
-        MaximizeBox = false;
-        MinimizeBox = false;
-
-        var label = new Label
-        {
-            Left = 12,
-            Top = 14,
-            Width = 380,
-            Text = prompt
-        };
-
-        _textBox = new TextBox
-        {
-            Left = 12,
-            Top = 40,
-            Width = 380,
-            Text = defaultValue
-        };
-
-        var okButton = new Button
-        {
-            Text = "OK",
-            Left = 236,
-            Width = 75,
-            Top = 72,
-            Height = 32,
-            DialogResult = DialogResult.OK
-        };
-
-        var cancelButton = new Button
-        {
-            Text = "Cancel",
-            Left = 317,
-            Width = 75,
-            Top = 72,
-            Height = 32,
-            DialogResult = DialogResult.Cancel
-        };
-
-        Controls.Add(label);
-        Controls.Add(_textBox);
-        Controls.Add(okButton);
-        Controls.Add(cancelButton);
-
-        AcceptButton = okButton;
-        CancelButton = cancelButton;
+        InitializeComponent();
     }
 
-    public string Value => _textBox.Text.Trim();
+    public InputDialog(string title, string prompt, string defaultValue = "")
+        : this()
+    {
+        Text = title;
+        promptLabel.Text = prompt;
+        valueTextBox.Text = defaultValue;
+    }
+
+    public string Value => valueTextBox.Text.Trim();
 }
