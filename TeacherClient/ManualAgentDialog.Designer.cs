@@ -54,8 +54,8 @@ partial class ManualAgentDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Manual Agent";
-        Width = 620;
-        Height = 470;
+        Width = 720;
+        Height = 560;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
@@ -68,14 +68,14 @@ partial class ManualAgentDialog
             ColumnCount = 2,
             RowCount = 6
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 118F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 140F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
 
         ConfigureFieldLabel(displayNameLabel, "Display name");
         ConfigureFieldLabel(ipAddressLabel, "IP address");
@@ -95,23 +95,25 @@ partial class ManualAgentDialog
             Margin = new Padding(0, 6, 0, 6)
         };
         ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 24F));
         ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
-        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112F));
 
         ipAddressTextBox.Dock = DockStyle.Fill;
-        ipAddressTextBox.MinimumSize = new Size(0, 42);
+        ipAddressTextBox.MinimumSize = new Size(0, 45);
         ipAddressTextBox.Margin = new Padding(0, 0, 12, 0);
 
         portLabel.Dock = DockStyle.Fill;
         portLabel.Text = "Port";
         portLabel.TextAlign = ContentAlignment.MiddleLeft;
+        portLabel.Margin = new Padding(0);
 
         portNumericUpDown.Dock = DockStyle.Fill;
         portNumericUpDown.Minimum = 1;
         portNumericUpDown.Maximum = 65535;
         portNumericUpDown.Value = 5055;
-        portNumericUpDown.Margin = new Padding(0, 4, 0, 4);
+        portNumericUpDown.Margin = new Padding(0, 2, 0, 2);
+        portNumericUpDown.MinimumSize = new Size(0, 45);
 
         ipLayout.Controls.Add(ipAddressTextBox, 0, 0);
         ipLayout.Controls.Add(new Panel(), 1, 0);
@@ -119,11 +121,11 @@ partial class ManualAgentDialog
         ipLayout.Controls.Add(portNumericUpDown, 3, 0);
 
         groupNameTextBox.Dock = DockStyle.Fill;
-        groupNameTextBox.MinimumSize = new Size(0, 42);
+        groupNameTextBox.MinimumSize = new Size(0, 45);
         groupNameTextBox.Margin = new Padding(0, 6, 0, 6);
 
         macAddressTextBox.Dock = DockStyle.Fill;
-        macAddressTextBox.MinimumSize = new Size(0, 42);
+        macAddressTextBox.MinimumSize = new Size(0, 45);
         macAddressTextBox.Margin = new Padding(0, 6, 0, 6);
 
         notesTextBox.Dock = DockStyle.Fill;
@@ -135,18 +137,19 @@ partial class ManualAgentDialog
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
-            Padding = new Padding(0, 12, 0, 0)
+            Padding = new Padding(0, 16, 0, 0),
+            WrapContents = false
         };
 
         saveButton.Text = "Save";
-        saveButton.Width = 110;
-        saveButton.Height = 44;
+        saveButton.Width = 120;
+        saveButton.Height = 45;
         saveButton.Margin = new Padding(12, 0, 0, 0);
         saveButton.Click += saveButton_Click;
 
         cancelButton.Text = "Cancel";
-        cancelButton.Width = 110;
-        cancelButton.Height = 44;
+        cancelButton.Width = 120;
+        cancelButton.Height = 45;
         cancelButton.Margin = new Padding(12, 0, 0, 0);
         cancelButton.Click += cancelButton_Click;
 
@@ -179,7 +182,7 @@ partial class ManualAgentDialog
         label.Text = text;
         label.Dock = DockStyle.Fill;
         label.TextAlign = ContentAlignment.MiddleLeft;
-        label.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+        label.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         label.Margin = new Padding(0, 0, 12, 0);
     }
 }

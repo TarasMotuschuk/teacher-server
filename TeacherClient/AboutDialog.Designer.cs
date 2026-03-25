@@ -37,8 +37,8 @@ partial class AboutDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "About TeacherClient";
-        Width = 560;
-        Height = 360;
+        Width = 680;
+        Height = 420;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -51,23 +51,25 @@ partial class AboutDialog
             ColumnCount = 2,
             RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
 
         titleLabel.Dock = DockStyle.Fill;
         titleLabel.AutoSize = false;
         titleLabel.Font = new Font("Segoe UI", 15F, FontStyle.Bold, GraphicsUnit.Point);
         titleLabel.Text = "Teacher Classroom Client";
         titleLabel.TextAlign = ContentAlignment.MiddleLeft;
+        titleLabel.Margin = new Padding(0, 0, 0, 6);
 
         descriptionLabel.Dock = DockStyle.Fill;
         descriptionLabel.Text = "TeacherClient is the Windows desktop control panel for connecting to StudentAgent, viewing processes, and managing files in a transparent classroom environment.";
         descriptionLabel.TextAlign = ContentAlignment.TopLeft;
+        descriptionLabel.Margin = new Padding(0, 4, 0, 8);
 
         versionLabel.Dock = DockStyle.Fill;
         versionLabel.Text = "Version:";
@@ -77,6 +79,7 @@ partial class AboutDialog
         versionValueLabel.Dock = DockStyle.Fill;
         versionValueLabel.Text = "0.0.0";
         versionValueLabel.TextAlign = ContentAlignment.MiddleLeft;
+        versionValueLabel.AutoEllipsis = true;
 
         copyrightLabel.Dock = DockStyle.Fill;
         copyrightLabel.Text = "Copyright Taras Motuschuk";

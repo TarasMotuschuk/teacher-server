@@ -35,8 +35,8 @@ partial class SettingsDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Teacher Client Settings";
-        Width = 560;
-        Height = 280;
+        Width = 680;
+        Height = 340;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -49,30 +49,33 @@ partial class SettingsDialog
             ColumnCount = 2,
             RowCount = 3
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 68F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
 
         sharedSecretLabel.Dock = DockStyle.Fill;
         sharedSecretLabel.Text = "Shared secret";
         sharedSecretLabel.TextAlign = ContentAlignment.MiddleLeft;
+        sharedSecretLabel.Margin = new Padding(0, 0, 12, 0);
 
         sharedSecretTextBox.Dock = DockStyle.Fill;
         sharedSecretTextBox.MinimumSize = new Size(0, 45);
-        sharedSecretTextBox.Margin = new Padding(0, 4, 0, 4);
+        sharedSecretTextBox.Margin = new Padding(0, 8, 0, 8);
 
         hintLabel.Dock = DockStyle.Fill;
         hintLabel.Text = "This secret is used for agent discovery reachability checks and all teacher-to-student API calls.";
         hintLabel.TextAlign = ContentAlignment.TopLeft;
+        hintLabel.Margin = new Padding(0, 4, 0, 0);
 
         var buttonsPanel = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false,
-            Padding = new Padding(0, 10, 0, 0)
+            Padding = new Padding(0, 14, 0, 0),
+            AutoSize = false
         };
 
         saveButton.Text = "Save";

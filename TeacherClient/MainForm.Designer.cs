@@ -295,13 +295,13 @@ partial class MainForm
             RowCount = 1,
             Margin = new Padding(0, 8, 0, 8)
         };
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 62F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 280F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84F));
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84F));
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220F));
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         var searchLabel = CreateInlineLabel("Search");
@@ -310,23 +310,26 @@ partial class MainForm
 
         agentSearchTextBox.Dock = DockStyle.Fill;
         agentSearchTextBox.Margin = new Padding(0, 6, 14, 6);
-        agentSearchTextBox.MinimumSize = new Size(0, 40);
+        agentSearchTextBox.MinimumSize = new Size(0, 45);
         agentSearchTextBox.TextChanged += agentFilters_Changed;
 
         groupFilterComboBox.Dock = DockStyle.Fill;
         groupFilterComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         groupFilterComboBox.Margin = new Padding(0, 6, 14, 6);
+        groupFilterComboBox.MinimumSize = new Size(0, 45);
         groupFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
 
         statusFilterComboBox.Dock = DockStyle.Fill;
         statusFilterComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         statusFilterComboBox.Margin = new Padding(0, 6, 14, 6);
+        statusFilterComboBox.MinimumSize = new Size(0, 45);
         statusFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
 
         autoReconnectCheckBox.Text = "Auto-reconnect";
         autoReconnectCheckBox.Dock = DockStyle.Fill;
         autoReconnectCheckBox.TextAlign = ContentAlignment.MiddleLeft;
         autoReconnectCheckBox.Margin = new Padding(0, 8, 0, 0);
+        autoReconnectCheckBox.MinimumSize = new Size(0, 45);
 
         agentsFilterLayout.Controls.Add(searchLabel, 0, 0);
         agentsFilterLayout.Controls.Add(agentSearchTextBox, 1, 0);
@@ -655,7 +658,8 @@ partial class MainForm
             Text = text,
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0)
+            Margin = new Padding(0),
+            AutoSize = false
         };
     }
 
