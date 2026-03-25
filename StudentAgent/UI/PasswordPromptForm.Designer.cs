@@ -47,6 +47,7 @@ partial class PasswordPromptForm
         passwordTextBox.Top = 68;
         passwordTextBox.Width = 340;
         passwordTextBox.Height = 45;
+        passwordTextBox.AutoSize = false;
         passwordTextBox.UseSystemPasswordChar = true;
 
         okButton.Text = "OK";

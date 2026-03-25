@@ -138,6 +138,8 @@ partial class MainForm
         };
 
         serverUrlTextBox.Dock = DockStyle.Fill;
+        serverUrlTextBox.AutoSize = false;
+        serverUrlTextBox.Height = 45;
         serverUrlTextBox.Margin = new Padding(0, 2, 12, 0);
 
         var secretLabel = new Label
@@ -150,6 +152,8 @@ partial class MainForm
         };
 
         sharedSecretTextBox.Dock = DockStyle.Fill;
+        sharedSecretTextBox.AutoSize = false;
+        sharedSecretTextBox.Height = 45;
         sharedSecretTextBox.Margin = new Padding(0, 2, 12, 0);
 
         connectButton.Text = "Connect";
@@ -318,6 +322,8 @@ partial class MainForm
         localPathTextBox.Left = 72;
         localPathTextBox.Top = 118;
         localPathTextBox.Width = 500;
+        localPathTextBox.Height = 45;
+        localPathTextBox.AutoSize = false;
         localPathTextBox.ReadOnly = true;
 
         var remoteLabel = new Label
@@ -340,6 +346,8 @@ partial class MainForm
         remotePathTextBox.Left = 688;
         remotePathTextBox.Top = 118;
         remotePathTextBox.Width = 500;
+        remotePathTextBox.Height = 45;
+        remotePathTextBox.AutoSize = false;
         remotePathTextBox.ReadOnly = true;
 
         localFilesGrid.Left = 12;

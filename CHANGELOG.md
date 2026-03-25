@@ -15,11 +15,25 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Teacher-side Windows Forms UI for connecting to the student agent and performing supported remote actions.
 - Avalonia desktop UI with process management and dual-pane local/remote file operations.
 - Shared-secret middleware using the `X-Teacher-Secret` request header.
+- `StudentAgent` tray application flow with protected `Settings`, `Logs`, `About`, and administrator-gated `Exit`.
+- WinForms designer-friendly forms for `StudentAgent` and `TeacherClient` dialogs.
+- Local runtime persistence for `StudentAgent` settings and logs under `%LocalAppData%`.
+- Global HTTP exception logging for `StudentAgent` requests.
+- UDP-based agent discovery with an `Agents` tab in `TeacherClient`.
+- About dialogs/windows in `TeacherClient`, `StudentAgent`, and `TeacherClient.Avalonia`.
 - Project documentation in `README.md`.
 - Contributor guidance in `AGENTS.md`.
 
+### Changed
+
+- `StudentAgent` now runs as a tray-oriented Windows app instead of a plain console-style host.
+- WinForms control sizing was increased to improve readability on real displays and high DPI environments.
+- Minimal API request binding was corrected for body/service parameters.
+- `TeacherClient` now includes a top menu and discovery-based agent selection flow.
+
 ### Notes
 
-- Current transport is plain HTTP.
-- Current authorization model is a shared secret.
-- File operations are not yet restricted to a sandbox directory.
+- Command transport remains HTTP-based.
+- Auto-discovery is now UDP-based and intended for local network environments.
+- Authorization is still based on a shared secret plus a local password for protected tray actions.
+- File operations are still not restricted to a sandbox directory.

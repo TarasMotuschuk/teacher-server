@@ -31,7 +31,7 @@ partial class InputDialog
 
         Text = "Input";
         Width = 420;
-        Height = 190;
+        Height = 210;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
@@ -46,18 +46,20 @@ partial class InputDialog
         valueTextBox.Left = 12;
         valueTextBox.Top = 40;
         valueTextBox.Width = 380;
+        valueTextBox.Height = 45;
+        valueTextBox.AutoSize = false;
 
         okButton.Text = "OK";
         okButton.Left = 236;
         okButton.Width = 75;
-        okButton.Top = 104;
+        okButton.Top = 128;
         okButton.Height = 45;
         okButton.DialogResult = DialogResult.OK;
 
         cancelButton.Text = "Cancel";
         cancelButton.Left = 317;
         cancelButton.Width = 75;
-        cancelButton.Top = 104;
+        cancelButton.Top = 128;
         cancelButton.Height = 45;
         cancelButton.DialogResult = DialogResult.Cancel;
 

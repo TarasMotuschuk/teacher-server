@@ -41,7 +41,7 @@ partial class SettingsForm
 
         Text = "StudentAgent Settings";
         Width = 520;
-        Height = 320;
+        Height = 360;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -56,46 +56,52 @@ partial class SettingsForm
         sharedSecretTextBox.Left = 160;
         sharedSecretTextBox.Top = 16;
         sharedSecretTextBox.Width = 320;
+        sharedSecretTextBox.Height = 45;
+        sharedSecretTextBox.AutoSize = false;
 
         passwordLabel.Left = 16;
-        passwordLabel.Top = 60;
+        passwordLabel.Top = 72;
         passwordLabel.Width = 140;
         passwordLabel.Height = 45;
         passwordLabel.Text = "New password";
 
         passwordTextBox.Left = 160;
-        passwordTextBox.Top = 56;
+        passwordTextBox.Top = 68;
         passwordTextBox.Width = 320;
+        passwordTextBox.Height = 45;
+        passwordTextBox.AutoSize = false;
         passwordTextBox.UseSystemPasswordChar = true;
 
         confirmPasswordLabel.Left = 16;
-        confirmPasswordLabel.Top = 100;
+        confirmPasswordLabel.Top = 128;
         confirmPasswordLabel.Width = 140;
         confirmPasswordLabel.Height = 45;
         confirmPasswordLabel.Text = "Confirm password";
 
         confirmPasswordTextBox.Left = 160;
-        confirmPasswordTextBox.Top = 96;
+        confirmPasswordTextBox.Top = 124;
         confirmPasswordTextBox.Width = 320;
+        confirmPasswordTextBox.Height = 45;
+        confirmPasswordTextBox.AutoSize = false;
         confirmPasswordTextBox.UseSystemPasswordChar = true;
 
         clearLogsButton.Text = "Clear logs";
         clearLogsButton.Left = 16;
-        clearLogsButton.Top = 200;
+        clearLogsButton.Top = 258;
         clearLogsButton.Width = 120;
         clearLogsButton.Height = 45;
         clearLogsButton.Click += clearLogsButton_Click;
 
         saveButton.Text = "Save";
         saveButton.Left = 324;
-        saveButton.Top = 200;
+        saveButton.Top = 258;
         saveButton.Width = 75;
         saveButton.Height = 45;
         saveButton.Click += saveButton_Click;
 
         cancelButton.Text = "Cancel";
         cancelButton.Left = 405;
-        cancelButton.Top = 200;
+        cancelButton.Top = 258;
         cancelButton.Width = 75;
         cancelButton.Height = 45;
         cancelButton.Click += cancelButton_Click;

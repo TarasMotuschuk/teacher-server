@@ -35,3 +35,4 @@ This repository contains a Windows-oriented classroom administration solution bu
 
 - Keep `README.md` accurate when capabilities, setup steps, or security assumptions change.
 - Append user-visible milestones to `CHANGELOG.md`.
+- When making functional or UX changes, explicitly describe those changes in documentation and update `README.md` if user-visible behavior, setup, configuration, or workflows changed.
