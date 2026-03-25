@@ -13,7 +13,9 @@ public sealed class AgentSettingsStore
 
     public AgentSettingsStore(IOptions<AgentOptions> options)
     {
-        _settingsPath = Path.Combine(AppContext.BaseDirectory, "agentsettings.json");
+        var dataDirectory = GetDataDirectory();
+        Directory.CreateDirectory(dataDirectory);
+        _settingsPath = Path.Combine(dataDirectory, "agentsettings.json");
         _current = Load(options.Value);
         Save(_current);
     }
@@ -113,5 +115,16 @@ public sealed class AgentSettingsStore
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
         return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private static string GetDataDirectory()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localAppData))
+        {
+            return Path.Combine(AppContext.BaseDirectory, "data");
+        }
+
+        return Path.Combine(localAppData, "TeacherServer", "StudentAgent");
     }
 }

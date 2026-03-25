@@ -22,6 +22,13 @@ public sealed class RequestLoggingMiddleware
             return;
         }
 
-        _logService.LogInfo($"{context.Request.Method} {context.Request.Path} -> {context.Response.StatusCode}");
+        try
+        {
+            _logService.LogInfo($"{context.Request.Method} {context.Request.Path} -> {context.Response.StatusCode}");
+        }
+        catch
+        {
+            // Request logging must never affect the HTTP response.
+        }
     }
 }

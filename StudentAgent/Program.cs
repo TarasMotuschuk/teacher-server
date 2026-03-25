@@ -168,11 +168,23 @@ try
 }
 catch (Exception ex)
 {
-    var startupLogPath = Path.Combine(AppContext.BaseDirectory, "studentagent-startup-error.log");
+    var startupLogPath = GetStartupErrorLogPath();
+    Directory.CreateDirectory(Path.GetDirectoryName(startupLogPath)!);
     File.WriteAllText(startupLogPath, ex.ToString());
     MessageBox.Show(
         $"StudentAgent failed to start.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}Details were written to:{Environment.NewLine}{startupLogPath}",
         "StudentAgent Startup Error",
         MessageBoxButtons.OK,
         MessageBoxIcon.Error);
+}
+
+static string GetStartupErrorLogPath()
+{
+    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    if (string.IsNullOrWhiteSpace(localAppData))
+    {
+        return Path.Combine(AppContext.BaseDirectory, "studentagent-startup-error.log");
+    }
+
+    return Path.Combine(localAppData, "TeacherServer", "StudentAgent", "studentagent-startup-error.log");
 }

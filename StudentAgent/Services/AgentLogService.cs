@@ -3,11 +3,12 @@ namespace StudentAgent.Services;
 public sealed class AgentLogService
 {
     private readonly object _sync = new();
-    private readonly string _logDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
+    private readonly string _logDirectory;
     private readonly string _logFilePath;
 
     public AgentLogService()
     {
+        _logDirectory = GetLogDirectory();
         _logFilePath = Path.Combine(_logDirectory, "studentagent.log");
         Directory.CreateDirectory(_logDirectory);
     }
@@ -42,8 +43,26 @@ public sealed class AgentLogService
         var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}{Environment.NewLine}";
         lock (_sync)
         {
-            Directory.CreateDirectory(_logDirectory);
-            File.AppendAllText(_logFilePath, line);
+            try
+            {
+                Directory.CreateDirectory(_logDirectory);
+                File.AppendAllText(_logFilePath, line);
+            }
+            catch
+            {
+                // Logging must never break the agent or API responses.
+            }
         }
+    }
+
+    private static string GetLogDirectory()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localAppData))
+        {
+            return Path.Combine(AppContext.BaseDirectory, "logs");
+        }
+
+        return Path.Combine(localAppData, "TeacherServer", "StudentAgent", "logs");
     }
 }
