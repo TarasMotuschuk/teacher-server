@@ -8,10 +8,34 @@
         Height="820"
         MinWidth="1100"
         MinHeight="720"
+        Background="#2B2B2B"
         Title="Teacher Classroom Client (Avalonia)">
   <Design.DataContext>
     <x:Null />
   </Design.DataContext>
+
+  <Window.Styles>
+    <Style Selector="DataGrid">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="Foreground" Value="#111827" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="RowBackground" Value="#FFFFFF" />
+      <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0" />
+      <Setter Property="VerticalGridLinesBrush" Value="#E2E8F0" />
+      <Setter Property="MinHeight" Value="260" />
+    </Style>
+    <Style Selector="DataGridCell">
+      <Setter Property="Foreground" Value="#111827" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+      <Setter Property="Background" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#0F172A" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </Window.Styles>
 
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <Menu Grid.Row="0" Margin="0,0,0,12">
