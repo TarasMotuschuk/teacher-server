@@ -29,7 +29,6 @@ partial class MainForm
     private Button newRemoteFolderButton = null!;
     private Button upLocalButton = null!;
     private Button upRemoteButton = null!;
-    private SplitContainer filesSplitContainer = null!;
     private DataGridView agentsGrid = null!;
     private Button refreshAgentsButton = null!;
     private Button connectSelectedAgentButton = null!;
@@ -78,7 +77,6 @@ partial class MainForm
         newRemoteFolderButton = new Button();
         upLocalButton = new Button();
         upRemoteButton = new Button();
-        filesSplitContainer = new SplitContainer();
         agentsGrid = new DataGridView();
         refreshAgentsButton = new Button();
         connectSelectedAgentButton = new Button();
@@ -415,11 +413,15 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton("Delete Remote", deleteRemoteButton_Click, 110));
         filesToolStrip.Items.Add(CreateToolbarButton("New Folder", newRemoteFolderButton_Click, 90));
 
-        filesSplitContainer.Dock = DockStyle.Fill;
-        filesSplitContainer.Orientation = Orientation.Vertical;
-        filesSplitContainer.BackColor = Color.FromArgb(220, 224, 229);
-        filesSplitContainer.Panel1MinSize = 420;
-        filesSplitContainer.Panel2MinSize = 420;
+        var filesPanelsLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.FromArgb(236, 239, 243)
+        };
+        filesPanelsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        filesPanelsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 
         var localPanelLayout = new TableLayoutPanel
         {
@@ -509,11 +511,11 @@ partial class MainForm
         remotePanelLayout.Controls.Add(remotePathLayout, 0, 1);
         remotePanelLayout.Controls.Add(remoteFilesGrid, 0, 2);
 
-        filesSplitContainer.Panel1.Controls.Add(localPanelLayout);
-        filesSplitContainer.Panel2.Controls.Add(remotePanelLayout);
+        filesPanelsLayout.Controls.Add(localPanelLayout, 0, 0);
+        filesPanelsLayout.Controls.Add(remotePanelLayout, 1, 0);
 
         filesLayout.Controls.Add(filesToolStrip, 0, 0);
-        filesLayout.Controls.Add(filesSplitContainer, 0, 1);
+        filesLayout.Controls.Add(filesPanelsLayout, 0, 1);
         filesTabPage.Controls.Add(filesLayout);
 
         Controls.Add(mainTabControl);
