@@ -49,6 +49,7 @@ try
     };
 
     app.Urls.Add($"http://0.0.0.0:{settingsStore.Current.Port}");
+    app.UseMiddleware<GlobalExceptionLoggingMiddleware>();
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<SharedSecretMiddleware>();
 

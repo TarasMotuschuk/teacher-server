@@ -15,6 +15,17 @@ public sealed class RequestLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (!context.Request.Path.StartsWithSegments("/health"))
+        {
+            try
+            {
+                _logService.LogInfo($"Incoming {context.Request.Method} {context.Request.Path}");
+            }
+            catch
+            {
+            }
+        }
+
         await _next(context);
 
         if (context.Request.Path.StartsWithSegments("/health"))
