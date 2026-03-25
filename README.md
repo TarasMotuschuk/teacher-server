@@ -4,6 +4,7 @@
 
 - `StudentAgent`: ASP.NET Core agent running on the student workstation.
 - `TeacherClient`: Windows Forms application used by the teacher.
+- `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
 - `Teacher.Common`: shared DTOs and request contracts.
 
 The current implementation focuses on visible and explicitly authorized administration tasks such as viewing processes and managing files. It does not include stealth monitoring, persistence tricks, hidden startup, or covert control flows.
@@ -37,6 +38,17 @@ Available endpoints:
 - file upload and download;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
+
+### TeacherClient.Avalonia
+
+`TeacherClient.Avalonia` provides the same core workflow in a cross-platform desktop app:
+
+- connect to the same `StudentAgent` endpoint;
+- browse remote processes and terminate a selected process;
+- browse local and remote file trees in dual panes;
+- upload and download files;
+- delete local and remote entries;
+- create remote folders.
 
 ### Teacher.Common
 
@@ -72,6 +84,20 @@ Current constraints and risks:
 - .NET 8 SDK
 - Visual Studio 2022 or `dotnet` CLI
 
+### macOS prerequisites for Avalonia
+
+To build and run the Avalonia client on macOS, install:
+
+- `.NET 8 SDK`
+- an editor or IDE such as `JetBrains Rider` or `VS Code`
+- optionally, Avalonia templates if you want to scaffold new apps yourself:
+
+```bash
+dotnet new install Avalonia.Templates
+```
+
+For this repository specifically, templates are optional. The checked-in project is enough to restore and build once the .NET SDK is installed.
+
 ### Start StudentAgent
 
 1. Open the solution in Visual Studio or use the CLI.
@@ -79,6 +105,8 @@ Current constraints and risks:
 3. Change the default shared secret before use.
 4. Start the agent.
 5. Ensure TCP port `5055` is reachable from the teacher machine.
+
+`StudentAgent` currently targets `net8.0-windows`, so it should be built and run on Windows.
 
 Example configuration:
 
@@ -99,6 +127,33 @@ Example configuration:
 3. Enter the same shared secret as configured on the student side.
 4. Press `Connect`.
 
+### Start TeacherClient.Avalonia on macOS
+
+1. Install the .NET 8 SDK on the Mac.
+2. Restore packages:
+
+```bash
+dotnet restore TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
+```
+
+3. Run the Avalonia client:
+
+```bash
+dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
+```
+
+4. In the app, enter the `StudentAgent` URL and shared secret, then connect.
+
+To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
+
+If you want a distributable build:
+
+```bash
+dotnet publish TeacherClient.Avalonia/TeacherClient.Avalonia.csproj -c Release -r osx-arm64 --self-contained false
+```
+
+For Intel Macs, use `osx-x64` instead of `osx-arm64`.
+
 ## Repository structure
 
 ```text
@@ -106,6 +161,7 @@ TeacherServer.sln
 Teacher.Common/
 StudentAgent/
 TeacherClient/
+TeacherClient.Avalonia/
 AGENTS.md
 CHANGELOG.md
 README.md

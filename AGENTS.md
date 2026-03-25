@@ -9,6 +9,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 - `Teacher.Common/`: shared contracts and DTOs.
 - `StudentAgent/`: ASP.NET Core minimal API for the student machine.
 - `TeacherClient/`: Windows Forms client for the teacher machine.
+- `TeacherClient.Avalonia/`: cross-platform Avalonia client for teacher workstations on macOS, Linux, and Windows.
 - `TeacherServer.sln`: main solution file.
 
 ## Working agreements
@@ -16,7 +17,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 - Keep the product transparent and classroom-safe. Do not add stealth behavior, hidden persistence, covert surveillance, or evasion features.
 - Preserve compatibility with `.NET 8` and the current Windows-oriented app model unless a task explicitly changes that direction.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
-- When changing API shapes, update both the server implementation and the WinForms client usage together.
+- When changing API shapes, update the server implementation and both teacher clients together.
 - Treat security improvements as welcome defaults: TLS, stronger auth, audit logging, and path restrictions are in scope. Covert control capabilities are not.
 
 ## Code style

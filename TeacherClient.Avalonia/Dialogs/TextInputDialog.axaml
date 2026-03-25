@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.Avalonia.Dialogs.TextInputDialog"
+        Width="460"
+        Height="200"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Input">
+  <Grid RowDefinitions="Auto,Auto,Auto" Margin="16">
+    <TextBlock x:Name="PromptTextBlock" />
+    <TextBox x:Name="ValueTextBox" Grid.Row="1" Margin="0,12,0,0" />
+
+    <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="10"
+                Margin="0,18,0,0">
+      <Button Width="90" Content="Cancel" Click="CancelButton_OnClick" />
+      <Button Width="90" Content="OK" Click="OkButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>

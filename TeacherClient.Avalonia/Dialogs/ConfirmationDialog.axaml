@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.Avalonia.Dialogs.ConfirmationDialog"
+        Width="420"
+        Height="180"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Confirm">
+  <Grid RowDefinitions="*,Auto" Margin="16">
+    <TextBlock x:Name="MessageTextBlock" TextWrapping="Wrap" />
+
+    <StackPanel Grid.Row="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="10"
+                Margin="0,16,0,0">
+      <Button Width="90" Content="Cancel" Click="CancelButton_OnClick" />
+      <Button Width="90" Content="OK" Click="OkButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>
