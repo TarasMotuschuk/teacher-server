@@ -18,6 +18,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 - Preserve compatibility with `.NET 8` and the current Windows-oriented app model unless a task explicitly changes that direction.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
 - When changing API shapes, update the server implementation and both teacher clients together.
+- Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
 - Treat security improvements as welcome defaults: TLS, stronger auth, audit logging, and path restrictions are in scope. Covert control capabilities are not.
 
 ## Code style

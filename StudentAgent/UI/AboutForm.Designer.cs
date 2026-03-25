@@ -9,6 +9,7 @@ partial class AboutForm
     private Label descriptionLabel = null!;
     private Label versionLabel = null!;
     private Label versionValueLabel = null!;
+    private Label copyrightLabel = null!;
     private Button closeButton = null!;
 
     protected override void Dispose(bool disposing)
@@ -28,12 +29,13 @@ partial class AboutForm
         descriptionLabel = new Label();
         versionLabel = new Label();
         versionValueLabel = new Label();
+        copyrightLabel = new Label();
         closeButton = new Button();
         SuspendLayout();
 
         Text = "About StudentAgent";
         Width = 500;
-        Height = 290;
+        Height = 330;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -64,9 +66,15 @@ partial class AboutForm
         versionValueLabel.Height = 45;
         versionValueLabel.Text = "0.0.0";
 
+        copyrightLabel.Left = 16;
+        copyrightLabel.Top = 224;
+        copyrightLabel.Width = 340;
+        copyrightLabel.Height = 45;
+        copyrightLabel.Text = "Copyright Taras Motuschuk";
+
         closeButton.Text = "Close";
         closeButton.Left = 376;
-        closeButton.Top = 216;
+        closeButton.Top = 246;
         closeButton.Width = 90;
         closeButton.Height = 45;
         closeButton.DialogResult = DialogResult.OK;
@@ -75,6 +83,7 @@ partial class AboutForm
         Controls.Add(descriptionLabel);
         Controls.Add(versionLabel);
         Controls.Add(versionValueLabel);
+        Controls.Add(copyrightLabel);
         Controls.Add(closeButton);
 
         AcceptButton = closeButton;

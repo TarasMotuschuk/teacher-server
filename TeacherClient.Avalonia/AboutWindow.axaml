@@ -1,8 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.AboutWindow"
-        Width="460"
-        Height="270"
+        Width="500"
+        Height="310"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="About TeacherClient.Avalonia">
@@ -11,6 +11,7 @@
     <TextBlock TextWrapping="Wrap"
                Text="TeacherClient.Avalonia is the cross-platform desktop client for connecting to StudentAgent, browsing processes, and performing classroom file operations from macOS, Linux, or Windows." />
     <TextBlock x:Name="VersionTextBlock" FontWeight="SemiBold" Text="Version: 0.0.0" />
+    <TextBlock Text="Copyright Taras Motuschuk" />
     <Button HorizontalAlignment="Right"
             Width="100"
             Content="Close"
