@@ -54,7 +54,7 @@ partial class InputDialog
         promptLabel.Dock = DockStyle.Fill;
         promptLabel.TextAlign = ContentAlignment.MiddleLeft;
         promptLabel.Text = "Prompt";
-        promptLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.SemiBold, GraphicsUnit.Point);
+        promptLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point);
 
         valueTextBox.Dock = DockStyle.Fill;
         valueTextBox.MinimumSize = new Size(0, 42);

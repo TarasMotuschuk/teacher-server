@@ -179,7 +179,7 @@ partial class ManualAgentDialog
         label.Text = text;
         label.Dock = DockStyle.Fill;
         label.TextAlign = ContentAlignment.MiddleLeft;
-        label.Font = new Font("Segoe UI", 10F, FontStyle.SemiBold, GraphicsUnit.Point);
+        label.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
         label.Margin = new Padding(0, 0, 12, 0);
     }
 }

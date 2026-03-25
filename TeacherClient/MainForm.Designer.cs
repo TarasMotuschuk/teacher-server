@@ -204,7 +204,7 @@ partial class MainForm
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
         statusLabel.Text = "Ready";
         statusLabel.AutoEllipsis = true;
-        statusLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.SemiBold, GraphicsUnit.Point);
+        statusLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point);
 
         headerLayout.Controls.Add(serverLabel, 0, 0);
         headerLayout.Controls.Add(serverUrlTextBox, 1, 0);

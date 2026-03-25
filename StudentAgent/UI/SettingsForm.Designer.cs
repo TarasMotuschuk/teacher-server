@@ -2,7 +2,7 @@
 
 namespace StudentAgent.UI;
 
-partial class SettingsForm
+public partial class SettingsForm
 {
     private System.ComponentModel.IContainer? components = null;
     private Label sharedSecretLabel = null!;

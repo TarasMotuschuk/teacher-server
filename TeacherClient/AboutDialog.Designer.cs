@@ -72,7 +72,7 @@ partial class AboutDialog
         versionLabel.Dock = DockStyle.Fill;
         versionLabel.Text = "Version:";
         versionLabel.TextAlign = ContentAlignment.MiddleLeft;
-        versionLabel.Font = new Font("Segoe UI", 10F, FontStyle.SemiBold, GraphicsUnit.Point);
+        versionLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 
         versionValueLabel.Dock = DockStyle.Fill;
         versionValueLabel.Text = "0.0.0";
