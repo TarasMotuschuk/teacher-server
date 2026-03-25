@@ -43,20 +43,20 @@ partial class LogsForm
         logsTextBox.Font = new Font("Consolas", 10F);
 
         topPanel.Dock = DockStyle.Top;
-        topPanel.Height = 48;
+        topPanel.Height = 64;
 
         refreshButton.Text = "Refresh";
         refreshButton.Left = 12;
         refreshButton.Top = 10;
         refreshButton.Width = 90;
-        refreshButton.Height = 30;
+        refreshButton.Height = 45;
         refreshButton.Click += refreshButton_Click;
 
         openFolderButton.Text = "Open log folder";
         openFolderButton.Left = 110;
         openFolderButton.Top = 10;
         openFolderButton.Width = 130;
-        openFolderButton.Height = 30;
+        openFolderButton.Height = 45;
         openFolderButton.Click += openFolderButton_Click;
 
         topPanel.Controls.Add(refreshButton);

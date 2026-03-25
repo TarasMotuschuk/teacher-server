@@ -41,7 +41,7 @@ partial class SettingsForm
 
         Text = "StudentAgent Settings";
         Width = 520;
-        Height = 260;
+        Height = 320;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -50,6 +50,7 @@ partial class SettingsForm
         sharedSecretLabel.Left = 16;
         sharedSecretLabel.Top = 20;
         sharedSecretLabel.Width = 140;
+        sharedSecretLabel.Height = 45;
         sharedSecretLabel.Text = "Shared secret";
 
         sharedSecretTextBox.Left = 160;
@@ -59,6 +60,7 @@ partial class SettingsForm
         passwordLabel.Left = 16;
         passwordLabel.Top = 60;
         passwordLabel.Width = 140;
+        passwordLabel.Height = 45;
         passwordLabel.Text = "New password";
 
         passwordTextBox.Left = 160;
@@ -69,6 +71,7 @@ partial class SettingsForm
         confirmPasswordLabel.Left = 16;
         confirmPasswordLabel.Top = 100;
         confirmPasswordLabel.Width = 140;
+        confirmPasswordLabel.Height = 45;
         confirmPasswordLabel.Text = "Confirm password";
 
         confirmPasswordTextBox.Left = 160;
@@ -78,23 +81,23 @@ partial class SettingsForm
 
         clearLogsButton.Text = "Clear logs";
         clearLogsButton.Left = 16;
-        clearLogsButton.Top = 148;
+        clearLogsButton.Top = 200;
         clearLogsButton.Width = 120;
-        clearLogsButton.Height = 34;
+        clearLogsButton.Height = 45;
         clearLogsButton.Click += clearLogsButton_Click;
 
         saveButton.Text = "Save";
         saveButton.Left = 324;
-        saveButton.Top = 148;
+        saveButton.Top = 200;
         saveButton.Width = 75;
-        saveButton.Height = 34;
+        saveButton.Height = 45;
         saveButton.Click += saveButton_Click;
 
         cancelButton.Text = "Cancel";
         cancelButton.Left = 405;
-        cancelButton.Top = 148;
+        cancelButton.Top = 200;
         cancelButton.Width = 75;
-        cancelButton.Height = 34;
+        cancelButton.Height = 45;
         cancelButton.Click += cancelButton_Click;
 
         Controls.Add(sharedSecretLabel);

@@ -31,7 +31,7 @@ partial class InputDialog
 
         Text = "Input";
         Width = 420;
-        Height = 150;
+        Height = 190;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
@@ -40,6 +40,7 @@ partial class InputDialog
         promptLabel.Left = 12;
         promptLabel.Top = 14;
         promptLabel.Width = 380;
+        promptLabel.Height = 45;
         promptLabel.Text = "Prompt";
 
         valueTextBox.Left = 12;
@@ -49,15 +50,15 @@ partial class InputDialog
         okButton.Text = "OK";
         okButton.Left = 236;
         okButton.Width = 75;
-        okButton.Top = 72;
-        okButton.Height = 32;
+        okButton.Top = 104;
+        okButton.Height = 45;
         okButton.DialogResult = DialogResult.OK;
 
         cancelButton.Text = "Cancel";
         cancelButton.Left = 317;
         cancelButton.Width = 75;
-        cancelButton.Top = 72;
-        cancelButton.Height = 32;
+        cancelButton.Top = 104;
+        cancelButton.Height = 45;
         cancelButton.DialogResult = DialogResult.Cancel;
 
         Controls.Add(promptLabel);

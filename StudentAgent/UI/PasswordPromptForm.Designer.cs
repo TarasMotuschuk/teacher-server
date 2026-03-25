@@ -31,7 +31,7 @@ partial class PasswordPromptForm
 
         Text = "Enter password";
         Width = 360;
-        Height = 170;
+        Height = 210;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -40,6 +40,7 @@ partial class PasswordPromptForm
         passwordLabel.Left = 12;
         passwordLabel.Top = 18;
         passwordLabel.Width = 320;
+        passwordLabel.Height = 45;
         passwordLabel.Text = "Enter the StudentAgent admin password:";
 
         passwordTextBox.Left = 12;
@@ -49,16 +50,16 @@ partial class PasswordPromptForm
 
         okButton.Text = "OK";
         okButton.Left = 176;
-        okButton.Top = 84;
+        okButton.Top = 118;
         okButton.Width = 75;
-        okButton.Height = 32;
+        okButton.Height = 45;
         okButton.DialogResult = DialogResult.OK;
 
         cancelButton.Text = "Cancel";
         cancelButton.Left = 257;
-        cancelButton.Top = 84;
+        cancelButton.Top = 118;
         cancelButton.Width = 75;
-        cancelButton.Height = 32;
+        cancelButton.Height = 45;
         cancelButton.DialogResult = DialogResult.Cancel;
 
         Controls.Add(passwordLabel);

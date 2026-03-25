@@ -96,7 +96,7 @@ partial class MainForm
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 68,
+            Height = 86,
             Padding = new Padding(12, 10, 12, 10)
         };
 
@@ -106,7 +106,7 @@ partial class MainForm
             ColumnCount = 6,
             RowCount = 1
         };
-        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 45F));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 290));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -118,7 +118,8 @@ partial class MainForm
         {
             Text = "Server URL",
             Anchor = AnchorStyles.Left,
-            AutoSize = true,
+            AutoSize = false,
+            Height = 45,
             Margin = new Padding(0, 8, 8, 0)
         };
 
@@ -129,7 +130,8 @@ partial class MainForm
         {
             Text = "Secret",
             Anchor = AnchorStyles.Left,
-            AutoSize = true,
+            AutoSize = false,
+            Height = 45,
             Margin = new Padding(0, 8, 8, 0)
         };
 
@@ -138,12 +140,13 @@ partial class MainForm
 
         connectButton.Text = "Connect";
         connectButton.Dock = DockStyle.Fill;
-        connectButton.Height = 34;
-        connectButton.MinimumSize = new Size(0, 34);
+        connectButton.Height = 45;
+        connectButton.MinimumSize = new Size(0, 45);
         connectButton.Margin = new Padding(0, 0, 12, 0);
         connectButton.Click += connectButton_Click;
 
         statusLabel.Dock = DockStyle.Fill;
+        statusLabel.Height = 45;
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
         statusLabel.Text = "Ready";
 
@@ -166,20 +169,20 @@ partial class MainForm
         refreshProcessesButton.Left = 12;
         refreshProcessesButton.Top = 12;
         refreshProcessesButton.Width = 100;
-        refreshProcessesButton.Height = 34;
+        refreshProcessesButton.Height = 45;
         refreshProcessesButton.Click += refreshProcessesButton_Click;
 
         killProcessButton.Text = "Terminate Selected";
         killProcessButton.Left = 124;
         killProcessButton.Top = 12;
         killProcessButton.Width = 150;
-        killProcessButton.Height = 34;
+        killProcessButton.Height = 45;
         killProcessButton.Click += killProcessButton_Click;
 
         processesGrid.Left = 12;
-        processesGrid.Top = 48;
+        processesGrid.Top = 60;
         processesGrid.Width = 1220;
-        processesGrid.Height = 610;
+        processesGrid.Height = 598;
         processesGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         processesGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         processesGrid.MultiSelect = false;
@@ -202,61 +205,63 @@ partial class MainForm
         refreshFilesButton.Left = 12;
         refreshFilesButton.Top = 12;
         refreshFilesButton.Width = 110;
-        refreshFilesButton.Height = 34;
+        refreshFilesButton.Height = 45;
         refreshFilesButton.Click += refreshFilesButton_Click;
 
         uploadButton.Text = "Upload ->";
         uploadButton.Left = 134;
         uploadButton.Top = 12;
         uploadButton.Width = 100;
-        uploadButton.Height = 34;
+        uploadButton.Height = 45;
         uploadButton.Click += uploadButton_Click;
 
         downloadButton.Text = "<- Download";
         downloadButton.Left = 246;
         downloadButton.Top = 12;
         downloadButton.Width = 110;
-        downloadButton.Height = 34;
+        downloadButton.Height = 45;
         downloadButton.Click += downloadButton_Click;
 
         deleteLocalButton.Text = "Delete Local";
         deleteLocalButton.Left = 368;
         deleteLocalButton.Top = 12;
         deleteLocalButton.Width = 100;
-        deleteLocalButton.Height = 34;
+        deleteLocalButton.Height = 45;
         deleteLocalButton.Click += deleteLocalButton_Click;
 
         deleteRemoteButton.Text = "Delete Remote";
         deleteRemoteButton.Left = 480;
         deleteRemoteButton.Top = 12;
         deleteRemoteButton.Width = 110;
-        deleteRemoteButton.Height = 34;
+        deleteRemoteButton.Height = 45;
         deleteRemoteButton.Click += deleteRemoteButton_Click;
 
         newRemoteFolderButton.Text = "New Remote Folder";
         newRemoteFolderButton.Left = 602;
         newRemoteFolderButton.Top = 12;
         newRemoteFolderButton.Width = 140;
-        newRemoteFolderButton.Height = 34;
+        newRemoteFolderButton.Height = 45;
         newRemoteFolderButton.Click += newRemoteFolderButton_Click;
 
         var localLabel = new Label
         {
             Text = "Teacher PC",
             Left = 12,
-            Top = 52,
-            AutoSize = true
+            Top = 64,
+            Width = 200,
+            Height = 45,
+            AutoSize = false
         };
 
         upLocalButton.Text = "Up";
         upLocalButton.Left = 12;
-        upLocalButton.Top = 74;
+        upLocalButton.Top = 112;
         upLocalButton.Width = 52;
-        upLocalButton.Height = 32;
+        upLocalButton.Height = 45;
         upLocalButton.Click += upLocalButton_Click;
 
         localPathTextBox.Left = 72;
-        localPathTextBox.Top = 76;
+        localPathTextBox.Top = 118;
         localPathTextBox.Width = 500;
         localPathTextBox.ReadOnly = true;
 
@@ -264,26 +269,28 @@ partial class MainForm
         {
             Text = "Student PC",
             Left = 628,
-            Top = 52,
-            AutoSize = true
+            Top = 64,
+            Width = 200,
+            Height = 45,
+            AutoSize = false
         };
 
         upRemoteButton.Text = "Up";
         upRemoteButton.Left = 628;
-        upRemoteButton.Top = 74;
+        upRemoteButton.Top = 112;
         upRemoteButton.Width = 52;
-        upRemoteButton.Height = 32;
+        upRemoteButton.Height = 45;
         upRemoteButton.Click += upRemoteButton_Click;
 
         remotePathTextBox.Left = 688;
-        remotePathTextBox.Top = 76;
+        remotePathTextBox.Top = 118;
         remotePathTextBox.Width = 500;
         remotePathTextBox.ReadOnly = true;
 
         localFilesGrid.Left = 12;
-        localFilesGrid.Top = 108;
+        localFilesGrid.Top = 172;
         localFilesGrid.Width = 560;
-        localFilesGrid.Height = 550;
+        localFilesGrid.Height = 486;
         localFilesGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
         localFilesGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         localFilesGrid.MultiSelect = false;
@@ -298,9 +305,9 @@ partial class MainForm
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modified UTC", DataPropertyName = "LastModifiedUtc", Width = 180 });
 
         remoteFilesGrid.Left = 628;
-        remoteFilesGrid.Top = 108;
+        remoteFilesGrid.Top = 172;
         remoteFilesGrid.Width = 560;
-        remoteFilesGrid.Height = 550;
+        remoteFilesGrid.Height = 486;
         remoteFilesGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         remoteFilesGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         remoteFilesGrid.MultiSelect = false;
