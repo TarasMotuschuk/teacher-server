@@ -197,7 +197,12 @@ public partial class MainWindow : Window
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
     }
 
-    private void AgentFilters_OnChanged(object? sender, EventArgs e)
+    private void AgentSearchTextBox_OnTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        ApplyAgentFilters();
+    }
+
+    private void AgentFilterComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         ApplyAgentFilters();
     }
