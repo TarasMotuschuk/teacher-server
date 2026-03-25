@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Teacher.Common.Contracts;
+using TeacherClient.Models;
 using TeacherClient.Services;
 
 namespace TeacherClient;
@@ -7,7 +8,9 @@ namespace TeacherClient;
 public partial class MainForm : Form
 {
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
+    private readonly ManualAgentStore _manualAgentStore = new();
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
+    private List<ManualAgentEntry> _manualAgents = [];
     private BindingList<DiscoveredAgentRow> _agents = new();
     private BindingList<ProcessInfoDto> _processes = new();
     private BindingList<FileSystemEntryDto> _localEntries = new();
@@ -27,6 +30,7 @@ public partial class MainForm : Form
         remoteFilesGrid.DataSource = _remoteEntries;
         serverUrlTextBox.Text = "http://127.0.0.1:5055";
         sharedSecretTextBox.Text = "change-this-secret";
+        _manualAgents = _manualAgentStore.Load().ToList();
 
         _agentRefreshTimer.Interval = 15000;
         _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync();
@@ -71,6 +75,79 @@ public partial class MainForm : Form
     private async void connectSelectedAgentButton_Click(object? sender, EventArgs e)
     {
         await ConnectSelectedAgentAsync();
+    }
+
+    private async void addManualAgentButton_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new ManualAgentDialog();
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var entry = dialog.ToEntry();
+        _manualAgents.Add(entry);
+        SaveManualAgents();
+        await LoadDiscoveredAgentsAsync();
+        SetStatus($"Added manual agent {entry.DisplayName}");
+    }
+
+    private async void editManualAgentButton_Click(object? sender, EventArgs e)
+    {
+        if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent || !agent.IsManual)
+        {
+            SetStatus("Choose a manual agent first.");
+            return;
+        }
+
+        var existing = _manualAgents.FirstOrDefault(x => string.Equals(x.Id, agent.AgentId, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+        {
+            SetStatus("Manual agent not found.");
+            return;
+        }
+
+        using var dialog = new ManualAgentDialog(existing);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var updated = dialog.ToEntry(existing.Id);
+        var index = _manualAgents.FindIndex(x => string.Equals(x.Id, existing.Id, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+        {
+            _manualAgents[index] = updated;
+            SaveManualAgents();
+            await LoadDiscoveredAgentsAsync();
+            SetStatus($"Updated manual agent {updated.DisplayName}");
+        }
+    }
+
+    private async void removeManualAgentButton_Click(object? sender, EventArgs e)
+    {
+        if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent || !agent.IsManual)
+        {
+            SetStatus("Choose a manual agent first.");
+            return;
+        }
+
+        if (MessageBox.Show(
+                $"Remove manual agent {agent.MachineName}?",
+                "Confirm",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        _manualAgents = _manualAgents
+            .Where(x => !string.Equals(x.Id, agent.AgentId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        SaveManualAgents();
+        await LoadDiscoveredAgentsAsync();
+        SetStatus($"Removed manual agent {agent.MachineName}");
     }
 
     private async void killProcessButton_Click(object sender, EventArgs e)
@@ -126,11 +203,15 @@ public partial class MainForm : Form
         {
             using var cursorScope = new CursorScope(this);
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
-            _agents = new BindingList<DiscoveredAgentRow>(discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList());
+            var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto);
+            var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry);
+            var merged = MergeAgents(manualRows, discoveredRows).ToList();
+
+            _agents = new BindingList<DiscoveredAgentRow>(merged);
             agentsGrid.DataSource = _agents;
-            SetStatus(discoveredAgents.Count == 0
-                ? "No agents discovered."
-                : $"Discovered {discoveredAgents.Count} agent(s)");
+            SetStatus(merged.Count == 0
+                ? "No agents available."
+                : $"Available agents: {merged.Count} total, {discoveredAgents.Count} discovered, {_manualAgents.Count} manual");
         }
         catch (Exception ex)
         {
@@ -396,7 +477,7 @@ public partial class MainForm : Form
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent)
         {
-            SetStatus("Choose a discovered agent first.");
+            SetStatus("Choose an agent first.");
             return;
         }
 
@@ -404,32 +485,101 @@ public partial class MainForm : Form
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
-        SetStatus($"Connected to discovered agent {agent.MachineName}");
+        SetStatus($"Connected to {agent.Source.ToLowerInvariant()} agent {agent.MachineName}");
     }
 
     private void SetStatus(string text) => statusLabel.Text = text;
 
+    private void SaveManualAgents()
+    {
+        _manualAgentStore.Save(_manualAgents);
+    }
+
+    private static IEnumerable<DiscoveredAgentRow> MergeAgents(
+        IEnumerable<DiscoveredAgentRow> manualRows,
+        IEnumerable<DiscoveredAgentRow> discoveredRows)
+    {
+        var merged = new Dictionary<string, DiscoveredAgentRow>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var manual in manualRows)
+        {
+            merged[$"manual:{manual.AgentId}"] = manual;
+        }
+
+        foreach (var discovered in discoveredRows)
+        {
+            var existingManual = merged.Values.FirstOrDefault(x =>
+                x.IsManual &&
+                string.Equals(x.RespondingAddress, discovered.RespondingAddress, StringComparison.OrdinalIgnoreCase) &&
+                x.Port == discovered.Port);
+
+            if (existingManual is not null)
+            {
+                merged[$"manual:{existingManual.AgentId}"] = existingManual with
+                {
+                    CurrentUser = discovered.CurrentUser,
+                    MacAddressesDisplay = string.IsNullOrWhiteSpace(existingManual.MacAddressesDisplay)
+                        ? discovered.MacAddressesDisplay
+                        : existingManual.MacAddressesDisplay,
+                    Version = discovered.Version,
+                    LastSeenUtc = discovered.LastSeenUtc
+                };
+                continue;
+            }
+
+            merged[$"discovered:{discovered.AgentId}"] = discovered;
+        }
+
+        return merged.Values
+            .OrderBy(x => x.Source, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.MachineName, StringComparer.OrdinalIgnoreCase);
+    }
+
     private sealed record DiscoveredAgentRow(
         string AgentId,
+        string Source,
         string MachineName,
         string CurrentUser,
         string RespondingAddress,
         int Port,
         string MacAddressesDisplay,
+        string Notes,
         string Version,
-        DateTime LastSeenUtc)
+        DateTime LastSeenUtc,
+        bool IsManual)
     {
+        public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
+
         public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
         {
             return new DiscoveredAgentRow(
                 dto.AgentId,
+                "Auto",
                 dto.MachineName,
                 dto.CurrentUser,
                 dto.RespondingAddress,
                 dto.Port,
                 string.Join(", ", dto.MacAddresses),
+                string.Empty,
                 dto.Version,
-                dto.LastSeenUtc);
+                dto.LastSeenUtc,
+                false);
+        }
+
+        public static DiscoveredAgentRow FromManualEntry(ManualAgentEntry entry)
+        {
+            return new DiscoveredAgentRow(
+                entry.Id,
+                "Manual",
+                entry.DisplayName,
+                string.Empty,
+                entry.IpAddress,
+                entry.Port,
+                entry.MacAddress,
+                entry.Notes,
+                "Manual",
+                DateTime.MinValue,
+                true);
         }
     }
 

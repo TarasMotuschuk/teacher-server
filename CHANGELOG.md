@@ -20,6 +20,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Local runtime persistence for `StudentAgent` settings and logs under `%LocalAppData%`.
 - Global HTTP exception logging for `StudentAgent` requests.
 - UDP-based agent discovery with an `Agents` tab in `TeacherClient`.
+- Saved manual agent entries in `TeacherClient` with IP, port, MAC address, and notes.
 - About dialogs/windows in `TeacherClient`, `StudentAgent`, and `TeacherClient.Avalonia`.
 - Project documentation in `README.md`.
 - Contributor guidance in `AGENTS.md`.

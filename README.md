@@ -32,6 +32,9 @@ Available endpoints:
 
 `TeacherClient` is a desktop UI for the teacher workstation. It provides:
 
+- auto-discovery of agents on the local network over UDP;
+- a combined `Agents` list with auto-discovered and manual entries;
+- manual agent definitions with saved IP, port, MAC address, and notes;
 - connection to the student agent by URL and shared secret;
 - process list refresh and remote process termination;
 - dual-pane local/remote file browsing;
@@ -108,6 +111,8 @@ For this repository specifically, templates are optional. The checked-in project
 
 `StudentAgent` currently targets `net8.0-windows`, so it should be built and run on Windows.
 
+`StudentAgent` also listens for UDP discovery requests on port `5056` by default and responds with machine identity data that `TeacherClient` can use to build its agent list.
+
 Example configuration:
 
 ```json
@@ -123,9 +128,9 @@ Example configuration:
 ### Start TeacherClient
 
 1. Launch `TeacherClient`.
-2. Enter the student agent URL, for example `http://192.168.1.50:5055`.
+2. Use the `Agents` tab to auto-discover agents or define manual entries.
 3. Enter the same shared secret as configured on the student side.
-4. Press `Connect`.
+4. Connect to a selected agent from the list, or enter the student agent URL manually, for example `http://192.168.1.50:5055`.
 
 ### Start TeacherClient.Avalonia on macOS
 

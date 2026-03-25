@@ -32,6 +32,9 @@ partial class MainForm
     private DataGridView agentsGrid = null!;
     private Button refreshAgentsButton = null!;
     private Button connectSelectedAgentButton = null!;
+    private Button addManualAgentButton = null!;
+    private Button editManualAgentButton = null!;
+    private Button removeManualAgentButton = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -73,6 +76,9 @@ partial class MainForm
         agentsGrid = new DataGridView();
         refreshAgentsButton = new Button();
         connectSelectedAgentButton = new Button();
+        addManualAgentButton = new Button();
+        editManualAgentButton = new Button();
+        removeManualAgentButton = new Button();
         SuspendLayout();
 
         Text = "Teacher Classroom Client";
@@ -85,6 +91,9 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add("Connect", null, connectButton_Click);
         connectionMenuItem.DropDownItems.Add("Refresh Agents", null, refreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add("Connect Selected Agent", null, connectSelectedAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add("Add Manual Agent", null, addManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add("Edit Manual Agent", null, editManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add("Remove Manual Agent", null, removeManualAgentButton_Click);
 
         var processesMenuItem = new ToolStripMenuItem("Processes");
         processesMenuItem.DropDownItems.Add("Refresh", null, refreshProcessesButton_Click);
@@ -199,6 +208,27 @@ partial class MainForm
         connectSelectedAgentButton.Height = 45;
         connectSelectedAgentButton.Click += connectSelectedAgentButton_Click;
 
+        addManualAgentButton.Text = "Add Manual";
+        addManualAgentButton.Left = 326;
+        addManualAgentButton.Top = 12;
+        addManualAgentButton.Width = 120;
+        addManualAgentButton.Height = 45;
+        addManualAgentButton.Click += addManualAgentButton_Click;
+
+        editManualAgentButton.Text = "Edit Manual";
+        editManualAgentButton.Left = 458;
+        editManualAgentButton.Top = 12;
+        editManualAgentButton.Width = 120;
+        editManualAgentButton.Height = 45;
+        editManualAgentButton.Click += editManualAgentButton_Click;
+
+        removeManualAgentButton.Text = "Remove Manual";
+        removeManualAgentButton.Left = 590;
+        removeManualAgentButton.Top = 12;
+        removeManualAgentButton.Width = 140;
+        removeManualAgentButton.Height = 45;
+        removeManualAgentButton.Click += removeManualAgentButton_Click;
+
         agentsGrid.Left = 12;
         agentsGrid.Top = 70;
         agentsGrid.Width = 1220;
@@ -212,16 +242,21 @@ partial class MainForm
         agentsGrid.RowHeadersVisible = false;
         agentsGrid.AutoGenerateColumns = false;
         agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Source", DataPropertyName = "Source", Width = 90 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Machine", DataPropertyName = "MachineName", Width = 180 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "User", DataPropertyName = "CurrentUser", Width = 140 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 130 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Port", DataPropertyName = "Port", Width = 70 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MACs", DataPropertyName = "MacAddressesDisplay", Width = 250 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Notes", DataPropertyName = "Notes", Width = 180 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Version", DataPropertyName = "Version", Width = 100 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Last Seen UTC", DataPropertyName = "LastSeenUtc", Width = 180 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Last Seen UTC", DataPropertyName = "LastSeenDisplay", Width = 180 });
 
         agentsTabPage.Controls.Add(refreshAgentsButton);
         agentsTabPage.Controls.Add(connectSelectedAgentButton);
+        agentsTabPage.Controls.Add(addManualAgentButton);
+        agentsTabPage.Controls.Add(editManualAgentButton);
+        agentsTabPage.Controls.Add(removeManualAgentButton);
         agentsTabPage.Controls.Add(agentsGrid);
 
         refreshProcessesButton.Text = "Refresh";
