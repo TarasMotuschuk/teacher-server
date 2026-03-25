@@ -12,9 +12,7 @@ partial class MainForm
     private TabPage agentsTabPage = null!;
     private TabPage processesTabPage = null!;
     private TabPage filesTabPage = null!;
-    private TextBox serverUrlTextBox = null!;
-    private TextBox sharedSecretTextBox = null!;
-    private Button connectButton = null!;
+    private Button settingsButton = null!;
     private Label statusLabel = null!;
     private DataGridView processesGrid = null!;
     private Button refreshProcessesButton = null!;
@@ -60,9 +58,7 @@ partial class MainForm
         agentsTabPage = new TabPage();
         processesTabPage = new TabPage();
         filesTabPage = new TabPage();
-        serverUrlTextBox = new TextBox();
-        sharedSecretTextBox = new TextBox();
-        connectButton = new Button();
+        settingsButton = new Button();
         statusLabel = new Label();
         processesGrid = new DataGridView();
         refreshProcessesButton = new Button();
@@ -100,7 +96,7 @@ partial class MainForm
         MainMenuStrip = mainMenuStrip;
 
         var connectionMenuItem = new ToolStripMenuItem("Connection");
-        connectionMenuItem.DropDownItems.Add("Connect", null, connectButton_Click);
+        connectionMenuItem.DropDownItems.Add("Settings", null, settingsButton_Click);
         connectionMenuItem.DropDownItems.Add("Refresh Agents", null, refreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add("Connect Selected Agent", null, connectSelectedAgentButton_Click);
         connectionMenuItem.DropDownItems.Add("Add Manual Agent", null, addManualAgentButton_Click);
@@ -135,15 +131,15 @@ partial class MainForm
             Dock = DockStyle.Top,
             GripStyle = ToolStripGripStyle.Hidden,
             AutoSize = false,
-            Height = 48,
-            Padding = new Padding(12, 6, 12, 6),
+            Height = 64,
+            Padding = new Padding(12, 8, 12, 8),
             BackColor = Color.WhiteSmoke,
             RenderMode = ToolStripRenderMode.System,
             ShowItemToolTips = true,
-            ImageScalingSize = new Size(18, 18)
+            ImageScalingSize = new Size(28, 28)
         };
 
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect", ToolbarIconKind.Connect, connectButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton("Settings", ToolbarIconKind.Settings, settingsButton_Click));
         quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
         quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
         quickActionsToolStrip.Items.Add(new ToolStripSeparator());
@@ -153,69 +149,35 @@ partial class MainForm
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 112,
-            Padding = new Padding(16, 14, 16, 12),
+            Height = 92,
+            Padding = new Padding(16, 12, 16, 10),
             BackColor = Color.White
         };
 
         var headerLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 6,
+            ColumnCount = 2,
             RowCount = 1
         };
         headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 360F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        var serverLabel = new Label
-        {
-            Text = "Server URL",
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoSize = false,
-            Margin = new Padding(0, 0, 10, 0)
-        };
-
-        serverUrlTextBox.Dock = DockStyle.Fill;
-        serverUrlTextBox.Margin = new Padding(0, 4, 14, 4);
-        serverUrlTextBox.MinimumSize = new Size(0, 42);
-
-        var secretLabel = new Label
-        {
-            Text = "Secret",
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoSize = false,
-            Margin = new Padding(0, 0, 10, 0)
-        };
-
-        sharedSecretTextBox.Dock = DockStyle.Fill;
-        sharedSecretTextBox.Margin = new Padding(0, 4, 14, 4);
-        sharedSecretTextBox.MinimumSize = new Size(0, 42);
-
-        connectButton.Text = "Connect";
-        connectButton.Dock = DockStyle.Fill;
-        connectButton.Margin = new Padding(0, 0, 0, 0);
-        connectButton.MinimumSize = new Size(120, 48);
-        connectButton.Click += connectButton_Click;
+        settingsButton.Text = "Settings";
+        settingsButton.Dock = DockStyle.Fill;
+        settingsButton.Margin = new Padding(0, 0, 16, 0);
+        settingsButton.MinimumSize = new Size(130, 48);
+        settingsButton.Click += settingsButton_Click;
 
         statusLabel.Dock = DockStyle.Fill;
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
-        statusLabel.Text = "Ready";
+        statusLabel.Text = "Ready. Use the Agents tab to select a student machine, then connect.";
         statusLabel.AutoEllipsis = true;
         statusLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point);
 
-        headerLayout.Controls.Add(serverLabel, 0, 0);
-        headerLayout.Controls.Add(serverUrlTextBox, 1, 0);
-        headerLayout.Controls.Add(secretLabel, 2, 0);
-        headerLayout.Controls.Add(sharedSecretTextBox, 3, 0);
-        headerLayout.Controls.Add(connectButton, 4, 0);
-        headerLayout.Controls.Add(statusLabel, 5, 0);
+        headerLayout.Controls.Add(settingsButton, 0, 0);
+        headerLayout.Controls.Add(statusLabel, 1, 0);
         topPanel.Controls.Add(headerLayout);
 
         mainTabControl.Dock = DockStyle.Fill;
@@ -537,12 +499,12 @@ partial class MainForm
             Dock = DockStyle.Fill,
             GripStyle = ToolStripGripStyle.Hidden,
             AutoSize = false,
-            Height = 44,
+            Height = 58,
             Padding = new Padding(4),
             BackColor = Color.White,
             RenderMode = ToolStripRenderMode.System,
             ShowItemToolTips = true,
-            ImageScalingSize = new Size(18, 18)
+            ImageScalingSize = new Size(28, 28)
         };
     }
 
@@ -552,8 +514,8 @@ partial class MainForm
         {
             DisplayStyle = ToolStripItemDisplayStyle.Image,
             AutoSize = false,
-            Width = 34,
-            Height = 34,
+            Width = 46,
+            Height = 46,
             Image = CreateToolbarIcon(iconKind),
             ToolTipText = toolTipText,
             Margin = new Padding(2),
@@ -565,14 +527,14 @@ partial class MainForm
 
     private static Bitmap CreateToolbarIcon(ToolbarIconKind iconKind)
     {
-        var bitmap = new Bitmap(20, 20);
+        var bitmap = new Bitmap(28, 28);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
         graphics.Clear(Color.Transparent);
 
         var accent = iconKind switch
         {
-            ToolbarIconKind.Connect => Color.FromArgb(37, 99, 235),
+            ToolbarIconKind.Settings => Color.FromArgb(79, 70, 229),
             ToolbarIconKind.Refresh => Color.FromArgb(8, 145, 178),
             ToolbarIconKind.Link => Color.FromArgb(22, 163, 74),
             ToolbarIconKind.Add => Color.FromArgb(34, 197, 94),
@@ -587,7 +549,7 @@ partial class MainForm
             _ => Color.FromArgb(71, 85, 105)
         };
 
-        using var pen = new Pen(accent, 2F)
+        using var pen = new Pen(accent, 2.8F)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round
@@ -596,72 +558,74 @@ partial class MainForm
         using var fillBrush = new SolidBrush(Color.FromArgb(32, accent));
         using var accentBrush = new SolidBrush(accent);
 
-        graphics.FillEllipse(fillBrush, 1, 1, 18, 18);
+        graphics.FillEllipse(fillBrush, 1, 1, 26, 26);
 
         switch (iconKind)
         {
-            case ToolbarIconKind.Connect:
-                graphics.DrawArc(pen, 4, 4, 8, 8, 40, 280);
-                graphics.DrawLine(pen, 10, 10, 15, 15);
-                graphics.FillEllipse(accentBrush, 13, 13, 3, 3);
+            case ToolbarIconKind.Settings:
+                graphics.DrawEllipse(pen, 8, 8, 12, 12);
+                graphics.FillEllipse(accentBrush, 12, 12, 4, 4);
+                graphics.DrawLine(pen, 14, 4, 14, 8);
+                graphics.DrawLine(pen, 14, 20, 14, 24);
+                graphics.DrawLine(pen, 4, 14, 8, 14);
+                graphics.DrawLine(pen, 20, 14, 24, 14);
                 break;
             case ToolbarIconKind.Refresh:
-                graphics.DrawArc(pen, 4, 4, 12, 12, 35, 250);
-                graphics.DrawLine(pen, 13, 4, 16, 4);
-                graphics.DrawLine(pen, 16, 4, 16, 7);
+                graphics.DrawArc(pen, 6, 6, 16, 16, 35, 250);
+                graphics.DrawLine(pen, 19, 6, 23, 6);
+                graphics.DrawLine(pen, 23, 6, 23, 10);
                 break;
             case ToolbarIconKind.Link:
-                graphics.DrawArc(pen, 3, 7, 7, 6, 300, 220);
-                graphics.DrawArc(pen, 10, 7, 7, 6, 120, 220);
-                graphics.DrawLine(pen, 7, 10, 13, 10);
+                graphics.DrawArc(pen, 4, 9, 10, 8, 300, 220);
+                graphics.DrawArc(pen, 14, 9, 10, 8, 120, 220);
+                graphics.DrawLine(pen, 10, 14, 18, 14);
                 break;
             case ToolbarIconKind.Add:
-                graphics.DrawLine(pen, 10, 5, 10, 15);
-                graphics.DrawLine(pen, 5, 10, 15, 10);
+                graphics.DrawLine(pen, 14, 6, 14, 22);
+                graphics.DrawLine(pen, 6, 14, 22, 14);
                 break;
             case ToolbarIconKind.Edit:
-                graphics.DrawLine(pen, 5, 14, 13, 6);
-                graphics.DrawLine(pen, 12, 5, 15, 8);
-                graphics.DrawLine(pen, 5, 14, 4, 16);
+                graphics.DrawLine(pen, 7, 20, 18, 9);
+                graphics.DrawLine(pen, 17, 8, 21, 12);
+                graphics.DrawLine(pen, 7, 20, 6, 23);
                 break;
             case ToolbarIconKind.Remove:
-                graphics.DrawLine(pen, 6, 6, 14, 14);
-                graphics.DrawLine(pen, 14, 6, 6, 14);
+                graphics.DrawLine(pen, 8, 8, 20, 20);
+                graphics.DrawLine(pen, 20, 8, 8, 20);
                 break;
             case ToolbarIconKind.Processes:
-                graphics.DrawRectangle(pen, 4, 5, 4, 10);
-                graphics.DrawRectangle(pen, 9, 8, 4, 7);
-                graphics.DrawRectangle(pen, 14, 3, 2, 12);
+                graphics.DrawRectangle(pen, 5, 8, 5, 12);
+                graphics.DrawRectangle(pen, 12, 10, 5, 10);
+                graphics.DrawRectangle(pen, 19, 6, 4, 14);
                 break;
             case ToolbarIconKind.Stop:
-                graphics.FillRectangle(accentBrush, 5, 5, 10, 10);
+                graphics.FillRectangle(accentBrush, 7, 7, 14, 14);
                 break;
             case ToolbarIconKind.Folder:
-                graphics.DrawRectangle(pen, 4, 7, 12, 8);
-                graphics.DrawLine(pen, 4, 7, 7, 4);
-                graphics.DrawLine(pen, 7, 4, 11, 4);
-                graphics.DrawLine(pen, 11, 4, 12, 7);
+                graphics.DrawRectangle(pen, 5, 10, 18, 11);
+                graphics.DrawLine(pen, 5, 10, 9, 6);
+                graphics.DrawLine(pen, 9, 6, 15, 6);
+                graphics.DrawLine(pen, 15, 6, 17, 10);
                 break;
             case ToolbarIconKind.Upload:
-                graphics.DrawLine(pen, 10, 15, 10, 5);
-                graphics.DrawLine(pen, 7, 8, 10, 5);
-                graphics.DrawLine(pen, 13, 8, 10, 5);
-                graphics.DrawLine(pen, 5, 15, 15, 15);
+                graphics.DrawLine(pen, 14, 22, 14, 6);
+                graphics.DrawLine(pen, 10, 10, 14, 6);
+                graphics.DrawLine(pen, 18, 10, 14, 6);
+                graphics.DrawLine(pen, 7, 22, 21, 22);
                 break;
             case ToolbarIconKind.Download:
-                graphics.DrawLine(pen, 10, 5, 10, 15);
-                graphics.DrawLine(pen, 7, 12, 10, 15);
-                graphics.DrawLine(pen, 13, 12, 10, 15);
-                graphics.DrawLine(pen, 5, 5, 15, 5);
+                graphics.DrawLine(pen, 14, 6, 14, 22);
+                graphics.DrawLine(pen, 10, 18, 14, 22);
+                graphics.DrawLine(pen, 18, 18, 14, 22);
+                graphics.DrawLine(pen, 7, 6, 21, 6);
                 break;
             case ToolbarIconKind.NewFolder:
-                graphics.DrawRectangle(pen, 3, 8, 11, 7);
-                graphics.DrawLine(pen, 3, 8, 6, 5);
-                graphics.DrawLine(pen, 6, 5, 10, 5);
-                graphics.DrawLine(pen, 10, 5, 11, 8);
-                graphics.DrawLine(pen, 15, 8, 15, 14);
-                graphics.DrawLine(pen, 12, 11, 18, 11);
-                graphics.DrawLine(pen, 15, 8, 15, 14);
+                graphics.DrawRectangle(pen, 4, 11, 14, 10);
+                graphics.DrawLine(pen, 4, 11, 8, 7);
+                graphics.DrawLine(pen, 8, 7, 13, 7);
+                graphics.DrawLine(pen, 13, 7, 15, 11);
+                graphics.DrawLine(pen, 21, 9, 21, 21);
+                graphics.DrawLine(pen, 15, 15, 27, 15);
                 break;
         }
 
@@ -670,7 +634,7 @@ partial class MainForm
 
     private enum ToolbarIconKind
     {
-        Connect,
+        Settings,
         Refresh,
         Link,
         Add,

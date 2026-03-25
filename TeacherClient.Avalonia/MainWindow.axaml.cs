@@ -13,12 +13,14 @@ public partial class MainWindow : Window
 {
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
+    private readonly ClientSettingsStore _clientSettingsStore = new();
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
     private readonly ObservableCollection<FileSystemEntryDto> _remoteEntries = [];
     private readonly DispatcherTimer _agentRefreshTimer = new();
     private readonly DispatcherTimer _connectionMonitorTimer = new();
+    private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<DiscoveredAgentRow> _allAgents = [];
     private string? _remoteParentPath;
@@ -29,8 +31,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        ServerUrlTextBox.Text = "http://127.0.0.1:5055";
-        SharedSecretTextBox.Text = "change-this-secret";
+        _clientSettings = _clientSettingsStore.Load();
         ProcessesGrid.ItemsSource = _processes;
         LocalFilesGrid.ItemsSource = _localEntries;
         RemoteFilesGrid.ItemsSource = _remoteEntries;
@@ -61,11 +62,25 @@ public partial class MainWindow : Window
         };
     }
 
-    private TeacherApiClient CreateClient() => new(ServerUrlTextBox.Text?.Trim() ?? string.Empty, SharedSecretTextBox.Text?.Trim() ?? string.Empty);
+    private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
 
-    private async void ConnectButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void SettingsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        await RunBusyAsync(() => ConnectToServerAsync(ServerUrlTextBox.Text?.Trim() ?? string.Empty, null, "manual"), "Connect error");
+        var dialog = new SettingsWindow(_clientSettings);
+        var result = await dialog.ShowDialog<bool>(this);
+        if (!result)
+        {
+            return;
+        }
+
+        _clientSettings = dialog.ToSettings();
+        _clientSettingsStore.Save(_clientSettings);
+        SetStatus("Settings saved. Shared secret updated.");
+
+        if (_allAgents.Count > 0)
+        {
+            await LoadAgentsAsync();
+        }
     }
 
     private async void RefreshAgentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -180,8 +195,7 @@ public partial class MainWindow : Window
 
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
     {
-        ServerUrlTextBox.Text = serverUrl;
-        var client = CreateClient();
+        var client = new TeacherApiClient(serverUrl, _clientSettings.SharedSecret);
         var info = await client.GetServerInfoAsync();
         if (info is null)
         {
@@ -195,6 +209,16 @@ public partial class MainWindow : Window
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+    }
+
+    private string GetCurrentServerUrlOrThrow()
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            throw new InvalidOperationException("Connect to an agent from the Agents tab first.");
+        }
+
+        return _lastConnectedServerUrl;
     }
 
     private void AgentSearchTextBox_OnTextChanged(object? sender, TextChangedEventArgs e)
@@ -268,7 +292,7 @@ public partial class MainWindow : Window
 
             var reachabilityClient = new TeacherApiClient(
                 $"http://{agent.RespondingAddress}:{agent.Port}",
-                SharedSecretTextBox.Text?.Trim() ?? string.Empty);
+                _clientSettings.SharedSecret);
 
             var isReachable = await reachabilityClient.IsServerReachableAsync();
             updatedAgents.Add(agent with
@@ -289,7 +313,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var currentClient = new TeacherApiClient(_lastConnectedServerUrl, SharedSecretTextBox.Text?.Trim() ?? string.Empty);
+            var currentClient = new TeacherApiClient(_lastConnectedServerUrl, _clientSettings.SharedSecret);
             if (await currentClient.IsServerReachableAsync())
             {
                 return;

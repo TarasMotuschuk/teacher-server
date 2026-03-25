@@ -40,7 +40,7 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <Menu Grid.Row="0" Margin="0,0,0,12">
       <MenuItem Header="_Connection">
-        <MenuItem Header="_Connect" Click="ConnectButton_OnClick" />
+        <MenuItem Header="_Settings" Click="SettingsButton_OnClick" />
         <MenuItem Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
         <MenuItem Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
         <MenuItem Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
@@ -56,26 +56,17 @@
             Padding="12"
             CornerRadius="10"
             Background="#17202A">
-      <Grid ColumnDefinitions="Auto,250,Auto,200,Auto,*">
-        <TextBlock Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" Text="Server URL" />
-        <TextBox x:Name="ServerUrlTextBox"
-                 Grid.Column="1"
-                 Margin="0,0,10,0"
-                 Watermark="http://127.0.0.1:5055" />
-        <TextBlock Grid.Column="2" Margin="0,0,10,0" VerticalAlignment="Center" Text="Secret" />
-        <TextBox x:Name="SharedSecretTextBox"
-                 Grid.Column="3"
-                 Margin="0,0,10,0" />
-        <Button Grid.Column="4"
-                Margin="0,0,10,0"
-                Width="110"
-                Content="Connect"
-                Click="ConnectButton_OnClick" />
+      <Grid ColumnDefinitions="Auto,*">
+        <Button Grid.Column="0"
+                Margin="0,0,14,0"
+                Width="120"
+                Content="Settings"
+                Click="SettingsButton_OnClick" />
         <TextBlock x:Name="StatusTextBlock"
-                   Grid.Column="5"
+                   Grid.Column="1"
                    VerticalAlignment="Center"
                    TextWrapping="Wrap"
-                   Text="Ready" />
+                   Text="Ready. Use the Agents tab to select a student machine, then connect." />
       </Grid>
     </Border>
 

@@ -9,8 +9,10 @@ public partial class MainForm : Form
 {
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
+    private readonly ClientSettingsStore _clientSettingsStore = new();
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
+    private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<DiscoveredAgentRow> _allAgents = [];
     private BindingList<DiscoveredAgentRow> _agents = new();
@@ -32,8 +34,7 @@ public partial class MainForm : Form
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
         remoteFilesGrid.DataSource = _remoteEntries;
-        serverUrlTextBox.Text = "http://127.0.0.1:5055";
-        sharedSecretTextBox.Text = "change-this-secret";
+        _clientSettings = _clientSettingsStore.Load();
         _manualAgents = _manualAgentStore.Load().ToList();
         groupFilterComboBox.Items.Add("All groups");
         groupFilterComboBox.SelectedIndex = 0;
@@ -58,17 +59,23 @@ public partial class MainForm : Form
         };
     }
 
-    private TeacherApiClient CreateClient() => new(serverUrlTextBox.Text.Trim(), sharedSecretTextBox.Text.Trim());
+    private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
 
-    private async void connectButton_Click(object sender, EventArgs e)
+    private async void settingsButton_Click(object? sender, EventArgs e)
     {
-        try
+        using var dialog = new SettingsDialog(_clientSettings);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
         {
-            await ConnectToServerAsync(serverUrlTextBox.Text.Trim(), null, "manual");
+            return;
         }
-        catch (Exception ex)
+
+        _clientSettings = dialog.ToSettings();
+        _clientSettingsStore.Save(_clientSettings);
+        SetStatus("Settings saved. Shared secret updated.");
+
+        if (_allAgents.Count > 0)
         {
-            SetStatus($"Connect error: {ex.Message}");
+            await LoadDiscoveredAgentsAsync();
         }
     }
 
@@ -494,8 +501,7 @@ public partial class MainForm : Form
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
     {
         using var cursorScope = new CursorScope(this);
-        serverUrlTextBox.Text = serverUrl;
-        var client = CreateClient();
+        var client = new TeacherApiClient(serverUrl, _clientSettings.SharedSecret);
         var info = await client.GetServerInfoAsync();
         if (info is null)
         {
@@ -509,6 +515,16 @@ public partial class MainForm : Form
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+    }
+
+    private string GetCurrentServerUrlOrThrow()
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            throw new InvalidOperationException("Connect to an agent from the Agents tab first.");
+        }
+
+        return _lastConnectedServerUrl;
     }
 
     private void SaveManualAgents()
@@ -586,7 +602,7 @@ public partial class MainForm : Form
 
             var reachabilityClient = new TeacherApiClient(
                 $"http://{agent.RespondingAddress}:{agent.Port}",
-                sharedSecretTextBox.Text.Trim());
+                _clientSettings.SharedSecret);
 
             var isReachable = await reachabilityClient.IsServerReachableAsync();
             updatedAgents.Add(agent with
@@ -607,7 +623,7 @@ public partial class MainForm : Form
 
         try
         {
-            var currentClient = new TeacherApiClient(_lastConnectedServerUrl, sharedSecretTextBox.Text.Trim());
+            var currentClient = new TeacherApiClient(_lastConnectedServerUrl, _clientSettings.SharedSecret);
             if (await currentClient.IsServerReachableAsync())
             {
                 return;

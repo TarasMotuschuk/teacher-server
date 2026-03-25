@@ -36,6 +36,9 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Manual agent records now also store a group/class value and participate in filtered agent management.
 - `TeacherClient` desktop layout was refreshed for Windows with maximized startup, tab toolbars, and more usable control sizing.
 - `TeacherClient` dialogs were restyled to match the refreshed Windows desktop layout.
+- Both teacher clients now keep the shared secret in a dedicated settings dialog instead of the main window header.
+- Both teacher clients now treat the `Agents` list as the primary connection entry point instead of manual URL entry.
+- `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 
 ### Notes
 
