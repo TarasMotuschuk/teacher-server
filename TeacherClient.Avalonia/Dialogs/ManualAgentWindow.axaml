@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.ManualAgentWindow"
+        Width="520"
+        Height="430"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Manual Agent">
+  <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="120,*">
+    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,12,12,0" VerticalAlignment="Center" Text="Display name" />
+    <TextBox x:Name="DisplayNameTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,12" />
+
+    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,12,12,0" VerticalAlignment="Center" Text="IP address" />
+    <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,90" Margin="0,0,0,12">
+      <TextBox x:Name="IpAddressTextBox" Grid.Column="0" Margin="0,0,12,0" />
+      <NumericUpDown x:Name="PortNumericUpDown" Grid.Column="1" Minimum="1" Maximum="65535" Value="5055" />
+    </Grid>
+
+    <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,12,12,0" VerticalAlignment="Center" Text="Group" />
+    <TextBox x:Name="GroupNameTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,12" />
+
+    <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,12,12,0" VerticalAlignment="Center" Text="MAC address" />
+    <TextBox x:Name="MacAddressTextBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,12" />
+
+    <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,12,12,0" VerticalAlignment="Top" Text="Notes" />
+    <TextBox x:Name="NotesTextBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,12" AcceptsReturn="True" Height="96" TextWrapping="Wrap" />
+
+    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+      <Button Width="110" Content="Save" Click="SaveButton_OnClick" />
+      <Button Width="110" Content="Cancel" Click="CancelButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>

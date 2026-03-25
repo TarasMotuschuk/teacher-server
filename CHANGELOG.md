@@ -25,6 +25,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Project documentation in `README.md`.
 - Contributor guidance in `AGENTS.md`.
 - Agent status filtering, agent grouping, and auto-reconnect behavior in `TeacherClient`.
+- Matching agent discovery, grouping, filtering, and auto-reconnect flow in `TeacherClient.Avalonia`.
 
 ### Changed
 

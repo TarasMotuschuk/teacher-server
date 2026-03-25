@@ -49,6 +49,12 @@ Available endpoints:
 
 `TeacherClient.Avalonia` provides the same core workflow in a cross-platform desktop app:
 
+- auto-discovery of agents on the local network over UDP;
+- a combined `Agents` list with auto-discovered and manual entries;
+- manual agent definitions with saved IP, port, group/class, MAC address, and notes;
+- agent status tracking with `Online`, `Offline`, and `Unknown` states;
+- filtering by search text, status, and group/class;
+- auto-reconnect to the last connected agent;
 - connect to the same `StudentAgent` endpoint;
 - browse remote processes and terminate a selected process;
 - browse local and remote file trees in dual panes;
@@ -154,6 +160,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 ```
 
 4. In the app, enter the `StudentAgent` URL and shared secret, then connect.
+5. You can also use the `Agents` tab to discover students automatically, assign manual entries to groups, and reconnect from the filtered list.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
 
