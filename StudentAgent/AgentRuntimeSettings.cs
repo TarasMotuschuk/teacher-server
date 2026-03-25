@@ -4,6 +4,8 @@ public sealed class AgentRuntimeSettings
 {
     public int Port { get; set; } = 5055;
 
+    public int DiscoveryPort { get; set; } = 5056;
+
     public string SharedSecret { get; set; } = "change-this-secret";
 
     public string AdminPasswordHash { get; set; } = string.Empty;

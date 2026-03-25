@@ -75,6 +75,7 @@ public sealed class AgentSettingsStore
         return Normalize(new AgentRuntimeSettings
         {
             Port = defaults.Port,
+            DiscoveryPort = defaults.DiscoveryPort,
             SharedSecret = defaults.SharedSecret,
             AdminPasswordHash = defaults.AdminPasswordHash,
             VisibleBannerText = defaults.VisibleBannerText
@@ -94,6 +95,7 @@ public sealed class AgentSettingsStore
     private static AgentRuntimeSettings Normalize(AgentRuntimeSettings value, AgentOptions defaults)
     {
         value.Port = value.Port <= 0 ? defaults.Port : value.Port;
+        value.DiscoveryPort = value.DiscoveryPort <= 0 ? defaults.DiscoveryPort : value.DiscoveryPort;
         value.SharedSecret = string.IsNullOrWhiteSpace(value.SharedSecret) ? defaults.SharedSecret : value.SharedSecret.Trim();
         value.AdminPasswordHash = string.IsNullOrWhiteSpace(value.AdminPasswordHash) ? defaults.AdminPasswordHash : value.AdminPasswordHash.Trim();
         value.VisibleBannerText = string.IsNullOrWhiteSpace(value.VisibleBannerText) ? defaults.VisibleBannerText : value.VisibleBannerText.Trim();
@@ -105,6 +107,7 @@ public sealed class AgentSettingsStore
         return new AgentRuntimeSettings
         {
             Port = settings.Port,
+            DiscoveryPort = settings.DiscoveryPort,
             SharedSecret = settings.SharedSecret,
             AdminPasswordHash = settings.AdminPasswordHash,
             VisibleBannerText = settings.VisibleBannerText

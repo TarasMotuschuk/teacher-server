@@ -6,6 +6,9 @@ namespace TeacherClient;
 
 public partial class MainForm : Form
 {
+    private readonly AgentDiscoveryService _agentDiscoveryService = new();
+    private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
+    private BindingList<DiscoveredAgentRow> _agents = new();
     private BindingList<ProcessInfoDto> _processes = new();
     private BindingList<FileSystemEntryDto> _localEntries = new();
     private BindingList<FileSystemEntryDto> _remoteEntries = new();
@@ -17,11 +20,22 @@ public partial class MainForm : Form
         processesGrid.AutoGenerateColumns = false;
         localFilesGrid.AutoGenerateColumns = false;
         remoteFilesGrid.AutoGenerateColumns = false;
+        agentsGrid.AutoGenerateColumns = false;
+        agentsGrid.DataSource = _agents;
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
         remoteFilesGrid.DataSource = _remoteEntries;
         serverUrlTextBox.Text = "http://127.0.0.1:5055";
         sharedSecretTextBox.Text = "change-this-secret";
+
+        _agentRefreshTimer.Interval = 15000;
+        _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync();
+        Shown += async (_, _) =>
+        {
+            await LoadDiscoveredAgentsAsync();
+            _agentRefreshTimer.Start();
+        };
+        FormClosing += (_, _) => _agentRefreshTimer.Stop();
     }
 
     private TeacherApiClient CreateClient() => new(serverUrlTextBox.Text.Trim(), sharedSecretTextBox.Text.Trim());
@@ -51,6 +65,13 @@ public partial class MainForm : Form
     }
 
     private async void refreshProcessesButton_Click(object sender, EventArgs e) => await LoadProcessesAsync();
+
+    private async void refreshAgentsButton_Click(object? sender, EventArgs e) => await LoadDiscoveredAgentsAsync();
+
+    private async void connectSelectedAgentButton_Click(object? sender, EventArgs e)
+    {
+        await ConnectSelectedAgentAsync();
+    }
 
     private async void killProcessButton_Click(object sender, EventArgs e)
     {
@@ -96,6 +117,24 @@ public partial class MainForm : Form
         catch (Exception ex)
         {
             SetStatus($"Process load error: {ex.Message}");
+        }
+    }
+
+    private async Task LoadDiscoveredAgentsAsync()
+    {
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
+            _agents = new BindingList<DiscoveredAgentRow>(discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList());
+            agentsGrid.DataSource = _agents;
+            SetStatus(discoveredAgents.Count == 0
+                ? "No agents discovered."
+                : $"Discovered {discoveredAgents.Count} agent(s)");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Discovery error: {ex.Message}");
         }
     }
 
@@ -202,6 +241,16 @@ public partial class MainForm : Form
         {
             await LoadRemoteDirectoryAsync(_remoteParentPath);
         }
+    }
+
+    private async void agentsGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0)
+        {
+            return;
+        }
+
+        await ConnectSelectedAgentAsync();
     }
 
     private async void uploadButton_Click(object sender, EventArgs e)
@@ -337,7 +386,52 @@ public partial class MainForm : Form
         }
     }
 
+    private void aboutMenuItem_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new AboutDialog();
+        dialog.ShowDialog(this);
+    }
+
+    private async Task ConnectSelectedAgentAsync()
+    {
+        if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus("Choose a discovered agent first.");
+            return;
+        }
+
+        serverUrlTextBox.Text = $"http://{agent.RespondingAddress}:{agent.Port}";
+        await LoadProcessesAsync();
+        await LoadLocalDirectoryAsync(localPathTextBox.Text);
+        await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+        SetStatus($"Connected to discovered agent {agent.MachineName}");
+    }
+
     private void SetStatus(string text) => statusLabel.Text = text;
+
+    private sealed record DiscoveredAgentRow(
+        string AgentId,
+        string MachineName,
+        string CurrentUser,
+        string RespondingAddress,
+        int Port,
+        string MacAddressesDisplay,
+        string Version,
+        DateTime LastSeenUtc)
+    {
+        public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
+        {
+            return new DiscoveredAgentRow(
+                dto.AgentId,
+                dto.MachineName,
+                dto.CurrentUser,
+                dto.RespondingAddress,
+                dto.Port,
+                string.Join(", ", dto.MacAddresses),
+                dto.Version,
+                dto.LastSeenUtc);
+        }
+    }
 
     private sealed class CursorScope : IDisposable
     {

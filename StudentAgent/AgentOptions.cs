@@ -6,6 +6,8 @@ public sealed class AgentOptions
 
     public int Port { get; set; } = 5055;
 
+    public int DiscoveryPort { get; set; } = 5056;
+
     public string SharedSecret { get; set; } = "change-this-secret";
 
     public string AdminPasswordHash { get; set; } = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";

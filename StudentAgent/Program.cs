@@ -19,6 +19,8 @@ try
     builder.Services.AddSingleton<ProcessService>();
     builder.Services.AddSingleton<FileService>();
     builder.Services.AddSingleton<ServerInfoService>();
+    builder.Services.AddSingleton<NetworkIdentityService>();
+    builder.Services.AddHostedService<AgentDiscoveryService>();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 

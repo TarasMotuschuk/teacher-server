@@ -13,8 +13,14 @@
     <x:Null />
   </Design.DataContext>
 
-  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
-    <Border Grid.Row="0"
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+    <Menu Grid.Row="0" Margin="0,0,0,12">
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About" Click="AboutMenuItem_OnClick" />
+      </MenuItem>
+    </Menu>
+
+    <Border Grid.Row="1"
             Padding="12"
             CornerRadius="10"
             Background="#17202A">
@@ -41,7 +47,7 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="1" Margin="0,16,0,16">
+    <TabControl Grid.Row="2" Margin="0,16,0,16">
       <TabItem Header="Processes">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
           <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -130,7 +136,7 @@
       </TabItem>
     </TabControl>
 
-    <Border Grid.Row="2"
+    <Border Grid.Row="3"
             Padding="12"
             CornerRadius="10"
             Background="#EEF2F6">

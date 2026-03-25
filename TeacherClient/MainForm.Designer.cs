@@ -7,6 +7,7 @@ partial class MainForm
     private System.ComponentModel.IContainer? components = null;
     private MenuStrip mainMenuStrip = null!;
     private TabControl mainTabControl = null!;
+    private TabPage agentsTabPage = null!;
     private TabPage processesTabPage = null!;
     private TabPage filesTabPage = null!;
     private TextBox serverUrlTextBox = null!;
@@ -28,6 +29,9 @@ partial class MainForm
     private Button newRemoteFolderButton = null!;
     private Button upLocalButton = null!;
     private Button upRemoteButton = null!;
+    private DataGridView agentsGrid = null!;
+    private Button refreshAgentsButton = null!;
+    private Button connectSelectedAgentButton = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -44,6 +48,7 @@ partial class MainForm
         components = new System.ComponentModel.Container();
         mainMenuStrip = new MenuStrip();
         mainTabControl = new TabControl();
+        agentsTabPage = new TabPage();
         processesTabPage = new TabPage();
         filesTabPage = new TabPage();
         serverUrlTextBox = new TextBox();
@@ -65,6 +70,9 @@ partial class MainForm
         newRemoteFolderButton = new Button();
         upLocalButton = new Button();
         upRemoteButton = new Button();
+        agentsGrid = new DataGridView();
+        refreshAgentsButton = new Button();
+        connectSelectedAgentButton = new Button();
         SuspendLayout();
 
         Text = "Teacher Classroom Client";
@@ -75,6 +83,8 @@ partial class MainForm
 
         var connectionMenuItem = new ToolStripMenuItem("Connection");
         connectionMenuItem.DropDownItems.Add("Connect", null, connectButton_Click);
+        connectionMenuItem.DropDownItems.Add("Refresh Agents", null, refreshAgentsButton_Click);
+        connectionMenuItem.DropDownItems.Add("Connect Selected Agent", null, connectSelectedAgentButton_Click);
 
         var processesMenuItem = new ToolStripMenuItem("Processes");
         processesMenuItem.DropDownItems.Add("Refresh", null, refreshProcessesButton_Click);
@@ -88,10 +98,14 @@ partial class MainForm
         filesMenuItem.DropDownItems.Add("Delete Remote", null, deleteRemoteButton_Click);
         filesMenuItem.DropDownItems.Add("New Remote Folder", null, newRemoteFolderButton_Click);
 
+        var helpMenuItem = new ToolStripMenuItem("Help");
+        helpMenuItem.DropDownItems.Add("About", null, aboutMenuItem_Click);
+
         mainMenuStrip.Dock = DockStyle.Top;
         mainMenuStrip.Items.Add(connectionMenuItem);
         mainMenuStrip.Items.Add(processesMenuItem);
         mainMenuStrip.Items.Add(filesMenuItem);
+        mainMenuStrip.Items.Add(helpMenuItem);
 
         var topPanel = new Panel
         {
@@ -159,11 +173,52 @@ partial class MainForm
         topPanel.Controls.Add(headerLayout);
 
         mainTabControl.Dock = DockStyle.Fill;
+        mainTabControl.TabPages.Add(agentsTabPage);
         mainTabControl.TabPages.Add(processesTabPage);
         mainTabControl.TabPages.Add(filesTabPage);
 
+        agentsTabPage.Text = "Agents";
         processesTabPage.Text = "Processes";
         filesTabPage.Text = "Files";
+
+        refreshAgentsButton.Text = "Refresh Agents";
+        refreshAgentsButton.Left = 12;
+        refreshAgentsButton.Top = 12;
+        refreshAgentsButton.Width = 140;
+        refreshAgentsButton.Height = 45;
+        refreshAgentsButton.Click += refreshAgentsButton_Click;
+
+        connectSelectedAgentButton.Text = "Connect Selected";
+        connectSelectedAgentButton.Left = 164;
+        connectSelectedAgentButton.Top = 12;
+        connectSelectedAgentButton.Width = 150;
+        connectSelectedAgentButton.Height = 45;
+        connectSelectedAgentButton.Click += connectSelectedAgentButton_Click;
+
+        agentsGrid.Left = 12;
+        agentsGrid.Top = 70;
+        agentsGrid.Width = 1220;
+        agentsGrid.Height = 588;
+        agentsGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        agentsGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        agentsGrid.MultiSelect = false;
+        agentsGrid.ReadOnly = true;
+        agentsGrid.AllowUserToAddRows = false;
+        agentsGrid.AllowUserToDeleteRows = false;
+        agentsGrid.RowHeadersVisible = false;
+        agentsGrid.AutoGenerateColumns = false;
+        agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Machine", DataPropertyName = "MachineName", Width = 180 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "User", DataPropertyName = "CurrentUser", Width = 140 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 130 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Port", DataPropertyName = "Port", Width = 70 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MACs", DataPropertyName = "MacAddressesDisplay", Width = 250 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Version", DataPropertyName = "Version", Width = 100 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Last Seen UTC", DataPropertyName = "LastSeenUtc", Width = 180 });
+
+        agentsTabPage.Controls.Add(refreshAgentsButton);
+        agentsTabPage.Controls.Add(connectSelectedAgentButton);
+        agentsTabPage.Controls.Add(agentsGrid);
 
         refreshProcessesButton.Text = "Refresh";
         refreshProcessesButton.Left = 12;

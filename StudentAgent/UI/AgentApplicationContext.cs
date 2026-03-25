@@ -17,6 +17,7 @@ public sealed class AgentApplicationContext : ApplicationContext
         _logService = logService;
 
         var menu = new ContextMenuStrip();
+        menu.Items.Add("About", null, (_, _) => OpenAbout());
         menu.Items.Add("Settings", null, (_, _) => OpenSettings());
         menu.Items.Add("Logs", null, (_, _) => OpenLogs());
         menu.Items.Add(new ToolStripSeparator());
@@ -63,6 +64,12 @@ public sealed class AgentApplicationContext : ApplicationContext
         }
 
         using var form = new LogsForm(_logService);
+        form.ShowDialog();
+    }
+
+    private void OpenAbout()
+    {
+        using var form = new AboutForm();
         form.ShowDialog();
     }
 

@@ -7,10 +7,14 @@ public sealed class ServerInfoService
 {
     public ServerInfoDto GetInfo()
     {
+        var machineName = Environment.MachineName;
+        var currentUser = Environment.UserName;
+        var osDescription = RuntimeInformation.OSDescription;
+
         return new ServerInfoDto(
-            Environment.MachineName,
-            Environment.UserName,
-            RuntimeInformation.OSDescription,
+            machineName,
+            currentUser,
+            osDescription,
             DateTime.UtcNow,
             true);
     }

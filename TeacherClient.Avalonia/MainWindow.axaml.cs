@@ -266,6 +266,12 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void AboutMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var aboutWindow = new AboutWindow();
+        await aboutWindow.ShowDialog(this);
+    }
+
     private static FileSystemEntryDto MapLocalEntry(FileSystemInfo entry)
     {
         return new FileSystemEntryDto(
