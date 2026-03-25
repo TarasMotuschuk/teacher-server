@@ -47,6 +47,7 @@ public partial class MainForm : Form
         _connectionMonitorTimer.Tick += async (_, _) => await MonitorConnectionAsync();
         Shown += async (_, _) =>
         {
+            ApplyInitialLayout();
             await LoadDiscoveredAgentsAsync();
             _agentRefreshTimer.Start();
             _connectionMonitorTimer.Start();
@@ -56,6 +57,20 @@ public partial class MainForm : Form
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
         };
+    }
+
+    private void ApplyInitialLayout()
+    {
+        if (filesSplitContainer.Width <= 0)
+        {
+            return;
+        }
+
+        var availableWidth = filesSplitContainer.Width - filesSplitContainer.SplitterWidth;
+        var desired = availableWidth / 2;
+        var minLeft = filesSplitContainer.Panel1MinSize;
+        var maxLeft = Math.Max(minLeft, availableWidth - filesSplitContainer.Panel2MinSize);
+        filesSplitContainer.SplitterDistance = Math.Min(Math.Max(desired, minLeft), maxLeft);
     }
 
     private TeacherApiClient CreateClient() => new(serverUrlTextBox.Text.Trim(), sharedSecretTextBox.Text.Trim());

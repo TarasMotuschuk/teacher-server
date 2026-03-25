@@ -29,6 +29,7 @@ partial class MainForm
     private Button newRemoteFolderButton = null!;
     private Button upLocalButton = null!;
     private Button upRemoteButton = null!;
+    private SplitContainer filesSplitContainer = null!;
     private DataGridView agentsGrid = null!;
     private Button refreshAgentsButton = null!;
     private Button connectSelectedAgentButton = null!;
@@ -77,6 +78,7 @@ partial class MainForm
         newRemoteFolderButton = new Button();
         upLocalButton = new Button();
         upRemoteButton = new Button();
+        filesSplitContainer = new SplitContainer();
         agentsGrid = new DataGridView();
         refreshAgentsButton = new Button();
         connectSelectedAgentButton = new Button();
@@ -413,15 +415,11 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton("Delete Remote", deleteRemoteButton_Click, 110));
         filesToolStrip.Items.Add(CreateToolbarButton("New Folder", newRemoteFolderButton_Click, 90));
 
-        var filesSplitContainer = new SplitContainer
-        {
-            Dock = DockStyle.Fill,
-            Orientation = Orientation.Vertical,
-            SplitterDistance = 720,
-            BackColor = Color.FromArgb(220, 224, 229),
-            Panel1MinSize = 420,
-            Panel2MinSize = 420
-        };
+        filesSplitContainer.Dock = DockStyle.Fill;
+        filesSplitContainer.Orientation = Orientation.Vertical;
+        filesSplitContainer.BackColor = Color.FromArgb(220, 224, 229);
+        filesSplitContainer.Panel1MinSize = 420;
+        filesSplitContainer.Panel2MinSize = 420;
 
         var localPanelLayout = new TableLayoutPanel
         {
