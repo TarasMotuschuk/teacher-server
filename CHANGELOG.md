@@ -34,6 +34,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Minimal API request binding was corrected for body/service parameters.
 - `TeacherClient` now includes a top menu and discovery-based agent selection flow.
 - Manual agent records now also store a group/class value and participate in filtered agent management.
+- `TeacherClient` desktop layout was refreshed for Windows with maximized startup, tab toolbars, and more usable control sizing.
+- `TeacherClient` dialogs were restyled to match the refreshed Windows desktop layout.
 
 ### Notes
 

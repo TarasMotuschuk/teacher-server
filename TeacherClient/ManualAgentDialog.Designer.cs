@@ -50,120 +50,136 @@ partial class ManualAgentDialog
         ((System.ComponentModel.ISupportInitialize)portNumericUpDown).BeginInit();
         SuspendLayout();
 
+        AutoScaleMode = AutoScaleMode.Font;
+        BackColor = Color.White;
+        Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Manual Agent";
-        Width = 520;
-        Height = 430;
+        Width = 620;
+        Height = 470;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
         MinimizeBox = false;
+        Padding = new Padding(20, 18, 20, 18);
 
-        displayNameLabel.Left = 16;
-        displayNameLabel.Top = 18;
-        displayNameLabel.Width = 120;
-        displayNameLabel.Height = 45;
-        displayNameLabel.Text = "Display name";
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 6
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 118F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-        displayNameTextBox.Left = 144;
-        displayNameTextBox.Top = 18;
-        displayNameTextBox.Width = 340;
-        displayNameTextBox.Height = 45;
-        displayNameTextBox.AutoSize = false;
+        ConfigureFieldLabel(displayNameLabel, "Display name");
+        ConfigureFieldLabel(ipAddressLabel, "IP address");
+        ConfigureFieldLabel(groupNameLabel, "Group");
+        ConfigureFieldLabel(macAddressLabel, "MAC address");
+        ConfigureFieldLabel(notesLabel, "Notes");
 
-        ipAddressLabel.Left = 16;
-        ipAddressLabel.Top = 72;
-        ipAddressLabel.Width = 120;
-        ipAddressLabel.Height = 45;
-        ipAddressLabel.Text = "IP address";
+        displayNameTextBox.Dock = DockStyle.Fill;
+        displayNameTextBox.MinimumSize = new Size(0, 42);
+        displayNameTextBox.Margin = new Padding(0, 6, 0, 6);
 
-        ipAddressTextBox.Left = 144;
-        ipAddressTextBox.Top = 72;
-        ipAddressTextBox.Width = 220;
-        ipAddressTextBox.Height = 45;
-        ipAddressTextBox.AutoSize = false;
+        var ipLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 4,
+            RowCount = 1,
+            Margin = new Padding(0, 6, 0, 6)
+        };
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96F));
 
-        portLabel.Left = 372;
-        portLabel.Top = 72;
-        portLabel.Width = 48;
-        portLabel.Height = 45;
+        ipAddressTextBox.Dock = DockStyle.Fill;
+        ipAddressTextBox.MinimumSize = new Size(0, 42);
+        ipAddressTextBox.Margin = new Padding(0, 0, 12, 0);
+
+        portLabel.Dock = DockStyle.Fill;
         portLabel.Text = "Port";
+        portLabel.TextAlign = ContentAlignment.MiddleLeft;
 
-        portNumericUpDown.Left = 424;
-        portNumericUpDown.Top = 78;
-        portNumericUpDown.Width = 60;
+        portNumericUpDown.Dock = DockStyle.Fill;
         portNumericUpDown.Minimum = 1;
         portNumericUpDown.Maximum = 65535;
         portNumericUpDown.Value = 5055;
+        portNumericUpDown.Margin = new Padding(0, 4, 0, 4);
 
-        groupNameLabel.Left = 16;
-        groupNameLabel.Top = 126;
-        groupNameLabel.Width = 120;
-        groupNameLabel.Height = 45;
-        groupNameLabel.Text = "Group";
+        ipLayout.Controls.Add(ipAddressTextBox, 0, 0);
+        ipLayout.Controls.Add(new Panel(), 1, 0);
+        ipLayout.Controls.Add(portLabel, 2, 0);
+        ipLayout.Controls.Add(portNumericUpDown, 3, 0);
 
-        groupNameTextBox.Left = 144;
-        groupNameTextBox.Top = 126;
-        groupNameTextBox.Width = 340;
-        groupNameTextBox.Height = 45;
-        groupNameTextBox.AutoSize = false;
+        groupNameTextBox.Dock = DockStyle.Fill;
+        groupNameTextBox.MinimumSize = new Size(0, 42);
+        groupNameTextBox.Margin = new Padding(0, 6, 0, 6);
 
-        macAddressLabel.Left = 16;
-        macAddressLabel.Top = 180;
-        macAddressLabel.Width = 120;
-        macAddressLabel.Height = 45;
-        macAddressLabel.Text = "MAC address";
+        macAddressTextBox.Dock = DockStyle.Fill;
+        macAddressTextBox.MinimumSize = new Size(0, 42);
+        macAddressTextBox.Margin = new Padding(0, 6, 0, 6);
 
-        macAddressTextBox.Left = 144;
-        macAddressTextBox.Top = 180;
-        macAddressTextBox.Width = 340;
-        macAddressTextBox.Height = 45;
-        macAddressTextBox.AutoSize = false;
-
-        notesLabel.Left = 16;
-        notesLabel.Top = 234;
-        notesLabel.Width = 120;
-        notesLabel.Height = 45;
-        notesLabel.Text = "Notes";
-
-        notesTextBox.Left = 144;
-        notesTextBox.Top = 234;
-        notesTextBox.Width = 340;
-        notesTextBox.Height = 90;
+        notesTextBox.Dock = DockStyle.Fill;
         notesTextBox.Multiline = true;
+        notesTextBox.ScrollBars = ScrollBars.Vertical;
+        notesTextBox.Margin = new Padding(0, 6, 0, 6);
+
+        var buttonsLayout = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Padding(0, 12, 0, 0)
+        };
 
         saveButton.Text = "Save";
-        saveButton.Left = 314;
-        saveButton.Top = 340;
-        saveButton.Width = 80;
-        saveButton.Height = 45;
+        saveButton.Width = 110;
+        saveButton.Height = 44;
+        saveButton.Margin = new Padding(12, 0, 0, 0);
         saveButton.Click += saveButton_Click;
 
         cancelButton.Text = "Cancel";
-        cancelButton.Left = 404;
-        cancelButton.Top = 340;
-        cancelButton.Width = 80;
-        cancelButton.Height = 45;
+        cancelButton.Width = 110;
+        cancelButton.Height = 44;
+        cancelButton.Margin = new Padding(12, 0, 0, 0);
         cancelButton.Click += cancelButton_Click;
 
-        Controls.Add(displayNameLabel);
-        Controls.Add(displayNameTextBox);
-        Controls.Add(ipAddressLabel);
-        Controls.Add(ipAddressTextBox);
-        Controls.Add(portLabel);
-        Controls.Add(portNumericUpDown);
-        Controls.Add(groupNameLabel);
-        Controls.Add(groupNameTextBox);
-        Controls.Add(macAddressLabel);
-        Controls.Add(macAddressTextBox);
-        Controls.Add(notesLabel);
-        Controls.Add(notesTextBox);
-        Controls.Add(saveButton);
-        Controls.Add(cancelButton);
+        buttonsLayout.Controls.Add(cancelButton);
+        buttonsLayout.Controls.Add(saveButton);
+
+        layout.Controls.Add(displayNameLabel, 0, 0);
+        layout.Controls.Add(displayNameTextBox, 1, 0);
+        layout.Controls.Add(ipAddressLabel, 0, 1);
+        layout.Controls.Add(ipLayout, 1, 1);
+        layout.Controls.Add(groupNameLabel, 0, 2);
+        layout.Controls.Add(groupNameTextBox, 1, 2);
+        layout.Controls.Add(macAddressLabel, 0, 3);
+        layout.Controls.Add(macAddressTextBox, 1, 3);
+        layout.Controls.Add(notesLabel, 0, 4);
+        layout.Controls.Add(notesTextBox, 1, 4);
+        layout.Controls.Add(buttonsLayout, 1, 5);
+
+        Controls.Add(layout);
 
         AcceptButton = saveButton;
         CancelButton = cancelButton;
 
         ((System.ComponentModel.ISupportInitialize)portNumericUpDown).EndInit();
         ResumeLayout(false);
+    }
+
+    private static void ConfigureFieldLabel(Label label, string text)
+    {
+        label.Text = text;
+        label.Dock = DockStyle.Fill;
+        label.TextAlign = ContentAlignment.MiddleLeft;
+        label.Font = new Font("Segoe UI", 10F, FontStyle.SemiBold, GraphicsUnit.Point);
+        label.Margin = new Padding(0, 0, 12, 0);
     }
 }

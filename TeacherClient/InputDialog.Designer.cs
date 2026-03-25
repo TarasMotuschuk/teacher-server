@@ -29,44 +29,64 @@ partial class InputDialog
         cancelButton = new Button();
         SuspendLayout();
 
+        AutoScaleMode = AutoScaleMode.Font;
+        BackColor = Color.White;
+        Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Input";
-        Width = 420;
-        Height = 210;
+        Width = 500;
+        Height = 240;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
         MinimizeBox = false;
+        Padding = new Padding(18);
 
-        promptLabel.Left = 12;
-        promptLabel.Top = 14;
-        promptLabel.Width = 380;
-        promptLabel.Height = 45;
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3
+        };
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        promptLabel.Dock = DockStyle.Fill;
+        promptLabel.TextAlign = ContentAlignment.MiddleLeft;
         promptLabel.Text = "Prompt";
+        promptLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.SemiBold, GraphicsUnit.Point);
 
-        valueTextBox.Left = 12;
-        valueTextBox.Top = 40;
-        valueTextBox.Width = 380;
-        valueTextBox.Height = 45;
-        valueTextBox.AutoSize = false;
+        valueTextBox.Dock = DockStyle.Fill;
+        valueTextBox.MinimumSize = new Size(0, 42);
+        valueTextBox.Margin = new Padding(0, 2, 0, 10);
+
+        var buttonsLayout = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            Padding = new Padding(0, 12, 0, 0)
+        };
 
         okButton.Text = "OK";
-        okButton.Left = 236;
-        okButton.Width = 75;
-        okButton.Top = 128;
-        okButton.Height = 45;
+        okButton.Width = 100;
+        okButton.Height = 44;
         okButton.DialogResult = DialogResult.OK;
+        okButton.Margin = new Padding(12, 0, 0, 0);
 
         cancelButton.Text = "Cancel";
-        cancelButton.Left = 317;
-        cancelButton.Width = 75;
-        cancelButton.Top = 128;
-        cancelButton.Height = 45;
+        cancelButton.Width = 100;
+        cancelButton.Height = 44;
         cancelButton.DialogResult = DialogResult.Cancel;
+        cancelButton.Margin = new Padding(12, 0, 0, 0);
 
-        Controls.Add(promptLabel);
-        Controls.Add(valueTextBox);
-        Controls.Add(okButton);
-        Controls.Add(cancelButton);
+        buttonsLayout.Controls.Add(cancelButton);
+        buttonsLayout.Controls.Add(okButton);
+
+        layout.Controls.Add(promptLabel, 0, 0);
+        layout.Controls.Add(valueTextBox, 0, 1);
+        layout.Controls.Add(buttonsLayout, 0, 2);
+
+        Controls.Add(layout);
 
         AcceptButton = okButton;
         CancelButton = cancelButton;
