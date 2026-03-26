@@ -40,10 +40,12 @@ Available endpoints:
 - manual agent definitions with saved IP, port, group/class, MAC address, and notes;
 - connection to the student agent from the `Agents` list;
 - persisted teacher-side settings with the shared secret stored outside the main window;
+- a teacher-configured destination folder path used for bulk distribution on student PCs;
 - user-selectable UI language with English and Ukrainian options;
 - process list refresh and remote process termination;
 - dual-pane local/remote file browsing;
 - file upload and download;
+- bulk distribution of a selected local file or folder to selected students or all online students;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
 
@@ -59,10 +61,12 @@ Available endpoints:
 - auto-reconnect to the last connected agent;
 - connect to the same `StudentAgent` endpoint from the `Agents` list;
 - persisted teacher-side settings with the shared secret stored outside the main window;
+- a teacher-configured destination folder path used for bulk distribution on student PCs;
 - user-selectable UI language with English and Ukrainian options;
 - browse remote processes and terminate a selected process;
 - browse local and remote file trees in dual panes;
 - upload and download files;
+- bulk distribution of a selected local file or folder to selected students or all online students;
 - delete local and remote entries;
 - create remote folders.
 
@@ -145,8 +149,10 @@ Example configuration:
 3. Optionally assign manual agents to a `Group` such as a classroom, lab row, or lesson cohort.
 4. Filter the list by search text, `Status`, or `Group`.
 5. Leave `Auto-reconnect` enabled if you want the client to recover the last active connection automatically.
-6. Open `Connection -> Settings` and choose the preferred UI language plus the same shared secret as configured on the student side.
+6. Open `Connection -> Settings` and choose the preferred UI language, the shared secret, and the destination folder path that should be used on student PCs for bulk distribution.
 7. Connect to a selected agent from the `Agents` list.
+8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
+9. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
 
 ### Start TeacherClient.Avalonia on macOS
 
@@ -163,8 +169,10 @@ dotnet restore TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 ```
 
-4. In the app, open `Connection -> Settings` and choose the UI language plus the shared secret.
+4. In the app, open `Connection -> Settings` and choose the UI language, the shared secret, and the destination folder path that should be used on student PCs for bulk distribution.
 5. Use the `Agents` tab to discover students automatically, assign manual entries to groups, and connect from the filtered list.
+6. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
+7. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
 

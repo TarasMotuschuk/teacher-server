@@ -7,6 +7,8 @@ partial class SettingsDialog
     private System.ComponentModel.IContainer? components = null;
     private Label sharedSecretLabel = null!;
     private TextBox sharedSecretTextBox = null!;
+    private Label bulkCopyDestinationPathLabel = null!;
+    private TextBox bulkCopyDestinationPathTextBox = null!;
     private Label languageLabel = null!;
     private ComboBox languageComboBox = null!;
     private Label hintLabel = null!;
@@ -28,6 +30,8 @@ partial class SettingsDialog
         components = new System.ComponentModel.Container();
         sharedSecretLabel = new Label();
         sharedSecretTextBox = new TextBox();
+        bulkCopyDestinationPathLabel = new Label();
+        bulkCopyDestinationPathTextBox = new TextBox();
         languageLabel = new Label();
         languageComboBox = new ComboBox();
         hintLabel = new Label();
@@ -40,7 +44,7 @@ partial class SettingsDialog
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Teacher Client Settings";
         Width = 680;
-        Height = 410;
+        Height = 470;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -51,13 +55,14 @@ partial class SettingsDialog
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 4
+            RowCount = 5
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 98F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
 
         sharedSecretLabel.Dock = DockStyle.Fill;
@@ -69,6 +74,15 @@ partial class SettingsDialog
         sharedSecretTextBox.MinimumSize = new Size(0, 45);
         sharedSecretTextBox.Margin = new Padding(0, 8, 0, 8);
 
+        bulkCopyDestinationPathLabel.Dock = DockStyle.Fill;
+        bulkCopyDestinationPathLabel.Text = "Student destination folder";
+        bulkCopyDestinationPathLabel.TextAlign = ContentAlignment.MiddleLeft;
+        bulkCopyDestinationPathLabel.Margin = new Padding(0, 0, 12, 0);
+
+        bulkCopyDestinationPathTextBox.Dock = DockStyle.Fill;
+        bulkCopyDestinationPathTextBox.MinimumSize = new Size(0, 45);
+        bulkCopyDestinationPathTextBox.Margin = new Padding(0, 8, 0, 8);
+
         languageLabel.Dock = DockStyle.Fill;
         languageLabel.TextAlign = ContentAlignment.MiddleLeft;
         languageLabel.Margin = new Padding(0, 0, 12, 0);
@@ -79,7 +93,7 @@ partial class SettingsDialog
         languageComboBox.Margin = new Padding(0, 8, 0, 8);
 
         hintLabel.Dock = DockStyle.Fill;
-        hintLabel.Text = "This secret is used for agent discovery reachability checks and all teacher-to-student API calls.";
+        hintLabel.Text = "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution.";
         hintLabel.TextAlign = ContentAlignment.TopLeft;
         hintLabel.Margin = new Padding(0, 4, 0, 0);
 
@@ -107,11 +121,13 @@ partial class SettingsDialog
 
         layout.Controls.Add(sharedSecretLabel, 0, 0);
         layout.Controls.Add(sharedSecretTextBox, 1, 0);
-        layout.Controls.Add(languageLabel, 0, 1);
-        layout.Controls.Add(languageComboBox, 1, 1);
-        layout.Controls.Add(hintLabel, 0, 2);
+        layout.Controls.Add(bulkCopyDestinationPathLabel, 0, 1);
+        layout.Controls.Add(bulkCopyDestinationPathTextBox, 1, 1);
+        layout.Controls.Add(languageLabel, 0, 2);
+        layout.Controls.Add(languageComboBox, 1, 2);
+        layout.Controls.Add(hintLabel, 0, 3);
         layout.SetColumnSpan(hintLabel, 2);
-        layout.Controls.Add(buttonsPanel, 0, 3);
+        layout.Controls.Add(buttonsPanel, 0, 4);
         layout.SetColumnSpan(buttonsPanel, 2);
 
         Controls.Add(layout);

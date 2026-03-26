@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Teacher.Common;
 using Teacher.Common.Localization;
 using TeacherClient.Models;
 
@@ -61,7 +62,10 @@ public sealed class ClientSettingsStore
             ? ClientSettings.Default.SharedSecret
             : settings.SharedSecret.Trim();
         var language = settings?.Language.Normalize() ?? UiLanguageExtensions.GetDefault();
+        var bulkCopyDestinationPath = string.IsNullOrWhiteSpace(settings?.BulkCopyDestinationPath)
+            ? ClientSettings.Default.BulkCopyDestinationPath
+            : RemoteWindowsPath.Normalize(settings.BulkCopyDestinationPath);
 
-        return new ClientSettings(sharedSecret, language);
+        return new ClientSettings(sharedSecret, language, bulkCopyDestinationPath);
     }
 }

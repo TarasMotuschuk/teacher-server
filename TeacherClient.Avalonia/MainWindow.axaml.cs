@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Teacher.Common;
 using Teacher.Common.Localization;
 using Teacher.Common.Contracts;
 using TeacherClient.CrossPlatform.Dialogs;
@@ -80,7 +81,7 @@ public partial class MainWindow : Window
         _clientSettingsStore.Save(_clientSettings);
         CrossPlatformText.SetLanguage(_clientSettings.Language);
         ApplyLocalization();
-        SetStatus(CrossPlatformText.IsUk ? "Налаштування збережено. Спільний секрет оновлено." : "Settings saved. Shared secret updated.");
+        SetStatus(CrossPlatformText.SettingsSaved);
 
         if (_allAgents.Count > 0)
         {
@@ -436,6 +437,33 @@ public partial class MainWindow : Window
         }, CrossPlatformText.UploadError);
     }
 
+    private async void SendToSelectedStudentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await DistributeLocalSelectionAsync(selectedAgents);
+    }
+
+    private async void SendToAllOnlineStudentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        await DistributeLocalSelectionAsync(targetAgents);
+    }
+
     private async void DownloadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -571,9 +599,103 @@ public partial class MainWindow : Window
         await aboutWindow.ShowDialog(this);
     }
 
+    private async Task DistributeLocalSelectionAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(CrossPlatformText.ChooseLocalFileOrFolderToDistribute);
+            return;
+        }
+
+        var destinationRoot = RemoteWindowsPath.Normalize(_clientSettings.BulkCopyDestinationPath);
+        if (string.IsNullOrWhiteSpace(destinationRoot))
+        {
+            SetStatus(CrossPlatformText.DistributionDestinationPathRequired);
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            foreach (var agent in targetAgents)
+            {
+                try
+                {
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await CopyEntryToAgentAsync(client, entry, destinationRoot);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(_lastConnectedServerUrl) &&
+                targetAgents.Any(x => string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase)))
+            {
+                await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.DistributionCompleted(entry.Name, succeeded)
+                : CrossPlatformText.DistributionCompletedWithFailures(entry.Name, succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCopyResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkCopyError);
+    }
+
+    private static async Task CopyEntryToAgentAsync(TeacherApiClient client, FileSystemEntryDto entry, string destinationRoot, CancellationToken cancellationToken = default)
+    {
+        await client.EnsureRemoteDirectoryPathAsync(destinationRoot, cancellationToken);
+
+        if (!entry.IsDirectory)
+        {
+            await client.UploadFileAsync(entry.FullPath, destinationRoot, cancellationToken);
+            return;
+        }
+
+        var remoteRoot = RemoteWindowsPath.Combine(destinationRoot, entry.Name);
+        await client.EnsureRemoteDirectoryPathAsync(remoteRoot, cancellationToken);
+
+        foreach (var directory in Directory.EnumerateDirectories(entry.FullPath, "*", SearchOption.AllDirectories))
+        {
+            var relativeDirectory = Path.GetRelativePath(entry.FullPath, directory);
+            var remoteDirectory = RemoteWindowsPath.CombineSegments(remoteRoot, relativeDirectory);
+            await client.EnsureRemoteDirectoryPathAsync(remoteDirectory, cancellationToken);
+        }
+
+        foreach (var filePath in Directory.EnumerateFiles(entry.FullPath, "*", SearchOption.AllDirectories))
+        {
+            var relativeFileDirectory = Path.GetRelativePath(entry.FullPath, Path.GetDirectoryName(filePath) ?? entry.FullPath);
+            var remoteDirectory = string.Equals(relativeFileDirectory, ".", StringComparison.Ordinal)
+                ? remoteRoot
+                : RemoteWindowsPath.CombineSegments(remoteRoot, relativeFileDirectory);
+
+            await client.EnsureRemoteDirectoryPathAsync(remoteDirectory, cancellationToken);
+            await client.UploadFileAsync(filePath, remoteDirectory, cancellationToken);
+        }
+    }
+
     private void SaveManualAgents()
     {
         _manualAgentStore.Save(_manualAgents);
+    }
+
+    private List<DiscoveredAgentRow> GetSelectedAgents()
+    {
+        return AgentsGrid.SelectedItems?
+            .OfType<DiscoveredAgentRow>()
+            .Distinct()
+            .ToList() ?? [];
     }
 
     private static IEnumerable<DiscoveredAgentRow> MergeAgents(
@@ -766,6 +888,8 @@ public partial class MainWindow : Window
         KillProcessButton.Content = CrossPlatformText.TerminateSelected;
         RefreshFilesButton.Content = CrossPlatformText.RefreshBoth;
         UploadButton.Content = CrossPlatformText.UploadArrow;
+        SendToSelectedStudentsButton.Content = CrossPlatformText.SendToSelectedStudents;
+        SendToAllOnlineStudentsButton.Content = CrossPlatformText.SendToAllOnlineStudents;
         DownloadButton.Content = CrossPlatformText.DownloadArrow;
         DeleteLocalButton.Content = CrossPlatformText.DeleteLocal;
         DeleteRemoteButton.Content = CrossPlatformText.DeleteRemote;

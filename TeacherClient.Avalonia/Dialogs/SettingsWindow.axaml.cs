@@ -18,13 +18,15 @@ public partial class SettingsWindow : Window
         LanguageComboBox.ItemsSource = new[] { "Українська", "English" };
         LanguageComboBox.SelectedIndex = settings.Language == UiLanguage.Ukrainian ? 0 : 1;
         SharedSecretTextBox.Text = settings.SharedSecret;
+        BulkCopyDestinationPathTextBox.Text = settings.BulkCopyDestinationPath;
         ApplyLocalization();
     }
 
     public ClientSettings ToSettings()
         => new(
             SharedSecretTextBox.Text?.Trim() ?? string.Empty,
-            LanguageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English);
+            LanguageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English,
+            BulkCopyDestinationPathTextBox.Text?.Trim() ?? string.Empty);
 
     private void SaveButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -40,6 +42,7 @@ public partial class SettingsWindow : Window
     {
         Title = CrossPlatformText.SettingsWindowTitle;
         SharedSecretLabel.Text = CrossPlatformText.SharedSecret;
+        BulkCopyDestinationPathLabel.Text = CrossPlatformText.BulkCopyDestinationPath;
         LanguageLabel.Text = CrossPlatformText.Language;
         HintTextBlock.Text = CrossPlatformText.SettingsHint;
         SaveButton.Content = CrossPlatformText.Save;

@@ -39,11 +39,11 @@
 
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <Menu Grid.Row="0" Margin="0,0,0,12">
-      <MenuItem x:Name="ConnectionMenuItem" Header="_Connection">
-        <MenuItem x:Name="SettingsMenuItem" Header="_Settings" Click="SettingsButton_OnClick" />
-        <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
-        <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
-        <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
+        <MenuItem x:Name="ConnectionMenuItem" Header="_Connection">
+          <MenuItem x:Name="SettingsMenuItem" Header="_Settings" Click="SettingsButton_OnClick" />
+          <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
+          <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
+          <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
         <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
@@ -102,7 +102,7 @@
                     AutoGenerateColumns="False"
                     CanUserReorderColumns="False"
                     IsReadOnly="True"
-                    SelectionMode="Single"
+                    SelectionMode="Extended"
                     DoubleTapped="AgentsGrid_OnDoubleTapped">
             <DataGrid.Columns>
               <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
@@ -151,6 +151,8 @@
           <WrapPanel Orientation="Horizontal" ItemHeight="36" ItemWidth="150" Margin="0,0,0,12">
             <Button x:Name="RefreshFilesButton" Margin="0,0,10,10" Content="Refresh Both" Click="RefreshFilesButton_OnClick" />
             <Button x:Name="UploadButton" Margin="0,0,10,10" Content="Upload -&gt;" Click="UploadButton_OnClick" />
+            <Button x:Name="SendToSelectedStudentsButton" Margin="0,0,10,10" Content="Send to selected students" Click="SendToSelectedStudentsButton_OnClick" />
+            <Button x:Name="SendToAllOnlineStudentsButton" Margin="0,0,10,10" Content="Send to all online students" Click="SendToAllOnlineStudentsButton_OnClick" />
             <Button x:Name="DownloadButton" Margin="0,0,10,10" Content="&lt;- Download" Click="DownloadButton_OnClick" />
             <Button x:Name="DeleteLocalButton" Margin="0,0,10,10" Content="Delete Local" Click="DeleteLocalButton_OnClick" />
             <Button x:Name="DeleteRemoteButton" Margin="0,0,10,10" Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />

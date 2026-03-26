@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Teacher.Common;
 using Teacher.Common.Contracts;
 using TeacherClient.Models;
 using TeacherClient.Services;
@@ -372,6 +373,33 @@ public partial class MainForm : Form
         }
     }
 
+    private async void sendToSelectedStudentsButton_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await DistributeLocalSelectionAsync(targetAgents);
+    }
+
+    private async void sendToAllOnlineStudentsButton_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        await DistributeLocalSelectionAsync(targetAgents);
+    }
+
     private async void downloadButton_Click(object sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -502,6 +530,91 @@ public partial class MainForm : Form
         await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source);
     }
 
+    private async Task DistributeLocalSelectionAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(TeacherClientText.ChooseLocalFileOrFolderToDistribute);
+            return;
+        }
+
+        var destinationRoot = RemoteWindowsPath.Normalize(_clientSettings.BulkCopyDestinationPath);
+        if (string.IsNullOrWhiteSpace(destinationRoot))
+        {
+            SetStatus(TeacherClientText.DistributionDestinationPathRequired);
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        foreach (var agent in targetAgents)
+        {
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await CopyEntryToAgentAsync(client, entry, destinationRoot);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_lastConnectedServerUrl) &&
+            targetAgents.Any(x => string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase)))
+        {
+            await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+        }
+
+        if (failures.Count == 0)
+        {
+            SetStatus(TeacherClientText.DistributionCompleted(entry.Name, succeeded));
+            return;
+        }
+
+        SetStatus(TeacherClientText.DistributionCompletedWithFailures(entry.Name, succeeded, failures.Count));
+        MessageBox.Show(
+            string.Join(Environment.NewLine, failures),
+            TeacherClientText.BulkCopyResultTitle,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+    }
+
+    private static async Task CopyEntryToAgentAsync(TeacherApiClient client, FileSystemEntryDto entry, string destinationRoot, CancellationToken cancellationToken = default)
+    {
+        await client.EnsureRemoteDirectoryPathAsync(destinationRoot, cancellationToken);
+
+        if (!entry.IsDirectory)
+        {
+            await client.UploadFileAsync(entry.FullPath, destinationRoot, cancellationToken);
+            return;
+        }
+
+        var remoteRoot = RemoteWindowsPath.Combine(destinationRoot, entry.Name);
+        await client.EnsureRemoteDirectoryPathAsync(remoteRoot, cancellationToken);
+
+        foreach (var directory in Directory.EnumerateDirectories(entry.FullPath, "*", SearchOption.AllDirectories))
+        {
+            var relativeDirectory = Path.GetRelativePath(entry.FullPath, directory);
+            var remoteDirectory = RemoteWindowsPath.CombineSegments(remoteRoot, relativeDirectory);
+            await client.EnsureRemoteDirectoryPathAsync(remoteDirectory, cancellationToken);
+        }
+
+        foreach (var filePath in Directory.EnumerateFiles(entry.FullPath, "*", SearchOption.AllDirectories))
+        {
+            var relativeFileDirectory = Path.GetRelativePath(entry.FullPath, Path.GetDirectoryName(filePath) ?? entry.FullPath);
+            var remoteDirectory = string.Equals(relativeFileDirectory, ".", StringComparison.Ordinal)
+                ? remoteRoot
+                : RemoteWindowsPath.CombineSegments(remoteRoot, relativeFileDirectory);
+
+            await client.EnsureRemoteDirectoryPathAsync(remoteDirectory, cancellationToken);
+            await client.UploadFileAsync(filePath, remoteDirectory, cancellationToken);
+        }
+    }
+
     private void SetStatus(string text) => statusLabel.Text = text;
 
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
@@ -536,6 +649,16 @@ public partial class MainForm : Form
     private void SaveManualAgents()
     {
         _manualAgentStore.Save(_manualAgents);
+    }
+
+    private List<DiscoveredAgentRow> GetSelectedAgents()
+    {
+        return agentsGrid.SelectedRows
+            .Cast<DataGridViewRow>()
+            .Select(x => x.DataBoundItem)
+            .OfType<DiscoveredAgentRow>()
+            .Distinct()
+            .ToList();
     }
 
     private void agentFilters_Changed(object? sender, EventArgs e)

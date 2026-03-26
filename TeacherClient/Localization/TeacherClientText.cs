@@ -63,8 +63,9 @@ internal static class TeacherClientText
     public static string ModifiedUtc => IsUk ? "Змінено UTC" : "Modified UTC";
     public static string SettingsDialogTitle => IsUk ? "Налаштування клієнта викладача" : "Teacher Client Settings";
     public static string SharedSecret => IsUk ? "Спільний секрет" : "Shared secret";
+    public static string BulkCopyDestinationPath => IsUk ? "Папка призначення на учнях" : "Student destination folder";
     public static string Language => IsUk ? "Мова" : "Language";
-    public static string SettingsHint => IsUk ? "Цей секрет використовується для перевірки доступності агентів і для всіх API-запитів від викладача до студента." : "This secret is used for agent discovery reachability checks and all teacher-to-student API calls.";
+    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності агентів і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution.";
     public static string Save => IsUk ? "Зберегти" : "Save";
     public static string Cancel => IsUk ? "Скасувати" : "Cancel";
     public static string AboutTitle => IsUk ? "Про TeacherClient" : "About TeacherClient";
@@ -94,6 +95,7 @@ internal static class TeacherClientText
     public static string ProcessLoadError => IsUk ? "Помилка завантаження процесів" : "Process load error";
     public static string DiscoveryError => IsUk ? "Помилка пошуку агентів" : "Discovery error";
     public static string UploadError => IsUk ? "Помилка завантаження файлу" : "Upload error";
+    public static string BulkCopyError => IsUk ? "Помилка групового копіювання" : "Bulk copy error";
     public static string DownloadError => IsUk ? "Помилка скачування файлу" : "Download error";
     public static string LocalDeleteError => IsUk ? "Помилка локального видалення" : "Local delete error";
     public static string RemoteDeleteError => IsUk ? "Помилка віддаленого видалення" : "Remote delete error";
@@ -101,6 +103,10 @@ internal static class TeacherClientText
     public static string RemoteListingFailed => IsUk ? "Не вдалося отримати список віддалених файлів." : "Remote listing failed.";
     public static string PanelsRefreshed => IsUk ? "Панелі оновлено" : "Panels refreshed";
     public static string ChooseLocalFileToUpload => IsUk ? "Виберіть локальний файл для завантаження." : "Choose a local file to upload.";
+    public static string ChooseLocalFileOrFolderToDistribute => IsUk ? "Виберіть локальний файл або папку для розсилки." : "Choose a local file or folder to distribute.";
+    public static string ChooseAgentsForDistribution => IsUk ? "Виберіть одного або кількох агентів для розсилки." : "Choose one or more agents for distribution.";
+    public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн-агентів для групового копіювання." : "No online agents are available for bulk copy.";
+    public static string DistributionDestinationPathRequired => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
     public static string ChooseLocalEntryFirst => IsUk ? "Спочатку виберіть локальний елемент." : "Choose a local entry first.";
     public static string ChooseRemoteEntryFirst => IsUk ? "Спочатку виберіть віддалений елемент." : "Choose a remote entry first.";
@@ -113,6 +119,11 @@ internal static class TeacherClientText
     public static string ManualSource => IsUk ? "Вручну" : "Manual";
     public static string ManualAutoSource => IsUk ? "Вручну+Авто" : "Manual+Auto";
     public static string ManualVersion => IsUk ? "Вручну" : "Manual";
+    public static string SendToSelectedStudents => IsUk ? "Надіслати вибраним учням" : "Send to selected students";
+    public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
+    public static string BulkCopyResultTitle => IsUk ? "Результат групового копіювання" : "Bulk copy result";
+    public static string DistributionCompleted(string name, int count) => IsUk ? $"Розіслано {name} на {count} учн. ПК" : $"Distributed {name} to {count} student machines";
+    public static string DistributionCompletedWithFailures(string name, int succeeded, int failed) => IsUk ? $"Розсилка {name}: успішно {succeeded}, з помилками {failed}" : $"Distributed {name}: {succeeded} succeeded, {failed} failed";
 
     public static string FormatAddedManualAgent(string name) => IsUk ? $"Додано ручний агент {name}" : $"Added manual agent {name}";
     public static string FormatUpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
@@ -120,7 +131,7 @@ internal static class TeacherClientText
     public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ручний агент." : "Choose a manual agent first.";
     public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";
     public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ручний агент {name}?" : $"Remove manual agent {name}?";
-    public static string SettingsSaved => IsUk ? "Налаштування збережено. Спільний секрет оновлено." : "Settings saved. Shared secret updated.";
+    public static string SettingsSaved => IsUk ? "Налаштування збережено." : "Settings saved.";
     public static string TerminateProcessPrompt(string name, int id) => IsUk ? $"Завершити процес {name} ({id})?" : $"Terminate process {name} ({id})?";
     public static string FormatProcessTerminated(string name) => IsUk ? $"Процес {name} завершено" : $"Process {name} terminated";
     public static string FormatLoadedProcesses(int count) => IsUk ? $"Завантажено процесів: {count}" : $"Loaded {count} processes";

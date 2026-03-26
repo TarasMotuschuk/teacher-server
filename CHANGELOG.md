@@ -27,6 +27,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Agent status filtering, agent grouping, and auto-reconnect behavior in `TeacherClient`.
 - Matching agent discovery, grouping, filtering, and auto-reconnect flow in `TeacherClient.Avalonia`.
 - Shared `UiLanguage` model and language-aware settings across `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent`.
+- Bulk distribution actions for sending a selected local file or folder to either selected student agents or all online student agents.
+- Teacher-side destination path setting for student file distribution in both teacher clients.
 
 ### Changed
 
@@ -38,7 +40,9 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - `TeacherClient` desktop layout was refreshed for Windows with maximized startup, tab toolbars, and more usable control sizing.
 - `TeacherClient` dialogs were restyled to match the refreshed Windows desktop layout.
 - Both teacher clients now keep the shared secret in a dedicated settings dialog instead of the main window header.
+- Both teacher clients now also keep the student destination path for bulk distribution in their settings dialogs.
 - Both teacher clients now treat the `Agents` list as the primary connection entry point instead of manual URL entry.
+- Bulk folder distribution now recreates the selected folder and its full internal directory structure on each target student machine.
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 - `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.
 

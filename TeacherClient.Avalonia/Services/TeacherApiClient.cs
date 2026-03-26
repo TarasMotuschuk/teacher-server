@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Teacher.Common;
 using Teacher.Common.Contracts;
 
 namespace TeacherClient.CrossPlatform.Services;
@@ -66,6 +67,22 @@ public sealed class TeacherApiClient
     {
         var response = await _httpClient.PostAsJsonAsync("api/files/directories", new CreateDirectoryRequest(parentPath, name), cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    public async Task EnsureRemoteDirectoryPathAsync(string fullPath, CancellationToken cancellationToken = default)
+    {
+        var normalizedPath = RemoteWindowsPath.Normalize(fullPath);
+        if (string.IsNullOrWhiteSpace(normalizedPath) || RemoteWindowsPath.IsDriveRoot(normalizedPath))
+        {
+            return;
+        }
+
+        if (!RemoteWindowsPath.TryGetParentAndName(normalizedPath, out var parentPath, out var directoryName))
+        {
+            return;
+        }
+
+        await CreateRemoteDirectoryAsync(parentPath, directoryName, cancellationToken);
     }
 
     public async Task DownloadRemoteFileAsync(string remotePath, string localDirectory, CancellationToken cancellationToken = default)

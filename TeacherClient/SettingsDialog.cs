@@ -19,18 +19,21 @@ public partial class SettingsDialog : Form
         languageComboBox.Items.AddRange(["Українська", "English"]);
         languageComboBox.SelectedIndex = settings.Language == UiLanguage.Ukrainian ? 0 : 1;
         sharedSecretTextBox.Text = settings.SharedSecret;
+        bulkCopyDestinationPathTextBox.Text = settings.BulkCopyDestinationPath;
         ApplyLocalization();
     }
 
     public ClientSettings ToSettings()
         => new(
             sharedSecretTextBox.Text.Trim(),
-            languageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English);
+            languageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English,
+            bulkCopyDestinationPathTextBox.Text.Trim());
 
     private void ApplyLocalization()
     {
         Text = TeacherClientText.SettingsDialogTitle;
         sharedSecretLabel.Text = TeacherClientText.SharedSecret;
+        bulkCopyDestinationPathLabel.Text = TeacherClientText.BulkCopyDestinationPath;
         languageLabel.Text = TeacherClientText.Language;
         hintLabel.Text = TeacherClientText.SettingsHint;
         saveButton.Text = TeacherClientText.Save;
