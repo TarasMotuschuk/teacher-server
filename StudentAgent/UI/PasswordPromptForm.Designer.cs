@@ -33,8 +33,8 @@ partial class PasswordPromptForm
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Enter password";
-        Width = 520;
-        Height = 280;
+        Width = 560;
+        Height = 320;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -57,7 +57,7 @@ partial class PasswordPromptForm
         passwordLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         passwordTextBox.Dock = DockStyle.Fill;
-        passwordTextBox.MinimumSize = new Size(0, 45);
+        passwordTextBox.MinimumSize = new Size(0, 48);
         passwordTextBox.Margin = new Padding(0, 4, 0, 10);
         passwordTextBox.AutoSize = false;
         passwordTextBox.UseSystemPasswordChar = true;
@@ -77,7 +77,7 @@ partial class PasswordPromptForm
         okButton.DialogResult = DialogResult.OK;
 
         cancelButton.Text = "Cancel";
-        cancelButton.Width = 110;
+        cancelButton.Width = 170;
         cancelButton.Height = 45;
         cancelButton.Margin = new Padding(12, 0, 0, 0);
         cancelButton.DialogResult = DialogResult.Cancel;

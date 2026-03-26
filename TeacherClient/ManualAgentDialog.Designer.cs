@@ -54,8 +54,8 @@ partial class ManualAgentDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Manual Agent";
-        Width = 820;
-        Height = 620;
+        Width = 920;
+        Height = 650;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;

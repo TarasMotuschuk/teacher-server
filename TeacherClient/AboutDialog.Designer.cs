@@ -37,8 +37,8 @@ partial class AboutDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "About TeacherClient";
-        Width = 860;
-        Height = 500;
+        Width = 920;
+        Height = 560;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -51,7 +51,7 @@ partial class AboutDialog
             ColumnCount = 2,
             RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 172F));
@@ -82,11 +82,11 @@ partial class AboutDialog
         versionValueLabel.AutoEllipsis = false;
 
         copyrightLabel.Dock = DockStyle.Fill;
-        copyrightLabel.Text = "Copyright Taras Motuschuk";
+        copyrightLabel.Text = "Copyright © Taras Motuschuk, 2026 ";
         copyrightLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         closeButton.Text = "Close";
-        closeButton.Width = 120;
+        closeButton.Width = 160;
         closeButton.Height = 45;
         closeButton.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         closeButton.DialogResult = DialogResult.OK;

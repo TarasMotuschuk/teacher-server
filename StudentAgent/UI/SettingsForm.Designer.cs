@@ -47,8 +47,8 @@ public partial class SettingsForm : Form
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "StudentAgent Settings";
-        Width = 640;
-        Height = 420;
+        Width = 920;
+        Height = 440;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -61,7 +61,7 @@ public partial class SettingsForm : Form
             ColumnCount = 2,
             RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
@@ -71,6 +71,7 @@ public partial class SettingsForm : Form
 
         sharedSecretLabel.Dock = DockStyle.Fill;
         sharedSecretLabel.Text = "Shared secret";
+        sharedSecretLabel.MinimumSize = new Size(130, 45);
         sharedSecretLabel.TextAlign = ContentAlignment.MiddleLeft;
         sharedSecretLabel.Margin = new Padding(0, 0, 12, 0);
 
@@ -119,19 +120,19 @@ public partial class SettingsForm : Form
         };
 
         clearLogsButton.Text = "Clear logs";
-        clearLogsButton.Width = 120;
+        clearLogsButton.Width = 170;
         clearLogsButton.Height = 45;
         clearLogsButton.Margin = new Padding(12, 0, 0, 0);
         clearLogsButton.Click += clearLogsButton_Click;
 
         saveButton.Text = "Save";
-        saveButton.Width = 100;
+        saveButton.Width = 170;
         saveButton.Height = 45;
         saveButton.Margin = new Padding(12, 0, 0, 0);
         saveButton.Click += saveButton_Click;
 
         cancelButton.Text = "Cancel";
-        cancelButton.Width = 100;
+        cancelButton.Width = 170;
         cancelButton.Height = 45;
         cancelButton.Margin = new Padding(12, 0, 0, 0);
         cancelButton.Click += cancelButton_Click;

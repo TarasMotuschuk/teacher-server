@@ -33,8 +33,8 @@ partial class InputDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Input";
-        Width = 620;
-        Height = 300;
+        Width = 920;
+        Height = 340;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;

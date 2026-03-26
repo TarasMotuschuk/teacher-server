@@ -37,8 +37,8 @@ partial class AboutForm
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "About StudentAgent";
-        Width = 700;
-        Height = 420;
+        Width = 800;
+        Height = 480;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -66,7 +66,9 @@ partial class AboutForm
         titleLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         descriptionLabel.Dock = DockStyle.Fill;
-        descriptionLabel.Text = "StudentAgent is the student-side classroom service. It exposes a visible, authorized management API and runs in the Windows system tray with protected settings and logs access.";
+        descriptionLabel.Text = "StudentAgent is the student-side classroom service. " +
+            "It exposes authorized management API and runs in the Windows system " +
+            "tray with protected settings and logs access.";
         descriptionLabel.TextAlign = ContentAlignment.TopLeft;
 
         versionLabel.Dock = DockStyle.Fill;
@@ -80,11 +82,11 @@ partial class AboutForm
         versionValueLabel.AutoEllipsis = true;
 
         copyrightLabel.Dock = DockStyle.Fill;
-        copyrightLabel.Text = "Copyright Taras Motuschuk";
+        copyrightLabel.Text = "Copyright © Taras Motuschuk, 2026";
         copyrightLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         closeButton.Text = "Close";
-        closeButton.Width = 110;
+        closeButton.Width = 140;
         closeButton.Height = 45;
         closeButton.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         closeButton.DialogResult = DialogResult.OK;

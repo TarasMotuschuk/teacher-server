@@ -47,7 +47,7 @@ public sealed class AgentApplicationContext : ApplicationContext
 
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
         ApplyLocalization();
-        _notifyIcon.ShowBalloonTip(2000, StudentAgentText.AgentName, StudentAgentText.TrayBalloon, ToolTipIcon.Info);
+        //_notifyIcon.ShowBalloonTip(2000, StudentAgentText.AgentName, StudentAgentText.TrayBalloon, ToolTipIcon.Info);
     }
 
     protected override void ExitThreadCore()

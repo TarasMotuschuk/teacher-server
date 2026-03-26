@@ -24,7 +24,8 @@ internal static class StudentAgentText
     public static string Ok => "OK";
     public static string Cancel => IsUk ? "Скасувати" : "Cancel";
     public static string AboutTitle => IsUk ? "Про StudentAgent" : "About StudentAgent";
-    public static string AboutDescription => IsUk ? "StudentAgent — це учнівський сервіс для класу. Він надає видимий, авторизований API керування і працює в системному треї Windows із захищеним доступом до налаштувань та логів." : "StudentAgent is the student-side classroom service. It exposes a visible, authorized management API and runs in the Windows system tray with protected settings and logs access.";
+    public static string AboutDescription => IsUk ? "StudentAgent — це учнівський сервіс для класу." +
+        "Він працює в системному треї Windows із захищеним доступом до налаштувань та логів." : "StudentAgent is the student-side classroom service. It exposes a visible, authorized management API and runs in the Windows system tray with protected settings and logs access.";
     public static string Version => IsUk ? "Версія:" : "Version:";
     public static string Close => IsUk ? "Закрити" : "Close";
     public static string LogsTitle => IsUk ? "Логи StudentAgent" : "StudentAgent Logs";
