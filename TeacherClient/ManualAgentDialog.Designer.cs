@@ -50,7 +50,7 @@ partial class ManualAgentDialog
         ((System.ComponentModel.ISupportInitialize)portNumericUpDown).BeginInit();
         SuspendLayout();
 
-        AutoScaleMode = AutoScaleMode.Font;
+        AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Manual Agent";
@@ -84,7 +84,7 @@ partial class ManualAgentDialog
         ConfigureFieldLabel(notesLabel, "Notes");
 
         displayNameTextBox.Dock = DockStyle.Fill;
-        displayNameTextBox.MinimumSize = new Size(0, 42);
+        displayNameTextBox.MinimumSize = new Size(0, 45);
         displayNameTextBox.Margin = new Padding(0, 6, 0, 6);
 
         var ipLayout = new TableLayoutPanel

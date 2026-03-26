@@ -29,7 +29,7 @@ partial class InputDialog
         cancelButton = new Button();
         SuspendLayout();
 
-        AutoScaleMode = AutoScaleMode.Font;
+        AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Input";

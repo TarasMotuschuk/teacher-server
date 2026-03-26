@@ -33,58 +33,73 @@ partial class AboutForm
         closeButton = new Button();
         SuspendLayout();
 
+        AutoScaleMode = AutoScaleMode.Dpi;
+        BackColor = Color.White;
+        Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "About StudentAgent";
-        Width = 500;
-        Height = 330;
+        Width = 700;
+        Height = 420;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
+        Padding = new Padding(22, 20, 22, 18);
 
-        titleLabel.Left = 16;
-        titleLabel.Top = 18;
-        titleLabel.Width = 450;
-        titleLabel.Height = 45;
-        titleLabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 5
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
+
+        titleLabel.Dock = DockStyle.Fill;
+        titleLabel.AutoSize = false;
+        titleLabel.Font = new Font("Segoe UI", 15F, FontStyle.Bold, GraphicsUnit.Point);
         titleLabel.Text = "StudentAgent";
+        titleLabel.TextAlign = ContentAlignment.MiddleLeft;
 
-        descriptionLabel.Left = 16;
-        descriptionLabel.Top = 68;
-        descriptionLabel.Width = 450;
-        descriptionLabel.Height = 110;
+        descriptionLabel.Dock = DockStyle.Fill;
         descriptionLabel.Text = "StudentAgent is the student-side classroom service. It exposes a visible, authorized management API and runs in the Windows system tray with protected settings and logs access.";
+        descriptionLabel.TextAlign = ContentAlignment.TopLeft;
 
-        versionLabel.Left = 16;
-        versionLabel.Top = 184;
-        versionLabel.Width = 80;
-        versionLabel.Height = 45;
+        versionLabel.Dock = DockStyle.Fill;
         versionLabel.Text = "Version:";
+        versionLabel.TextAlign = ContentAlignment.MiddleLeft;
+        versionLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 
-        versionValueLabel.Left = 100;
-        versionValueLabel.Top = 184;
-        versionValueLabel.Width = 220;
-        versionValueLabel.Height = 45;
+        versionValueLabel.Dock = DockStyle.Fill;
         versionValueLabel.Text = "0.0.0";
+        versionValueLabel.TextAlign = ContentAlignment.MiddleLeft;
+        versionValueLabel.AutoEllipsis = true;
 
-        copyrightLabel.Left = 16;
-        copyrightLabel.Top = 224;
-        copyrightLabel.Width = 340;
-        copyrightLabel.Height = 45;
+        copyrightLabel.Dock = DockStyle.Fill;
         copyrightLabel.Text = "Copyright Taras Motuschuk";
+        copyrightLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         closeButton.Text = "Close";
-        closeButton.Left = 376;
-        closeButton.Top = 246;
-        closeButton.Width = 90;
+        closeButton.Width = 110;
         closeButton.Height = 45;
+        closeButton.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         closeButton.DialogResult = DialogResult.OK;
 
-        Controls.Add(titleLabel);
-        Controls.Add(descriptionLabel);
-        Controls.Add(versionLabel);
-        Controls.Add(versionValueLabel);
-        Controls.Add(copyrightLabel);
-        Controls.Add(closeButton);
+        layout.Controls.Add(titleLabel, 0, 0);
+        layout.SetColumnSpan(titleLabel, 2);
+        layout.Controls.Add(descriptionLabel, 0, 1);
+        layout.SetColumnSpan(descriptionLabel, 2);
+        layout.Controls.Add(versionLabel, 0, 2);
+        layout.Controls.Add(versionValueLabel, 1, 2);
+        layout.Controls.Add(copyrightLabel, 0, 3);
+        layout.SetColumnSpan(copyrightLabel, 2);
+        layout.Controls.Add(closeButton, 1, 4);
+
+        Controls.Add(layout);
 
         AcceptButton = closeButton;
         CancelButton = closeButton;

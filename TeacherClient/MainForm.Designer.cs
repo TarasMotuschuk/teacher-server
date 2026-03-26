@@ -87,7 +87,7 @@ partial class MainForm
         autoReconnectCheckBox = new CheckBox();
         SuspendLayout();
 
-        AutoScaleMode = AutoScaleMode.Font;
+        AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.FromArgb(236, 239, 243);
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Teacher Classroom Client";
