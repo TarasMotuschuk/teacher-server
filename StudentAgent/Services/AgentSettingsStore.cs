@@ -81,7 +81,7 @@ public sealed class AgentSettingsStore
             SharedSecret = defaults.SharedSecret,
             AdminPasswordHash = defaults.AdminPasswordHash,
             VisibleBannerText = defaults.VisibleBannerText,
-            Language = defaults.Language
+            Language = UiLanguageExtensions.GetDefault()
         }, defaults);
     }
 
