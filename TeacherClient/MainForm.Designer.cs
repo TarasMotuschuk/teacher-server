@@ -295,13 +295,13 @@ partial class MainForm
             RowCount = 1,
             Margin = new Padding(0, 8, 0, 8)
         };
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 320F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96F));
+        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 280F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
-        agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220F));
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         var searchLabel = CreateInlineLabel("Search");

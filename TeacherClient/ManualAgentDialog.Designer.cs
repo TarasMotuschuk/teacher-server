@@ -54,8 +54,8 @@ partial class ManualAgentDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Manual Agent";
-        Width = 720;
-        Height = 560;
+        Width = 820;
+        Height = 620;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
@@ -68,14 +68,14 @@ partial class ManualAgentDialog
             ColumnCount = 2,
             RowCount = 6
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 140F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 180F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 84F));
 
         ConfigureFieldLabel(displayNameLabel, "Display name");
         ConfigureFieldLabel(ipAddressLabel, "IP address");
@@ -90,14 +90,15 @@ partial class ManualAgentDialog
         var ipLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 4,
+            ColumnCount = 5,
             RowCount = 1,
             Margin = new Padding(0, 6, 0, 6)
         };
         ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 24F));
-        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
-        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 18F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 16F));
+        ipLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 124F));
 
         ipAddressTextBox.Dock = DockStyle.Fill;
         ipAddressTextBox.MinimumSize = new Size(0, 45);
@@ -106,7 +107,7 @@ partial class ManualAgentDialog
         portLabel.Dock = DockStyle.Fill;
         portLabel.Text = "Port";
         portLabel.TextAlign = ContentAlignment.MiddleLeft;
-        portLabel.Margin = new Padding(0);
+        portLabel.Margin = new Padding(0, 0, 6, 0);
 
         portNumericUpDown.Dock = DockStyle.Fill;
         portNumericUpDown.Minimum = 1;
@@ -118,7 +119,8 @@ partial class ManualAgentDialog
         ipLayout.Controls.Add(ipAddressTextBox, 0, 0);
         ipLayout.Controls.Add(new Panel(), 1, 0);
         ipLayout.Controls.Add(portLabel, 2, 0);
-        ipLayout.Controls.Add(portNumericUpDown, 3, 0);
+        ipLayout.Controls.Add(new Panel(), 3, 0);
+        ipLayout.Controls.Add(portNumericUpDown, 4, 0);
 
         groupNameTextBox.Dock = DockStyle.Fill;
         groupNameTextBox.MinimumSize = new Size(0, 45);

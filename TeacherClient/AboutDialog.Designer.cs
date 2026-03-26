@@ -37,8 +37,8 @@ partial class AboutDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "About TeacherClient";
-        Width = 680;
-        Height = 420;
+        Width = 860;
+        Height = 500;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -51,17 +51,17 @@ partial class AboutDialog
             ColumnCount = 2,
             RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 172F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80F));
 
         titleLabel.Dock = DockStyle.Fill;
         titleLabel.AutoSize = false;
-        titleLabel.Font = new Font("Segoe UI", 15F, FontStyle.Bold, GraphicsUnit.Point);
+        titleLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold, GraphicsUnit.Point);
         titleLabel.Text = "Teacher Classroom Client";
         titleLabel.TextAlign = ContentAlignment.MiddleLeft;
         titleLabel.Margin = new Padding(0, 0, 0, 6);
@@ -79,15 +79,15 @@ partial class AboutDialog
         versionValueLabel.Dock = DockStyle.Fill;
         versionValueLabel.Text = "0.0.0";
         versionValueLabel.TextAlign = ContentAlignment.MiddleLeft;
-        versionValueLabel.AutoEllipsis = true;
+        versionValueLabel.AutoEllipsis = false;
 
         copyrightLabel.Dock = DockStyle.Fill;
         copyrightLabel.Text = "Copyright Taras Motuschuk";
         copyrightLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         closeButton.Text = "Close";
-        closeButton.Width = 110;
-        closeButton.Height = 44;
+        closeButton.Width = 120;
+        closeButton.Height = 45;
         closeButton.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         closeButton.DialogResult = DialogResult.OK;
 
