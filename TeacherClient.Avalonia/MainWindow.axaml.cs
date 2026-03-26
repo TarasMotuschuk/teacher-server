@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Teacher.Common.Localization;
 using Teacher.Common.Contracts;
 using TeacherClient.CrossPlatform.Dialogs;
+using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
 using TeacherClient.CrossPlatform.Services;
 
@@ -29,9 +31,9 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        InitializeComponent();
-
         _clientSettings = _clientSettingsStore.Load();
+        CrossPlatformText.SetLanguage(_clientSettings.Language);
+        InitializeComponent();
         ProcessesGrid.ItemsSource = _processes;
         LocalFilesGrid.ItemsSource = _localEntries;
         RemoteFilesGrid.ItemsSource = _remoteEntries;
@@ -39,10 +41,11 @@ public partial class MainWindow : Window
         LocalPathTextBox.Text = GetDefaultLocalPath();
         _manualAgents = _manualAgentStore.Load().ToList();
 
-        GroupFilterComboBox.ItemsSource = new[] { "All groups" };
+        GroupFilterComboBox.ItemsSource = new[] { CrossPlatformText.AllGroups };
         GroupFilterComboBox.SelectedIndex = 0;
-        StatusFilterComboBox.ItemsSource = new[] { "All", "Online", "Offline", "Unknown" };
+        StatusFilterComboBox.ItemsSource = new[] { CrossPlatformText.All, CrossPlatformText.Online, CrossPlatformText.Offline, CrossPlatformText.Unknown };
         StatusFilterComboBox.SelectedIndex = 0;
+        ApplyLocalization();
 
         _agentRefreshTimer.Interval = TimeSpan.FromSeconds(15);
         _agentRefreshTimer.Tick += async (_, _) => await LoadAgentsAsync();
@@ -75,7 +78,9 @@ public partial class MainWindow : Window
 
         _clientSettings = dialog.ToSettings();
         _clientSettingsStore.Save(_clientSettings);
-        SetStatus("Settings saved. Shared secret updated.");
+        CrossPlatformText.SetLanguage(_clientSettings.Language);
+        ApplyLocalization();
+        SetStatus(CrossPlatformText.IsUk ? "Налаштування збережено. Спільний секрет оновлено." : "Settings saved. Shared secret updated.");
 
         if (_allAgents.Count > 0)
         {
@@ -106,21 +111,21 @@ public partial class MainWindow : Window
         _manualAgents.Add(entry);
         SaveManualAgents();
         await LoadAgentsAsync();
-        SetStatus($"Added manual agent {entry.DisplayName}");
+        SetStatus(CrossPlatformText.AddedManualAgent(entry.DisplayName));
     }
 
     private async void EditManualAgentButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent || !agent.IsManual)
         {
-            SetStatus("Choose a manual agent first.");
+            SetStatus(CrossPlatformText.ChooseManualAgentFirst);
             return;
         }
 
         var existing = _manualAgents.FirstOrDefault(x => string.Equals(x.Id, agent.AgentId, StringComparison.OrdinalIgnoreCase));
         if (existing is null)
         {
-            SetStatus("Manual agent not found.");
+            SetStatus(CrossPlatformText.ManualAgentNotFound);
             return;
         }
 
@@ -138,7 +143,7 @@ public partial class MainWindow : Window
             _manualAgents[index] = updated;
             SaveManualAgents();
             await LoadAgentsAsync();
-            SetStatus($"Updated manual agent {updated.DisplayName}");
+            SetStatus(CrossPlatformText.UpdatedManualAgent(updated.DisplayName));
         }
     }
 
@@ -146,11 +151,11 @@ public partial class MainWindow : Window
     {
         if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent || !agent.IsManual)
         {
-            SetStatus("Choose a manual agent first.");
+            SetStatus(CrossPlatformText.ChooseManualAgentFirst);
             return;
         }
 
-        if (!await ConfirmationDialog.ShowAsync(this, "Remove Manual Agent", $"Remove manual agent {agent.MachineName}?"))
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.RemoveManualAgentTitle, CrossPlatformText.RemoveManualAgentPrompt(agent.MachineName)))
         {
             return;
         }
@@ -161,7 +166,7 @@ public partial class MainWindow : Window
 
         SaveManualAgents();
         await LoadAgentsAsync();
-        SetStatus($"Removed manual agent {agent.MachineName}");
+        SetStatus(CrossPlatformText.RemovedManualAgent(agent.MachineName));
     }
 
     private async Task LoadAgentsAsync()
@@ -177,20 +182,20 @@ public partial class MainWindow : Window
             ApplyAgentFilters();
 
             SetStatus(_allAgents.Count == 0
-                ? "No agents available."
-                : $"Available agents: {_allAgents.Count} total, {discoveredAgents.Count} discovered, {_manualAgents.Count} manual");
-        }, "Discovery error");
+                ? CrossPlatformText.NoAgentsAvailable
+                : CrossPlatformText.MachineSummary(_allAgents.Count, discoveredAgents.Count, _manualAgents.Count));
+        }, CrossPlatformText.DiscoveryError);
     }
 
     private async Task ConnectSelectedAgentAsync()
     {
         if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
         {
-            SetStatus("Choose an agent first.");
+            SetStatus(CrossPlatformText.ChooseAgentFirst);
             return;
         }
 
-        await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source.ToLowerInvariant());
+        await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source);
     }
 
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
@@ -199,13 +204,13 @@ public partial class MainWindow : Window
         var info = await client.GetServerInfoAsync();
         if (info is null)
         {
-            SetStatus("Connection failed.");
+            SetStatus(CrossPlatformText.ConnectionFailed);
             return;
         }
 
         _lastConnectedAgentId = agent?.AgentId;
         _lastConnectedServerUrl = serverUrl;
-        SetStatus($"Connected to {sourceLabel} agent {info.MachineName} ({info.CurrentUser})");
+        SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
@@ -215,7 +220,7 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
         {
-            throw new InvalidOperationException("Connect to an agent from the Agents tab first.");
+            throw new InvalidOperationException(CrossPlatformText.ConnectFromAgentsTabFirst);
         }
 
         return _lastConnectedServerUrl;
@@ -234,13 +239,13 @@ public partial class MainWindow : Window
     private void ApplyAgentFilters()
     {
         var search = AgentSearchTextBox.Text?.Trim() ?? string.Empty;
-        var selectedGroup = GroupFilterComboBox.SelectedItem?.ToString() ?? "All groups";
-        var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString() ?? "All";
+        var selectedGroup = GroupFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.AllGroups;
+        var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.All;
 
         var filtered = _allAgents
-            .Where(agent => selectedGroup == "All groups" ||
+            .Where(agent => selectedGroup == CrossPlatformText.AllGroups ||
                             string.Equals(agent.GroupName, selectedGroup, StringComparison.OrdinalIgnoreCase))
-            .Where(agent => selectedStatus == "All" ||
+            .Where(agent => selectedStatus == CrossPlatformText.All ||
                             string.Equals(agent.Status, selectedStatus, StringComparison.OrdinalIgnoreCase))
             .Where(agent =>
                 string.IsNullOrWhiteSpace(search) ||
@@ -263,14 +268,14 @@ public partial class MainWindow : Window
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .Cast<object>()
-            .Prepend("All groups")
+            .Prepend(CrossPlatformText.AllGroups)
             .ToList();
 
-        var currentSelection = GroupFilterComboBox.SelectedItem?.ToString() ?? "All groups";
+        var currentSelection = GroupFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.AllGroups;
         GroupFilterComboBox.ItemsSource = groups;
         GroupFilterComboBox.SelectedItem = groups.Any(x => string.Equals(x?.ToString(), currentSelection, StringComparison.OrdinalIgnoreCase))
             ? currentSelection
-            : "All groups";
+            : CrossPlatformText.AllGroups;
     }
 
     private async Task<IReadOnlyList<DiscoveredAgentRow>> UpdateAgentStatusesAsync(
@@ -286,7 +291,7 @@ public partial class MainWindow : Window
         {
             if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
             {
-                updatedAgents.Add(agent with { Status = "Online" });
+                updatedAgents.Add(agent with { Status = CrossPlatformText.Online });
                 continue;
             }
 
@@ -297,7 +302,7 @@ public partial class MainWindow : Window
             var isReachable = await reachabilityClient.IsServerReachableAsync();
             updatedAgents.Add(agent with
             {
-                Status = isReachable ? "Online" : "Offline"
+                Status = isReachable ? CrossPlatformText.Online : CrossPlatformText.Offline
             });
         }
 
@@ -324,12 +329,12 @@ public partial class MainWindow : Window
                  string.Equals(x.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase)) ||
                 string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase));
 
-            if (targetAgent is null || string.Equals(targetAgent.Status, "Offline", StringComparison.OrdinalIgnoreCase))
+            if (targetAgent is null || string.Equals(targetAgent.Status, CrossPlatformText.Offline, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            await ConnectToServerAsync($"http://{targetAgent.RespondingAddress}:{targetAgent.Port}", targetAgent, "auto-reconnect");
+            await ConnectToServerAsync($"http://{targetAgent.RespondingAddress}:{targetAgent.Port}", targetAgent, CrossPlatformText.AutoReconnect);
         }
         catch
         {
@@ -342,11 +347,11 @@ public partial class MainWindow : Window
     {
         if (ProcessesGrid.SelectedItem is not ProcessInfoDto process)
         {
-            SetStatus("Choose a process first.");
+            SetStatus(CrossPlatformText.ChooseProcessFirst);
             return;
         }
 
-        if (!await ConfirmationDialog.ShowAsync(this, "Terminate Process", $"Terminate process {process.Name} ({process.Id})?"))
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.TerminateProcessTitle, CrossPlatformText.TerminateProcessPrompt(process.Name, process.Id)))
         {
             return;
         }
@@ -356,7 +361,7 @@ public partial class MainWindow : Window
             var client = CreateClient();
             await client.KillProcessAsync(process.Id);
             await LoadProcessesAsync();
-            SetStatus($"Process {process.Name} terminated");
+            SetStatus(CrossPlatformText.ProcessTerminated(process.Name));
         });
     }
 
@@ -367,15 +372,15 @@ public partial class MainWindow : Window
             var client = CreateClient();
             var processes = await client.GetProcessesAsync();
             ReplaceItems(_processes, processes);
-            SetStatus($"Loaded {processes.Count} processes");
-        }, "Process load error");
+            SetStatus(CrossPlatformText.LoadedProcesses(processes.Count));
+        }, CrossPlatformText.ProcessLoadError);
     }
 
     private async void RefreshFilesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-        SetStatus("Panels refreshed");
+        SetStatus(CrossPlatformText.PanelsRefreshed);
     }
 
     private async Task LoadLocalDirectoryAsync(string? path)
@@ -393,7 +398,7 @@ public partial class MainWindow : Window
             LocalPathTextBox.Text = info.FullName;
             ReplaceItems(_localEntries, entries);
             return Task.CompletedTask;
-        }, "Local browse error");
+        }, CrossPlatformText.LocalBrowseError);
     }
 
     private async Task LoadRemoteDirectoryAsync(string? path)
@@ -404,21 +409,21 @@ public partial class MainWindow : Window
             var listing = await client.GetRemoteDirectoryAsync(path);
             if (listing is null)
             {
-                SetStatus("Remote listing failed.");
+                SetStatus(CrossPlatformText.RemoteListingFailed);
                 return;
             }
 
             RemotePathTextBox.Text = listing.CurrentPath;
             _remoteParentPath = listing.ParentPath;
             ReplaceItems(_remoteEntries, listing.Entries);
-        }, "Remote browse error");
+        }, CrossPlatformText.RemoteBrowseError);
     }
 
     private async void UploadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
-            SetStatus("Choose a local file to upload.");
+            SetStatus(CrossPlatformText.ChooseLocalFileToUpload);
             return;
         }
 
@@ -427,15 +432,15 @@ public partial class MainWindow : Window
             var client = CreateClient();
             await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty);
             await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-            SetStatus($"Uploaded {entry.Name}");
-        }, "Upload error");
+            SetStatus(CrossPlatformText.Uploaded(entry.Name));
+        }, CrossPlatformText.UploadError);
     }
 
     private async void DownloadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
-            SetStatus("Choose a remote file to download.");
+            SetStatus(CrossPlatformText.ChooseRemoteFileToDownload);
             return;
         }
 
@@ -444,19 +449,19 @@ public partial class MainWindow : Window
             var client = CreateClient();
             await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath());
             await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
-            SetStatus($"Downloaded {entry.Name}");
-        }, "Download error");
+            SetStatus(CrossPlatformText.Downloaded(entry.Name));
+        }, CrossPlatformText.DownloadError);
     }
 
     private async void DeleteLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
         {
-            SetStatus("Choose a local entry first.");
+            SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
             return;
         }
 
-        if (!await ConfirmationDialog.ShowAsync(this, "Delete Local Entry", $"Delete local entry {entry.Name}?"))
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.DeleteLocalEntryTitle, CrossPlatformText.DeleteLocalEntryPrompt(entry.Name)))
         {
             return;
         }
@@ -473,19 +478,19 @@ public partial class MainWindow : Window
             }
 
             await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
-            SetStatus($"Deleted local entry {entry.Name}");
-        }, "Local delete error");
+            SetStatus(CrossPlatformText.DeletedLocalEntry(entry.Name));
+        }, CrossPlatformText.LocalDeleteError);
     }
 
     private async void DeleteRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
         {
-            SetStatus("Choose a remote entry first.");
+            SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
             return;
         }
 
-        if (!await ConfirmationDialog.ShowAsync(this, "Delete Remote Entry", $"Delete remote entry {entry.Name}?"))
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.DeleteRemoteEntryTitle, CrossPlatformText.DeleteRemoteEntryPrompt(entry.Name)))
         {
             return;
         }
@@ -495,13 +500,13 @@ public partial class MainWindow : Window
             var client = CreateClient();
             await client.DeleteRemoteEntryAsync(entry.FullPath);
             await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-            SetStatus($"Deleted remote entry {entry.Name}");
-        }, "Remote delete error");
+            SetStatus(CrossPlatformText.DeletedRemoteEntry(entry.Name));
+        }, CrossPlatformText.RemoteDeleteError);
     }
 
     private async void NewRemoteFolderButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var folderName = await TextInputDialog.ShowAsync(this, "Create Remote Folder", "Folder name:", "NewFolder");
+        var folderName = await TextInputDialog.ShowAsync(this, CrossPlatformText.CreateRemoteFolderTitle, CrossPlatformText.FolderName, CrossPlatformText.DefaultFolderName);
         if (string.IsNullOrWhiteSpace(folderName))
         {
             return;
@@ -512,8 +517,8 @@ public partial class MainWindow : Window
             var client = CreateClient();
             await client.CreateRemoteDirectoryAsync(RemotePathTextBox.Text ?? string.Empty, folderName);
             await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-            SetStatus($"Created remote folder {folderName}");
-        }, "Create folder error");
+            SetStatus(CrossPlatformText.CreatedRemoteFolder(folderName));
+        }, CrossPlatformText.CreateFolderError);
     }
 
     private async void UpLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -593,8 +598,8 @@ public partial class MainWindow : Window
             {
                 merged[$"manual:{existingManual.AgentId}"] = existingManual with
                 {
-                    Source = "Manual+Auto",
-                    Status = "Online",
+                    Source = CrossPlatformText.ManualAutoSource,
+                    Status = CrossPlatformText.Online,
                     CurrentUser = discovered.CurrentUser,
                     MacAddressesDisplay = string.IsNullOrWhiteSpace(existingManual.MacAddressesDisplay)
                         ? discovered.MacAddressesDisplay
@@ -687,8 +692,8 @@ public partial class MainWindow : Window
         {
             return new DiscoveredAgentRow(
                 dto.AgentId,
-                "Auto",
-                "Online",
+                CrossPlatformText.AutoSource,
+                CrossPlatformText.Online,
                 string.Empty,
                 dto.MachineName,
                 dto.CurrentUser,
@@ -705,8 +710,8 @@ public partial class MainWindow : Window
         {
             return new DiscoveredAgentRow(
                 entry.Id,
-                "Manual",
-                "Unknown",
+                CrossPlatformText.ManualSource,
+                CrossPlatformText.Unknown,
                 entry.GroupName,
                 entry.DisplayName,
                 string.Empty,
@@ -714,9 +719,106 @@ public partial class MainWindow : Window
                 entry.Port,
                 entry.MacAddress,
                 entry.Notes,
-                "Manual",
+                CrossPlatformText.ManualVersion,
                 DateTime.MinValue,
                 true);
+        }
+    }
+
+    private void ApplyLocalization()
+    {
+        var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString();
+        Title = CrossPlatformText.MainTitle;
+        ConnectionMenuItem.Header = CrossPlatformText.ConnectionMenu;
+        SettingsMenuItem.Header = CrossPlatformText.Settings;
+        RefreshAgentsMenuItem.Header = CrossPlatformText.RefreshAgents;
+        ConnectSelectedMenuItem.Header = CrossPlatformText.ConnectSelectedAgent;
+        AddManualMenuItem.Header = CrossPlatformText.AddManualAgent;
+        EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
+        RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
+        HelpMenuItem.Header = CrossPlatformText.Help;
+        AboutMenuItem.Header = CrossPlatformText.About;
+        SettingsButton.Content = CrossPlatformText.Settings;
+        AgentsTabItem.Header = CrossPlatformText.Agents;
+        ProcessesTabItem.Header = CrossPlatformText.Processes;
+        FilesTabItem.Header = CrossPlatformText.Files;
+        RefreshAgentsButton.Content = CrossPlatformText.RefreshAgents;
+        ConnectSelectedAgentButton.Content = CrossPlatformText.ConnectSelectedAgent;
+        AddManualAgentButton.Content = CrossPlatformText.AddManualAgent;
+        EditManualAgentButton.Content = CrossPlatformText.EditManualAgent;
+        RemoveManualAgentButton.Content = CrossPlatformText.RemoveManualAgent;
+        AgentSearchTextBox.Watermark = CrossPlatformText.SearchAgents;
+        GroupFilterComboBox.ItemsSource = _allAgents.Count == 0
+            ? new[] { CrossPlatformText.AllGroups }
+            : _allAgents.Select(x => x.GroupName)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .Cast<object>()
+                .Prepend(CrossPlatformText.AllGroups)
+                .ToList();
+        GroupFilterComboBox.SelectedItem = CrossPlatformText.AllGroups;
+        StatusFilterComboBox.ItemsSource = new[] { CrossPlatformText.All, CrossPlatformText.Online, CrossPlatformText.Offline, CrossPlatformText.Unknown };
+        StatusFilterComboBox.SelectedItem = new[] { CrossPlatformText.All, CrossPlatformText.Online, CrossPlatformText.Offline, CrossPlatformText.Unknown }
+            .FirstOrDefault(x => string.Equals(x, selectedStatus, StringComparison.OrdinalIgnoreCase)) ?? CrossPlatformText.All;
+        AutoReconnectCheckBox.Content = CrossPlatformText.AutoReconnect;
+        RefreshProcessesButton.Content = CrossPlatformText.Refresh;
+        KillProcessButton.Content = CrossPlatformText.TerminateSelected;
+        RefreshFilesButton.Content = CrossPlatformText.RefreshBoth;
+        UploadButton.Content = CrossPlatformText.UploadArrow;
+        DownloadButton.Content = CrossPlatformText.DownloadArrow;
+        DeleteLocalButton.Content = CrossPlatformText.DeleteLocal;
+        DeleteRemoteButton.Content = CrossPlatformText.DeleteRemote;
+        NewRemoteFolderButton.Content = CrossPlatformText.NewRemoteFolder;
+        TeacherPcTextBlock.Text = CrossPlatformText.TeacherPc;
+        StudentPcTextBlock.Text = CrossPlatformText.StudentPc;
+        UpLocalButton.Content = CrossPlatformText.Up;
+        UpRemoteButton.Content = CrossPlatformText.Up;
+        FooterTextBlock.Text = CrossPlatformText.FooterDescription;
+        if (AgentsGrid.Columns.Count >= 11)
+        {
+            AgentsGrid.Columns[0].Header = CrossPlatformText.Source;
+            AgentsGrid.Columns[1].Header = CrossPlatformText.Status;
+            AgentsGrid.Columns[2].Header = CrossPlatformText.Group;
+            AgentsGrid.Columns[3].Header = CrossPlatformText.Machine;
+            AgentsGrid.Columns[4].Header = CrossPlatformText.User;
+            AgentsGrid.Columns[5].Header = "IP";
+            AgentsGrid.Columns[6].Header = CrossPlatformText.Port;
+            AgentsGrid.Columns[7].Header = "MAC";
+            AgentsGrid.Columns[8].Header = CrossPlatformText.Notes;
+            AgentsGrid.Columns[9].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[10].Header = CrossPlatformText.LastSeenUtc;
+        }
+
+        if (ProcessesGrid.Columns.Count >= 6)
+        {
+            ProcessesGrid.Columns[0].Header = "PID";
+            ProcessesGrid.Columns[1].Header = CrossPlatformText.IsUk ? "Процес" : "Process";
+            ProcessesGrid.Columns[2].Header = CrossPlatformText.IsUk ? "Вікно" : "Window";
+            ProcessesGrid.Columns[3].Header = "Memory";
+            ProcessesGrid.Columns[4].Header = CrossPlatformText.IsUk ? "Видимий" : "Visible";
+            ProcessesGrid.Columns[5].Header = CrossPlatformText.IsUk ? "Запущено UTC" : "Started UTC";
+        }
+
+        if (LocalFilesGrid.Columns.Count >= 4)
+        {
+            LocalFilesGrid.Columns[0].Header = CrossPlatformText.IsUk ? "Назва" : "Name";
+            LocalFilesGrid.Columns[1].Header = CrossPlatformText.IsUk ? "Кат." : "Dir";
+            LocalFilesGrid.Columns[2].Header = "Size";
+            LocalFilesGrid.Columns[3].Header = CrossPlatformText.IsUk ? "Змінено UTC" : "Modified UTC";
+        }
+
+        if (RemoteFilesGrid.Columns.Count >= 4)
+        {
+            RemoteFilesGrid.Columns[0].Header = CrossPlatformText.IsUk ? "Назва" : "Name";
+            RemoteFilesGrid.Columns[1].Header = CrossPlatformText.IsUk ? "Кат." : "Dir";
+            RemoteFilesGrid.Columns[2].Header = "Size";
+            RemoteFilesGrid.Columns[3].Header = CrossPlatformText.IsUk ? "Змінено UTC" : "Modified UTC";
+        }
+        if (StatusTextBlock.Text == "Ready. Use the Agents tab to select a student machine, then connect." ||
+            StatusTextBlock.Text == "Готово. Виберіть машину на вкладці агентів і підключіться.")
+        {
+            StatusTextBlock.Text = CrossPlatformText.StatusReady;
         }
     }
 }

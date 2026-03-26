@@ -7,12 +7,12 @@
         WindowStartupLocation="CenterOwner"
         Title="About TeacherClient.Avalonia">
   <StackPanel Margin="20" Spacing="14">
-    <TextBlock FontSize="22" FontWeight="Bold" Text="TeacherClient.Avalonia" />
-    <TextBlock TextWrapping="Wrap"
+    <TextBlock x:Name="TitleTextBlock" FontSize="22" FontWeight="Bold" Text="TeacherClient.Avalonia" />
+    <TextBlock x:Name="DescriptionTextBlock" TextWrapping="Wrap"
                Text="TeacherClient.Avalonia is the cross-platform desktop client for connecting to StudentAgent, browsing processes, and performing classroom file operations from macOS, Linux, or Windows." />
     <TextBlock x:Name="VersionTextBlock" FontWeight="SemiBold" Text="Version: 0.0.0" />
-    <TextBlock Text="Copyright Taras Motuschuk" />
-    <Button HorizontalAlignment="Right"
+    <TextBlock x:Name="CopyrightTextBlock" Text="Copyright Taras Motuschuk" />
+    <Button x:Name="CloseButton" HorizontalAlignment="Right"
             Width="100"
             Content="Close"
             Click="CloseButton_OnClick" />

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Teacher.Common.Localization;
 
 namespace StudentAgent.Services;
 
@@ -40,11 +41,12 @@ public sealed class AgentSettingsStore
         }
     }
 
-    public void UpdateCredentials(string sharedSecret, string? password)
+    public void UpdateSettings(string sharedSecret, string? password, UiLanguage language)
     {
         lock (_sync)
         {
             _current.SharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
+            _current.Language = language;
             if (!string.IsNullOrWhiteSpace(password))
             {
                 _current.AdminPasswordHash = HashPassword(password.Trim());
@@ -78,7 +80,8 @@ public sealed class AgentSettingsStore
             DiscoveryPort = defaults.DiscoveryPort,
             SharedSecret = defaults.SharedSecret,
             AdminPasswordHash = defaults.AdminPasswordHash,
-            VisibleBannerText = defaults.VisibleBannerText
+            VisibleBannerText = defaults.VisibleBannerText,
+            Language = defaults.Language
         }, defaults);
     }
 
@@ -99,6 +102,7 @@ public sealed class AgentSettingsStore
         value.SharedSecret = string.IsNullOrWhiteSpace(value.SharedSecret) ? defaults.SharedSecret : value.SharedSecret.Trim();
         value.AdminPasswordHash = string.IsNullOrWhiteSpace(value.AdminPasswordHash) ? defaults.AdminPasswordHash : value.AdminPasswordHash.Trim();
         value.VisibleBannerText = string.IsNullOrWhiteSpace(value.VisibleBannerText) ? defaults.VisibleBannerText : value.VisibleBannerText.Trim();
+        value.Language = value.Language.Normalize();
         return value;
     }
 
@@ -110,7 +114,8 @@ public sealed class AgentSettingsStore
             DiscoveryPort = settings.DiscoveryPort,
             SharedSecret = settings.SharedSecret,
             AdminPasswordHash = settings.AdminPasswordHash,
-            VisibleBannerText = settings.VisibleBannerText
+            VisibleBannerText = settings.VisibleBannerText,
+            Language = settings.Language
         };
     }
 

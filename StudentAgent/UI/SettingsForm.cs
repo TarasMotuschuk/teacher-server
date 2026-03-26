@@ -1,4 +1,6 @@
 using StudentAgent.Services;
+using StudentAgent.UI.Localization;
+using Teacher.Common.Localization;
 
 namespace StudentAgent.UI;
 
@@ -18,8 +20,11 @@ public partial class SettingsForm : Form
         _settingsStore = settingsStore;
         _logService = logService;
 
+        languageComboBox.Items.AddRange(["Українська", "English"]);
         var settings = _settingsStore.Current;
         sharedSecretTextBox.Text = settings.SharedSecret;
+        languageComboBox.SelectedIndex = settings.Language == UiLanguage.Ukrainian ? 0 : 1;
+        ApplyLocalization();
     }
 
     private void clearLogsButton_Click(object? sender, EventArgs e)
@@ -30,8 +35,8 @@ public partial class SettingsForm : Form
         }
 
         if (MessageBox.Show(
-                "Clear all StudentAgent logs?",
-                "Confirm",
+                StudentAgentText.ClearAllLogsPrompt,
+                StudentAgentText.Confirm,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
         {
@@ -40,7 +45,7 @@ public partial class SettingsForm : Form
 
         _logService.Clear();
         _logService.LogInfo("Logs were cleared from Settings.");
-        MessageBox.Show("Logs cleared.", "StudentAgent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show(StudentAgentText.LogsCleared, StudentAgentText.AgentName, MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void saveButton_Click(object? sender, EventArgs e)
@@ -52,25 +57,39 @@ public partial class SettingsForm : Form
 
         if (string.IsNullOrWhiteSpace(sharedSecretTextBox.Text))
         {
-            MessageBox.Show("Shared secret is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(StudentAgentText.SharedSecretRequired, StudentAgentText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(passwordTextBox.Text) &&
             !string.Equals(passwordTextBox.Text, confirmPasswordTextBox.Text, StringComparison.Ordinal))
         {
-            MessageBox.Show("Passwords do not match.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(StudentAgentText.PasswordsMismatch, StudentAgentText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
-        _settingsStore.UpdateCredentials(sharedSecretTextBox.Text, passwordTextBox.Text);
+        var language = languageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English;
+        StudentAgentText.SetLanguage(language);
+        _settingsStore.UpdateSettings(sharedSecretTextBox.Text, passwordTextBox.Text, language);
         _logService.LogInfo("StudentAgent settings were updated.");
-        MessageBox.Show("Settings saved.", "StudentAgent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show(StudentAgentText.SettingsSaved, StudentAgentText.AgentName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         Close();
     }
 
     private void cancelButton_Click(object? sender, EventArgs e)
     {
         Close();
+    }
+
+    private void ApplyLocalization()
+    {
+        Text = StudentAgentText.SettingsTitle;
+        sharedSecretLabel.Text = StudentAgentText.SharedSecret;
+        passwordLabel.Text = StudentAgentText.NewPassword;
+        confirmPasswordLabel.Text = StudentAgentText.ConfirmPassword;
+        languageLabel.Text = StudentAgentText.Language;
+        clearLogsButton.Text = StudentAgentText.ClearLogs;
+        saveButton.Text = StudentAgentText.Save;
+        cancelButton.Text = StudentAgentText.Cancel;
     }
 }

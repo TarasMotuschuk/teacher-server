@@ -1,3 +1,5 @@
+using Teacher.Common.Localization;
+
 namespace StudentAgent;
 
 public sealed class AgentRuntimeSettings
@@ -11,4 +13,6 @@ public sealed class AgentRuntimeSettings
     public string AdminPasswordHash { get; set; } = string.Empty;
 
     public string VisibleBannerText { get; set; } = "Teacher monitoring enabled";
+
+    public UiLanguage Language { get; set; } = UiLanguageExtensions.GetDefault();
 }

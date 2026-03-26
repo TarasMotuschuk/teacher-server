@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Teacher.Common.Contracts;
 using TeacherClient.Models;
 using TeacherClient.Services;
+using TeacherClient.Localization;
 
 namespace TeacherClient;
 
@@ -25,6 +26,8 @@ public partial class MainForm : Form
 
     public MainForm()
     {
+        _clientSettings = _clientSettingsStore.Load();
+        TeacherClientText.SetLanguage(_clientSettings.Language);
         InitializeComponent();
         processesGrid.AutoGenerateColumns = false;
         localFilesGrid.AutoGenerateColumns = false;
@@ -34,11 +37,10 @@ public partial class MainForm : Form
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
         remoteFilesGrid.DataSource = _remoteEntries;
-        _clientSettings = _clientSettingsStore.Load();
         _manualAgents = _manualAgentStore.Load().ToList();
-        groupFilterComboBox.Items.Add("All groups");
+        groupFilterComboBox.Items.Add(TeacherClientText.AllGroups);
         groupFilterComboBox.SelectedIndex = 0;
-        statusFilterComboBox.Items.AddRange(["All", "Online", "Offline", "Unknown"]);
+        statusFilterComboBox.Items.AddRange([TeacherClientText.AllStatuses, TeacherClientText.Online, TeacherClientText.Offline, TeacherClientText.Unknown]);
         statusFilterComboBox.SelectedIndex = 0;
         autoReconnectCheckBox.Checked = true;
 
@@ -71,7 +73,8 @@ public partial class MainForm : Form
 
         _clientSettings = dialog.ToSettings();
         _clientSettingsStore.Save(_clientSettings);
-        SetStatus("Settings saved. Shared secret updated.");
+        TeacherClientText.SetLanguage(_clientSettings.Language);
+        SetStatus(TeacherClientText.SettingsSaved);
 
         if (_allAgents.Count > 0)
         {
@@ -100,21 +103,21 @@ public partial class MainForm : Form
         _manualAgents.Add(entry);
         SaveManualAgents();
         await LoadDiscoveredAgentsAsync();
-        SetStatus($"Added manual agent {entry.DisplayName}");
+        SetStatus(TeacherClientText.FormatAddedManualAgent(entry.DisplayName));
     }
 
     private async void editManualAgentButton_Click(object? sender, EventArgs e)
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent || !agent.IsManual)
         {
-            SetStatus("Choose a manual agent first.");
+            SetStatus(TeacherClientText.ChooseManualAgentFirst);
             return;
         }
 
         var existing = _manualAgents.FirstOrDefault(x => string.Equals(x.Id, agent.AgentId, StringComparison.OrdinalIgnoreCase));
         if (existing is null)
         {
-            SetStatus("Manual agent not found.");
+            SetStatus(TeacherClientText.ManualAgentNotFound);
             return;
         }
 
@@ -131,7 +134,7 @@ public partial class MainForm : Form
             _manualAgents[index] = updated;
             SaveManualAgents();
             await LoadDiscoveredAgentsAsync();
-            SetStatus($"Updated manual agent {updated.DisplayName}");
+            SetStatus(TeacherClientText.FormatUpdatedManualAgent(updated.DisplayName));
         }
     }
 
@@ -139,13 +142,13 @@ public partial class MainForm : Form
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent || !agent.IsManual)
         {
-            SetStatus("Choose a manual agent first.");
+            SetStatus(TeacherClientText.ChooseManualAgentFirst);
             return;
         }
 
         if (MessageBox.Show(
-                $"Remove manual agent {agent.MachineName}?",
-                "Confirm",
+                TeacherClientText.RemoveManualAgentPrompt(agent.MachineName),
+                TeacherClientText.Confirm,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
         {
@@ -158,19 +161,20 @@ public partial class MainForm : Form
 
         SaveManualAgents();
         await LoadDiscoveredAgentsAsync();
-        SetStatus($"Removed manual agent {agent.MachineName}");
+        SetStatus(TeacherClientText.FormatRemovedManualAgent(agent.MachineName));
     }
 
     private async void killProcessButton_Click(object sender, EventArgs e)
     {
         if (processesGrid.CurrentRow?.DataBoundItem is not ProcessInfoDto process)
         {
+            SetStatus(TeacherClientText.ChooseProcessFirst);
             return;
         }
 
         if (MessageBox.Show(
-                $"Terminate process {process.Name} ({process.Id})?",
-                "Confirm",
+                TeacherClientText.TerminateProcessPrompt(process.Name, process.Id),
+                TeacherClientText.TerminateProcessTitle,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
         {
@@ -183,7 +187,7 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.KillProcessAsync(process.Id);
             await LoadProcessesAsync();
-            SetStatus($"Process {process.Name} terminated");
+            SetStatus(TeacherClientText.FormatProcessTerminated(process.Name));
         }
         catch (Exception ex)
         {
@@ -200,11 +204,11 @@ public partial class MainForm : Form
             var processes = await client.GetProcessesAsync();
             _processes = new BindingList<ProcessInfoDto>(processes.ToList());
             processesGrid.DataSource = _processes;
-            SetStatus($"Loaded {processes.Count} processes");
+            SetStatus(TeacherClientText.FormatLoadedProcesses(processes.Count));
         }
         catch (Exception ex)
         {
-            SetStatus($"Process load error: {ex.Message}");
+            SetStatus($"{TeacherClientText.ProcessLoadError}: {ex.Message}");
         }
     }
 
@@ -222,12 +226,12 @@ public partial class MainForm : Form
             ApplyAgentFilters();
 
             SetStatus(_allAgents.Count == 0
-                ? "No agents available."
-                : $"Available agents: {_allAgents.Count} total, {discoveredAgents.Count} discovered, {_manualAgents.Count} manual");
+                ? TeacherClientText.NoAgentsAvailable
+                : TeacherClientText.FormatAvailableAgents(_allAgents.Count, discoveredAgents.Count, _manualAgents.Count));
         }
         catch (Exception ex)
         {
-            SetStatus($"Discovery error: {ex.Message}");
+            SetStatus($"{TeacherClientText.DiscoveryError}: {ex.Message}");
         }
     }
 
@@ -235,7 +239,7 @@ public partial class MainForm : Form
     {
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
-        SetStatus("Panels refreshed");
+        SetStatus(TeacherClientText.PanelsRefreshed);
     }
 
     private Task LoadLocalDirectoryAsync(string? path)
@@ -259,7 +263,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            SetStatus($"Local browse error: {ex.Message}");
+            SetStatus($"{TeacherClientText.LocalBrowseError}: {ex.Message}");
         }
 
         return Task.CompletedTask;
@@ -274,7 +278,7 @@ public partial class MainForm : Form
             var listing = await client.GetRemoteDirectoryAsync(path);
             if (listing is null)
             {
-                SetStatus("Remote listing failed.");
+                SetStatus(TeacherClientText.RemoteListingFailed);
                 return;
             }
 
@@ -285,7 +289,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            SetStatus($"Remote browse error: {ex.Message}");
+            SetStatus($"{TeacherClientText.RemoteBrowseError}: {ex.Message}");
         }
     }
 
@@ -350,7 +354,7 @@ public partial class MainForm : Form
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
-            SetStatus("Choose a local file to upload.");
+            SetStatus(TeacherClientText.ChooseLocalFileToUpload);
             return;
         }
 
@@ -360,11 +364,11 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.UploadFileAsync(entry.FullPath, remotePathTextBox.Text);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
-            SetStatus($"Uploaded {entry.Name}");
+            SetStatus(TeacherClientText.FormatUploaded(entry.Name));
         }
         catch (Exception ex)
         {
-            SetStatus($"Upload error: {ex.Message}");
+            SetStatus($"{TeacherClientText.UploadError}: {ex.Message}");
         }
     }
 
@@ -372,7 +376,7 @@ public partial class MainForm : Form
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
-            SetStatus("Choose a remote file to download.");
+            SetStatus(TeacherClientText.ChooseRemoteFileToDownload);
             return;
         }
 
@@ -382,11 +386,11 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.DownloadRemoteFileAsync(entry.FullPath, localPathTextBox.Text);
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
-            SetStatus($"Downloaded {entry.Name}");
+            SetStatus(TeacherClientText.FormatDownloaded(entry.Name));
         }
         catch (Exception ex)
         {
-            SetStatus($"Download error: {ex.Message}");
+            SetStatus($"{TeacherClientText.DownloadError}: {ex.Message}");
         }
     }
 
@@ -394,12 +398,13 @@ public partial class MainForm : Form
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
+            SetStatus(TeacherClientText.ChooseLocalEntryFirst);
             return;
         }
 
         if (MessageBox.Show(
-                $"Delete local entry {entry.Name}?",
-                "Confirm",
+                TeacherClientText.DeleteLocalEntryPrompt(entry.Name),
+                TeacherClientText.DeleteLocalEntryTitle,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
         {
@@ -419,11 +424,11 @@ public partial class MainForm : Form
             }
 
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
-            SetStatus($"Deleted local entry {entry.Name}");
+            SetStatus(TeacherClientText.FormatDeletedLocal(entry.Name));
         }
         catch (Exception ex)
         {
-            SetStatus($"Local delete error: {ex.Message}");
+            SetStatus($"{TeacherClientText.LocalDeleteError}: {ex.Message}");
         }
     }
 
@@ -431,12 +436,13 @@ public partial class MainForm : Form
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
+            SetStatus(TeacherClientText.ChooseRemoteEntryFirst);
             return;
         }
 
         if (MessageBox.Show(
-                $"Delete remote entry {entry.Name}?",
-                "Confirm",
+                TeacherClientText.DeleteRemoteEntryPrompt(entry.Name),
+                TeacherClientText.DeleteRemoteEntryTitle,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
         {
@@ -449,17 +455,17 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.DeleteRemoteEntryAsync(entry.FullPath);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
-            SetStatus($"Deleted remote entry {entry.Name}");
+            SetStatus(TeacherClientText.FormatDeletedRemote(entry.Name));
         }
         catch (Exception ex)
         {
-            SetStatus($"Remote delete error: {ex.Message}");
+            SetStatus($"{TeacherClientText.RemoteDeleteError}: {ex.Message}");
         }
     }
 
     private async void newRemoteFolderButton_Click(object sender, EventArgs e)
     {
-        using var dialog = new InputDialog("Create remote folder", "Folder name:", "NewFolder");
+        using var dialog = new InputDialog(TeacherClientText.CreateRemoteFolderTitle, TeacherClientText.FolderName, TeacherClientText.NewFolderDefaultName);
         if (dialog.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(dialog.Value))
         {
             return;
@@ -471,11 +477,11 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.CreateRemoteDirectoryAsync(remotePathTextBox.Text, dialog.Value);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
-            SetStatus($"Created remote folder {dialog.Value}");
+            SetStatus(TeacherClientText.FormatCreatedRemoteFolder(dialog.Value));
         }
         catch (Exception ex)
         {
-            SetStatus($"Create folder error: {ex.Message}");
+            SetStatus($"{TeacherClientText.CreateFolderError}: {ex.Message}");
         }
     }
 
@@ -489,11 +495,11 @@ public partial class MainForm : Form
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent)
         {
-            SetStatus("Choose an agent first.");
+            SetStatus(TeacherClientText.ChooseAgentFirst);
             return;
         }
 
-        await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source.ToLowerInvariant());
+        await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source);
     }
 
     private void SetStatus(string text) => statusLabel.Text = text;
@@ -505,13 +511,13 @@ public partial class MainForm : Form
         var info = await client.GetServerInfoAsync();
         if (info is null)
         {
-            SetStatus("Connection failed.");
+            SetStatus(TeacherClientText.ConnectionFailed);
             return;
         }
 
         _lastConnectedAgentId = agent?.AgentId;
         _lastConnectedServerUrl = serverUrl;
-        SetStatus($"Connected to {sourceLabel} agent {info.MachineName} ({info.CurrentUser})");
+        SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
@@ -521,7 +527,7 @@ public partial class MainForm : Form
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
         {
-            throw new InvalidOperationException("Connect to an agent from the Agents tab first.");
+            throw new InvalidOperationException(TeacherClientText.ConnectFromAgentsTabFirst);
         }
 
         return _lastConnectedServerUrl;
@@ -540,13 +546,13 @@ public partial class MainForm : Form
     private void ApplyAgentFilters()
     {
         var search = agentSearchTextBox.Text.Trim();
-        var selectedGroup = groupFilterComboBox.SelectedItem?.ToString() ?? "All groups";
-        var selectedStatus = statusFilterComboBox.SelectedItem?.ToString() ?? "All";
+        var selectedGroup = groupFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllGroups;
+        var selectedStatus = statusFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllStatuses;
 
         var filtered = _allAgents
-            .Where(agent => selectedGroup == "All groups" ||
+            .Where(agent => selectedGroup == TeacherClientText.AllGroups ||
                             string.Equals(agent.GroupName, selectedGroup, StringComparison.OrdinalIgnoreCase))
-            .Where(agent => selectedStatus == "All" ||
+            .Where(agent => selectedStatus == TeacherClientText.AllStatuses ||
                             string.Equals(agent.Status, selectedStatus, StringComparison.OrdinalIgnoreCase))
             .Where(agent =>
                 string.IsNullOrWhiteSpace(search) ||
@@ -570,9 +576,9 @@ public partial class MainForm : Form
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var currentSelection = groupFilterComboBox.SelectedItem?.ToString() ?? "All groups";
+        var currentSelection = groupFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllGroups;
         groupFilterComboBox.Items.Clear();
-        groupFilterComboBox.Items.Add("All groups");
+        groupFilterComboBox.Items.Add(TeacherClientText.AllGroups);
         foreach (var group in groups)
         {
             groupFilterComboBox.Items.Add(group);
@@ -580,7 +586,7 @@ public partial class MainForm : Form
 
         groupFilterComboBox.SelectedItem = groupFilterComboBox.Items.Contains(currentSelection)
             ? currentSelection
-            : "All groups";
+            : TeacherClientText.AllGroups;
     }
 
     private async Task<IReadOnlyList<DiscoveredAgentRow>> UpdateAgentStatusesAsync(
@@ -596,7 +602,7 @@ public partial class MainForm : Form
         {
             if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
             {
-                updatedAgents.Add(agent with { Status = "Online" });
+                updatedAgents.Add(agent with { Status = TeacherClientText.Online });
                 continue;
             }
 
@@ -607,7 +613,7 @@ public partial class MainForm : Form
             var isReachable = await reachabilityClient.IsServerReachableAsync();
             updatedAgents.Add(agent with
             {
-                Status = isReachable ? "Online" : "Offline"
+                Status = isReachable ? TeacherClientText.Online : TeacherClientText.Offline
             });
         }
 
@@ -634,12 +640,12 @@ public partial class MainForm : Form
                  string.Equals(x.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase)) ||
                 string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase));
 
-            if (targetAgent is null || string.Equals(targetAgent.Status, "Offline", StringComparison.OrdinalIgnoreCase))
+            if (targetAgent is null || string.Equals(targetAgent.Status, TeacherClientText.Offline, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            await ConnectToServerAsync($"http://{targetAgent.RespondingAddress}:{targetAgent.Port}", targetAgent, "auto-reconnect");
+            await ConnectToServerAsync($"http://{targetAgent.RespondingAddress}:{targetAgent.Port}", targetAgent, TeacherClientText.AutoReconnect);
         }
         catch
         {
@@ -668,8 +674,8 @@ public partial class MainForm : Form
             {
                 merged[$"manual:{existingManual.AgentId}"] = existingManual with
                 {
-                    Source = "Manual+Auto",
-                    Status = "Online",
+                    Source = TeacherClientText.ManualAutoSource,
+                    Status = TeacherClientText.Online,
                     CurrentUser = discovered.CurrentUser,
                     MacAddressesDisplay = string.IsNullOrWhiteSpace(existingManual.MacAddressesDisplay)
                         ? discovered.MacAddressesDisplay
@@ -709,8 +715,8 @@ public partial class MainForm : Form
         {
             return new DiscoveredAgentRow(
                 dto.AgentId,
-                "Auto",
-                "Online",
+                TeacherClientText.AutoSource,
+                TeacherClientText.Online,
                 string.Empty,
                 dto.MachineName,
                 dto.CurrentUser,
@@ -727,8 +733,8 @@ public partial class MainForm : Form
         {
             return new DiscoveredAgentRow(
                 entry.Id,
-                "Manual",
-                "Unknown",
+                TeacherClientText.ManualSource,
+                TeacherClientText.Unknown,
                 entry.GroupName,
                 entry.DisplayName,
                 string.Empty,
@@ -736,7 +742,7 @@ public partial class MainForm : Form
                 entry.Port,
                 entry.MacAddress,
                 entry.Notes,
-                "Manual",
+                TeacherClientText.ManualVersion,
                 DateTime.MinValue,
                 true);
         }

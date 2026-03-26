@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Teacher.Common.Localization;
 using TeacherClient.Models;
 
 namespace TeacherClient.Services;
@@ -59,7 +60,8 @@ public sealed class ClientSettingsStore
         var sharedSecret = string.IsNullOrWhiteSpace(settings?.SharedSecret)
             ? ClientSettings.Default.SharedSecret
             : settings.SharedSecret.Trim();
+        var language = settings?.Language.Normalize() ?? UiLanguageExtensions.GetDefault();
 
-        return new ClientSettings(sharedSecret);
+        return new ClientSettings(sharedSecret, language);
     }
 }

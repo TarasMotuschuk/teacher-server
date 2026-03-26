@@ -4,6 +4,7 @@ using StudentAgent;
 using StudentAgent.Auth;
 using StudentAgent.Services;
 using StudentAgent.UI;
+using StudentAgent.UI.Localization;
 using Teacher.Common.Contracts;
 
 try
@@ -27,15 +28,16 @@ try
     var app = builder.Build();
     var settingsStore = app.Services.GetRequiredService<AgentSettingsStore>();
     var logService = app.Services.GetRequiredService<AgentLogService>();
+    StudentAgentText.SetLanguage(settingsStore.Current.Language);
 
     Application.ThreadException += (_, exceptionArgs) =>
     {
         logService.LogError($"UI thread exception: {exceptionArgs.Exception}");
-        MessageBox.Show(
-            exceptionArgs.Exception.ToString(),
-            "StudentAgent UI Error",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Error);
+            MessageBox.Show(
+                exceptionArgs.Exception.ToString(),
+                StudentAgentText.StudentAgentUiError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
     };
 
     AppDomain.CurrentDomain.UnhandledException += (_, exceptionArgs) =>
@@ -45,7 +47,7 @@ try
             logService.LogError($"Unhandled exception: {exception}");
             MessageBox.Show(
                 exception.ToString(),
-                "StudentAgent Fatal Error",
+                StudentAgentText.StudentAgentFatalError,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
@@ -176,8 +178,8 @@ catch (Exception ex)
     Directory.CreateDirectory(Path.GetDirectoryName(startupLogPath)!);
     File.WriteAllText(startupLogPath, ex.ToString());
     MessageBox.Show(
-        $"StudentAgent failed to start.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}Details were written to:{Environment.NewLine}{startupLogPath}",
-        "StudentAgent Startup Error",
+        $"{StudentAgentText.StartupFailed}{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}{StudentAgentText.StartupDetailsWritten}{Environment.NewLine}{startupLogPath}",
+        StudentAgentText.StartupError,
         MessageBoxButtons.OK,
         MessageBoxIcon.Error);
 }

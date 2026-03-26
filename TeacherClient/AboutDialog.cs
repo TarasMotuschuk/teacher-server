@@ -1,5 +1,7 @@
 #nullable enable
 
+using TeacherClient.Localization;
+
 namespace TeacherClient;
 
 public partial class AboutDialog : Form
@@ -7,6 +9,11 @@ public partial class AboutDialog : Form
     public AboutDialog()
     {
         InitializeComponent();
+        Text = TeacherClientText.AboutTitle;
+        titleLabel.Text = TeacherClientText.MainTitle;
+        descriptionLabel.Text = TeacherClientText.AboutDescription;
+        versionLabel.Text = TeacherClientText.Version;
+        closeButton.Text = TeacherClientText.Close;
         versionValueLabel.Text = Application.ProductVersion;
     }
 }

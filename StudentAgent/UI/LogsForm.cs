@@ -1,4 +1,5 @@
 using StudentAgent.Services;
+using StudentAgent.UI.Localization;
 
 namespace StudentAgent.UI;
 
@@ -9,6 +10,9 @@ public partial class LogsForm : Form
     public LogsForm()
     {
         InitializeComponent();
+        Text = StudentAgentText.LogsTitle;
+        refreshButton.Text = StudentAgentText.Refresh;
+        openFolderButton.Text = StudentAgentText.OpenLogFolder;
     }
 
     public LogsForm(AgentLogService logService)

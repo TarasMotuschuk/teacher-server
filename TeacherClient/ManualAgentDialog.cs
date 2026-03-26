@@ -1,6 +1,7 @@
 #nullable enable
 
 using TeacherClient.Models;
+using TeacherClient.Localization;
 
 namespace TeacherClient;
 
@@ -9,6 +10,7 @@ public partial class ManualAgentDialog : Form
     public ManualAgentDialog()
     {
         InitializeComponent();
+        ApplyLocalization();
     }
 
     public ManualAgentDialog(ManualAgentEntry? entry)
@@ -45,13 +47,13 @@ public partial class ManualAgentDialog : Form
     {
         if (string.IsNullOrWhiteSpace(displayNameTextBox.Text))
         {
-            MessageBox.Show("Display name is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(TeacherClientText.DisplayNameRequired, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(ipAddressTextBox.Text))
         {
-            MessageBox.Show("IP address is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(TeacherClientText.IpAddressRequired, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -63,5 +65,18 @@ public partial class ManualAgentDialog : Form
     {
         DialogResult = DialogResult.Cancel;
         Close();
+    }
+
+    private void ApplyLocalization()
+    {
+        Text = TeacherClientText.ManualAgentTitle;
+        displayNameLabel.Text = TeacherClientText.DisplayName;
+        ipAddressLabel.Text = TeacherClientText.IpAddress;
+        portLabel.Text = TeacherClientText.Port;
+        groupNameLabel.Text = TeacherClientText.Group;
+        macAddressLabel.Text = TeacherClientText.MacAddress;
+        notesLabel.Text = TeacherClientText.Notes;
+        saveButton.Text = TeacherClientText.Save;
+        cancelButton.Text = TeacherClientText.Cancel;
     }
 }

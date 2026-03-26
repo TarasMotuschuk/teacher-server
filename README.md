@@ -40,6 +40,7 @@ Available endpoints:
 - manual agent definitions with saved IP, port, group/class, MAC address, and notes;
 - connection to the student agent from the `Agents` list;
 - persisted teacher-side settings with the shared secret stored outside the main window;
+- user-selectable UI language with English and Ukrainian options;
 - process list refresh and remote process termination;
 - dual-pane local/remote file browsing;
 - file upload and download;
@@ -58,6 +59,7 @@ Available endpoints:
 - auto-reconnect to the last connected agent;
 - connect to the same `StudentAgent` endpoint from the `Agents` list;
 - persisted teacher-side settings with the shared secret stored outside the main window;
+- user-selectable UI language with English and Ukrainian options;
 - browse remote processes and terminate a selected process;
 - browse local and remote file trees in dual panes;
 - upload and download files;
@@ -143,7 +145,7 @@ Example configuration:
 3. Optionally assign manual agents to a `Group` such as a classroom, lab row, or lesson cohort.
 4. Filter the list by search text, `Status`, or `Group`.
 5. Leave `Auto-reconnect` enabled if you want the client to recover the last active connection automatically.
-6. Open `Connection -> Settings` and enter the same shared secret as configured on the student side.
+6. Open `Connection -> Settings` and choose the preferred UI language plus the same shared secret as configured on the student side.
 7. Connect to a selected agent from the `Agents` list.
 
 ### Start TeacherClient.Avalonia on macOS
@@ -161,7 +163,7 @@ dotnet restore TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 ```
 
-4. In the app, open `Connection -> Settings` and enter the shared secret.
+4. In the app, open `Connection -> Settings` and choose the UI language plus the shared secret.
 5. Use the `Agents` tab to discover students automatically, assign manual entries to groups, and connect from the filtered list.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.

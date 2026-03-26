@@ -11,6 +11,8 @@ public partial class SettingsForm
     private TextBox passwordTextBox = null!;
     private Label confirmPasswordLabel = null!;
     private TextBox confirmPasswordTextBox = null!;
+    private Label languageLabel = null!;
+    private ComboBox languageComboBox = null!;
     private Button clearLogsButton = null!;
     private Button saveButton = null!;
     private Button cancelButton = null!;
@@ -34,6 +36,8 @@ public partial class SettingsForm
         passwordTextBox = new TextBox();
         confirmPasswordLabel = new Label();
         confirmPasswordTextBox = new TextBox();
+        languageLabel = new Label();
+        languageComboBox = new ComboBox();
         clearLogsButton = new Button();
         saveButton = new Button();
         cancelButton = new Button();
@@ -55,10 +59,11 @@ public partial class SettingsForm
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 4
+            RowCount = 5
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
@@ -96,6 +101,15 @@ public partial class SettingsForm
         confirmPasswordTextBox.AutoSize = false;
         confirmPasswordTextBox.UseSystemPasswordChar = true;
 
+        languageLabel.Dock = DockStyle.Fill;
+        languageLabel.TextAlign = ContentAlignment.MiddleLeft;
+        languageLabel.Margin = new Padding(0, 0, 12, 0);
+
+        languageComboBox.Dock = DockStyle.Fill;
+        languageComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        languageComboBox.MinimumSize = new Size(0, 45);
+        languageComboBox.Margin = new Padding(0, 8, 0, 8);
+
         var buttonsLayout = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
@@ -132,7 +146,9 @@ public partial class SettingsForm
         layout.Controls.Add(passwordTextBox, 1, 1);
         layout.Controls.Add(confirmPasswordLabel, 0, 2);
         layout.Controls.Add(confirmPasswordTextBox, 1, 2);
-        layout.Controls.Add(buttonsLayout, 0, 3);
+        layout.Controls.Add(languageLabel, 0, 3);
+        layout.Controls.Add(languageComboBox, 1, 3);
+        layout.Controls.Add(buttonsLayout, 0, 4);
         layout.SetColumnSpan(buttonsLayout, 2);
 
         Controls.Add(layout);

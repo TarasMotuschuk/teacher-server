@@ -1,5 +1,7 @@
 #nullable enable
 
+using TeacherClient.Localization;
+
 namespace TeacherClient;
 
 public partial class InputDialog : Form
@@ -7,6 +9,10 @@ public partial class InputDialog : Form
     public InputDialog()
     {
         InitializeComponent();
+        Text = TeacherClientText.InputTitle;
+        promptLabel.Text = TeacherClientText.Prompt;
+        okButton.Text = TeacherClientText.Ok;
+        cancelButton.Text = TeacherClientText.Cancel;
     }
 
     public InputDialog(string title, string prompt, string defaultValue = "")

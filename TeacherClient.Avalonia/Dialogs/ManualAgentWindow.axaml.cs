@@ -1,4 +1,7 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
 
 namespace TeacherClient.CrossPlatform.Dialogs;
@@ -8,6 +11,7 @@ public partial class ManualAgentWindow : Window
     public ManualAgentWindow()
     {
         InitializeComponent();
+        ApplyLocalization();
     }
 
     public ManualAgentWindow(ManualAgentEntry? entry)
@@ -44,11 +48,13 @@ public partial class ManualAgentWindow : Window
     {
         if (string.IsNullOrWhiteSpace(DisplayNameTextBox.Text))
         {
+            ShowValidation(CrossPlatformText.DisplayNameRequired);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(IpAddressTextBox.Text))
         {
+            ShowValidation(CrossPlatformText.IpAddressRequired);
             return;
         }
 
@@ -58,5 +64,25 @@ public partial class ManualAgentWindow : Window
     private void CancelButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         Close(false);
+    }
+
+    private void ApplyLocalization()
+    {
+        Title = CrossPlatformText.ManualAgentTitle;
+        DisplayNameLabel.Text = CrossPlatformText.DisplayName;
+        IpAddressLabel.Text = CrossPlatformText.IpAddress;
+        GroupLabel.Text = CrossPlatformText.Group;
+        MacAddressLabel.Text = CrossPlatformText.MacAddress;
+        NotesLabel.Text = CrossPlatformText.Notes;
+        SaveButton.Content = CrossPlatformText.Save;
+        CancelButton.Content = CrossPlatformText.Cancel;
+    }
+
+    private void ShowValidation(string message)
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow is not null)
+        {
+            _ = ConfirmationDialog.ShowInfoAsync(desktop.MainWindow, CrossPlatformText.Validation, message);
+        }
     }
 }

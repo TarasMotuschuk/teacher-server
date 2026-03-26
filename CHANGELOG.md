@@ -26,6 +26,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Contributor guidance in `AGENTS.md`.
 - Agent status filtering, agent grouping, and auto-reconnect behavior in `TeacherClient`.
 - Matching agent discovery, grouping, filtering, and auto-reconnect flow in `TeacherClient.Avalonia`.
+- Shared `UiLanguage` model and language-aware settings across `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent`.
 
 ### Changed
 
@@ -39,6 +40,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Both teacher clients now keep the shared secret in a dedicated settings dialog instead of the main window header.
 - Both teacher clients now treat the `Agents` list as the primary connection entry point instead of manual URL entry.
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
+- `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.
 
 ### Notes
 

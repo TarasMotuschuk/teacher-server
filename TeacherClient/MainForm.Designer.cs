@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Drawing.Drawing2D;
+using TeacherClient.Localization;
 
 namespace TeacherClient;
 
@@ -90,33 +91,33 @@ partial class MainForm
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.FromArgb(236, 239, 243);
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-        Text = "Teacher Classroom Client";
+        Text = TeacherClientText.MainTitle;
         MinimumSize = new Size(1280, 840);
         WindowState = FormWindowState.Maximized;
         MainMenuStrip = mainMenuStrip;
 
-        var connectionMenuItem = new ToolStripMenuItem("Connection");
-        connectionMenuItem.DropDownItems.Add("Settings", null, settingsButton_Click);
-        connectionMenuItem.DropDownItems.Add("Refresh Agents", null, refreshAgentsButton_Click);
-        connectionMenuItem.DropDownItems.Add("Connect Selected Agent", null, connectSelectedAgentButton_Click);
-        connectionMenuItem.DropDownItems.Add("Add Manual Agent", null, addManualAgentButton_Click);
-        connectionMenuItem.DropDownItems.Add("Edit Manual Agent", null, editManualAgentButton_Click);
-        connectionMenuItem.DropDownItems.Add("Remove Manual Agent", null, removeManualAgentButton_Click);
+        var connectionMenuItem = new ToolStripMenuItem(TeacherClientText.ConnectionMenu);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, settingsButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, refreshAgentsButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, connectSelectedAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, addManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, editManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, removeManualAgentButton_Click);
 
-        var processesMenuItem = new ToolStripMenuItem("Processes");
-        processesMenuItem.DropDownItems.Add("Refresh", null, refreshProcessesButton_Click);
-        processesMenuItem.DropDownItems.Add("Terminate Selected", null, killProcessButton_Click);
+        var processesMenuItem = new ToolStripMenuItem(TeacherClientText.ProcessesMenu);
+        processesMenuItem.DropDownItems.Add(TeacherClientText.Refresh, null, refreshProcessesButton_Click);
+        processesMenuItem.DropDownItems.Add(TeacherClientText.TerminateSelected, null, killProcessButton_Click);
 
-        var filesMenuItem = new ToolStripMenuItem("Files");
-        filesMenuItem.DropDownItems.Add("Refresh Both", null, refreshFilesButton_Click);
-        filesMenuItem.DropDownItems.Add("Upload ->", null, uploadButton_Click);
-        filesMenuItem.DropDownItems.Add("<- Download", null, downloadButton_Click);
-        filesMenuItem.DropDownItems.Add("Delete Local", null, deleteLocalButton_Click);
-        filesMenuItem.DropDownItems.Add("Delete Remote", null, deleteRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add("New Remote Folder", null, newRemoteFolderButton_Click);
+        var filesMenuItem = new ToolStripMenuItem(TeacherClientText.FilesMenu);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.RefreshBoth, null, refreshFilesButton_Click);
+        filesMenuItem.DropDownItems.Add($"{TeacherClientText.Upload} ->", null, uploadButton_Click);
+        filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, downloadButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, deleteLocalButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, deleteRemoteButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
 
-        var helpMenuItem = new ToolStripMenuItem("Help");
-        helpMenuItem.DropDownItems.Add("About", null, aboutMenuItem_Click);
+        var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
+        helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, aboutMenuItem_Click);
 
         mainMenuStrip.Dock = DockStyle.Top;
         mainMenuStrip.BackColor = Color.White;
@@ -139,12 +140,12 @@ partial class MainForm
             ImageScalingSize = new Size(28, 28)
         };
 
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Settings", ToolbarIconKind.Settings, settingsButton_Click));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Settings, ToolbarIconKind.Settings, settingsButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, ToolbarIconKind.Refresh, refreshAgentsButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, ToolbarIconKind.Link, connectSelectedAgentButton_Click));
         quickActionsToolStrip.Items.Add(new ToolStripSeparator());
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Processes", ToolbarIconKind.Processes, refreshProcessesButton_Click));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton("Refresh Files", ToolbarIconKind.Folder, refreshFilesButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ProcessesMenu, ToolbarIconKind.Processes, refreshProcessesButton_Click));
+        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.FilesMenu, ToolbarIconKind.Folder, refreshFilesButton_Click));
 
         var topPanel = new Panel
         {
@@ -164,7 +165,7 @@ partial class MainForm
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        settingsButton.Text = "Settings";
+        settingsButton.Text = TeacherClientText.Settings;
         settingsButton.Dock = DockStyle.Fill;
         settingsButton.Margin = new Padding(0, 0, 16, 0);
         settingsButton.MinimumSize = new Size(130, 48);
@@ -172,7 +173,7 @@ partial class MainForm
 
         statusLabel.Dock = DockStyle.Fill;
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
-        statusLabel.Text = "Ready. Use the Agents tab to select a student machine, then connect.";
+        statusLabel.Text = TeacherClientText.StatusReady;
         statusLabel.AutoEllipsis = true;
         statusLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point);
 
@@ -188,11 +189,11 @@ partial class MainForm
         mainTabControl.TabPages.Add(processesTabPage);
         mainTabControl.TabPages.Add(filesTabPage);
 
-        agentsTabPage.Text = "Agents";
+        agentsTabPage.Text = TeacherClientText.AgentsTab;
         agentsTabPage.BackColor = Color.FromArgb(236, 239, 243);
-        processesTabPage.Text = "Processes";
+        processesTabPage.Text = TeacherClientText.ProcessesTab;
         processesTabPage.BackColor = Color.FromArgb(236, 239, 243);
-        filesTabPage.Text = "Files";
+        filesTabPage.Text = TeacherClientText.FilesTab;
         filesTabPage.BackColor = Color.FromArgb(236, 239, 243);
 
         ConfigureGrid(agentsGrid);
@@ -202,71 +203,71 @@ partial class MainForm
 
         agentsGrid.Dock = DockStyle.Fill;
         agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Source", DataPropertyName = "Source", Width = 100 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", DataPropertyName = "Status", Width = 100 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Group", DataPropertyName = "GroupName", Width = 140 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Machine", DataPropertyName = "MachineName", Width = 180 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "User", DataPropertyName = "CurrentUser", Width = 160 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Status, DataPropertyName = "Status", Width = 100 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Group, DataPropertyName = "GroupName", Width = 140 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Machine, DataPropertyName = "MachineName", Width = 180 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.User, DataPropertyName = "CurrentUser", Width = 160 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 150 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Port", DataPropertyName = "Port", Width = 80 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MACs", DataPropertyName = "MacAddressesDisplay", Width = 220 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Notes", DataPropertyName = "Notes", Width = 200 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Version", DataPropertyName = "Version", Width = 110 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Last Seen UTC", DataPropertyName = "LastSeenDisplay", Width = 190 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Port, DataPropertyName = "Port", Width = 80 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC", DataPropertyName = "MacAddressesDisplay", Width = 220 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Notes, DataPropertyName = "Notes", Width = 200 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Version.TrimEnd(':'), DataPropertyName = "Version", Width = 110 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190 });
 
         processesGrid.Dock = DockStyle.Fill;
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "PID", DataPropertyName = "Id", Width = 90 });
-        processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Process", DataPropertyName = "Name", Width = 220 });
-        processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Window", DataPropertyName = "MainWindowTitle", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 260 });
+        processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Process, DataPropertyName = "Name", Width = 220 });
+        processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Window, DataPropertyName = "MainWindowTitle", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 260 });
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Memory", DataPropertyName = "WorkingSetBytes", Width = 140 });
-        processesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Visible", DataPropertyName = "HasVisibleWindow", Width = 90 });
-        processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Started UTC", DataPropertyName = "StartTimeUtc", Width = 180 });
+        processesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.Visible, DataPropertyName = "HasVisibleWindow", Width = 90 });
+        processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.StartedUtc, DataPropertyName = "StartTimeUtc", Width = 180 });
 
         localFilesGrid.Dock = DockStyle.Fill;
         localFilesGrid.CellDoubleClick += localFilesGrid_CellDoubleClick;
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
-        localFilesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Dir", DataPropertyName = "IsDirectory", Width = 60 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Name, DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
+        localFilesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.DirectoryShort, DataPropertyName = "IsDirectory", Width = 60 });
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Size", DataPropertyName = "Size", Width = 110 });
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modified UTC", DataPropertyName = "LastModifiedUtc", Width = 190 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", Width = 190 });
 
         remoteFilesGrid.Dock = DockStyle.Fill;
         remoteFilesGrid.CellDoubleClick += remoteFilesGrid_CellDoubleClick;
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
-        remoteFilesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Dir", DataPropertyName = "IsDirectory", Width = 60 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Name, DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
+        remoteFilesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.DirectoryShort, DataPropertyName = "IsDirectory", Width = 60 });
         remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Size", DataPropertyName = "Size", Width = 110 });
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modified UTC", DataPropertyName = "LastModifiedUtc", Width = 190 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", Width = 190 });
 
-        refreshAgentsButton.Text = "Refresh Agents";
+        refreshAgentsButton.Text = TeacherClientText.RefreshAgents;
         refreshAgentsButton.Click += refreshAgentsButton_Click;
-        connectSelectedAgentButton.Text = "Connect Selected";
+        connectSelectedAgentButton.Text = TeacherClientText.ConnectSelectedAgent;
         connectSelectedAgentButton.Click += connectSelectedAgentButton_Click;
-        addManualAgentButton.Text = "Add Manual";
+        addManualAgentButton.Text = TeacherClientText.AddManualAgent;
         addManualAgentButton.Click += addManualAgentButton_Click;
-        editManualAgentButton.Text = "Edit Manual";
+        editManualAgentButton.Text = TeacherClientText.EditManualAgent;
         editManualAgentButton.Click += editManualAgentButton_Click;
-        removeManualAgentButton.Text = "Remove Manual";
+        removeManualAgentButton.Text = TeacherClientText.RemoveManualAgent;
         removeManualAgentButton.Click += removeManualAgentButton_Click;
 
-        refreshProcessesButton.Text = "Refresh";
+        refreshProcessesButton.Text = TeacherClientText.Refresh;
         refreshProcessesButton.Click += refreshProcessesButton_Click;
-        killProcessButton.Text = "Terminate Selected";
+        killProcessButton.Text = TeacherClientText.TerminateSelected;
         killProcessButton.Click += killProcessButton_Click;
 
-        refreshFilesButton.Text = "Refresh Both";
+        refreshFilesButton.Text = TeacherClientText.RefreshBoth;
         refreshFilesButton.Click += refreshFilesButton_Click;
-        uploadButton.Text = "Upload";
+        uploadButton.Text = TeacherClientText.Upload;
         uploadButton.Click += uploadButton_Click;
-        downloadButton.Text = "Download";
+        downloadButton.Text = TeacherClientText.Download;
         downloadButton.Click += downloadButton_Click;
-        deleteLocalButton.Text = "Delete Local";
+        deleteLocalButton.Text = TeacherClientText.DeleteLocal;
         deleteLocalButton.Click += deleteLocalButton_Click;
-        deleteRemoteButton.Text = "Delete Remote";
+        deleteRemoteButton.Text = TeacherClientText.DeleteRemote;
         deleteRemoteButton.Click += deleteRemoteButton_Click;
-        newRemoteFolderButton.Text = "New Folder";
+        newRemoteFolderButton.Text = TeacherClientText.NewRemoteFolder;
         newRemoteFolderButton.Click += newRemoteFolderButton_Click;
-        upLocalButton.Text = "Up";
+        upLocalButton.Text = TeacherClientText.Up;
         upLocalButton.Click += upLocalButton_Click;
-        upRemoteButton.Text = "Up";
+        upRemoteButton.Text = TeacherClientText.Up;
         upRemoteButton.Click += upRemoteButton_Click;
 
         var agentsLayout = new TableLayoutPanel
@@ -281,12 +282,12 @@ partial class MainForm
         agentsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var agentsToolStrip = CreateTabToolStrip();
-        agentsToolStrip.Items.Add(CreateToolbarButton("Refresh Agents", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton("Connect Selected", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, ToolbarIconKind.Refresh, refreshAgentsButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, ToolbarIconKind.Link, connectSelectedAgentButton_Click));
         agentsToolStrip.Items.Add(new ToolStripSeparator());
-        agentsToolStrip.Items.Add(CreateToolbarButton("Add Manual", ToolbarIconKind.Add, addManualAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton("Edit Manual", ToolbarIconKind.Edit, editManualAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton("Remove Manual", ToolbarIconKind.Remove, removeManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, ToolbarIconKind.Add, addManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, ToolbarIconKind.Edit, editManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RemoveManualAgent, ToolbarIconKind.Remove, removeManualAgentButton_Click));
 
         var agentsFilterLayout = new TableLayoutPanel
         {
@@ -304,9 +305,9 @@ partial class MainForm
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 280F));
         agentsFilterLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        var searchLabel = CreateInlineLabel("Search");
-        var groupLabel = CreateInlineLabel("Group");
-        var statusFilterLabel = CreateInlineLabel("Status");
+        var searchLabel = CreateInlineLabel(TeacherClientText.Search);
+        var groupLabel = CreateInlineLabel(TeacherClientText.Group);
+        var statusFilterLabel = CreateInlineLabel(TeacherClientText.Status);
 
         agentSearchTextBox.Dock = DockStyle.Fill;
         agentSearchTextBox.Margin = new Padding(0, 6, 14, 6);
@@ -325,7 +326,7 @@ partial class MainForm
         statusFilterComboBox.MinimumSize = new Size(0, 45);
         statusFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
 
-        autoReconnectCheckBox.Text = "Auto-reconnect";
+        autoReconnectCheckBox.Text = TeacherClientText.AutoReconnect;
         autoReconnectCheckBox.Dock = DockStyle.Fill;
         autoReconnectCheckBox.TextAlign = ContentAlignment.MiddleLeft;
         autoReconnectCheckBox.Margin = new Padding(0, 8, 0, 0);
@@ -355,8 +356,8 @@ partial class MainForm
         processesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var processesToolStrip = CreateTabToolStrip();
-        processesToolStrip.Items.Add(CreateToolbarButton("Refresh", ToolbarIconKind.Refresh, refreshProcessesButton_Click));
-        processesToolStrip.Items.Add(CreateToolbarButton("Terminate Selected", ToolbarIconKind.Stop, killProcessButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, ToolbarIconKind.Refresh, refreshProcessesButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.TerminateSelected, ToolbarIconKind.Stop, killProcessButton_Click));
 
         processesLayout.Controls.Add(processesToolStrip, 0, 0);
         processesLayout.Controls.Add(processesGrid, 0, 1);
@@ -373,14 +374,14 @@ partial class MainForm
         filesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var filesToolStrip = CreateTabToolStrip();
-        filesToolStrip.Items.Add(CreateToolbarButton("Refresh Both", ToolbarIconKind.Refresh, refreshFilesButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshBoth, ToolbarIconKind.Refresh, refreshFilesButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton("Upload", ToolbarIconKind.Upload, uploadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton("Download", ToolbarIconKind.Download, downloadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Upload, ToolbarIconKind.Upload, uploadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, ToolbarIconKind.Download, downloadButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton("Delete Local", ToolbarIconKind.Remove, deleteLocalButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton("Delete Remote", ToolbarIconKind.Remove, deleteRemoteButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton("New Folder", ToolbarIconKind.NewFolder, newRemoteFolderButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, ToolbarIconKind.Remove, deleteLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, ToolbarIconKind.Remove, deleteRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewRemoteFolder, ToolbarIconKind.NewFolder, newRemoteFolderButton_Click));
 
         var filesPanelsLayout = new TableLayoutPanel
         {
@@ -405,7 +406,7 @@ partial class MainForm
 
         var localLabel = new Label
         {
-            Text = "Teacher PC",
+            Text = TeacherClientText.TeacherPc,
             Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point),
             TextAlign = ContentAlignment.MiddleLeft
@@ -449,7 +450,7 @@ partial class MainForm
 
         var remoteLabel = new Label
         {
-            Text = "Student PC",
+            Text = TeacherClientText.StudentPc,
             Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point),
             TextAlign = ContentAlignment.MiddleLeft

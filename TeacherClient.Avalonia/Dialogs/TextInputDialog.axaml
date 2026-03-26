@@ -15,8 +15,8 @@
                 HorizontalAlignment="Right"
                 Spacing="10"
                 Margin="0,18,0,0">
-      <Button Width="90" Content="Cancel" Click="CancelButton_OnClick" />
-      <Button Width="90" Content="OK" Click="OkButton_OnClick" />
+      <Button x:Name="CancelButton" Width="90" Content="Cancel" Click="CancelButton_OnClick" />
+      <Button x:Name="OkButton" Width="90" Content="OK" Click="OkButton_OnClick" />
     </StackPanel>
   </Grid>
 </Window>

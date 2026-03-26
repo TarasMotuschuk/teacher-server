@@ -1,0 +1,136 @@
+using Teacher.Common.Localization;
+
+namespace TeacherClient.Localization;
+
+internal static class TeacherClientText
+{
+    public static UiLanguage CurrentLanguage { get; private set; } = UiLanguageExtensions.GetDefault();
+
+    public static void SetLanguage(UiLanguage language)
+    {
+        CurrentLanguage = language.Normalize();
+    }
+
+    public static bool IsUk => CurrentLanguage == UiLanguage.Ukrainian;
+
+    public static string MainTitle => IsUk ? "Клієнт викладача" : "Teacher Classroom Client";
+    public static string ConnectionMenu => IsUk ? "Підключення" : "Connection";
+    public static string Settings => IsUk ? "Налаштування" : "Settings";
+    public static string RefreshAgents => IsUk ? "Оновити агентів" : "Refresh Agents";
+    public static string ConnectSelectedAgent => IsUk ? "Підключити вибраний агент" : "Connect Selected Agent";
+    public static string AddManualAgent => IsUk ? "Додати вручну" : "Add Manual Agent";
+    public static string EditManualAgent => IsUk ? "Редагувати вручну" : "Edit Manual Agent";
+    public static string RemoveManualAgent => IsUk ? "Видалити вручну" : "Remove Manual Agent";
+    public static string ProcessesMenu => IsUk ? "Процеси" : "Processes";
+    public static string Refresh => IsUk ? "Оновити" : "Refresh";
+    public static string TerminateSelected => IsUk ? "Завершити вибране" : "Terminate Selected";
+    public static string FilesMenu => IsUk ? "Файли" : "Files";
+    public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
+    public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
+    public static string Download => IsUk ? "Скачати з агента" : "Download";
+    public static string DeleteLocal => IsUk ? "Видалити локально" : "Delete Local";
+    public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
+    public static string NewRemoteFolder => IsUk ? "Нова віддалена папка" : "New Remote Folder";
+    public static string Help => IsUk ? "Довідка" : "Help";
+    public static string About => IsUk ? "Про програму" : "About";
+    public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці агентів і підключіться." : "Ready. Use the Agents tab to select a student machine, then connect.";
+    public static string AgentsTab => IsUk ? "Агенти" : "Agents";
+    public static string ProcessesTab => IsUk ? "Процеси" : "Processes";
+    public static string FilesTab => IsUk ? "Файли" : "Files";
+    public static string Search => IsUk ? "Пошук" : "Search";
+    public static string Group => IsUk ? "Група" : "Group";
+    public static string Status => IsUk ? "Статус" : "Status";
+    public static string AutoReconnect => IsUk ? "Автоперепідключення" : "Auto-reconnect";
+    public static string AllGroups => IsUk ? "Усі групи" : "All groups";
+    public static string AllStatuses => IsUk ? "Усі" : "All";
+    public static string Online => IsUk ? "Онлайн" : "Online";
+    public static string Offline => IsUk ? "Офлайн" : "Offline";
+    public static string Unknown => IsUk ? "Невідомо" : "Unknown";
+    public static string TeacherPc => IsUk ? "ПК викладача" : "Teacher PC";
+    public static string StudentPc => IsUk ? "ПК студента" : "Student PC";
+    public static string Up => IsUk ? "Вгору" : "Up";
+    public static string Source => IsUk ? "Джерело" : "Source";
+    public static string Machine => IsUk ? "Машина" : "Machine";
+    public static string User => IsUk ? "Користувач" : "User";
+    public static string Notes => IsUk ? "Нотатки" : "Notes";
+    public static string LastSeenUtc => IsUk ? "Останній сигнал UTC" : "Last Seen UTC";
+    public static string Visible => IsUk ? "Видимий" : "Visible";
+    public static string StartedUtc => IsUk ? "Запущено UTC" : "Started UTC";
+    public static string Window => IsUk ? "Вікно" : "Window";
+    public static string Process => IsUk ? "Процес" : "Process";
+    public static string Name => IsUk ? "Назва" : "Name";
+    public static string DirectoryShort => IsUk ? "Кат." : "Dir";
+    public static string ModifiedUtc => IsUk ? "Змінено UTC" : "Modified UTC";
+    public static string SettingsDialogTitle => IsUk ? "Налаштування клієнта викладача" : "Teacher Client Settings";
+    public static string SharedSecret => IsUk ? "Спільний секрет" : "Shared secret";
+    public static string Language => IsUk ? "Мова" : "Language";
+    public static string SettingsHint => IsUk ? "Цей секрет використовується для перевірки доступності агентів і для всіх API-запитів від викладача до студента." : "This secret is used for agent discovery reachability checks and all teacher-to-student API calls.";
+    public static string Save => IsUk ? "Зберегти" : "Save";
+    public static string Cancel => IsUk ? "Скасувати" : "Cancel";
+    public static string AboutTitle => IsUk ? "Про TeacherClient" : "About TeacherClient";
+    public static string AboutDescription => IsUk ? "TeacherClient — це Windows-клієнт для підключення до StudentAgent, перегляду процесів і керування файлами у прозорому навчальному середовищі." : "TeacherClient is the Windows desktop control panel for connecting to StudentAgent, viewing processes, and managing files in a transparent classroom environment.";
+    public static string Version => IsUk ? "Версія:" : "Version:";
+    public static string Close => IsUk ? "Закрити" : "Close";
+    public static string InputTitle => IsUk ? "Ввід" : "Input";
+    public static string Prompt => IsUk ? "Параметр" : "Prompt";
+    public static string Ok => "OK";
+    public static string ManualAgentTitle => IsUk ? "Ручний агент" : "Manual Agent";
+    public static string DisplayName => IsUk ? "Назва" : "Display name";
+    public static string IpAddress => IsUk ? "IP адреса" : "IP address";
+    public static string Port => IsUk ? "Порт" : "Port";
+    public static string MacAddress => IsUk ? "MAC адреса" : "MAC address";
+    public static string Validation => IsUk ? "Перевірка" : "Validation";
+    public static string DisplayNameRequired => IsUk ? "Назва є обов'язковою." : "Display name is required.";
+    public static string IpAddressRequired => IsUk ? "IP адреса є обов'язковою." : "IP address is required.";
+    public static string Confirm => IsUk ? "Підтвердження" : "Confirm";
+    public static string NoAgentsAvailable => IsUk ? "Немає доступних агентів." : "No agents available.";
+    public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть агент." : "Choose an agent first.";
+    public static string ConnectionFailed => IsUk ? "Підключення не вдалося." : "Connection failed.";
+    public static string ConnectFromAgentsTabFirst => IsUk ? "Спочатку підключіться до агента на вкладці агентів." : "Connect to an agent from the Agents tab first.";
+    public static string ChooseProcessFirst => IsUk ? "Спочатку виберіть процес." : "Choose a process first.";
+    public static string TerminateProcessTitle => IsUk ? "Завершити процес" : "Terminate Process";
+    public static string LocalBrowseError => IsUk ? "Помилка перегляду локальних файлів" : "Local browse error";
+    public static string RemoteBrowseError => IsUk ? "Помилка перегляду віддалених файлів" : "Remote browse error";
+    public static string ProcessLoadError => IsUk ? "Помилка завантаження процесів" : "Process load error";
+    public static string DiscoveryError => IsUk ? "Помилка пошуку агентів" : "Discovery error";
+    public static string UploadError => IsUk ? "Помилка завантаження файлу" : "Upload error";
+    public static string DownloadError => IsUk ? "Помилка скачування файлу" : "Download error";
+    public static string LocalDeleteError => IsUk ? "Помилка локального видалення" : "Local delete error";
+    public static string RemoteDeleteError => IsUk ? "Помилка віддаленого видалення" : "Remote delete error";
+    public static string CreateFolderError => IsUk ? "Помилка створення папки" : "Create folder error";
+    public static string RemoteListingFailed => IsUk ? "Не вдалося отримати список віддалених файлів." : "Remote listing failed.";
+    public static string PanelsRefreshed => IsUk ? "Панелі оновлено" : "Panels refreshed";
+    public static string ChooseLocalFileToUpload => IsUk ? "Виберіть локальний файл для завантаження." : "Choose a local file to upload.";
+    public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
+    public static string ChooseLocalEntryFirst => IsUk ? "Спочатку виберіть локальний елемент." : "Choose a local entry first.";
+    public static string ChooseRemoteEntryFirst => IsUk ? "Спочатку виберіть віддалений елемент." : "Choose a remote entry first.";
+    public static string DeleteLocalEntryTitle => IsUk ? "Видалити локальний елемент" : "Delete Local Entry";
+    public static string DeleteRemoteEntryTitle => IsUk ? "Видалити віддалений елемент" : "Delete Remote Entry";
+    public static string CreateRemoteFolderTitle => IsUk ? "Створити віддалену папку" : "Create remote folder";
+    public static string FolderName => IsUk ? "Назва папки:" : "Folder name:";
+    public static string NewFolderDefaultName => IsUk ? "НоваПапка" : "NewFolder";
+    public static string AutoSource => IsUk ? "Авто" : "Auto";
+    public static string ManualSource => IsUk ? "Вручну" : "Manual";
+    public static string ManualAutoSource => IsUk ? "Вручну+Авто" : "Manual+Auto";
+    public static string ManualVersion => IsUk ? "Вручну" : "Manual";
+
+    public static string FormatAddedManualAgent(string name) => IsUk ? $"Додано ручний агент {name}" : $"Added manual agent {name}";
+    public static string FormatUpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
+    public static string FormatRemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
+    public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ручний агент." : "Choose a manual agent first.";
+    public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";
+    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ручний агент {name}?" : $"Remove manual agent {name}?";
+    public static string SettingsSaved => IsUk ? "Налаштування збережено. Спільний секрет оновлено." : "Settings saved. Shared secret updated.";
+    public static string TerminateProcessPrompt(string name, int id) => IsUk ? $"Завершити процес {name} ({id})?" : $"Terminate process {name} ({id})?";
+    public static string FormatProcessTerminated(string name) => IsUk ? $"Процес {name} завершено" : $"Process {name} terminated";
+    public static string FormatLoadedProcesses(int count) => IsUk ? $"Завантажено процесів: {count}" : $"Loaded {count} processes";
+    public static string FormatAvailableAgents(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
+    public static string FormatUploaded(string name) => IsUk ? $"Завантажено {name}" : $"Uploaded {name}";
+    public static string FormatDownloaded(string name) => IsUk ? $"Скачано {name}" : $"Downloaded {name}";
+    public static string FormatDeletedLocal(string name) => IsUk ? $"Локальний елемент {name} видалено" : $"Deleted local entry {name}";
+    public static string FormatDeletedRemote(string name) => IsUk ? $"Віддалений елемент {name} видалено" : $"Deleted remote entry {name}";
+    public static string FormatCreatedRemoteFolder(string name) => IsUk ? $"Створено віддалену папку {name}" : $"Created remote folder {name}";
+    public static string DeleteLocalEntryPrompt(string name) => IsUk ? $"Видалити локальний елемент {name}?" : $"Delete local entry {name}?";
+    public static string DeleteRemoteEntryPrompt(string name) => IsUk ? $"Видалити віддалений елемент {name}?" : $"Delete remote entry {name}?";
+    public static string FormatConnectedToAgent(string source, string machine, string user) => IsUk ? $"Підключено до {source} агента {machine} ({user})" : $"Connected to {source} agent {machine} ({user})";
+}

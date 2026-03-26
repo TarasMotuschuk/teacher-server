@@ -39,16 +39,16 @@
 
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <Menu Grid.Row="0" Margin="0,0,0,12">
-      <MenuItem Header="_Connection">
-        <MenuItem Header="_Settings" Click="SettingsButton_OnClick" />
-        <MenuItem Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
-        <MenuItem Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
-        <MenuItem Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
-        <MenuItem Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
-        <MenuItem Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
+      <MenuItem x:Name="ConnectionMenuItem" Header="_Connection">
+        <MenuItem x:Name="SettingsMenuItem" Header="_Settings" Click="SettingsButton_OnClick" />
+        <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
+        <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
+        <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
+        <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
+        <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
-      <MenuItem Header="_Help">
-        <MenuItem Header="_About" Click="AboutMenuItem_OnClick" />
+      <MenuItem x:Name="HelpMenuItem" Header="_Help">
+        <MenuItem x:Name="AboutMenuItem" Header="_About" Click="AboutMenuItem_OnClick" />
       </MenuItem>
     </Menu>
 
@@ -57,7 +57,7 @@
             CornerRadius="10"
             Background="#17202A">
       <Grid ColumnDefinitions="Auto,*">
-        <Button Grid.Column="0"
+        <Button x:Name="SettingsButton" Grid.Column="0"
                 Margin="0,0,14,0"
                 Width="120"
                 Content="Settings"
@@ -71,14 +71,14 @@
     </Border>
 
     <TabControl Grid.Row="2" Margin="0,16,0,16">
-      <TabItem Header="Agents">
+      <TabItem x:Name="AgentsTabItem" Header="Agents">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
           <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,160,120,Auto" Margin="0,0,0,12">
-            <Button Grid.Column="0" Width="120" Margin="0,0,12,0" Content="Refresh Agents" Click="RefreshAgentsButton_OnClick" />
-            <Button Grid.Column="1" Width="140" Margin="0,0,12,0" Content="Connect Selected" Click="ConnectSelectedAgentButton_OnClick" />
-            <Button Grid.Column="2" Width="110" Margin="0,0,12,0" Content="Add Manual" Click="AddManualAgentButton_OnClick" />
-            <Button Grid.Column="3" Width="110" Margin="0,0,12,0" Content="Edit Manual" Click="EditManualAgentButton_OnClick" />
-            <Button Grid.Column="4" Width="130" Margin="0,0,12,0" HorizontalAlignment="Left" Content="Remove Manual" Click="RemoveManualAgentButton_OnClick" />
+            <Button x:Name="RefreshAgentsButton" Grid.Column="0" Width="120" Margin="0,0,12,0" Content="Refresh Agents" Click="RefreshAgentsButton_OnClick" />
+            <Button x:Name="ConnectSelectedAgentButton" Grid.Column="1" Width="140" Margin="0,0,12,0" Content="Connect Selected" Click="ConnectSelectedAgentButton_OnClick" />
+            <Button x:Name="AddManualAgentButton" Grid.Column="2" Width="110" Margin="0,0,12,0" Content="Add Manual" Click="AddManualAgentButton_OnClick" />
+            <Button x:Name="EditManualAgentButton" Grid.Column="3" Width="110" Margin="0,0,12,0" Content="Edit Manual" Click="EditManualAgentButton_OnClick" />
+            <Button x:Name="RemoveManualAgentButton" Grid.Column="4" Width="130" Margin="0,0,12,0" HorizontalAlignment="Left" Content="Remove Manual" Click="RemoveManualAgentButton_OnClick" />
             <TextBox x:Name="AgentSearchTextBox"
                      Grid.Column="5"
                      Margin="0,0,12,0"
@@ -121,11 +121,11 @@
         </Grid>
       </TabItem>
 
-      <TabItem Header="Processes">
+      <TabItem x:Name="ProcessesTabItem" Header="Processes">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
           <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-            <Button Width="110" Margin="0,0,10,0" Content="Refresh" Click="RefreshProcessesButton_OnClick" />
-            <Button Width="180" Content="Terminate Selected" Click="KillProcessButton_OnClick" />
+            <Button x:Name="RefreshProcessesButton" Width="110" Margin="0,0,10,0" Content="Refresh" Click="RefreshProcessesButton_OnClick" />
+            <Button x:Name="KillProcessButton" Width="180" Content="Terminate Selected" Click="KillProcessButton_OnClick" />
           </StackPanel>
 
           <DataGrid x:Name="ProcessesGrid"
@@ -146,30 +146,30 @@
         </Grid>
       </TabItem>
 
-      <TabItem Header="Files">
+      <TabItem x:Name="FilesTabItem" Header="Files">
         <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
           <WrapPanel Orientation="Horizontal" ItemHeight="36" ItemWidth="150" Margin="0,0,0,12">
-            <Button Margin="0,0,10,10" Content="Refresh Both" Click="RefreshFilesButton_OnClick" />
-            <Button Margin="0,0,10,10" Content="Upload -&gt;" Click="UploadButton_OnClick" />
-            <Button Margin="0,0,10,10" Content="&lt;- Download" Click="DownloadButton_OnClick" />
-            <Button Margin="0,0,10,10" Content="Delete Local" Click="DeleteLocalButton_OnClick" />
-            <Button Margin="0,0,10,10" Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />
-            <Button Margin="0,0,10,10" Content="New Remote Folder" Click="NewRemoteFolderButton_OnClick" />
+            <Button x:Name="RefreshFilesButton" Margin="0,0,10,10" Content="Refresh Both" Click="RefreshFilesButton_OnClick" />
+            <Button x:Name="UploadButton" Margin="0,0,10,10" Content="Upload -&gt;" Click="UploadButton_OnClick" />
+            <Button x:Name="DownloadButton" Margin="0,0,10,10" Content="&lt;- Download" Click="DownloadButton_OnClick" />
+            <Button x:Name="DeleteLocalButton" Margin="0,0,10,10" Content="Delete Local" Click="DeleteLocalButton_OnClick" />
+            <Button x:Name="DeleteRemoteButton" Margin="0,0,10,10" Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />
+            <Button x:Name="NewRemoteFolderButton" Margin="0,0,10,10" Content="New Remote Folder" Click="NewRemoteFolderButton_OnClick" />
           </WrapPanel>
 
           <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
             <StackPanel Grid.Column="0" Margin="0,0,8,0" Spacing="8">
-              <TextBlock FontWeight="Bold" Text="Teacher PC" />
+              <TextBlock x:Name="TeacherPcTextBlock" FontWeight="Bold" Text="Teacher PC" />
               <Grid ColumnDefinitions="70,*">
-                <Button Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
+                <Button x:Name="UpLocalButton" Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
                 <TextBox x:Name="LocalPathTextBox" Grid.Column="1" IsReadOnly="True" />
               </Grid>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="8">
-              <TextBlock FontWeight="Bold" Text="Student PC" />
+              <TextBlock x:Name="StudentPcTextBlock" FontWeight="Bold" Text="Student PC" />
               <Grid ColumnDefinitions="70,*">
-                <Button Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
+                <Button x:Name="UpRemoteButton" Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
                 <TextBox x:Name="RemotePathTextBox" Grid.Column="1" IsReadOnly="True" />
               </Grid>
             </StackPanel>
@@ -213,7 +213,7 @@
             Padding="12"
             CornerRadius="10"
             Background="#EEF2F6">
-      <TextBlock TextWrapping="Wrap"
+      <TextBlock x:Name="FooterTextBlock" TextWrapping="Wrap"
                  Text="Avalonia client is cross-platform and now includes the same agent discovery flow as the Windows client, including manual agent groups, status filters, and auto-reconnect against the existing StudentAgent HTTP endpoint." />
     </Border>
   </Grid>

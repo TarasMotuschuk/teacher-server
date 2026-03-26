@@ -1,5 +1,6 @@
 using System.Security.Principal;
 using StudentAgent.Services;
+using StudentAgent.UI.Localization;
 
 namespace StudentAgent.UI;
 
@@ -9,30 +10,44 @@ public sealed class AgentApplicationContext : ApplicationContext
     private readonly AgentSettingsStore _settingsStore;
     private readonly AgentLogService _logService;
     private readonly NotifyIcon _notifyIcon;
+    private readonly ToolStripMenuItem _aboutMenuItem;
+    private readonly ToolStripMenuItem _settingsMenuItem;
+    private readonly ToolStripMenuItem _logsMenuItem;
+    private readonly ToolStripMenuItem _exitMenuItem;
 
     public AgentApplicationContext(WebApplication app, AgentSettingsStore settingsStore, AgentLogService logService)
     {
         _app = app;
         _settingsStore = settingsStore;
         _logService = logService;
+        StudentAgentText.SetLanguage(_settingsStore.Current.Language);
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("About", null, (_, _) => OpenAbout());
-        menu.Items.Add("Settings", null, (_, _) => OpenSettings());
-        menu.Items.Add("Logs", null, (_, _) => OpenLogs());
+        _aboutMenuItem = new ToolStripMenuItem();
+        _settingsMenuItem = new ToolStripMenuItem();
+        _logsMenuItem = new ToolStripMenuItem();
+        _exitMenuItem = new ToolStripMenuItem();
+        _aboutMenuItem.Click += (_, _) => OpenAbout();
+        _settingsMenuItem.Click += (_, _) => OpenSettings();
+        _logsMenuItem.Click += (_, _) => OpenLogs();
+        _exitMenuItem.Click += (_, _) => ExitAgent();
+        menu.Items.Add(_aboutMenuItem);
+        menu.Items.Add(_settingsMenuItem);
+        menu.Items.Add(_logsMenuItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, _) => ExitAgent());
+        menu.Items.Add(_exitMenuItem);
 
         _notifyIcon = new NotifyIcon
         {
-            Text = "StudentAgent",
+            Text = StudentAgentText.AgentName,
             Icon = SystemIcons.Shield,
             Visible = true,
             ContextMenuStrip = menu
         };
 
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
-        _notifyIcon.ShowBalloonTip(2000, "StudentAgent", "StudentAgent is running in the system tray.", ToolTipIcon.Info);
+        ApplyLocalization();
+        _notifyIcon.ShowBalloonTip(2000, StudentAgentText.AgentName, StudentAgentText.TrayBalloon, ToolTipIcon.Info);
     }
 
     protected override void ExitThreadCore()
@@ -54,6 +69,7 @@ public sealed class AgentApplicationContext : ApplicationContext
 
         using var form = new SettingsForm(_settingsStore, _logService);
         form.ShowDialog();
+        ApplyLocalization();
     }
 
     private void OpenLogs()
@@ -82,10 +98,10 @@ public sealed class AgentApplicationContext : ApplicationContext
 
         if (!IsAdministrator())
         {
-            _logService.LogWarning("Exit denied because current user is not an administrator.");
+            _logService.LogWarning(StudentAgentText.ExitDeniedBecauseNotAdminLog);
             MessageBox.Show(
-                "Only a Windows administrator can close StudentAgent.",
-                "Exit denied",
+                StudentAgentText.OnlyAdminCanClose,
+                StudentAgentText.ExitDenied,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
             return;
@@ -105,10 +121,10 @@ public sealed class AgentApplicationContext : ApplicationContext
         var isValid = _settingsStore.VerifyPassword(dialog.Password);
         if (!isValid)
         {
-            _logService.LogWarning("Protected menu access denied because of an invalid password.");
+            _logService.LogWarning(StudentAgentText.ProtectedMenuAccessDeniedLog);
             MessageBox.Show(
-                "Invalid password.",
-                "Access denied",
+                StudentAgentText.InvalidPassword,
+                StudentAgentText.AccessDenied,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
@@ -121,5 +137,15 @@ public sealed class AgentApplicationContext : ApplicationContext
         using var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    private void ApplyLocalization()
+    {
+        StudentAgentText.SetLanguage(_settingsStore.Current.Language);
+        _aboutMenuItem.Text = StudentAgentText.About;
+        _settingsMenuItem.Text = StudentAgentText.Settings;
+        _logsMenuItem.Text = StudentAgentText.Logs;
+        _exitMenuItem.Text = StudentAgentText.Exit;
+        _notifyIcon.Text = StudentAgentText.AgentName;
     }
 }
