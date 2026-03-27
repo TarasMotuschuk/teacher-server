@@ -1,4 +1,6 @@
 using Teacher.Common.Contracts;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace StudentAgent.Services;
 
@@ -68,6 +70,41 @@ public sealed class FileService
         foreach (var file in directory.EnumerateFiles())
         {
             file.Delete();
+        }
+    }
+
+    public void EnsureSharedWritableDirectory(string fullPath)
+    {
+        var directoryPath = ResolveDirectory(fullPath);
+        var directory = Directory.CreateDirectory(directoryPath);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            var security = directory.GetAccessControl();
+            var everyoneSid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+            var accessRule = new FileSystemAccessRule(
+                everyoneSid,
+                FileSystemRights.CreateFiles |
+                FileSystemRights.CreateDirectories |
+                FileSystemRights.Write |
+                FileSystemRights.ReadAndExecute |
+                FileSystemRights.Modify |
+                FileSystemRights.DeleteSubdirectoriesAndFiles,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow);
+
+            security.ModifyAccessRule(AccessControlModification.Add, accessRule, out _);
+            directory.SetAccessControl(security);
+        }
+        catch
+        {
+            // Best-effort ACL setup; the directory itself should still exist.
         }
     }
 

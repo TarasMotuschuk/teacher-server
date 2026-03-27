@@ -20,6 +20,8 @@ public partial class SettingsDialog : Form
         languageComboBox.SelectedIndex = settings.Language == UiLanguage.Ukrainian ? 0 : 1;
         sharedSecretTextBox.Text = settings.SharedSecret;
         bulkCopyDestinationPathTextBox.Text = settings.BulkCopyDestinationPath;
+        studentWorkRootPathTextBox.Text = settings.StudentWorkRootPath;
+        studentWorkFolderNameTextBox.Text = settings.StudentWorkFolderName;
         ApplyLocalization();
     }
 
@@ -27,13 +29,17 @@ public partial class SettingsDialog : Form
         => new(
             sharedSecretTextBox.Text.Trim(),
             languageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English,
-            bulkCopyDestinationPathTextBox.Text.Trim());
+            bulkCopyDestinationPathTextBox.Text.Trim(),
+            studentWorkRootPathTextBox.Text.Trim(),
+            studentWorkFolderNameTextBox.Text.Trim());
 
     private void ApplyLocalization()
     {
         Text = TeacherClientText.SettingsDialogTitle;
         sharedSecretLabel.Text = TeacherClientText.SharedSecret;
         bulkCopyDestinationPathLabel.Text = TeacherClientText.BulkCopyDestinationPath;
+        studentWorkRootPathLabel.Text = TeacherClientText.StudentWorkRootPath;
+        studentWorkFolderNameLabel.Text = TeacherClientText.StudentWorkFolderName;
         languageLabel.Text = TeacherClientText.Language;
         hintLabel.Text = TeacherClientText.SettingsHint;
         saveButton.Text = TeacherClientText.Save;

@@ -65,7 +65,13 @@ public sealed class ClientSettingsStore
         var bulkCopyDestinationPath = string.IsNullOrWhiteSpace(settings?.BulkCopyDestinationPath)
             ? ClientSettings.Default.BulkCopyDestinationPath
             : RemoteWindowsPath.Normalize(settings.BulkCopyDestinationPath);
+        var studentWorkRootPath = string.IsNullOrWhiteSpace(settings?.StudentWorkRootPath)
+            ? ClientSettings.Default.StudentWorkRootPath
+            : RemoteWindowsPath.Normalize(settings.StudentWorkRootPath);
+        var studentWorkFolderName = string.IsNullOrWhiteSpace(settings?.StudentWorkFolderName)
+            ? ClientSettings.Default.StudentWorkFolderName
+            : settings.StudentWorkFolderName.Trim();
 
-        return new ClientSettings(sharedSecret, language, bulkCopyDestinationPath);
+        return new ClientSettings(sharedSecret, language, bulkCopyDestinationPath, studentWorkRootPath, studentWorkFolderName);
     }
 }

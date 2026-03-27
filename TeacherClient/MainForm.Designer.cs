@@ -121,6 +121,9 @@ partial class MainForm
         var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
         groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearSelectedFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearSelectedFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkFromSelectedAgents, null, collectStudentWorkFromSelectedAgentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkFromAllOnlineAgents, null, collectStudentWorkFromAllOnlineAgentsMenuItem_Click);
 
         var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
         helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, aboutMenuItem_Click);

@@ -78,6 +78,12 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task EnsureSharedWritableDirectoryAsync(string fullPath, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/files/shared-directory", new EnsureSharedDirectoryRequest(fullPath), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task EnsureRemoteDirectoryPathAsync(string fullPath, CancellationToken cancellationToken = default)
     {
         var normalizedPath = RemoteWindowsPath.Normalize(fullPath);

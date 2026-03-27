@@ -145,6 +145,19 @@ try
         }
     });
 
+    app.MapPost("/api/files/shared-directory", ([FromBody] EnsureSharedDirectoryRequest request, [FromServices] FileService service) =>
+    {
+        try
+        {
+            service.EnsureSharedWritableDirectory(request.FullPath);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
     app.MapGet("/api/files/download", (string fullPath, [FromServices] FileService service) =>
     {
         try

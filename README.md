@@ -41,12 +41,14 @@ Available endpoints:
 - connection to the student agent from the `Agents` list;
 - persisted teacher-side settings with the shared secret stored outside the main window;
 - a teacher-configured destination folder path used for bulk distribution on student PCs;
+- teacher-configured student work folder settings with automatic shared-folder provisioning on reachable student PCs;
 - user-selectable UI language with English and Ukrainian options;
 - process list refresh and remote process termination;
 - dual-pane local/remote file browsing;
 - file upload and download;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - group commands for clearing the contents of the selected student folder on either selected students or all online students;
+- group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
 
@@ -63,12 +65,14 @@ Available endpoints:
 - connect to the same `StudentAgent` endpoint from the `Agents` list;
 - persisted teacher-side settings with the shared secret stored outside the main window;
 - a teacher-configured destination folder path used for bulk distribution on student PCs;
+- teacher-configured student work folder settings with automatic shared-folder provisioning on reachable student PCs;
 - user-selectable UI language with English and Ukrainian options;
 - browse remote processes and terminate a selected process;
 - browse local and remote file trees in dual panes;
 - upload and download files;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - group commands for clearing the contents of the selected student folder on either selected students or all online students;
+- group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - delete local and remote entries;
 - create remote folders.
 
@@ -151,12 +155,14 @@ Example configuration:
 3. Optionally assign manual agents to a `Group` such as a classroom, lab row, or lesson cohort.
 4. Filter the list by search text, `Status`, or `Group`.
 5. Leave `Auto-reconnect` enabled if you want the client to recover the last active connection automatically.
-6. Open `Connection -> Settings` and choose the preferred UI language, the shared secret, and the destination folder path that should be used on student PCs for bulk distribution.
+6. Open `Connection -> Settings` and choose the preferred UI language, the shared secret, the destination folder path for bulk distribution, and the student work base path plus work folder name.
 7. Connect to a selected agent from the `Agents` list.
 8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
-9. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
-10. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
-11. During bulk distribution and bulk clear operations, the status area reports the current target agent and progress so the teacher can see which machine is currently receiving or processing content.
+9. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
+10. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
+11. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
+12. Use `Group Commands` to collect student work from either selected agents or all online agents. The teacher client downloads each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
+13. During bulk distribution, bulk clear, and work collection operations, the status area reports the current target agent and progress.
 
 ### Start TeacherClient.Avalonia on macOS
 
@@ -173,12 +179,14 @@ dotnet restore TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 ```
 
-4. In the app, open `Connection -> Settings` and choose the UI language, the shared secret, and the destination folder path that should be used on student PCs for bulk distribution.
+4. In the app, open `Connection -> Settings` and choose the UI language, the shared secret, the destination folder path for bulk distribution, and the student work base path plus work folder name.
 5. Use the `Agents` tab to discover students automatically, assign manual entries to groups, and connect from the filtered list.
-6. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
-7. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
-8. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
-9. During bulk distribution and bulk clear operations, the status area reports the current target agent and progress.
+6. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
+7. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
+8. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
+9. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
+10. Use `Group Commands` to collect student work from either selected agents or all online agents. The client downloads each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
+11. During bulk distribution, bulk clear, and work collection operations, the status area reports the current target agent and progress.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
 

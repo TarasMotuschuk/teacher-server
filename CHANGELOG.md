@@ -31,6 +31,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Teacher-side destination path setting for student file distribution in both teacher clients.
 - Live status progress during bulk distribution, including the current target agent and file position.
 - Group commands in both teacher clients for clearing the contents of a selected remote student folder on either selected agents or all online agents.
+- Teacher-side student work folder settings with automatic shared-folder provisioning on reachable student PCs.
+- Group commands in both teacher clients for collecting student work folders from either selected agents or all online agents into teacher-side folders named after each student machine.
 
 ### Changed
 
@@ -46,6 +48,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Both teacher clients now treat the `Agents` list as the primary connection entry point instead of manual URL entry.
 - Bulk folder distribution now recreates the selected folder and its full internal directory structure on each target student machine.
 - Both teacher clients now expose a dedicated `Group Commands` menu for teacher-side multi-agent actions against the currently selected student folder.
+- Both teacher clients now use the current local teacher folder as the destination root when collecting student work, creating one subfolder per student machine.
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 - `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.
 

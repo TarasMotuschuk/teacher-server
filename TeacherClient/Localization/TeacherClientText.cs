@@ -65,8 +65,10 @@ internal static class TeacherClientText
     public static string SettingsDialogTitle => IsUk ? "Налаштування клієнта викладача" : "Teacher Client Settings";
     public static string SharedSecret => IsUk ? "Спільний секрет" : "Shared secret";
     public static string BulkCopyDestinationPath => IsUk ? "Папка призначення на учнях" : "Student destination folder";
+    public static string StudentWorkRootPath => IsUk ? "Базовий шлях робіт на учнях" : "Student work base path";
+    public static string StudentWorkFolderName => IsUk ? "Назва папки робіт" : "Student work folder name";
     public static string Language => IsUk ? "Мова" : "Language";
-    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності агентів і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution.";
+    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності агентів і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work.";
     public static string Save => IsUk ? "Зберегти" : "Save";
     public static string Cancel => IsUk ? "Скасувати" : "Cancel";
     public static string AboutTitle => IsUk ? "Про TeacherClient" : "About TeacherClient";
@@ -124,10 +126,25 @@ internal static class TeacherClientText
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
     public static string ClearSelectedFolderOnSelectedStudents => IsUk ? "Очистити вибрану папку на вибраних учнях" : "Clear selected folder on selected students";
     public static string ClearSelectedFolderOnAllOnlineStudents => IsUk ? "Очистити вибрану папку на всіх онлайн учнях" : "Clear selected folder on all online students";
+    public static string CollectStudentWorkFromSelectedAgents => IsUk ? "Зібрати роботи з вибраних учнів" : "Collect work from selected students";
+    public static string CollectStudentWorkFromAllOnlineAgents => IsUk ? "Зібрати роботи з усіх онлайн учнів" : "Collect work from all online students";
     public static string BulkCommandsResultTitle => IsUk ? "Результат групової команди" : "Group command result";
     public static string BulkClearError => IsUk ? "Помилка групового очищення папки" : "Bulk folder clear error";
+    public static string BulkCollectError => IsUk ? "Помилка групового збору робіт" : "Bulk work collection error";
     public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
     public static string ChooseRemoteDirectoryToClear => IsUk ? "Виберіть віддалену папку, яку треба очистити." : "Choose the remote folder to clear.";
+    public static string StudentWorkFolderNotConfigured => IsUk ? "У налаштуваннях задайте базовий шлях і назву папки робіт." : "Set the student work base path and work folder name in settings first.";
+    public static string PreparingWorkCollection => IsUk ? "Підготовка збору робіт..." : "Preparing work collection...";
+    public static string CollectingWorkProgress(string agent, string path, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Збір робіт з {agent} ({agentIndex}/{agentCount}) -> {path}"
+            : $"Collecting work from {agent} ({agentIndex}/{agentCount}) -> {path}";
+    public static string WorkCollectionCompleted(int count, string destination)
+        => IsUk ? $"Роботи зібрано з {count} учн. ПК у {destination}" : $"Collected work from {count} student machines into {destination}";
+    public static string WorkCollectionCompletedWithFailures(int succeeded, int failed, string destination)
+        => IsUk ? $"Збір робіт у {destination}: успішно {succeeded}, з помилками {failed}" : $"Collected work into {destination}: {succeeded} succeeded, {failed} failed";
+    public static string WorkFolderProvisioned(int count) => IsUk ? $"Каталог робіт підготовлено на {count} учн. ПК" : $"Prepared student work folder on {count} machines";
+    public static string WorkFolderProvisionedWithFailures(int succeeded, int failed) => IsUk ? $"Підготовка каталогу робіт: успішно {succeeded}, з помилками {failed}" : $"Prepared student work folder: {succeeded} succeeded, {failed} failed";
     public static string ClearingDirectoryProgress(string agent, string path, int agentIndex, int agentCount)
         => IsUk
             ? $"Очищення {path} на {agent} (агент {agentIndex}/{agentCount})"

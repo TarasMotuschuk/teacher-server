@@ -21,6 +21,7 @@ public partial class MainForm : Form
     private BindingList<ProcessInfoDto> _processes = new();
     private BindingList<FileSystemEntryDto> _localEntries = new();
     private BindingList<FileSystemEntryDto> _remoteEntries = new();
+    private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
@@ -81,6 +82,9 @@ public partial class MainForm : Form
         {
             await LoadDiscoveredAgentsAsync();
         }
+
+        _preparedStudentWorkFolders.Clear();
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
     }
 
     private async void refreshProcessesButton_Click(object sender, EventArgs e) => await LoadProcessesAsync();
@@ -225,6 +229,7 @@ public partial class MainForm : Form
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
+            await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false);
 
             SetStatus(_allAgents.Count == 0
                 ? TeacherClientText.NoAgentsAvailable
@@ -425,6 +430,33 @@ public partial class MainForm : Form
         }
 
         await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
+    }
+
+    private async void collectStudentWorkFromSelectedAgentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await CollectStudentWorkAsync(targetAgents);
+    }
+
+    private async void collectStudentWorkFromAllOnlineAgentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await CollectStudentWorkAsync(targetAgents);
     }
 
     private async void downloadButton_Click(object sender, EventArgs e)
@@ -675,6 +707,162 @@ public partial class MainForm : Form
             TeacherClientText.BulkCommandsResultTitle,
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning);
+    }
+
+    private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
+    {
+        var studentWorkPath = GetConfiguredStudentWorkPath();
+        if (string.IsNullOrWhiteSpace(studentWorkPath))
+        {
+            return;
+        }
+
+        var targetAgents = (overrideTargets ?? _allAgents
+                .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+                .ToList())
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        foreach (var agent in targetAgents)
+        {
+            var cacheKey = $"{agent.AgentId}|{studentWorkPath}";
+            if (!reportSummary && _preparedStudentWorkFolders.Contains(cacheKey))
+            {
+                continue;
+            }
+
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.EnsureSharedWritableDirectoryAsync(studentWorkPath);
+                _preparedStudentWorkFolders.Add(cacheKey);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                if (reportSummary)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }
+
+        if (!reportSummary)
+        {
+            return;
+        }
+
+        if (failures.Count == 0)
+        {
+            SetStatus(TeacherClientText.WorkFolderProvisioned(succeeded));
+            return;
+        }
+
+        SetStatus(TeacherClientText.WorkFolderProvisionedWithFailures(succeeded, failures.Count));
+        MessageBox.Show(
+            string.Join(Environment.NewLine, failures),
+            TeacherClientText.BulkCommandsResultTitle,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+    }
+
+    private async Task CollectStudentWorkAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var studentWorkPath = GetConfiguredStudentWorkPath();
+        if (string.IsNullOrWhiteSpace(studentWorkPath))
+        {
+            SetStatus(TeacherClientText.StudentWorkFolderNotConfigured);
+            return;
+        }
+
+        var localDestinationRoot = string.IsNullOrWhiteSpace(localPathTextBox.Text)
+            ? Directory.GetCurrentDirectory()
+            : localPathTextBox.Text;
+
+        Directory.CreateDirectory(localDestinationRoot);
+        SetStatus(TeacherClientText.PreparingWorkCollection);
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false, overrideTargets: targetAgents);
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.CollectingWorkProgress(agent.MachineName, studentWorkPath, agentIndex + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                var machineFolder = Path.Combine(localDestinationRoot, SanitizeLocalFolderName(agent.MachineName));
+                var localWorkFolder = Path.Combine(machineFolder, _clientSettings.StudentWorkFolderName);
+                Directory.CreateDirectory(localWorkFolder);
+                await DownloadRemoteDirectoryContentsAsync(client, studentWorkPath, localWorkFolder);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        if (failures.Count == 0)
+        {
+            SetStatus(TeacherClientText.WorkCollectionCompleted(succeeded, localDestinationRoot));
+            return;
+        }
+
+        SetStatus(TeacherClientText.WorkCollectionCompletedWithFailures(succeeded, failures.Count, localDestinationRoot));
+        MessageBox.Show(
+            string.Join(Environment.NewLine, failures),
+            TeacherClientText.BulkCommandsResultTitle,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+    }
+
+    private static async Task DownloadRemoteDirectoryContentsAsync(TeacherApiClient client, string remoteDirectoryPath, string localDestinationDirectory, CancellationToken cancellationToken = default)
+    {
+        var listing = await client.GetRemoteDirectoryAsync(remoteDirectoryPath, cancellationToken)
+                      ?? throw new InvalidOperationException("Remote listing failed.");
+
+        Directory.CreateDirectory(localDestinationDirectory);
+        foreach (var entry in listing.Entries)
+        {
+            if (entry.IsDirectory)
+            {
+                var childDirectory = Path.Combine(localDestinationDirectory, entry.Name);
+                await DownloadRemoteDirectoryContentsAsync(client, entry.FullPath, childDirectory, cancellationToken);
+            }
+            else
+            {
+                await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, cancellationToken);
+            }
+        }
+    }
+
+    private string GetConfiguredStudentWorkPath()
+    {
+        if (string.IsNullOrWhiteSpace(_clientSettings.StudentWorkRootPath) ||
+            string.IsNullOrWhiteSpace(_clientSettings.StudentWorkFolderName))
+        {
+            return string.Empty;
+        }
+
+        return RemoteWindowsPath.Combine(_clientSettings.StudentWorkRootPath, _clientSettings.StudentWorkFolderName);
+    }
+
+    private static string SanitizeLocalFolderName(string rawName)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(rawName.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(sanitized) ? "StudentMachine" : sanitized;
     }
 
     private static async Task CopyEntryToAgentAsync(

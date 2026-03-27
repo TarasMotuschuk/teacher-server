@@ -9,6 +9,10 @@ partial class SettingsDialog
     private TextBox sharedSecretTextBox = null!;
     private Label bulkCopyDestinationPathLabel = null!;
     private TextBox bulkCopyDestinationPathTextBox = null!;
+    private Label studentWorkRootPathLabel = null!;
+    private TextBox studentWorkRootPathTextBox = null!;
+    private Label studentWorkFolderNameLabel = null!;
+    private TextBox studentWorkFolderNameTextBox = null!;
     private Label languageLabel = null!;
     private ComboBox languageComboBox = null!;
     private Label hintLabel = null!;
@@ -32,6 +36,10 @@ partial class SettingsDialog
         sharedSecretTextBox = new TextBox();
         bulkCopyDestinationPathLabel = new Label();
         bulkCopyDestinationPathTextBox = new TextBox();
+        studentWorkRootPathLabel = new Label();
+        studentWorkRootPathTextBox = new TextBox();
+        studentWorkFolderNameLabel = new Label();
+        studentWorkFolderNameTextBox = new TextBox();
         languageLabel = new Label();
         languageComboBox = new ComboBox();
         hintLabel = new Label();
@@ -43,8 +51,8 @@ partial class SettingsDialog
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "Teacher Client Settings";
-        Width = 680;
-        Height = 470;
+        Width = 760;
+        Height = 560;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -55,14 +63,16 @@ partial class SettingsDialog
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 5
+            RowCount = 7
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 98F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 118F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
 
         sharedSecretLabel.Dock = DockStyle.Fill;
@@ -82,6 +92,24 @@ partial class SettingsDialog
         bulkCopyDestinationPathTextBox.Dock = DockStyle.Fill;
         bulkCopyDestinationPathTextBox.MinimumSize = new Size(0, 45);
         bulkCopyDestinationPathTextBox.Margin = new Padding(0, 8, 0, 8);
+
+        studentWorkRootPathLabel.Dock = DockStyle.Fill;
+        studentWorkRootPathLabel.Text = "Student work base path";
+        studentWorkRootPathLabel.TextAlign = ContentAlignment.MiddleLeft;
+        studentWorkRootPathLabel.Margin = new Padding(0, 0, 12, 0);
+
+        studentWorkRootPathTextBox.Dock = DockStyle.Fill;
+        studentWorkRootPathTextBox.MinimumSize = new Size(0, 45);
+        studentWorkRootPathTextBox.Margin = new Padding(0, 8, 0, 8);
+
+        studentWorkFolderNameLabel.Dock = DockStyle.Fill;
+        studentWorkFolderNameLabel.Text = "Student work folder name";
+        studentWorkFolderNameLabel.TextAlign = ContentAlignment.MiddleLeft;
+        studentWorkFolderNameLabel.Margin = new Padding(0, 0, 12, 0);
+
+        studentWorkFolderNameTextBox.Dock = DockStyle.Fill;
+        studentWorkFolderNameTextBox.MinimumSize = new Size(0, 45);
+        studentWorkFolderNameTextBox.Margin = new Padding(0, 8, 0, 8);
 
         languageLabel.Dock = DockStyle.Fill;
         languageLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -123,11 +151,15 @@ partial class SettingsDialog
         layout.Controls.Add(sharedSecretTextBox, 1, 0);
         layout.Controls.Add(bulkCopyDestinationPathLabel, 0, 1);
         layout.Controls.Add(bulkCopyDestinationPathTextBox, 1, 1);
-        layout.Controls.Add(languageLabel, 0, 2);
-        layout.Controls.Add(languageComboBox, 1, 2);
-        layout.Controls.Add(hintLabel, 0, 3);
+        layout.Controls.Add(studentWorkRootPathLabel, 0, 2);
+        layout.Controls.Add(studentWorkRootPathTextBox, 1, 2);
+        layout.Controls.Add(studentWorkFolderNameLabel, 0, 3);
+        layout.Controls.Add(studentWorkFolderNameTextBox, 1, 3);
+        layout.Controls.Add(languageLabel, 0, 4);
+        layout.Controls.Add(languageComboBox, 1, 4);
+        layout.Controls.Add(hintLabel, 0, 5);
         layout.SetColumnSpan(hintLabel, 2);
-        layout.Controls.Add(buttonsPanel, 0, 4);
+        layout.Controls.Add(buttonsPanel, 0, 6);
         layout.SetColumnSpan(buttonsPanel, 2);
 
         Controls.Add(layout);

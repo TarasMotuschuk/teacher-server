@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<FileSystemEntryDto> _remoteEntries = [];
     private readonly DispatcherTimer _agentRefreshTimer = new();
     private readonly DispatcherTimer _connectionMonitorTimer = new();
+    private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<DiscoveredAgentRow> _allAgents = [];
@@ -87,6 +88,9 @@ public partial class MainWindow : Window
         {
             await LoadAgentsAsync();
         }
+
+        _preparedStudentWorkFolders.Clear();
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
     }
 
     private async void RefreshAgentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -181,6 +185,7 @@ public partial class MainWindow : Window
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
+            await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false);
 
             SetStatus(_allAgents.Count == 0
                 ? CrossPlatformText.NoAgentsAvailable
@@ -491,6 +496,33 @@ public partial class MainWindow : Window
         await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
     }
 
+    private async void CollectStudentWorkSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await CollectStudentWorkAsync(selectedAgents);
+    }
+
+    private async void CollectStudentWorkAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await CollectStudentWorkAsync(targetAgents);
+    }
+
     private async void DownloadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -747,6 +779,124 @@ public partial class MainWindow : Window
         }, CrossPlatformText.BulkClearError);
     }
 
+    private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
+    {
+        var studentWorkPath = GetConfiguredStudentWorkPath();
+        if (string.IsNullOrWhiteSpace(studentWorkPath))
+        {
+            return;
+        }
+
+        var targetAgents = (overrideTargets ?? _allAgents
+                .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+                .ToList())
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        foreach (var agent in targetAgents)
+        {
+            var cacheKey = $"{agent.AgentId}|{studentWorkPath}";
+            if (!reportSummary && _preparedStudentWorkFolders.Contains(cacheKey))
+            {
+                continue;
+            }
+
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.EnsureSharedWritableDirectoryAsync(studentWorkPath);
+                _preparedStudentWorkFolders.Add(cacheKey);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                if (reportSummary)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }
+
+        if (!reportSummary)
+        {
+            return;
+        }
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.WorkFolderProvisioned(succeeded)
+            : CrossPlatformText.WorkFolderProvisionedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.BulkCommandsResultTitle,
+                string.Join(Environment.NewLine, failures));
+        }
+    }
+
+    private async Task CollectStudentWorkAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var studentWorkPath = GetConfiguredStudentWorkPath();
+        if (string.IsNullOrWhiteSpace(studentWorkPath))
+        {
+            SetStatus(CrossPlatformText.StudentWorkFolderNotConfigured);
+            return;
+        }
+
+        var localDestinationRoot = string.IsNullOrWhiteSpace(LocalPathTextBox.Text)
+            ? GetDefaultLocalPath()
+            : LocalPathTextBox.Text!;
+
+        Directory.CreateDirectory(localDestinationRoot);
+        SetStatus(CrossPlatformText.PreparingWorkCollection);
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false, overrideTargets: targetAgents);
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.CollectingWorkProgress(agent.MachineName, studentWorkPath, agentIndex + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var machineFolder = Path.Combine(localDestinationRoot, SanitizeLocalFolderName(agent.MachineName));
+                    var localWorkFolder = Path.Combine(machineFolder, _clientSettings.StudentWorkFolderName);
+                    Directory.CreateDirectory(localWorkFolder);
+                    await DownloadRemoteDirectoryContentsAsync(client, studentWorkPath, localWorkFolder);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.WorkCollectionCompleted(succeeded, localDestinationRoot)
+                : CrossPlatformText.WorkCollectionCompletedWithFailures(succeeded, failures.Count, localDestinationRoot));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkCollectError);
+    }
+
     private static async Task CopyEntryToAgentAsync(
         TeacherApiClient client,
         DiscoveredAgentRow agent,
@@ -773,6 +923,26 @@ public partial class MainWindow : Window
                 fileIndex + 1,
                 plan.Files.Count));
             await client.UploadFileAsync(file.LocalPath, file.RemoteDirectory, cancellationToken);
+        }
+    }
+
+    private static async Task DownloadRemoteDirectoryContentsAsync(TeacherApiClient client, string remoteDirectoryPath, string localDestinationDirectory, CancellationToken cancellationToken = default)
+    {
+        var listing = await client.GetRemoteDirectoryAsync(remoteDirectoryPath, cancellationToken)
+                      ?? throw new InvalidOperationException("Remote listing failed.");
+
+        Directory.CreateDirectory(localDestinationDirectory);
+        foreach (var entry in listing.Entries)
+        {
+            if (entry.IsDirectory)
+            {
+                var childDirectory = Path.Combine(localDestinationDirectory, entry.Name);
+                await DownloadRemoteDirectoryContentsAsync(client, entry.FullPath, childDirectory, cancellationToken);
+            }
+            else
+            {
+                await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, cancellationToken);
+            }
         }
     }
 
@@ -884,6 +1054,24 @@ public partial class MainWindow : Window
         return Directory.GetCurrentDirectory();
     }
 
+    private string GetConfiguredStudentWorkPath()
+    {
+        if (string.IsNullOrWhiteSpace(_clientSettings.StudentWorkRootPath) ||
+            string.IsNullOrWhiteSpace(_clientSettings.StudentWorkFolderName))
+        {
+            return string.Empty;
+        }
+
+        return RemoteWindowsPath.Combine(_clientSettings.StudentWorkRootPath, _clientSettings.StudentWorkFolderName);
+    }
+
+    private static string SanitizeLocalFolderName(string rawName)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(rawName.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(sanitized) ? "StudentMachine" : sanitized;
+    }
+
     private sealed record DiscoveredAgentRow(
         string AgentId,
         string Source,
@@ -952,6 +1140,8 @@ public partial class MainWindow : Window
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearSelectedFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearSelectedFolderOnAllOnlineStudents;
+        CollectStudentWorkSelectedMenuItem.Header = CrossPlatformText.CollectStudentWorkFromSelectedAgents;
+        CollectStudentWorkAllMenuItem.Header = CrossPlatformText.CollectStudentWorkFromAllOnlineAgents;
         HelpMenuItem.Header = CrossPlatformText.Help;
         AboutMenuItem.Header = CrossPlatformText.About;
         SettingsButton.Content = CrossPlatformText.Settings;

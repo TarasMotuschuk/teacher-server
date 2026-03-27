@@ -19,6 +19,8 @@ public partial class SettingsWindow : Window
         LanguageComboBox.SelectedIndex = settings.Language == UiLanguage.Ukrainian ? 0 : 1;
         SharedSecretTextBox.Text = settings.SharedSecret;
         BulkCopyDestinationPathTextBox.Text = settings.BulkCopyDestinationPath;
+        StudentWorkRootPathTextBox.Text = settings.StudentWorkRootPath;
+        StudentWorkFolderNameTextBox.Text = settings.StudentWorkFolderName;
         ApplyLocalization();
     }
 
@@ -26,7 +28,9 @@ public partial class SettingsWindow : Window
         => new(
             SharedSecretTextBox.Text?.Trim() ?? string.Empty,
             LanguageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English,
-            BulkCopyDestinationPathTextBox.Text?.Trim() ?? string.Empty);
+            BulkCopyDestinationPathTextBox.Text?.Trim() ?? string.Empty,
+            StudentWorkRootPathTextBox.Text?.Trim() ?? string.Empty,
+            StudentWorkFolderNameTextBox.Text?.Trim() ?? string.Empty);
 
     private void SaveButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -43,6 +47,8 @@ public partial class SettingsWindow : Window
         Title = CrossPlatformText.SettingsWindowTitle;
         SharedSecretLabel.Text = CrossPlatformText.SharedSecret;
         BulkCopyDestinationPathLabel.Text = CrossPlatformText.BulkCopyDestinationPath;
+        StudentWorkRootPathLabel.Text = CrossPlatformText.StudentWorkRootPath;
+        StudentWorkFolderNameLabel.Text = CrossPlatformText.StudentWorkFolderName;
         LanguageLabel.Text = CrossPlatformText.Language;
         HintTextBlock.Text = CrossPlatformText.SettingsHint;
         SaveButton.Content = CrossPlatformText.Save;
