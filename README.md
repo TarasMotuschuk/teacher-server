@@ -46,6 +46,7 @@ Available endpoints:
 - dual-pane local/remote file browsing;
 - file upload and download;
 - bulk distribution of a selected local file or folder to selected students or all online students;
+- group commands for clearing the contents of the selected student folder on either selected students or all online students;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
 
@@ -67,6 +68,7 @@ Available endpoints:
 - browse local and remote file trees in dual panes;
 - upload and download files;
 - bulk distribution of a selected local file or folder to selected students or all online students;
+- group commands for clearing the contents of the selected student folder on either selected students or all online students;
 - delete local and remote entries;
 - create remote folders.
 
@@ -153,7 +155,8 @@ Example configuration:
 7. Connect to a selected agent from the `Agents` list.
 8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
 9. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
-10. During bulk distribution, the status area reports the current target agent and file progress so the teacher can see which machine is currently receiving content.
+10. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
+11. During bulk distribution and bulk clear operations, the status area reports the current target agent and progress so the teacher can see which machine is currently receiving or processing content.
 
 ### Start TeacherClient.Avalonia on macOS
 
@@ -174,7 +177,8 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 5. Use the `Agents` tab to discover students automatically, assign manual entries to groups, and connect from the filtered list.
 6. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
 7. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
-8. During bulk distribution, the status area reports the current target agent and file progress.
+8. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
+9. During bulk distribution and bulk clear operations, the status area reports the current target agent and progress.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
 

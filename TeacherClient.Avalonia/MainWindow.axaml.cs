@@ -464,6 +464,33 @@ public partial class MainWindow : Window
         await DistributeLocalSelectionAsync(targetAgents);
     }
 
+    private async void ClearSelectedFolderSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ClearSelectedRemoteDirectoryAsync(selectedAgents, allOnline: false);
+    }
+
+    private async void ClearSelectedFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
+    }
+
     private async void DownloadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -661,6 +688,63 @@ public partial class MainWindow : Window
                     string.Join(Environment.NewLine, failures));
             }
         }, CrossPlatformText.BulkCopyError);
+    }
+
+    private async Task ClearSelectedRemoteDirectoryAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool allOnline)
+    {
+        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || !entry.IsDirectory)
+        {
+            SetStatus(CrossPlatformText.ChooseRemoteDirectoryToClear);
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.ClearDirectoryPrompt(entry.Name, targetAgents.Count, allOnline)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.ClearingDirectoryProgress(agent.MachineName, entry.FullPath, agentIndex + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ClearRemoteDirectoryAsync(entry.FullPath);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(_lastConnectedServerUrl) &&
+                targetAgents.Any(x => string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase)))
+            {
+                await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.ClearDirectoryCompleted(entry.Name, succeeded)
+                : CrossPlatformText.ClearDirectoryCompletedWithFailures(entry.Name, succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkClearError);
     }
 
     private static async Task CopyEntryToAgentAsync(
@@ -865,6 +949,9 @@ public partial class MainWindow : Window
         AddManualMenuItem.Header = CrossPlatformText.AddManualAgent;
         EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
+        GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
+        ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearSelectedFolderOnSelectedStudents;
+        ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearSelectedFolderOnAllOnlineStudents;
         HelpMenuItem.Header = CrossPlatformText.Help;
         AboutMenuItem.Header = CrossPlatformText.About;
         SettingsButton.Content = CrossPlatformText.Settings;

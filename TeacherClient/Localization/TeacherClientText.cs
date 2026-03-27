@@ -25,6 +25,7 @@ internal static class TeacherClientText
     public static string Refresh => IsUk ? "Оновити" : "Refresh";
     public static string TerminateSelected => IsUk ? "Завершити вибране" : "Terminate Selected";
     public static string FilesMenu => IsUk ? "Файли" : "Files";
+    public static string GroupCommandsMenu => IsUk ? "Групові команди" : "Group Commands";
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
     public static string Download => IsUk ? "Скачати з агента" : "Download";
@@ -121,6 +122,24 @@ internal static class TeacherClientText
     public static string ManualVersion => IsUk ? "Вручну" : "Manual";
     public static string SendToSelectedStudents => IsUk ? "Надіслати вибраним учням" : "Send to selected students";
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
+    public static string ClearSelectedFolderOnSelectedStudents => IsUk ? "Очистити вибрану папку на вибраних учнях" : "Clear selected folder on selected students";
+    public static string ClearSelectedFolderOnAllOnlineStudents => IsUk ? "Очистити вибрану папку на всіх онлайн учнях" : "Clear selected folder on all online students";
+    public static string BulkCommandsResultTitle => IsUk ? "Результат групової команди" : "Group command result";
+    public static string BulkClearError => IsUk ? "Помилка групового очищення папки" : "Bulk folder clear error";
+    public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
+    public static string ChooseRemoteDirectoryToClear => IsUk ? "Виберіть віддалену папку, яку треба очистити." : "Choose the remote folder to clear.";
+    public static string ClearingDirectoryProgress(string agent, string path, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Очищення {path} на {agent} (агент {agentIndex}/{agentCount})"
+            : $"Clearing {path} on {agent} (agent {agentIndex}/{agentCount})";
+    public static string ClearDirectoryCompleted(string name, int count)
+        => IsUk ? $"Очищено вміст папки {name} на {count} учн. ПК" : $"Cleared folder contents {name} on {count} student machines";
+    public static string ClearDirectoryCompletedWithFailures(string name, int succeeded, int failed)
+        => IsUk ? $"Очищення {name}: успішно {succeeded}, з помилками {failed}" : $"Cleared {name}: {succeeded} succeeded, {failed} failed";
+    public static string ClearDirectoryPrompt(string name, int count, bool allOnline)
+        => IsUk
+            ? $"Очистити вміст папки {name} на {(allOnline ? "всіх онлайн" : "вибраних")} учнях ({count})? Сама папка залишиться."
+            : $"Clear the contents of folder {name} on {(allOnline ? "all online" : "selected")} students ({count})? The folder itself will remain.";
     public static string BulkCopyResultTitle => IsUk ? "Результат групового копіювання" : "Bulk copy result";
     public static string DistributionCompleted(string name, int count) => IsUk ? $"Розіслано {name} на {count} учн. ПК" : $"Distributed {name} to {count} student machines";
     public static string DistributionCompletedWithFailures(string name, int succeeded, int failed) => IsUk ? $"Розсилка {name}: успішно {succeeded}, з помилками {failed}" : $"Distributed {name}: {succeeded} succeeded, {failed} failed";

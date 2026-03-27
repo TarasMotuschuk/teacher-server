@@ -52,6 +52,25 @@ public sealed class FileService
         Directory.CreateDirectory(Path.Combine(ResolveDirectory(parentPath), safeName));
     }
 
+    public void ClearDirectoryContents(string fullPath)
+    {
+        var directory = new DirectoryInfo(ResolveDirectory(fullPath));
+        if (!directory.Exists)
+        {
+            throw new DirectoryNotFoundException($"Directory not found: {fullPath}");
+        }
+
+        foreach (var childDirectory in directory.EnumerateDirectories())
+        {
+            childDirectory.Delete(recursive: true);
+        }
+
+        foreach (var file in directory.EnumerateFiles())
+        {
+            file.Delete();
+        }
+    }
+
     public async Task SaveFileAsync(string destinationDirectory, string fileName, Stream source, CancellationToken cancellationToken)
     {
         var destinationPath = Path.Combine(ResolveDirectory(destinationDirectory), Path.GetFileName(fileName));

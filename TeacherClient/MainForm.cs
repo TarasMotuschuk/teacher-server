@@ -400,6 +400,33 @@ public partial class MainForm : Form
         await DistributeLocalSelectionAsync(targetAgents);
     }
 
+    private async void clearSelectedFolderOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: false);
+    }
+
+    private async void clearSelectedFolderOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
+    }
+
     private async void downloadButton_Click(object sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -589,6 +616,63 @@ public partial class MainForm : Form
         MessageBox.Show(
             string.Join(Environment.NewLine, failures),
             TeacherClientText.BulkCopyResultTitle,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+    }
+
+    private async Task ClearSelectedRemoteDirectoryAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool allOnline)
+    {
+        if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || !entry.IsDirectory)
+        {
+            SetStatus(TeacherClientText.ChooseRemoteDirectoryToClear);
+            return;
+        }
+
+        if (MessageBox.Show(
+                TeacherClientText.ClearDirectoryPrompt(entry.Name, targetAgents.Count, allOnline),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.ClearingDirectoryProgress(agent.MachineName, entry.FullPath, agentIndex + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.ClearRemoteDirectoryAsync(entry.FullPath);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_lastConnectedServerUrl) &&
+            targetAgents.Any(x => string.Equals($"http://{x.RespondingAddress}:{x.Port}", _lastConnectedServerUrl, StringComparison.OrdinalIgnoreCase)))
+        {
+            await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+        }
+
+        if (failures.Count == 0)
+        {
+            SetStatus(TeacherClientText.ClearDirectoryCompleted(entry.Name, succeeded));
+            return;
+        }
+
+        SetStatus(TeacherClientText.ClearDirectoryCompletedWithFailures(entry.Name, succeeded, failures.Count));
+        MessageBox.Show(
+            string.Join(Environment.NewLine, failures),
+            TeacherClientText.BulkCommandsResultTitle,
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning);
     }

@@ -72,6 +72,12 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ClearRemoteDirectoryAsync(string fullPath, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/files/clear-directory", new ClearDirectoryRequest(fullPath), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task EnsureRemoteDirectoryPathAsync(string fullPath, CancellationToken cancellationToken = default)
     {
         var normalizedPath = RemoteWindowsPath.Normalize(fullPath);

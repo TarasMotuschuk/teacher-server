@@ -16,4 +16,6 @@ public sealed record DeleteEntryRequest(string FullPath);
 
 public sealed record CreateDirectoryRequest(string ParentPath, string Name);
 
+public sealed record ClearDirectoryRequest(string FullPath);
+
 public sealed record UploadFileMetadata(string DestinationDirectory, string FileName);

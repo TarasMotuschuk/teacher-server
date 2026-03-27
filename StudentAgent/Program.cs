@@ -132,6 +132,19 @@ try
         }
     });
 
+    app.MapPost("/api/files/clear-directory", ([FromBody] ClearDirectoryRequest request, [FromServices] FileService service) =>
+    {
+        try
+        {
+            service.ClearDirectoryContents(request.FullPath);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
     app.MapGet("/api/files/download", (string fullPath, [FromServices] FileService service) =>
     {
         try

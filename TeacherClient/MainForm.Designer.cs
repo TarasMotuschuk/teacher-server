@@ -118,6 +118,10 @@ partial class MainForm
         filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, deleteRemoteButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
 
+        var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
+        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearSelectedFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearSelectedFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
+
         var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
         helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, aboutMenuItem_Click);
 
@@ -127,6 +131,7 @@ partial class MainForm
         mainMenuStrip.Items.Add(connectionMenuItem);
         mainMenuStrip.Items.Add(processesMenuItem);
         mainMenuStrip.Items.Add(filesMenuItem);
+        mainMenuStrip.Items.Add(groupCommandsMenuItem);
         mainMenuStrip.Items.Add(helpMenuItem);
 
         var quickActionsToolStrip = new ToolStrip
