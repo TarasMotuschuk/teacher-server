@@ -29,6 +29,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Shared `UiLanguage` model and language-aware settings across `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent`.
 - Bulk distribution actions for sending a selected local file or folder to either selected student agents or all online student agents.
 - Teacher-side destination path setting for student file distribution in both teacher clients.
+- Live status progress during bulk distribution, including the current target agent and file position.
 
 ### Changed
 

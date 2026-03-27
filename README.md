@@ -153,6 +153,7 @@ Example configuration:
 7. Connect to a selected agent from the `Agents` list.
 8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
 9. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
+10. During bulk distribution, the status area reports the current target agent and file progress so the teacher can see which machine is currently receiving content.
 
 ### Start TeacherClient.Avalonia on macOS
 
@@ -173,6 +174,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 5. Use the `Agents` tab to discover students automatically, assign manual entries to groups, and connect from the filtered list.
 6. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
 7. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
+8. During bulk distribution, the status area reports the current target agent and file progress.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
 

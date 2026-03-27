@@ -545,16 +545,26 @@ public partial class MainForm : Form
             return;
         }
 
+        SetStatus(TeacherClientText.PreparingDistributionPlan);
+        var plan = LocalDistributionPlanner.Build(entry, destinationRoot);
+
         var failures = new List<string>();
         var succeeded = 0;
 
         using var cursorScope = new CursorScope(this);
-        foreach (var agent in targetAgents)
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
         {
+            var agent = targetAgents[agentIndex];
             try
             {
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                await CopyEntryToAgentAsync(client, entry, destinationRoot);
+                await CopyEntryToAgentAsync(
+                    client,
+                    agent,
+                    plan,
+                    agentIndex + 1,
+                    targetAgents.Count,
+                    SetStatus);
                 succeeded++;
             }
             catch (Exception ex)
@@ -583,35 +593,32 @@ public partial class MainForm : Form
             MessageBoxIcon.Warning);
     }
 
-    private static async Task CopyEntryToAgentAsync(TeacherApiClient client, FileSystemEntryDto entry, string destinationRoot, CancellationToken cancellationToken = default)
+    private static async Task CopyEntryToAgentAsync(
+        TeacherApiClient client,
+        DiscoveredAgentRow agent,
+        LocalDistributionPlan plan,
+        int agentIndex,
+        int agentCount,
+        Action<string> reportStatus,
+        CancellationToken cancellationToken = default)
     {
-        await client.EnsureRemoteDirectoryPathAsync(destinationRoot, cancellationToken);
-
-        if (!entry.IsDirectory)
+        await client.EnsureRemoteDirectoryPathAsync(plan.DestinationRoot, cancellationToken);
+        foreach (var directory in plan.DirectoriesToEnsure)
         {
-            await client.UploadFileAsync(entry.FullPath, destinationRoot, cancellationToken);
-            return;
+            await client.EnsureRemoteDirectoryPathAsync(directory, cancellationToken);
         }
 
-        var remoteRoot = RemoteWindowsPath.Combine(destinationRoot, entry.Name);
-        await client.EnsureRemoteDirectoryPathAsync(remoteRoot, cancellationToken);
-
-        foreach (var directory in Directory.EnumerateDirectories(entry.FullPath, "*", SearchOption.AllDirectories))
+        for (var fileIndex = 0; fileIndex < plan.Files.Count; fileIndex++)
         {
-            var relativeDirectory = Path.GetRelativePath(entry.FullPath, directory);
-            var remoteDirectory = RemoteWindowsPath.CombineSegments(remoteRoot, relativeDirectory);
-            await client.EnsureRemoteDirectoryPathAsync(remoteDirectory, cancellationToken);
-        }
-
-        foreach (var filePath in Directory.EnumerateFiles(entry.FullPath, "*", SearchOption.AllDirectories))
-        {
-            var relativeFileDirectory = Path.GetRelativePath(entry.FullPath, Path.GetDirectoryName(filePath) ?? entry.FullPath);
-            var remoteDirectory = string.Equals(relativeFileDirectory, ".", StringComparison.Ordinal)
-                ? remoteRoot
-                : RemoteWindowsPath.CombineSegments(remoteRoot, relativeFileDirectory);
-
-            await client.EnsureRemoteDirectoryPathAsync(remoteDirectory, cancellationToken);
-            await client.UploadFileAsync(filePath, remoteDirectory, cancellationToken);
+            var file = plan.Files[fileIndex];
+            reportStatus(TeacherClientText.DistributionProgress(
+                agent.MachineName,
+                file.DisplayPath,
+                agentIndex,
+                agentCount,
+                fileIndex + 1,
+                plan.Files.Count));
+            await client.UploadFileAsync(file.LocalPath, file.RemoteDirectory, cancellationToken);
         }
     }
 
