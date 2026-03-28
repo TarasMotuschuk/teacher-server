@@ -48,8 +48,8 @@
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
       <MenuItem x:Name="GroupCommandsMenuItem" Header="_Group Commands">
-        <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear selected folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
-        <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear selected folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+        <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
+        <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
         <Separator />
         <MenuItem x:Name="CollectStudentWorkSelectedMenuItem" Header="Collect work from selected students" Click="CollectStudentWorkSelectedMenuItem_OnClick" />
         <MenuItem x:Name="CollectStudentWorkAllMenuItem" Header="Collect work from all online students" Click="CollectStudentWorkAllMenuItem_OnClick" />

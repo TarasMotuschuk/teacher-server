@@ -124,15 +124,15 @@ internal static class TeacherClientText
     public static string ManualVersion => IsUk ? "Вручну" : "Manual";
     public static string SendToSelectedStudents => IsUk ? "Надіслати вибраним учням" : "Send to selected students";
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
-    public static string ClearSelectedFolderOnSelectedStudents => IsUk ? "Очистити вибрану папку на вибраних учнях" : "Clear selected folder on selected students";
-    public static string ClearSelectedFolderOnAllOnlineStudents => IsUk ? "Очистити вибрану папку на всіх онлайн учнях" : "Clear selected folder on all online students";
+    public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
+    public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
     public static string CollectStudentWorkFromSelectedAgents => IsUk ? "Зібрати роботи з вибраних учнів" : "Collect work from selected students";
     public static string CollectStudentWorkFromAllOnlineAgents => IsUk ? "Зібрати роботи з усіх онлайн учнів" : "Collect work from all online students";
     public static string BulkCommandsResultTitle => IsUk ? "Результат групової команди" : "Group command result";
     public static string BulkClearError => IsUk ? "Помилка групового очищення папки" : "Bulk folder clear error";
     public static string BulkCollectError => IsUk ? "Помилка групового збору робіт" : "Bulk work collection error";
     public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
-    public static string ChooseRemoteDirectoryToClear => IsUk ? "Виберіть віддалену папку, яку треба очистити." : "Choose the remote folder to clear.";
+    public static string ClearDestinationFolderNotConfigured => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string StudentWorkFolderNotConfigured => IsUk ? "У налаштуваннях задайте базовий шлях і назву папки робіт." : "Set the student work base path and work folder name in settings first.";
     public static string PreparingWorkCollection => IsUk ? "Підготовка збору робіт..." : "Preparing work collection...";
     public static string CollectingWorkProgress(string agent, string path, int agentIndex, int agentCount)
@@ -153,10 +153,10 @@ internal static class TeacherClientText
         => IsUk ? $"Очищено вміст папки {name} на {count} учн. ПК" : $"Cleared folder contents {name} on {count} student machines";
     public static string ClearDirectoryCompletedWithFailures(string name, int succeeded, int failed)
         => IsUk ? $"Очищення {name}: успішно {succeeded}, з помилками {failed}" : $"Cleared {name}: {succeeded} succeeded, {failed} failed";
-    public static string ClearDirectoryPrompt(string name, int count, bool allOnline)
+    public static string ClearDirectoryPrompt(string path, int count, bool allOnline)
         => IsUk
-            ? $"Очистити вміст папки {name} на {(allOnline ? "всіх онлайн" : "вибраних")} учнях ({count})? Сама папка залишиться."
-            : $"Clear the contents of folder {name} on {(allOnline ? "all online" : "selected")} students ({count})? The folder itself will remain.";
+            ? $"Очистити вміст папки {path} на {(allOnline ? "всіх онлайн" : "вибраних")} учнях ({count})? Сама папка залишиться."
+            : $"Clear the contents of folder {path} on {(allOnline ? "all online" : "selected")} students ({count})? The folder itself will remain.";
     public static string BulkCopyResultTitle => IsUk ? "Результат групового копіювання" : "Bulk copy result";
     public static string DistributionCompleted(string name, int count) => IsUk ? $"Розіслано {name} на {count} учн. ПК" : $"Distributed {name} to {count} student machines";
     public static string DistributionCompletedWithFailures(string name, int succeeded, int failed) => IsUk ? $"Розсилка {name}: успішно {succeeded}, з помилками {failed}" : $"Distributed {name}: {succeeded} succeeded, {failed} failed";

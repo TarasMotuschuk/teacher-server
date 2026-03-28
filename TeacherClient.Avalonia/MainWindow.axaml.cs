@@ -666,7 +666,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var destinationRoot = RemoteWindowsPath.Normalize(_clientSettings.BulkCopyDestinationPath);
+        var destinationRoot = GetConfiguredDistributionDestinationPath();
         if (string.IsNullOrWhiteSpace(destinationRoot))
         {
             SetStatus(CrossPlatformText.DistributionDestinationPathRequired);
@@ -724,16 +724,17 @@ public partial class MainWindow : Window
 
     private async Task ClearSelectedRemoteDirectoryAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool allOnline)
     {
-        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || !entry.IsDirectory)
+        var destinationRoot = GetConfiguredDistributionDestinationPath();
+        if (string.IsNullOrWhiteSpace(destinationRoot))
         {
-            SetStatus(CrossPlatformText.ChooseRemoteDirectoryToClear);
+            SetStatus(CrossPlatformText.ClearDestinationFolderNotConfigured);
             return;
         }
 
         if (!await ConfirmationDialog.ShowAsync(
                 this,
                 CrossPlatformText.GroupCommandsTitle,
-                CrossPlatformText.ClearDirectoryPrompt(entry.Name, targetAgents.Count, allOnline)))
+                CrossPlatformText.ClearDirectoryPrompt(destinationRoot, targetAgents.Count, allOnline)))
         {
             return;
         }
@@ -748,9 +749,10 @@ public partial class MainWindow : Window
                 var agent = targetAgents[agentIndex];
                 try
                 {
-                    SetStatus(CrossPlatformText.ClearingDirectoryProgress(agent.MachineName, entry.FullPath, agentIndex + 1, targetAgents.Count));
+                    SetStatus(CrossPlatformText.ClearingDirectoryProgress(agent.MachineName, destinationRoot, agentIndex + 1, targetAgents.Count));
                     var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                    await client.ClearRemoteDirectoryAsync(entry.FullPath);
+                    await client.EnsureSharedWritableDirectoryAsync(destinationRoot);
+                    await client.ClearRemoteDirectoryAsync(destinationRoot);
                     succeeded++;
                 }
                 catch (Exception ex)
@@ -766,8 +768,8 @@ public partial class MainWindow : Window
             }
 
             SetStatus(failures.Count == 0
-                ? CrossPlatformText.ClearDirectoryCompleted(entry.Name, succeeded)
-                : CrossPlatformText.ClearDirectoryCompletedWithFailures(entry.Name, succeeded, failures.Count));
+                ? CrossPlatformText.ClearDirectoryCompleted(destinationRoot, succeeded)
+                : CrossPlatformText.ClearDirectoryCompletedWithFailures(destinationRoot, succeeded, failures.Count));
 
             if (failures.Count > 0)
             {
@@ -1065,6 +1067,13 @@ public partial class MainWindow : Window
         return RemoteWindowsPath.Combine(_clientSettings.StudentWorkRootPath, _clientSettings.StudentWorkFolderName);
     }
 
+    private string GetConfiguredDistributionDestinationPath()
+    {
+        return string.IsNullOrWhiteSpace(_clientSettings.BulkCopyDestinationPath)
+            ? string.Empty
+            : RemoteWindowsPath.Normalize(_clientSettings.BulkCopyDestinationPath);
+    }
+
     private static string SanitizeLocalFolderName(string rawName)
     {
         var invalid = Path.GetInvalidFileNameChars();
@@ -1138,8 +1147,8 @@ public partial class MainWindow : Window
         EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
-        ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearSelectedFolderOnSelectedStudents;
-        ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearSelectedFolderOnAllOnlineStudents;
+        ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
+        ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         CollectStudentWorkSelectedMenuItem.Header = CrossPlatformText.CollectStudentWorkFromSelectedAgents;
         CollectStudentWorkAllMenuItem.Header = CrossPlatformText.CollectStudentWorkFromAllOnlineAgents;
         HelpMenuItem.Header = CrossPlatformText.Help;

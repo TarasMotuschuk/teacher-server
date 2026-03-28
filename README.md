@@ -47,7 +47,7 @@ Available endpoints:
 - dual-pane local/remote file browsing;
 - file upload and download;
 - bulk distribution of a selected local file or folder to selected students or all online students;
-- group commands for clearing the contents of the selected student folder on either selected students or all online students;
+- group commands for clearing the configured student destination folder on either selected students or all online students;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
@@ -71,7 +71,7 @@ Available endpoints:
 - browse local and remote file trees in dual panes;
 - upload and download files;
 - bulk distribution of a selected local file or folder to selected students or all online students;
-- group commands for clearing the contents of the selected student folder on either selected students or all online students;
+- group commands for clearing the configured student destination folder on either selected students or all online students;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - delete local and remote entries;
 - create remote folders.
@@ -160,7 +160,7 @@ Example configuration:
 8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
 9. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 10. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
-11. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
+11. Use `Group Commands` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
 12. Use `Group Commands` to collect student work from either selected agents or all online agents. The teacher client downloads each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
 13. During bulk distribution, bulk clear, and work collection operations, the status area reports the current target agent and progress.
 
@@ -184,7 +184,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 6. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 7. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
 8. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
-9. Use `Group Commands` to clear the contents of the currently selected remote student folder on either the selected agents or all online agents. The folder itself remains in place.
+9. Use `Group Commands` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
 10. Use `Group Commands` to collect student work from either selected agents or all online agents. The client downloads each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
 11. During bulk distribution, bulk clear, and work collection operations, the status area reports the current target agent and progress.
 

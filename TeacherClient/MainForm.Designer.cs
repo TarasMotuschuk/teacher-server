@@ -119,8 +119,8 @@ partial class MainForm
         filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
 
         var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
-        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearSelectedFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearSelectedFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkFromSelectedAgents, null, collectStudentWorkFromSelectedAgentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkFromAllOnlineAgents, null, collectStudentWorkFromAllOnlineAgentsMenuItem_Click);

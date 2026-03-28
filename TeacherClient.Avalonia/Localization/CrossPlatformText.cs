@@ -54,8 +54,8 @@ internal static class CrossPlatformText
     public static string NewRemoteFolder => IsUk ? "Нова віддалена папка" : "New Remote Folder";
     public static string SendToSelectedStudents => IsUk ? "Надіслати вибраним учням" : "Send to selected students";
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
-    public static string ClearSelectedFolderOnSelectedStudents => IsUk ? "Очистити вибрану папку на вибраних учнях" : "Clear selected folder on selected students";
-    public static string ClearSelectedFolderOnAllOnlineStudents => IsUk ? "Очистити вибрану папку на всіх онлайн учнях" : "Clear selected folder on all online students";
+    public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
+    public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
     public static string CollectStudentWorkFromSelectedAgents => IsUk ? "Зібрати роботи з вибраних учнів" : "Collect work from selected students";
     public static string CollectStudentWorkFromAllOnlineAgents => IsUk ? "Зібрати роботи з усіх онлайн учнів" : "Collect work from all online students";
     public static string TeacherPc => IsUk ? "ПК викладача" : "Teacher PC";
@@ -127,7 +127,7 @@ internal static class CrossPlatformText
             ? $"Розсилка {item} -> {agent} (агент {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
             : $"Distributing {item} -> {agent} (agent {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
     public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
-    public static string ChooseRemoteDirectoryToClear => IsUk ? "Виберіть віддалену папку, яку треба очистити." : "Choose the remote folder to clear.";
+    public static string ClearDestinationFolderNotConfigured => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string StudentWorkFolderNotConfigured => IsUk ? "У налаштуваннях задайте базовий шлях і назву папки робіт." : "Set the student work base path and work folder name in settings first.";
     public static string PreparingWorkCollection => IsUk ? "Підготовка збору робіт..." : "Preparing work collection...";
     public static string CollectingWorkProgress(string agent, string path, int agentIndex, int agentCount)
@@ -148,10 +148,10 @@ internal static class CrossPlatformText
         => IsUk ? $"Очищено вміст папки {name} на {count} учн. ПК" : $"Cleared folder contents {name} on {count} student machines";
     public static string ClearDirectoryCompletedWithFailures(string name, int succeeded, int failed)
         => IsUk ? $"Очищення {name}: успішно {succeeded}, з помилками {failed}" : $"Cleared {name}: {succeeded} succeeded, {failed} failed";
-    public static string ClearDirectoryPrompt(string name, int count, bool allOnline)
+    public static string ClearDirectoryPrompt(string path, int count, bool allOnline)
         => IsUk
-            ? $"Очистити вміст папки {name} на {(allOnline ? "всіх онлайн" : "вибраних")} учнях ({count})? Сама папка залишиться."
-            : $"Clear the contents of folder {name} on {(allOnline ? "all online" : "selected")} students ({count})? The folder itself will remain.";
+            ? $"Очистити вміст папки {path} на {(allOnline ? "всіх онлайн" : "вибраних")} учнях ({count})? Сама папка залишиться."
+            : $"Clear the contents of folder {path} on {(allOnline ? "all online" : "selected")} students ({count})? The folder itself will remain.";
     public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
     public static string Downloaded(string name) => IsUk ? $"Скачано {name}" : $"Downloaded {name}";
     public static string DownloadError => IsUk ? "Помилка скачування файлу" : "Download error";

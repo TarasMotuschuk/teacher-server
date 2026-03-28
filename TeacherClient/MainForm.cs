@@ -597,7 +597,7 @@ public partial class MainForm : Form
             return;
         }
 
-        var destinationRoot = RemoteWindowsPath.Normalize(_clientSettings.BulkCopyDestinationPath);
+        var destinationRoot = GetConfiguredDistributionDestinationPath();
         if (string.IsNullOrWhiteSpace(destinationRoot))
         {
             SetStatus(TeacherClientText.DistributionDestinationPathRequired);
@@ -654,14 +654,15 @@ public partial class MainForm : Form
 
     private async Task ClearSelectedRemoteDirectoryAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool allOnline)
     {
-        if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || !entry.IsDirectory)
+        var destinationRoot = GetConfiguredDistributionDestinationPath();
+        if (string.IsNullOrWhiteSpace(destinationRoot))
         {
-            SetStatus(TeacherClientText.ChooseRemoteDirectoryToClear);
+            SetStatus(TeacherClientText.ClearDestinationFolderNotConfigured);
             return;
         }
 
         if (MessageBox.Show(
-                TeacherClientText.ClearDirectoryPrompt(entry.Name, targetAgents.Count, allOnline),
+                TeacherClientText.ClearDirectoryPrompt(destinationRoot, targetAgents.Count, allOnline),
                 TeacherClientText.GroupCommandsMenu,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
@@ -678,9 +679,10 @@ public partial class MainForm : Form
             var agent = targetAgents[agentIndex];
             try
             {
-                SetStatus(TeacherClientText.ClearingDirectoryProgress(agent.MachineName, entry.FullPath, agentIndex + 1, targetAgents.Count));
+                SetStatus(TeacherClientText.ClearingDirectoryProgress(agent.MachineName, destinationRoot, agentIndex + 1, targetAgents.Count));
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                await client.ClearRemoteDirectoryAsync(entry.FullPath);
+                await client.EnsureSharedWritableDirectoryAsync(destinationRoot);
+                await client.ClearRemoteDirectoryAsync(destinationRoot);
                 succeeded++;
             }
             catch (Exception ex)
@@ -697,11 +699,11 @@ public partial class MainForm : Form
 
         if (failures.Count == 0)
         {
-            SetStatus(TeacherClientText.ClearDirectoryCompleted(entry.Name, succeeded));
+            SetStatus(TeacherClientText.ClearDirectoryCompleted(destinationRoot, succeeded));
             return;
         }
 
-        SetStatus(TeacherClientText.ClearDirectoryCompletedWithFailures(entry.Name, succeeded, failures.Count));
+        SetStatus(TeacherClientText.ClearDirectoryCompletedWithFailures(destinationRoot, succeeded, failures.Count));
         MessageBox.Show(
             string.Join(Environment.NewLine, failures),
             TeacherClientText.BulkCommandsResultTitle,
@@ -856,6 +858,13 @@ public partial class MainForm : Form
         }
 
         return RemoteWindowsPath.Combine(_clientSettings.StudentWorkRootPath, _clientSettings.StudentWorkFolderName);
+    }
+
+    private string GetConfiguredDistributionDestinationPath()
+    {
+        return string.IsNullOrWhiteSpace(_clientSettings.BulkCopyDestinationPath)
+            ? string.Empty
+            : RemoteWindowsPath.Normalize(_clientSettings.BulkCopyDestinationPath);
     }
 
     private static string SanitizeLocalFolderName(string rawName)
