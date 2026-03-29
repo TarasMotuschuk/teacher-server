@@ -52,6 +52,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Both teacher clients now expose a `Browser lock` checkbox in the agents list. Toggling it enables or disables browser blocking on that student PC, and the student agent now shows a visible 10-second warning before force-closing browser processes that remain open.
 - Both teacher clients now also expose an `Input lock` checkbox in the agents list plus bulk `Keyboard and Mouse` commands for locking or unlocking input on online student PCs.
 - `StudentAgent` now shows a visible fullscreen topmost lock screen while input lock is enabled, making the restriction clear and difficult to bypass for standard student accounts.
+- Both teacher clients now expose grouped `Power` commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs.
 - Both teacher clients now use the current local teacher folder as the destination root when collecting student work, creating one subfolder per student machine.
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 - `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.

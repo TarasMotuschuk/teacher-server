@@ -650,6 +650,78 @@ public partial class MainWindow : Window
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
+    private async void ShutdownSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Shutdown, selectedOnly: true);
+    }
+
+    private async void RestartSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Restart, selectedOnly: true);
+    }
+
+    private async void LogOffSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: true);
+    }
+
+    private async void ShutdownAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents.Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Shutdown, selectedOnly: false);
+    }
+
+    private async void RestartAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents.Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Restart, selectedOnly: false);
+    }
+
+    private async void LogOffAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents.Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
+    }
+
     private async void CollectStudentWorkSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var selectedAgents = GetSelectedAgents();
@@ -1081,6 +1153,51 @@ public partial class MainWindow : Window
                     string.Join(Environment.NewLine, failures));
             }
         }, CrossPlatformText.BulkInputLockError);
+    }
+
+    private async Task ExecutePowerActionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, PowerActionKind action, bool selectedOnly)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.PowerActionPrompt(action, targetAgents.Count, selectedOnly)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.PowerActionProgress(action, agent.MachineName, agentIndex + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ExecutePowerActionAsync(action);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.PowerActionCompleted(action, succeeded)
+                : CrossPlatformText.PowerActionCompletedWithFailures(action, succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkPowerActionError(action));
     }
 
     private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
@@ -1628,6 +1745,15 @@ public partial class MainWindow : Window
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
+        PowerCommandsMenuItem.Header = CrossPlatformText.PowerCommandsMenu;
+        SelectedPowerMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
+        AllOnlinePowerMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
+        ShutdownSelectedMenuItem.Header = CrossPlatformText.ShutdownCommand;
+        RestartSelectedMenuItem.Header = CrossPlatformText.RestartCommand;
+        LogOffSelectedMenuItem.Header = CrossPlatformText.LogOffCommand;
+        ShutdownAllMenuItem.Header = CrossPlatformText.ShutdownCommand;
+        RestartAllMenuItem.Header = CrossPlatformText.RestartCommand;
+        LogOffAllMenuItem.Header = CrossPlatformText.LogOffCommand;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;

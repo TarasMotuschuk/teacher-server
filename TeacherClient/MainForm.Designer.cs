@@ -134,6 +134,18 @@ partial class MainForm
         inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, lockInputOnAllOnlineStudentsMenuItem_Click);
         inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, unlockInputOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(inputMenuItem);
+        var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
+        var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
+        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);
+        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, restartSelectedStudentsMenuItem_Click);
+        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, logOffSelectedStudentsMenuItem_Click);
+        var powerAllOnlineMenuItem = new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu);
+        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownAllOnlineStudentsMenuItem_Click);
+        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, restartAllOnlineStudentsMenuItem_Click);
+        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, logOffAllOnlineStudentsMenuItem_Click);
+        powerMenuItem.DropDownItems.Add(powerSelectedMenuItem);
+        powerMenuItem.DropDownItems.Add(powerAllOnlineMenuItem);
+        groupCommandsMenuItem.DropDownItems.Add(powerMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
         studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, createStudentWorkFolderOnAllAgentsMenuItem_Click);

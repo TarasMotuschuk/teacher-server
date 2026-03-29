@@ -55,6 +55,12 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ExecutePowerActionAsync(PowerActionKind action, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/power", new PowerActionRequest(action), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
 

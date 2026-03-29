@@ -53,6 +53,7 @@ Available endpoints:
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - a splash screen shown during teacher client startup;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
@@ -82,6 +83,7 @@ Available endpoints:
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - a splash screen shown during teacher client startup;
 - delete local and remote entries;
 - create remote folders.
@@ -178,7 +180,8 @@ Example configuration:
 16. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
 17. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 18. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-19. During bulk distribution, bulk clear, work collection, browser-lock, and input-lock operations, the status area reports the current target agent and progress.
+19. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
+20. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
 ### Start TeacherClient.Avalonia on macOS
 
@@ -208,7 +211,8 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 14. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
 15. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 16. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-17. During bulk distribution, bulk clear, work collection, browser-lock, and input-lock operations, the status area reports the current target agent and progress.
+17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
+18. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
 To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
 

@@ -1,8 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.SplashWindow"
-        Width="640"
-        Height="320"
+        Width="860"
+        Height="460"
+        MinWidth="860"
+        MinHeight="460"
         SystemDecorations="None"
         CanResize="False"
         ShowInTaskbar="False"
@@ -12,22 +14,33 @@
   <Grid>
     <Border Width="12" HorizontalAlignment="Left" Background="#3B82F6" />
     <Canvas>
-      <Ellipse Width="120" Height="120" Fill="#2563EB" Opacity="0.65" Canvas.Right="72" Canvas.Top="28" />
-      <Ellipse Width="60" Height="60" Fill="#2563EB" Opacity="0.65" Canvas.Right="30" Canvas.Top="118" />
+      <Ellipse Width="170" Height="170" Fill="#2563EB" Opacity="0.65" Canvas.Right="104" Canvas.Top="34" />
+      <Ellipse Width="92" Height="92" Fill="#2563EB" Opacity="0.65" Canvas.Right="30" Canvas.Top="154" />
     </Canvas>
-    <StackPanel Margin="46,82,46,54" Spacing="14" VerticalAlignment="Stretch">
+    <Grid Margin="44,34,44,38" RowDefinitions="1.1*,1*,0.8*">
       <TextBlock x:Name="TitleTextBlock"
+                 Grid.Row="0"
                  FontSize="28"
+                 MaxWidth="720"
                  FontWeight="Bold"
                  Foreground="White"
+                 VerticalAlignment="Bottom"
+                 TextWrapping="Wrap"
                  Text="Teacher Classroom Client" />
       <TextBlock x:Name="SubtitleTextBlock"
-                 FontSize="12.5"
+                 Grid.Row="1"
+                 FontSize="17"
+                 MaxWidth="700"
                  Foreground="#BFDBFE"
+                 Margin="0,16,0,0"
+                 VerticalAlignment="Top"
+                 TextWrapping="Wrap"
                  Text="Preparing the teacher workspace..." />
       <ProgressBar IsIndeterminate="True"
-                   Height="14"
-                   Margin="0,34,0,0" />
-    </StackPanel>
+                   Grid.Row="2"
+                   Height="18"
+                   Margin="0,36,0,0"
+                   VerticalAlignment="Top" />
+    </Grid>
   </Grid>
 </Window>

@@ -1,4 +1,5 @@
 using Teacher.Common.Localization;
+using Teacher.Common.Contracts;
 
 namespace TeacherClient.Localization;
 
@@ -28,6 +29,9 @@ internal static class TeacherClientText
     public static string GroupCommandsMenu => IsUk ? "Групові команди" : "Group Commands";
     public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
     public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
+    public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
+    public static string SelectedStudentsMenu => IsUk ? "Вибрані ПК" : "Selected PCs";
+    public static string AllOnlineStudentsMenu => IsUk ? "Всі онлайн ПК" : "All Online PCs";
     public static string StudentWorkMenu => IsUk ? "Роботи учнів" : "Student Work";
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
@@ -147,6 +151,9 @@ internal static class TeacherClientText
     public static string LockBrowsersOnAllOnlineStudents => IsUk ? "Заблокувати браузер на всіх онлайн учнівських ПК" : "Lock browser on all online student PCs";
     public static string LockInputOnAllOnlineStudents => IsUk ? "Заблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Lock keyboard and mouse on all online student PCs";
     public static string UnlockInputOnAllOnlineStudents => IsUk ? "Розблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Unlock keyboard and mouse on all online student PCs";
+    public static string ShutdownCommand => IsUk ? "Вимкнути" : "Shut Down";
+    public static string RestartCommand => IsUk ? "Перезавантажити" : "Restart";
+    public static string LogOffCommand => IsUk ? "Вийти з облікового запису" : "Log Off";
     public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
     public static string CollectStudentWorkToTeacherPc => IsUk ? "Зібрати роботи учнів на вчительський ПК" : "Collect student work to teacher PC";
     public static string ClearStudentWorkFolderOnAllAgents => IsUk ? "Очистити папку для робіт на всіх ПК" : "Clear work folder on all PCs";
@@ -184,6 +191,24 @@ internal static class TeacherClientText
         => IsUk
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} блокування вводу на {agent} ({agentIndex}/{agentCount})"
             : $"{(enabled ? "Enabling" : "Disabling")} input lock on {agent} ({agentIndex}/{agentCount})";
+    public static string PowerActionPrompt(PowerActionKind action, int count, bool selectedOnly)
+        => IsUk
+            ? $"{GetPowerActionVerb(action)} {(selectedOnly ? "вибрані" : "всі онлайн")} учнівські ПК ({count})?"
+            : $"{GetPowerActionVerb(action)} {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
+    public static string PowerActionCompleted(PowerActionKind action, int count)
+        => IsUk
+            ? $"{GetPowerActionPast(action)} {count} учнівських ПК"
+            : $"{GetPowerActionPast(action)} {count} student PCs";
+    public static string PowerActionCompletedWithFailures(PowerActionKind action, int succeeded, int failed)
+        => IsUk
+            ? $"{GetPowerActionNoun(action)}: успішно {succeeded}, з помилками {failed}"
+            : $"{GetPowerActionNoun(action)}: {succeeded} succeeded, {failed} failed";
+    public static string BulkPowerActionError(PowerActionKind action)
+        => IsUk ? $"Помилка групової команди: {GetPowerActionNoun(action).ToLowerInvariant()}" : $"Bulk power command error: {GetPowerActionNoun(action).ToLowerInvariant()}";
+    public static string PowerActionProgress(PowerActionKind action, string agent, int agentIndex, int agentCount)
+        => IsUk
+            ? $"{GetPowerActionNoun(action)} на {agent} ({agentIndex}/{agentCount})"
+            : $"{GetPowerActionNoun(action)} on {agent} ({agentIndex}/{agentCount})";
     public static string SplashTitle => IsUk ? "Клієнт викладача" : "Teacher Classroom Client";
     public static string SplashSubtitle => IsUk ? "Підготовка робочого середовища викладача..." : "Preparing the teacher workspace...";
     public static string ClearDestinationFolderNotConfigured => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
@@ -239,4 +264,28 @@ internal static class TeacherClientText
     public static string DeleteLocalEntryPrompt(string name) => IsUk ? $"Видалити локальний елемент {name}?" : $"Delete local entry {name}?";
     public static string DeleteRemoteEntryPrompt(string name) => IsUk ? $"Видалити віддалений елемент {name}?" : $"Delete remote entry {name}?";
     public static string FormatConnectedToAgent(string source, string machine, string user) => IsUk ? $"Підключено до {source} агента {machine} ({user})" : $"Connected to {source} agent {machine} ({user})";
+
+    private static string GetPowerActionVerb(PowerActionKind action) => action switch
+    {
+        PowerActionKind.Shutdown => IsUk ? "Вимкнути" : "Shut down",
+        PowerActionKind.Restart => IsUk ? "Перезавантажити" : "Restart",
+        PowerActionKind.LogOff => IsUk ? "Вивести з облікового запису" : "Log off",
+        _ => IsUk ? "Виконати дію для" : "Run action for"
+    };
+
+    private static string GetPowerActionPast(PowerActionKind action) => action switch
+    {
+        PowerActionKind.Shutdown => IsUk ? "Надіслано вимкнення для" : "Sent shut down to",
+        PowerActionKind.Restart => IsUk ? "Надіслано перезавантаження для" : "Sent restart to",
+        PowerActionKind.LogOff => IsUk ? "Надіслано вихід з облікового запису для" : "Sent log off to",
+        _ => IsUk ? "Виконано дію для" : "Ran action for"
+    };
+
+    private static string GetPowerActionNoun(PowerActionKind action) => action switch
+    {
+        PowerActionKind.Shutdown => IsUk ? "Вимкнення" : "Shutdown",
+        PowerActionKind.Restart => IsUk ? "Перезавантаження" : "Restart",
+        PowerActionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
+        _ => IsUk ? "Команда живлення" : "Power command"
+    };
 }

@@ -59,6 +59,18 @@
           <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
           <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
         </MenuItem>
+        <MenuItem x:Name="PowerCommandsMenuItem" Header="_Power">
+          <MenuItem x:Name="SelectedPowerMenuItem" Header="_Selected PCs">
+            <MenuItem x:Name="ShutdownSelectedMenuItem" Header="Shut Down" Click="ShutdownSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="RestartSelectedMenuItem" Header="Restart" Click="RestartSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="LogOffSelectedMenuItem" Header="Log Off" Click="LogOffSelectedMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="AllOnlinePowerMenuItem" Header="_All Online PCs">
+            <MenuItem x:Name="ShutdownAllMenuItem" Header="Shut Down" Click="ShutdownAllMenuItem_OnClick" />
+            <MenuItem x:Name="RestartAllMenuItem" Header="Restart" Click="RestartAllMenuItem_OnClick" />
+            <MenuItem x:Name="LogOffAllMenuItem" Header="Log Off" Click="LogOffAllMenuItem_OnClick" />
+          </MenuItem>
+        </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">
           <MenuItem x:Name="CreateStudentWorkFolderAllMenuItem" Header="Create work folder on all PCs" Click="CreateStudentWorkFolderAllMenuItem_OnClick" />

@@ -65,6 +65,36 @@ public sealed class ProcessService
         return killed;
     }
 
+    public void ExecutePowerAction(PowerActionKind action)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("Power actions are only supported on Windows student agents.");
+        }
+
+        var arguments = action switch
+        {
+            PowerActionKind.Shutdown => "/s /t 0 /f",
+            PowerActionKind.Restart => "/r /t 0 /f",
+            PowerActionKind.LogOff => "/l /f",
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported power action.")
+        };
+
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "shutdown.exe",
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            }
+        };
+
+        process.Start();
+    }
+
     private static ProcessInfoDto MapProcess(Process process)
     {
         string? title = null;

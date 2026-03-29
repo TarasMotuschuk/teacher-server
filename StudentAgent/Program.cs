@@ -117,6 +117,28 @@ try
         }
     });
 
+    app.MapPost("/api/power", ([FromBody] PowerActionRequest request, [FromServices] ProcessService service, [FromServices] AgentLogService agentLog) =>
+    {
+        try
+        {
+            var logMessage = request.Action switch
+            {
+                PowerActionKind.Shutdown => StudentAgentText.ShutdownRequestedLog,
+                PowerActionKind.Restart => StudentAgentText.RestartRequestedLog,
+                PowerActionKind.LogOff => StudentAgentText.LogOffRequestedLog,
+                _ => throw new ArgumentOutOfRangeException(nameof(request.Action), request.Action, "Unsupported power action.")
+            };
+
+            agentLog.LogWarning(logMessage);
+            service.ExecutePowerAction(request.Action);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
     app.MapGet("/api/files/roots", ([FromServices] FileService service) =>
     {
         return Results.Ok(service.GetRoots());

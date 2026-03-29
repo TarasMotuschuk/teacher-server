@@ -11,3 +11,12 @@ public sealed record ServerInfoDto(
 
 public sealed record BrowserLockStateRequest(bool Enabled);
 public sealed record InputLockStateRequest(bool Enabled);
+
+public enum PowerActionKind
+{
+    Shutdown = 0,
+    Restart = 1,
+    LogOff = 2
+}
+
+public sealed record PowerActionRequest(PowerActionKind Action);

@@ -324,6 +324,78 @@ public partial class MainForm : Form
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
+    private async void shutdownSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Shutdown, selectedOnly: true);
+    }
+
+    private async void restartSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Restart, selectedOnly: true);
+    }
+
+    private async void logOffSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: true);
+    }
+
+    private async void shutdownAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents.Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Shutdown, selectedOnly: false);
+    }
+
+    private async void restartAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents.Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Restart, selectedOnly: false);
+    }
+
+    private async void logOffAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents.Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
+    }
+
     private async void refreshFilesButton_Click(object sender, EventArgs e)
     {
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
@@ -1679,6 +1751,51 @@ public partial class MainForm : Form
             MessageBox.Show(
                 string.Join(Environment.NewLine, failures),
                 TeacherClientText.BulkInputLockError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private async Task ExecutePowerActionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, PowerActionKind action, bool selectedOnly)
+    {
+        if (MessageBox.Show(
+                TeacherClientText.PowerActionPrompt(action, targetAgents.Count, selectedOnly),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.PowerActionProgress(action, agent.MachineName, agentIndex + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.ExecutePowerActionAsync(action);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.PowerActionCompleted(action, succeeded)
+            : TeacherClientText.PowerActionCompletedWithFailures(action, succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.BulkPowerActionError(action),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
         }
