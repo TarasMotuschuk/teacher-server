@@ -24,6 +24,7 @@ internal static class CrossPlatformText
     public static string Help => IsUk ? "_Довідка" : "_Help";
     public static string GroupCommands => IsUk ? "_Групові команди" : "_Group Commands";
     public static string GroupCommandsTitle => IsUk ? "Групові команди" : "Group Commands";
+    public static string StudentWorkMenu => IsUk ? "_Роботи учнів" : "_Student Work";
     public static string About => IsUk ? "_Про програму" : "_About";
     public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці агентів і підключіться." : "Ready. Use the Agents tab to select a student machine, then connect.";
     public static string Agents => IsUk ? "Агенти" : "Agents";
@@ -56,8 +57,9 @@ internal static class CrossPlatformText
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
     public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
     public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
-    public static string CollectStudentWorkFromSelectedAgents => IsUk ? "Зібрати роботи з вибраних учнів" : "Collect work from selected students";
-    public static string CollectStudentWorkFromAllOnlineAgents => IsUk ? "Зібрати роботи з усіх онлайн учнів" : "Collect work from all online students";
+    public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
+    public static string CollectStudentWorkToTeacherPc => IsUk ? "Зібрати роботи учнів на вчительський ПК" : "Collect student work to teacher PC";
+    public static string ClearStudentWorkFolderOnAllAgents => IsUk ? "Очистити папку для робіт на всіх ПК" : "Clear work folder on all PCs";
     public static string TeacherPc => IsUk ? "ПК викладача" : "Teacher PC";
     public static string StudentPc => IsUk ? "ПК студента" : "Student PC";
     public static string Up => IsUk ? "Вгору" : "Up";

@@ -459,6 +459,42 @@ public partial class MainForm : Form
         await CollectStudentWorkAsync(targetAgents);
     }
 
+    private async void createStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        _preparedStudentWorkFolders.Clear();
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
+    }
+
+    private async void collectStudentWorkToTeacherPcMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await CollectStudentWorkAsync(targetAgents);
+    }
+
+    private async void clearStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearConfiguredStudentWorkDirectoryAsync(targetAgents);
+    }
+
     private async void downloadButton_Click(object sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -846,6 +882,60 @@ public partial class MainForm : Form
             {
                 await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, cancellationToken);
             }
+        }
+    }
+
+    private async Task ClearConfiguredStudentWorkDirectoryAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var studentWorkPath = GetConfiguredStudentWorkPath();
+        if (string.IsNullOrWhiteSpace(studentWorkPath))
+        {
+            SetStatus(TeacherClientText.StudentWorkFolderNotConfigured);
+            return;
+        }
+
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false, overrideTargets: targetAgents);
+
+        if (MessageBox.Show(
+                TeacherClientText.ClearDirectoryPrompt(studentWorkPath, targetAgents.Count, allOnline: true),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failed = 0;
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(TeacherClientText.ClearingDirectoryProgress(agent.DisplayName, studentWorkPath, index + 1, targetAgents.Count));
+
+                try
+                {
+                    using var client = CreateClientForAgent(agent);
+                    await client.ClearRemoteDirectoryContentsAsync(studentWorkPath);
+                    succeeded++;
+                }
+                catch
+                {
+                    failed++;
+                }
+            }
+
+            SetStatus(
+                failed == 0
+                    ? TeacherClientText.ClearDirectoryCompleted(_clientSettings.StudentWorkFolderName, succeeded)
+                    : TeacherClientText.ClearDirectoryCompletedWithFailures(_clientSettings.StudentWorkFolderName, succeeded, failed));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.BulkClearError}: {ex.Message}");
         }
     }
 

@@ -26,6 +26,7 @@ internal static class TeacherClientText
     public static string TerminateSelected => IsUk ? "Завершити вибране" : "Terminate Selected";
     public static string FilesMenu => IsUk ? "Файли" : "Files";
     public static string GroupCommandsMenu => IsUk ? "Групові команди" : "Group Commands";
+    public static string StudentWorkMenu => IsUk ? "Роботи учнів" : "Student Work";
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
     public static string Download => IsUk ? "Скачати з агента" : "Download";
@@ -126,8 +127,9 @@ internal static class TeacherClientText
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
     public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
     public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
-    public static string CollectStudentWorkFromSelectedAgents => IsUk ? "Зібрати роботи з вибраних учнів" : "Collect work from selected students";
-    public static string CollectStudentWorkFromAllOnlineAgents => IsUk ? "Зібрати роботи з усіх онлайн учнів" : "Collect work from all online students";
+    public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
+    public static string CollectStudentWorkToTeacherPc => IsUk ? "Зібрати роботи учнів на вчительський ПК" : "Collect student work to teacher PC";
+    public static string ClearStudentWorkFolderOnAllAgents => IsUk ? "Очистити папку для робіт на всіх ПК" : "Clear work folder on all PCs";
     public static string BulkCommandsResultTitle => IsUk ? "Результат групової команди" : "Group command result";
     public static string BulkClearError => IsUk ? "Помилка групового очищення папки" : "Bulk folder clear error";
     public static string BulkCollectError => IsUk ? "Помилка групового збору робіт" : "Bulk work collection error";

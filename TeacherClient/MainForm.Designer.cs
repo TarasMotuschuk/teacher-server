@@ -122,8 +122,11 @@ partial class MainForm
         groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkFromSelectedAgents, null, collectStudentWorkFromSelectedAgentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkFromAllOnlineAgents, null, collectStudentWorkFromAllOnlineAgentsMenuItem_Click);
+        var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
+        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, createStudentWorkFolderOnAllAgentsMenuItem_Click);
+        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkToTeacherPc, null, collectStudentWorkToTeacherPcMenuItem_Click);
+        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.ClearStudentWorkFolderOnAllAgents, null, clearStudentWorkFolderOnAllAgentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(studentWorkMenuItem);
 
         var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
         helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, aboutMenuItem_Click);

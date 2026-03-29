@@ -523,6 +523,42 @@ public partial class MainWindow : Window
         await CollectStudentWorkAsync(targetAgents);
     }
 
+    private async void CreateStudentWorkFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        _preparedStudentWorkFolders.Clear();
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
+    }
+
+    private async void CollectStudentWorkToTeacherPcMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await CollectStudentWorkAsync(targetAgents);
+    }
+
+    private async void ClearStudentWorkFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearConfiguredStudentWorkDirectoryAsync(targetAgents);
+    }
+
     private async void DownloadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
@@ -844,6 +880,60 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task ClearConfiguredStudentWorkDirectoryAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var studentWorkPath = GetConfiguredStudentWorkPath();
+        if (string.IsNullOrWhiteSpace(studentWorkPath))
+        {
+            SetStatus(CrossPlatformText.StudentWorkFolderNotConfigured);
+            return;
+        }
+
+        await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false, overrideTargets: targetAgents);
+
+        var confirmed = await ConfirmationDialog.ShowAsync(
+            this,
+            CrossPlatformText.GroupCommandsTitle,
+            CrossPlatformText.ClearDirectoryPrompt(studentWorkPath, targetAgents.Count, allOnline: true));
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failed = 0;
+
+        try
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(CrossPlatformText.ClearingDirectoryProgress(agent.MachineName, studentWorkPath, index + 1, targetAgents.Count));
+
+                try
+                {
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ClearRemoteDirectoryAsync(studentWorkPath);
+                    succeeded++;
+                }
+                catch
+                {
+                    failed++;
+                }
+            }
+
+            SetStatus(
+                failed == 0
+                    ? CrossPlatformText.ClearDirectoryCompleted(_clientSettings.StudentWorkFolderName, succeeded)
+                    : CrossPlatformText.ClearDirectoryCompletedWithFailures(_clientSettings.StudentWorkFolderName, succeeded, failed));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.BulkClearError}: {ex.Message}");
+        }
+    }
+
     private async Task CollectStudentWorkAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
     {
         var studentWorkPath = GetConfiguredStudentWorkPath();
@@ -1149,8 +1239,10 @@ public partial class MainWindow : Window
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
-        CollectStudentWorkSelectedMenuItem.Header = CrossPlatformText.CollectStudentWorkFromSelectedAgents;
-        CollectStudentWorkAllMenuItem.Header = CrossPlatformText.CollectStudentWorkFromAllOnlineAgents;
+        StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;
+        CreateStudentWorkFolderAllMenuItem.Header = CrossPlatformText.CreateStudentWorkFolderOnAllAgents;
+        CollectStudentWorkToTeacherPcMenuItem.Header = CrossPlatformText.CollectStudentWorkToTeacherPc;
+        ClearStudentWorkFolderAllMenuItem.Header = CrossPlatformText.ClearStudentWorkFolderOnAllAgents;
         HelpMenuItem.Header = CrossPlatformText.Help;
         AboutMenuItem.Header = CrossPlatformText.About;
         SettingsButton.Content = CrossPlatformText.Settings;

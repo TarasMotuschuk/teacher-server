@@ -51,8 +51,11 @@
         <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
         <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
         <Separator />
-        <MenuItem x:Name="CollectStudentWorkSelectedMenuItem" Header="Collect work from selected students" Click="CollectStudentWorkSelectedMenuItem_OnClick" />
-        <MenuItem x:Name="CollectStudentWorkAllMenuItem" Header="Collect work from all online students" Click="CollectStudentWorkAllMenuItem_OnClick" />
+        <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">
+          <MenuItem x:Name="CreateStudentWorkFolderAllMenuItem" Header="Create work folder on all PCs" Click="CreateStudentWorkFolderAllMenuItem_OnClick" />
+          <MenuItem x:Name="CollectStudentWorkToTeacherPcMenuItem" Header="Collect student work to teacher PC" Click="CollectStudentWorkToTeacherPcMenuItem_OnClick" />
+          <MenuItem x:Name="ClearStudentWorkFolderAllMenuItem" Header="Clear work folder on all PCs" Click="ClearStudentWorkFolderAllMenuItem_OnClick" />
+        </MenuItem>
       </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="AboutMenuItem" Header="_About" Click="AboutMenuItem_OnClick" />
