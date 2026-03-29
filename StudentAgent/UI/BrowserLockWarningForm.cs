@@ -4,7 +4,7 @@ public sealed class BrowserLockWarningForm : Form
 {
     private readonly Label _messageLabel;
     private readonly Label _countdownLabel;
-    private readonly Timer _timer;
+    private readonly System.Windows.Forms.Timer _timer;
     private int _secondsRemaining;
 
     public BrowserLockWarningForm(string message, int seconds)
@@ -53,7 +53,7 @@ public sealed class BrowserLockWarningForm : Form
         layout.Controls.Add(_countdownLabel, 0, 1);
         Controls.Add(layout);
 
-        _timer = new Timer { Interval = 1000 };
+        _timer = new System.Windows.Forms.Timer { Interval = 1000 };
         _timer.Tick += (_, _) => UpdateCountdown();
         UpdateCountdownText();
         _timer.Start();

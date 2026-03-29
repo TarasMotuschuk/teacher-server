@@ -941,12 +941,12 @@ public partial class MainForm : Form
             for (var index = 0; index < targetAgents.Count; index++)
             {
                 var agent = targetAgents[index];
-                SetStatus(TeacherClientText.ClearingDirectoryProgress(agent.DisplayName, studentWorkPath, index + 1, targetAgents.Count));
+                SetStatus(TeacherClientText.ClearingDirectoryProgress(agent.MachineName, studentWorkPath, index + 1, targetAgents.Count));
 
                 try
                 {
-                    using var client = CreateClientForAgent(agent);
-                    await client.ClearRemoteDirectoryContentsAsync(studentWorkPath);
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ClearRemoteDirectoryAsync(studentWorkPath);
                     succeeded++;
                 }
                 catch
