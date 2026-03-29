@@ -21,8 +21,8 @@ public sealed class BrowserLockWarningForm : Form
         ShowInTaskbar = false;
         TopMost = true;
         Text = StudentAgent.UI.Localization.StudentAgentText.BrowserUsageForbiddenTitle;
-        Width = 640;
-        Height = 240;
+        Width = 740;
+        Height = 340;
         Padding = new Padding(24, 24, 24, 20);
 
         var layout = new TableLayoutPanel
