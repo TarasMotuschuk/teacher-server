@@ -24,6 +24,8 @@ internal static class CrossPlatformText
     public static string Help => IsUk ? "_Довідка" : "_Help";
     public static string GroupCommands => IsUk ? "_Групові команди" : "_Group Commands";
     public static string GroupCommandsTitle => IsUk ? "Групові команди" : "Group Commands";
+    public static string BrowserCommandsMenu => IsUk ? "_Браузер" : "_Browser";
+    public static string InputCommandsMenu => IsUk ? "_Клавіатура і миша" : "_Keyboard and Mouse";
     public static string StudentWorkMenu => IsUk ? "_Роботи учнів" : "_Student Work";
     public static string About => IsUk ? "_Про програму" : "_About";
     public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці агентів і підключіться." : "Ready. Use the Agents tab to select a student machine, then connect.";
@@ -40,6 +42,7 @@ internal static class CrossPlatformText
     public static string Source => IsUk ? "Джерело" : "Source";
     public static string Status => IsUk ? "Статус" : "Status";
     public static string BrowserLock => IsUk ? "Блок браузера" : "Browser lock";
+    public static string InputLock => IsUk ? "Блок вводу" : "Input lock";
     public static string Group => IsUk ? "Група" : "Group";
     public static string Machine => IsUk ? "Машина" : "Machine";
     public static string User => IsUk ? "Користувач" : "User";
@@ -59,6 +62,9 @@ internal static class CrossPlatformText
     public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
     public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
     public static string DestinationFolderMenu => IsUk ? "_Папка призначення" : "_Destination Folder";
+    public static string LockBrowsersOnAllOnlineStudents => IsUk ? "Заблокувати браузер на всіх онлайн учнівських ПК" : "Lock browser on all online student PCs";
+    public static string LockInputOnAllOnlineStudents => IsUk ? "Заблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Lock keyboard and mouse on all online student PCs";
+    public static string UnlockInputOnAllOnlineStudents => IsUk ? "Розблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Unlock keyboard and mouse on all online student PCs";
     public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
     public static string CollectStudentWorkToTeacherPc => IsUk ? "Зібрати роботи учнів на вчительський ПК" : "Collect student work to teacher PC";
     public static string ClearStudentWorkFolderOnAllAgents => IsUk ? "Очистити папку для робіт на всіх ПК" : "Clear work folder on all PCs";
@@ -101,6 +107,10 @@ internal static class CrossPlatformText
     public static string BrowserLockDisabledFor(string machine) => IsUk ? $"Блокування браузера вимкнено на {machine}" : $"Browser lock disabled on {machine}";
     public static string BrowserLockToggleFailed => IsUk ? "Не вдалося оновити блокування браузера" : "Failed to update browser lock";
     public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн-агентів." : "Browser lock can only be changed for online agents.";
+    public static string InputLockEnabledFor(string machine) => IsUk ? $"Блокування клавіатури і миші увімкнено на {machine}" : $"Keyboard and mouse lock enabled on {machine}";
+    public static string InputLockDisabledFor(string machine) => IsUk ? $"Блокування клавіатури і миші вимкнено на {machine}" : $"Keyboard and mouse lock disabled on {machine}";
+    public static string InputLockToggleFailed => IsUk ? "Не вдалося оновити блокування клавіатури і миші" : "Failed to update keyboard and mouse lock";
+    public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн-агентів." : "Keyboard and mouse lock can only be changed for online agents.";
     public static string ConnectionFailed => IsUk ? "Підключення не вдалося." : "Connection failed.";
     public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ручний агент." : "Choose a manual agent first.";
     public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";
@@ -140,6 +150,38 @@ internal static class CrossPlatformText
             ? $"Розсилка {item} -> {agent} (агент {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
             : $"Distributing {item} -> {agent} (agent {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
     public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
+    public static string BrowserLockPrompt(int count)
+        => IsUk
+            ? $"Увімкнути блокування браузера на всіх онлайн учнівських ПК ({count})?"
+            : $"Enable browser lock on all online student PCs ({count})?";
+    public static string BrowserLockCompleted(int count)
+        => IsUk ? $"Блокування браузера увімкнено на {count} учнівських ПК" : $"Enabled browser lock on {count} student PCs";
+    public static string BrowserLockCompletedWithFailures(int succeeded, int failed)
+        => IsUk ? $"Групове блокування браузера: успішно {succeeded}, з помилками {failed}" : $"Bulk browser lock: {succeeded} succeeded, {failed} failed";
+    public static string BulkBrowserLockError => IsUk ? "Помилка групового блокування браузера" : "Bulk browser lock error";
+    public static string BrowserLockProgress(string agent, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Увімкнення блокування браузера на {agent} ({agentIndex}/{agentCount})"
+            : $"Enabling browser lock on {agent} ({agentIndex}/{agentCount})";
+    public static string InputLockPrompt(int count, bool enabled)
+        => IsUk
+            ? $"{(enabled ? "Увімкнути" : "Вимкнути")} блокування клавіатури і миші на всіх онлайн учнівських ПК ({count})?"
+            : $"{(enabled ? "Enable" : "Disable")} keyboard and mouse lock on all online student PCs ({count})?";
+    public static string InputLockCompleted(int count, bool enabled)
+        => IsUk
+            ? $"{(enabled ? "Блокування клавіатури і миші увімкнено" : "Блокування клавіатури і миші вимкнено")} на {count} учнівських ПК"
+            : $"{(enabled ? "Enabled" : "Disabled")} keyboard and mouse lock on {count} student PCs";
+    public static string InputLockCompletedWithFailures(int succeeded, int failed, bool enabled)
+        => IsUk
+            ? $"Групове {(enabled ? "увімкнення" : "вимкнення")} блокування вводу: успішно {succeeded}, з помилками {failed}"
+            : $"Bulk {(enabled ? "enable" : "disable")} input lock: {succeeded} succeeded, {failed} failed";
+    public static string BulkInputLockError => IsUk ? "Помилка групового блокування клавіатури і миші" : "Bulk keyboard and mouse lock error";
+    public static string InputLockProgress(string agent, int agentIndex, int agentCount, bool enabled)
+        => IsUk
+            ? $"{(enabled ? "Увімкнення" : "Вимкнення")} блокування вводу на {agent} ({agentIndex}/{agentCount})"
+            : $"{(enabled ? "Enabling" : "Disabling")} input lock on {agent} ({agentIndex}/{agentCount})";
+    public static string SplashTitle => IsUk ? "Клієнт викладача" : "Teacher Classroom Client";
+    public static string SplashSubtitle => IsUk ? "Підготовка робочого середовища викладача..." : "Preparing the teacher workspace...";
     public static string ClearDestinationFolderNotConfigured => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string StudentWorkFolderNotConfigured => IsUk ? "У налаштуваннях задайте базовий шлях і назву папки робіт." : "Set the student work base path and work folder name in settings first.";
     public static string PreparingWorkCollection => IsUk ? "Підготовка збору робіт..." : "Preparing work collection...";

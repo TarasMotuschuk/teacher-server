@@ -81,6 +81,16 @@ public partial class MainWindow : Window
         await ToggleBrowserLockAsync(agent, checkBox.IsChecked == true);
     }
 
+    private async void InputLockCheckBox_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox || checkBox.Tag is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        await ToggleInputLockAsync(agent, checkBox.IsChecked == true);
+    }
+
     private async void SettingsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var dialog = new SettingsWindow(_clientSettings);
@@ -257,6 +267,29 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task ToggleInputLockAsync(DiscoveredAgentRow agent, bool enabled)
+    {
+        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(CrossPlatformText.InputLockRequiresOnlineAgent);
+            ApplyAgentFilters();
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            await client.SetInputLockEnabledAsync(enabled);
+            ReplaceAgentRow(agent with { InputLockEnabled = enabled });
+            SetStatus(enabled ? CrossPlatformText.InputLockEnabledFor(agent.MachineName) : CrossPlatformText.InputLockDisabledFor(agent.MachineName));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.InputLockToggleFailed}: {ex.Message}");
+            ApplyAgentFilters();
+        }
+    }
+
     private string GetCurrentServerUrlOrThrow()
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
@@ -345,7 +378,8 @@ public partial class MainWindow : Window
                         {
                             Status = CrossPlatformText.Online,
                             CurrentUser = info.CurrentUser,
-                            BrowserLockEnabled = info.IsBrowserLockEnabled
+                            BrowserLockEnabled = info.IsBrowserLockEnabled,
+                            InputLockEnabled = info.IsInputLockEnabled
                         });
                         continue;
                     }
@@ -368,7 +402,8 @@ public partial class MainWindow : Window
                     {
                         Status = CrossPlatformText.Online,
                         CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
-                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled
+                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
+                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled
                     });
                     continue;
                 }
@@ -568,6 +603,51 @@ public partial class MainWindow : Window
         }
 
         await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
+    }
+
+    private async void LockBrowsersAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetBrowserLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void LockInputAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void UnlockInputAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
     private async void CollectStudentWorkSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -909,6 +989,98 @@ public partial class MainWindow : Window
                     string.Join(Environment.NewLine, failures));
             }
         }, CrossPlatformText.BulkClearError);
+    }
+
+    private async Task SetBrowserLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.BrowserLockPrompt(targetAgents.Count)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.BrowserLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.SetBrowserLockEnabledAsync(enabled);
+                    ReplaceAgentRow(agent with { BrowserLockEnabled = enabled });
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.BrowserLockCompleted(succeeded)
+                : CrossPlatformText.BrowserLockCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkBrowserLockError);
+    }
+
+    private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.SetInputLockEnabledAsync(enabled);
+                    ReplaceAgentRow(agent with { InputLockEnabled = enabled });
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.InputLockCompleted(succeeded, enabled)
+                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkInputLockError);
     }
 
     private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
@@ -1398,6 +1570,7 @@ public partial class MainWindow : Window
         bool IsManual)
     {
         public bool BrowserLockEnabled { get; set; }
+        public bool InputLockEnabled { get; set; }
         public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
         public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
@@ -1450,6 +1623,11 @@ public partial class MainWindow : Window
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
         DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
+        BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
+        InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
+        LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
+        LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
+        UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;
@@ -1497,20 +1675,21 @@ public partial class MainWindow : Window
         UpLocalButton.Content = CrossPlatformText.Up;
         UpRemoteButton.Content = CrossPlatformText.Up;
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
-        if (AgentsGrid.Columns.Count >= 12)
+        if (AgentsGrid.Columns.Count >= 13)
         {
             AgentsGrid.Columns[0].Header = CrossPlatformText.BrowserLock;
-            AgentsGrid.Columns[1].Header = CrossPlatformText.Source;
-            AgentsGrid.Columns[2].Header = CrossPlatformText.Status;
-            AgentsGrid.Columns[3].Header = CrossPlatformText.Group;
-            AgentsGrid.Columns[4].Header = CrossPlatformText.Machine;
-            AgentsGrid.Columns[5].Header = CrossPlatformText.User;
-            AgentsGrid.Columns[6].Header = "IP";
-            AgentsGrid.Columns[7].Header = CrossPlatformText.Port;
-            AgentsGrid.Columns[8].Header = "MAC";
-            AgentsGrid.Columns[9].Header = CrossPlatformText.Notes;
-            AgentsGrid.Columns[10].Header = CrossPlatformText.Version;
-            AgentsGrid.Columns[11].Header = CrossPlatformText.LastSeenUtc;
+            AgentsGrid.Columns[1].Header = CrossPlatformText.InputLock;
+            AgentsGrid.Columns[2].Header = CrossPlatformText.Source;
+            AgentsGrid.Columns[3].Header = CrossPlatformText.Status;
+            AgentsGrid.Columns[4].Header = CrossPlatformText.Group;
+            AgentsGrid.Columns[5].Header = CrossPlatformText.Machine;
+            AgentsGrid.Columns[6].Header = CrossPlatformText.User;
+            AgentsGrid.Columns[7].Header = "IP";
+            AgentsGrid.Columns[8].Header = CrossPlatformText.Port;
+            AgentsGrid.Columns[9].Header = "MAC";
+            AgentsGrid.Columns[10].Header = CrossPlatformText.Notes;
+            AgentsGrid.Columns[11].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[12].Header = CrossPlatformText.LastSeenUtc;
         }
 
         if (ProcessesGrid.Columns.Count >= 6)

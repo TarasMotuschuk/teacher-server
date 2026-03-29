@@ -52,6 +52,13 @@
           <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
           <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
         </MenuItem>
+        <MenuItem x:Name="BrowserCommandsMenuItem" Header="_Browser">
+          <MenuItem x:Name="LockBrowsersAllMenuItem" Header="Lock browser on all online student PCs" Click="LockBrowsersAllMenuItem_OnClick" />
+        </MenuItem>
+        <MenuItem x:Name="InputCommandsMenuItem" Header="_Keyboard and Mouse">
+          <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
+          <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
+        </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">
           <MenuItem x:Name="CreateStudentWorkFolderAllMenuItem" Header="Create work folder on all PCs" Click="CreateStudentWorkFolderAllMenuItem_OnClick" />
@@ -125,6 +132,17 @@
                               IsChecked="{Binding BrowserLockEnabled}"
                               Tag="{Binding}"
                               Click="BrowserLockCheckBox_OnClick" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Input lock" Width="95">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding InputLockEnabled}"
+                              Tag="{Binding}"
+                              Click="InputLockCheckBox_OnClick" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>

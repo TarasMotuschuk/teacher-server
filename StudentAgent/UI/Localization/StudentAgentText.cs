@@ -62,4 +62,9 @@ internal static class StudentAgentText
     public static string BrowserLockEnabledLog => IsUk ? "Викладач увімкнув блокування браузера." : "Teacher enabled browser lock.";
     public static string BrowserLockDisabledLog => IsUk ? "Викладач вимкнув блокування браузера." : "Teacher disabled browser lock.";
     public static string BrowserLockKilledBrowsersLog(int count) => IsUk ? $"Завершено браузерів: {count}." : $"Closed browser processes: {count}.";
+    public static string InputLockEnabledLog => IsUk ? "Викладач увімкнув блокування клавіатури і миші." : "Teacher enabled keyboard and mouse lock.";
+    public static string InputLockDisabledLog => IsUk ? "Викладач вимкнув блокування клавіатури і миші." : "Teacher disabled keyboard and mouse lock.";
+    public static string InputLockTitle => IsUk ? "Ввід заблоковано" : "Input blocked";
+    public static string InputLockMessage => IsUk ? "Клавіатуру і мишу тимчасово заблоковано викладачем до кінця уроку." : "Keyboard and mouse access has been temporarily blocked by the teacher until the end of the lesson.";
+    public static string InputLockFooter => IsUk ? "Тільки викладач може зняти це блокування." : "Only the teacher can remove this lock.";
 }

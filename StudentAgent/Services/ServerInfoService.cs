@@ -24,6 +24,7 @@ public sealed class ServerInfoService
             osDescription,
             DateTime.UtcNow,
             true,
-            _settingsStore.Current.BrowserLockEnabled);
+            _settingsStore.Current.BrowserLockEnabled,
+            _settingsStore.Current.InputLockEnabled);
     }
 }

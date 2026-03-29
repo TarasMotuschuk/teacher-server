@@ -9,6 +9,8 @@ namespace TeacherClient;
 
 public partial class MainForm : Form
 {
+    private const int BrowserLockColumnIndex = 0;
+    private const int InputLockColumnIndex = 1;
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
@@ -52,7 +54,7 @@ public partial class MainForm : Form
         PopulateLocalRoots();
 
         _agentRefreshTimer.Interval = 15000;
-        _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync();
+        _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync(showBusyCursor: false);
         _connectionMonitorTimer.Interval = 10000;
         _connectionMonitorTimer.Tick += async (_, _) => await MonitorConnectionAsync();
         Shown += async (_, _) =>
@@ -80,7 +82,7 @@ public partial class MainForm : Form
 
     private async void agentsGrid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
     {
-        if (_suppressBrowserLockEvents || e.RowIndex < 0 || e.ColumnIndex != 0)
+        if (_suppressBrowserLockEvents || e.RowIndex < 0)
         {
             return;
         }
@@ -91,7 +93,14 @@ public partial class MainForm : Form
         }
 
         var requestedValue = Convert.ToBoolean(agentsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value ?? false);
-        await ToggleBrowserLockAsync(agent, requestedValue);
+        if (e.ColumnIndex == BrowserLockColumnIndex)
+        {
+            await ToggleBrowserLockAsync(agent, requestedValue);
+        }
+        else if (e.ColumnIndex == InputLockColumnIndex)
+        {
+            await ToggleInputLockAsync(agent, requestedValue);
+        }
     }
 
     private async void settingsButton_Click(object? sender, EventArgs e)
@@ -246,11 +255,11 @@ public partial class MainForm : Form
         }
     }
 
-    private async Task LoadDiscoveredAgentsAsync()
+    private async Task LoadDiscoveredAgentsAsync(bool showBusyCursor = true)
     {
         try
         {
-            using var cursorScope = new CursorScope(this);
+            using CursorScope? cursorScope = showBusyCursor ? new CursorScope(this) : null;
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
@@ -268,6 +277,51 @@ public partial class MainForm : Form
         {
             SetStatus($"{TeacherClientText.DiscoveryError}: {ex.Message}");
         }
+    }
+
+    private async void lockBrowsersOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetBrowserLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void lockInputOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void unlockInputOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
     private async void refreshFilesButton_Click(object sender, EventArgs e)
@@ -919,6 +973,52 @@ public partial class MainForm : Form
             MessageBoxIcon.Warning);
     }
 
+    private async Task SetBrowserLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+    {
+        if (MessageBox.Show(
+                TeacherClientText.BrowserLockPrompt(targetAgents.Count),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.BrowserLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.SetBrowserLockEnabledAsync(enabled);
+                ReplaceAgentRow(agent with { BrowserLockEnabled = enabled });
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        if (failures.Count == 0)
+        {
+            SetStatus(TeacherClientText.BrowserLockCompleted(succeeded));
+            return;
+        }
+
+        SetStatus(TeacherClientText.BrowserLockCompletedWithFailures(succeeded, failures.Count));
+        MessageBox.Show(
+            string.Join(Environment.NewLine, failures),
+            TeacherClientText.BulkCommandsResultTitle,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+    }
+
     private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
     {
         var studentWorkPath = GetConfiguredStudentWorkPath();
@@ -1209,6 +1309,29 @@ public partial class MainForm : Form
         }
     }
 
+    private async Task ToggleInputLockAsync(DiscoveredAgentRow agent, bool enabled)
+    {
+        if (!string.Equals(agent.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(TeacherClientText.InputLockRequiresOnlineAgent);
+            ApplyAgentFilters();
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            await client.SetInputLockEnabledAsync(enabled);
+            ReplaceAgentRow(agent with { InputLockEnabled = enabled });
+            SetStatus(enabled ? TeacherClientText.InputLockEnabledFor(agent.MachineName) : TeacherClientText.InputLockDisabledFor(agent.MachineName));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.InputLockToggleFailed}: {ex.Message}");
+            ApplyAgentFilters();
+        }
+    }
+
     private string GetCurrentServerUrlOrThrow()
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
@@ -1324,7 +1447,8 @@ public partial class MainForm : Form
                         {
                             Status = TeacherClientText.Online,
                             CurrentUser = info.CurrentUser,
-                            BrowserLockEnabled = info.IsBrowserLockEnabled
+                            BrowserLockEnabled = info.IsBrowserLockEnabled,
+                            InputLockEnabled = info.IsInputLockEnabled
                         });
                         continue;
                     }
@@ -1347,7 +1471,8 @@ public partial class MainForm : Form
                     {
                         Status = TeacherClientText.Online,
                         CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
-                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled
+                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
+                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled
                     });
                     continue;
                 }
@@ -1455,6 +1580,7 @@ public partial class MainForm : Form
         bool IsManual)
     {
         public bool BrowserLockEnabled { get; set; }
+        public bool InputLockEnabled { get; set; }
         public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
         public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
@@ -1509,6 +1635,52 @@ public partial class MainForm : Form
         public void Dispose()
         {
             _control.Cursor = _previousCursor;
+        }
+    }
+
+    private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+    {
+        if (MessageBox.Show(
+                TeacherClientText.InputLockPrompt(targetAgents.Count, enabled),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.SetInputLockEnabledAsync(enabled);
+                ReplaceAgentRow(agent with { InputLockEnabled = enabled });
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.InputLockCompleted(succeeded, enabled)
+            : TeacherClientText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.BulkInputLockError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
         }
     }
 }

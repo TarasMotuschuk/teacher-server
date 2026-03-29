@@ -12,10 +12,12 @@ public sealed class AgentApplicationContext : ApplicationContext
     private readonly ProcessService _processService;
     private readonly NotifyIcon _notifyIcon;
     private readonly System.Windows.Forms.Timer _browserLockTimer;
+    private readonly System.Windows.Forms.Timer _inputLockRefreshTimer;
     private readonly ToolStripMenuItem _aboutMenuItem;
     private readonly ToolStripMenuItem _settingsMenuItem;
     private readonly ToolStripMenuItem _logsMenuItem;
     private readonly ToolStripMenuItem _exitMenuItem;
+    private readonly List<InputLockForm> _inputLockForms = [];
     private bool _browserCheckInProgress;
 
     public AgentApplicationContext(WebApplication app, AgentSettingsStore settingsStore, AgentLogService logService, ProcessService processService)
@@ -58,12 +60,23 @@ public sealed class AgentApplicationContext : ApplicationContext
         };
         _browserLockTimer.Tick += async (_, _) => await EvaluateBrowserLockAsync();
         _browserLockTimer.Start();
+
+        _inputLockRefreshTimer = new System.Windows.Forms.Timer
+        {
+            Interval = 1000
+        };
+        _inputLockRefreshTimer.Tick += (_, _) => EnsureInputLockForms();
+        _inputLockRefreshTimer.Start();
+        EnsureInputLockForms();
     }
 
     protected override void ExitThreadCore()
     {
         _browserLockTimer.Stop();
         _browserLockTimer.Dispose();
+        _inputLockRefreshTimer.Stop();
+        _inputLockRefreshTimer.Dispose();
+        CloseInputLockForms();
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _logService.LogInfo("StudentAgent stopping.");
@@ -159,6 +172,13 @@ public sealed class AgentApplicationContext : ApplicationContext
         _logsMenuItem.Text = StudentAgentText.Logs;
         _exitMenuItem.Text = StudentAgentText.Exit;
         _notifyIcon.Text = StudentAgentText.AgentName;
+        foreach (var form in _inputLockForms.ToArray())
+        {
+            form.ForceClose();
+        }
+
+        _inputLockForms.Clear();
+        EnsureInputLockForms();
     }
 
     private async Task EvaluateBrowserLockAsync()
@@ -196,5 +216,43 @@ public sealed class AgentApplicationContext : ApplicationContext
         {
             _browserCheckInProgress = false;
         }
+    }
+
+    private void EnsureInputLockForms()
+    {
+        if (_settingsStore.Current.InputLockEnabled)
+        {
+            if (_inputLockForms.Count == 0)
+            {
+                foreach (var screen in Screen.AllScreens)
+                {
+                    var form = new InputLockForm(screen);
+                    _inputLockForms.Add(form);
+                    form.Show();
+                }
+            }
+
+            foreach (var form in _inputLockForms)
+            {
+                form.TopMost = true;
+                form.Show();
+                form.Activate();
+                form.BringToFront();
+            }
+
+            return;
+        }
+
+        CloseInputLockForms();
+    }
+
+    private void CloseInputLockForms()
+    {
+        foreach (var form in _inputLockForms.ToArray())
+        {
+            form.ForceClose();
+        }
+
+        _inputLockForms.Clear();
     }
 }

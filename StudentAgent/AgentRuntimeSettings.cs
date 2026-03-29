@@ -17,4 +17,6 @@ public sealed class AgentRuntimeSettings
     public UiLanguage Language { get; set; } = UiLanguageExtensions.GetDefault();
 
     public bool BrowserLockEnabled { get; set; }
+
+    public bool InputLockEnabled { get; set; }
 }

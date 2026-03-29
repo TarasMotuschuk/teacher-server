@@ -50,11 +50,16 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Both teacher clients now expose a dedicated `Group Commands` menu for teacher-side multi-agent actions against configured student folders, plus a nested `Student Work` submenu for creating, collecting, and clearing the configured student work folder on reachable student machines.
 - Both teacher clients now also group destination-folder cleanup commands into a dedicated nested submenu under `Group Commands`.
 - Both teacher clients now expose a `Browser lock` checkbox in the agents list. Toggling it enables or disables browser blocking on that student PC, and the student agent now shows a visible 10-second warning before force-closing browser processes that remain open.
+- Both teacher clients now also expose an `Input lock` checkbox in the agents list plus bulk `Keyboard and Mouse` commands for locking or unlocking input on online student PCs.
+- `StudentAgent` now shows a visible fullscreen topmost lock screen while input lock is enabled, making the restriction clear and difficult to bypass for standard student accounts.
 - Both teacher clients now use the current local teacher folder as the destination root when collecting student work, creating one subfolder per student machine.
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 - `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.
 - Local and remote file grids in both teacher clients now show folder/file icons next to names, separate extension and file-attribute columns, and human-readable file sizes.
 - File panels in both teacher clients now include direct drive selectors for switching local and remote roots, and the file grid columns are weighted so the name column uses the majority of the width.
+- `TeacherClient` no longer shows a wait cursor during background agent auto-refresh, reducing the appearance of random UI stalls.
+- Both teacher clients now expose a group browser command for enabling browser blocking across all online student PCs at once.
+- Both teacher clients now show a branded splash screen during startup.
 
 ### Notes
 

@@ -103,6 +103,20 @@ try
         }
     });
 
+    app.MapPost("/api/input-lock", ([FromBody] InputLockStateRequest request, [FromServices] AgentSettingsStore store, [FromServices] AgentLogService agentLog) =>
+    {
+        try
+        {
+            store.UpdateInputLock(request.Enabled);
+            agentLog.LogInfo(request.Enabled ? StudentAgentText.InputLockEnabledLog : StudentAgentText.InputLockDisabledLog);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
     app.MapGet("/api/files/roots", ([FromServices] FileService service) =>
     {
         return Results.Ok(service.GetRoots());

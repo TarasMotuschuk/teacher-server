@@ -11,6 +11,7 @@ public sealed class AgentSettingsStore
     private readonly object _sync = new();
     private readonly string _settingsPath;
     private AgentRuntimeSettings _current;
+    public event EventHandler? SettingsChanged;
 
     public AgentSettingsStore(IOptions<AgentOptions> options)
     {
@@ -63,6 +64,19 @@ public sealed class AgentSettingsStore
             _current.BrowserLockEnabled = enabled;
             Save(_current);
         }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void UpdateInputLock(bool enabled)
+    {
+        lock (_sync)
+        {
+            _current.InputLockEnabled = enabled;
+            Save(_current);
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private AgentRuntimeSettings Load(AgentOptions defaults)
@@ -91,7 +105,8 @@ public sealed class AgentSettingsStore
             AdminPasswordHash = defaults.AdminPasswordHash,
             VisibleBannerText = defaults.VisibleBannerText,
             Language = UiLanguageExtensions.GetDefault(),
-            BrowserLockEnabled = defaults.BrowserLockEnabled
+            BrowserLockEnabled = defaults.BrowserLockEnabled,
+            InputLockEnabled = defaults.InputLockEnabled
         }, defaults);
     }
 
@@ -114,6 +129,7 @@ public sealed class AgentSettingsStore
         value.VisibleBannerText = string.IsNullOrWhiteSpace(value.VisibleBannerText) ? defaults.VisibleBannerText : value.VisibleBannerText.Trim();
         value.Language = value.Language.Normalize();
         value.BrowserLockEnabled = value.BrowserLockEnabled;
+        value.InputLockEnabled = value.InputLockEnabled;
         return value;
     }
 
@@ -127,7 +143,8 @@ public sealed class AgentSettingsStore
             AdminPasswordHash = settings.AdminPasswordHash,
             VisibleBannerText = settings.VisibleBannerText,
             Language = settings.Language,
-            BrowserLockEnabled = settings.BrowserLockEnabled
+            BrowserLockEnabled = settings.BrowserLockEnabled,
+            InputLockEnabled = settings.InputLockEnabled
         };
     }
 

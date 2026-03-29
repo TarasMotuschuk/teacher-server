@@ -127,6 +127,13 @@ partial class MainForm
         destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
         destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(destinationFolderMenuItem);
+        var browserMenuItem = new ToolStripMenuItem(TeacherClientText.BrowserCommandsMenu);
+        browserMenuItem.DropDownItems.Add(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, lockBrowsersOnAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(browserMenuItem);
+        var inputMenuItem = new ToolStripMenuItem(TeacherClientText.InputCommandsMenu);
+        inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, lockInputOnAllOnlineStudentsMenuItem_Click);
+        inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, unlockInputOnAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(inputMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
         studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, createStudentWorkFolderOnAllAgentsMenuItem_Click);
@@ -225,6 +232,7 @@ partial class MainForm
         agentsGrid.Dock = DockStyle.Fill;
         agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
         agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.BrowserLock, DataPropertyName = "BrowserLockEnabled", Width = 90 });
+        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.InputLock, DataPropertyName = "InputLockEnabled", Width = 90 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Status, DataPropertyName = "Status", Width = 100, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Group, DataPropertyName = "GroupName", Width = 140, ReadOnly = true });
