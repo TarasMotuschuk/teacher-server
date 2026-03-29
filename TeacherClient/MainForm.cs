@@ -333,7 +333,42 @@ public partial class MainForm : Form
             entry.FullName,
             (entry.Attributes & FileAttributes.Directory) == FileAttributes.Directory,
             entry is FileInfo fileInfo ? fileInfo.Length : null,
-            entry.LastWriteTimeUtc);
+            entry.LastWriteTimeUtc)
+        {
+            AttributesDisplay = FormatAttributes(entry.Attributes)
+        };
+    }
+
+    private static string FormatAttributes(FileAttributes attributes)
+    {
+        var values = new List<string>();
+
+        if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+        {
+            values.Add("Dir");
+        }
+
+        if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+        {
+            values.Add("R");
+        }
+
+        if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden)
+        {
+            values.Add("H");
+        }
+
+        if ((attributes & FileAttributes.System) == FileAttributes.System)
+        {
+            values.Add("S");
+        }
+
+        if ((attributes & FileAttributes.Archive) == FileAttributes.Archive)
+        {
+            values.Add("A");
+        }
+
+        return string.Join(", ", values);
     }
 
     private async void localFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)

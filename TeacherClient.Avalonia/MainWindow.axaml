@@ -48,8 +48,10 @@
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
       <MenuItem x:Name="GroupCommandsMenuItem" Header="_Group Commands">
-        <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
-        <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+        <MenuItem x:Name="DestinationFolderMenuItem" Header="_Destination Folder">
+          <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+        </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">
           <MenuItem x:Name="CreateStudentWorkFolderAllMenuItem" Header="Create work folder on all PCs" Click="CreateStudentWorkFolderAllMenuItem_OnClick" />
@@ -207,9 +209,10 @@
                       SelectionMode="Single"
                       DoubleTapped="LocalFilesGrid_OnDoubleTapped">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                <DataGridCheckBoxColumn Header="Dir" Binding="{Binding IsDirectory}" Width="90" />
-                <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="120" />
+                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="2*" />
+                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="120" />
+                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="120" />
+                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="120" />
                 <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="220" />
               </DataGrid.Columns>
             </DataGrid>
@@ -221,9 +224,10 @@
                       SelectionMode="Single"
                       DoubleTapped="RemoteFilesGrid_OnDoubleTapped">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                <DataGridCheckBoxColumn Header="Dir" Binding="{Binding IsDirectory}" Width="90" />
-                <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="120" />
+                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="2*" />
+                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="120" />
+                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="120" />
+                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="120" />
                 <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="220" />
               </DataGrid.Columns>
             </DataGrid>

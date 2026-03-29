@@ -45,9 +45,10 @@ Available endpoints:
 - user-selectable UI language with English and Ukrainian options;
 - process list refresh and remote process termination;
 - dual-pane local/remote file browsing;
+- richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - file upload and download;
 - bulk distribution of a selected local file or folder to selected students or all online students;
-- group commands for clearing the configured student destination folder on either selected students or all online students;
+- grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs.
@@ -69,9 +70,10 @@ Available endpoints:
 - user-selectable UI language with English and Ukrainian options;
 - browse remote processes and terminate a selected process;
 - browse local and remote file trees in dual panes;
+- richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - upload and download files;
 - bulk distribution of a selected local file or folder to selected students or all online students;
-- group commands for clearing the configured student destination folder on either selected students or all online students;
+- grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - delete local and remote entries;
 - create remote folders.
@@ -160,7 +162,7 @@ Example configuration:
 8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
 9. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 10. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
-11. Use `Group Commands` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
+11. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
 12. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
 13. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
 14. Use `Group Commands -> Student Work -> Clear work folder on all PCs` to empty the configured student work folder on all reachable student machines while leaving the folder itself in place.
@@ -187,7 +189,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 6. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 7. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
 8. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
-9. Use `Group Commands` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
+9. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
 10. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
 11. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
 12. Use `Group Commands -> Student Work -> Clear work folder on all PCs` to empty the configured student work folder on all reachable student machines while leaving the folder itself in place.

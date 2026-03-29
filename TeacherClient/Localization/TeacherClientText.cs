@@ -62,6 +62,10 @@ internal static class TeacherClientText
     public static string Window => IsUk ? "Вікно" : "Window";
     public static string Process => IsUk ? "Процес" : "Process";
     public static string Name => IsUk ? "Назва" : "Name";
+    public static string NameWithIcon => IsUk ? "Назва" : "Name";
+    public static string Extension => IsUk ? "Розширення" : "Extension";
+    public static string Attributes => IsUk ? "Атрибути" : "Attributes";
+    public static string Size => IsUk ? "Розмір" : "Size";
     public static string DirectoryShort => IsUk ? "Кат." : "Dir";
     public static string ModifiedUtc => IsUk ? "Змінено UTC" : "Modified UTC";
     public static string SettingsDialogTitle => IsUk ? "Налаштування клієнта викладача" : "Teacher Client Settings";
@@ -132,6 +136,7 @@ internal static class TeacherClientText
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
     public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
     public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
+    public static string DestinationFolderMenu => IsUk ? "Папка призначення" : "Destination Folder";
     public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
     public static string CollectStudentWorkToTeacherPc => IsUk ? "Зібрати роботи учнів на вчительський ПК" : "Collect student work to teacher PC";
     public static string ClearStudentWorkFolderOnAllAgents => IsUk ? "Очистити папку для робіт на всіх ПК" : "Clear work folder on all PCs";

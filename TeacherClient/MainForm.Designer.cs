@@ -119,8 +119,10 @@ partial class MainForm
         filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
 
         var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
-        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
+        var destinationFolderMenuItem = new ToolStripMenuItem(TeacherClientText.DestinationFolderMenu);
+        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
+        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(destinationFolderMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
         studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, createStudentWorkFolderOnAllAgentsMenuItem_Click);
@@ -241,16 +243,18 @@ partial class MainForm
 
         localFilesGrid.Dock = DockStyle.Fill;
         localFilesGrid.CellDoubleClick += localFilesGrid_CellDoubleClick;
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Name, DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
-        localFilesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.DirectoryShort, DataPropertyName = "IsDirectory", Width = 60 });
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Size", DataPropertyName = "Size", Width = 110 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 240 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", Width = 110 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", Width = 120 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Size, DataPropertyName = "SizeDisplay", Width = 120 });
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", Width = 190 });
 
         remoteFilesGrid.Dock = DockStyle.Fill;
         remoteFilesGrid.CellDoubleClick += remoteFilesGrid_CellDoubleClick;
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Name, DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
-        remoteFilesGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.DirectoryShort, DataPropertyName = "IsDirectory", Width = 60 });
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Size", DataPropertyName = "Size", Width = 110 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 240 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", Width = 110 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", Width = 120 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Size, DataPropertyName = "SizeDisplay", Width = 120 });
         remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", Width = 190 });
 
         refreshAgentsButton.Text = TeacherClientText.RefreshAgents;

@@ -146,6 +146,41 @@ public sealed class FileService
             info.FullName,
             isDirectory,
             size,
-            info.LastWriteTimeUtc);
+            info.LastWriteTimeUtc)
+        {
+            AttributesDisplay = FormatAttributes(info.Attributes)
+        };
+    }
+
+    private static string FormatAttributes(FileAttributes attributes)
+    {
+        var values = new List<string>();
+
+        if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+        {
+            values.Add("Dir");
+        }
+
+        if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+        {
+            values.Add("R");
+        }
+
+        if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden)
+        {
+            values.Add("H");
+        }
+
+        if ((attributes & FileAttributes.System) == FileAttributes.System)
+        {
+            values.Add("S");
+        }
+
+        if ((attributes & FileAttributes.Archive) == FileAttributes.Archive)
+        {
+            values.Add("A");
+        }
+
+        return string.Join(", ", values);
     }
 }

@@ -1180,7 +1180,42 @@ public partial class MainWindow : Window
             entry.FullName,
             (entry.Attributes & FileAttributes.Directory) == FileAttributes.Directory,
             entry is FileInfo fileInfo ? fileInfo.Length : null,
-            entry.LastWriteTimeUtc);
+            entry.LastWriteTimeUtc)
+        {
+            AttributesDisplay = FormatAttributes(entry.Attributes)
+        };
+    }
+
+    private static string FormatAttributes(FileAttributes attributes)
+    {
+        var values = new List<string>();
+
+        if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+        {
+            values.Add("Dir");
+        }
+
+        if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+        {
+            values.Add("R");
+        }
+
+        if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden)
+        {
+            values.Add("H");
+        }
+
+        if ((attributes & FileAttributes.System) == FileAttributes.System)
+        {
+            values.Add("S");
+        }
+
+        if ((attributes & FileAttributes.Archive) == FileAttributes.Archive)
+        {
+            values.Add("A");
+        }
+
+        return string.Join(", ", values);
     }
 
     private async Task RunBusyAsync(Func<Task> operation, string? errorPrefix = null)
@@ -1318,6 +1353,7 @@ public partial class MainWindow : Window
         EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
+        DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;
@@ -1391,20 +1427,22 @@ public partial class MainWindow : Window
             ProcessesGrid.Columns[5].Header = CrossPlatformText.IsUk ? "Запущено UTC" : "Started UTC";
         }
 
-        if (LocalFilesGrid.Columns.Count >= 4)
+        if (LocalFilesGrid.Columns.Count >= 5)
         {
-            LocalFilesGrid.Columns[0].Header = CrossPlatformText.IsUk ? "Назва" : "Name";
-            LocalFilesGrid.Columns[1].Header = CrossPlatformText.IsUk ? "Кат." : "Dir";
-            LocalFilesGrid.Columns[2].Header = "Size";
-            LocalFilesGrid.Columns[3].Header = CrossPlatformText.IsUk ? "Змінено UTC" : "Modified UTC";
+            LocalFilesGrid.Columns[0].Header = CrossPlatformText.Name;
+            LocalFilesGrid.Columns[1].Header = CrossPlatformText.Extension;
+            LocalFilesGrid.Columns[2].Header = CrossPlatformText.Attributes;
+            LocalFilesGrid.Columns[3].Header = CrossPlatformText.Size;
+            LocalFilesGrid.Columns[4].Header = CrossPlatformText.ModifiedUtc;
         }
 
-        if (RemoteFilesGrid.Columns.Count >= 4)
+        if (RemoteFilesGrid.Columns.Count >= 5)
         {
-            RemoteFilesGrid.Columns[0].Header = CrossPlatformText.IsUk ? "Назва" : "Name";
-            RemoteFilesGrid.Columns[1].Header = CrossPlatformText.IsUk ? "Кат." : "Dir";
-            RemoteFilesGrid.Columns[2].Header = "Size";
-            RemoteFilesGrid.Columns[3].Header = CrossPlatformText.IsUk ? "Змінено UTC" : "Modified UTC";
+            RemoteFilesGrid.Columns[0].Header = CrossPlatformText.Name;
+            RemoteFilesGrid.Columns[1].Header = CrossPlatformText.Extension;
+            RemoteFilesGrid.Columns[2].Header = CrossPlatformText.Attributes;
+            RemoteFilesGrid.Columns[3].Header = CrossPlatformText.Size;
+            RemoteFilesGrid.Columns[4].Header = CrossPlatformText.ModifiedUtc;
         }
         if (StatusTextBlock.Text == "Ready. Use the Agents tab to select a student machine, then connect." ||
             StatusTextBlock.Text == "Готово. Виберіть машину на вкладці агентів і підключіться.")
