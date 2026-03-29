@@ -9,17 +9,21 @@ public sealed class AgentApplicationContext : ApplicationContext
     private readonly WebApplication _app;
     private readonly AgentSettingsStore _settingsStore;
     private readonly AgentLogService _logService;
+    private readonly ProcessService _processService;
     private readonly NotifyIcon _notifyIcon;
+    private readonly System.Windows.Forms.Timer _browserLockTimer;
     private readonly ToolStripMenuItem _aboutMenuItem;
     private readonly ToolStripMenuItem _settingsMenuItem;
     private readonly ToolStripMenuItem _logsMenuItem;
     private readonly ToolStripMenuItem _exitMenuItem;
+    private bool _browserCheckInProgress;
 
-    public AgentApplicationContext(WebApplication app, AgentSettingsStore settingsStore, AgentLogService logService)
+    public AgentApplicationContext(WebApplication app, AgentSettingsStore settingsStore, AgentLogService logService, ProcessService processService)
     {
         _app = app;
         _settingsStore = settingsStore;
         _logService = logService;
+        _processService = processService;
         StudentAgentText.SetLanguage(_settingsStore.Current.Language);
 
         var menu = new ContextMenuStrip();
@@ -47,11 +51,19 @@ public sealed class AgentApplicationContext : ApplicationContext
 
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
         ApplyLocalization();
-        //_notifyIcon.ShowBalloonTip(2000, StudentAgentText.AgentName, StudentAgentText.TrayBalloon, ToolTipIcon.Info);
+
+        _browserLockTimer = new System.Windows.Forms.Timer
+        {
+            Interval = (int)TimeSpan.FromMinutes(1).TotalMilliseconds
+        };
+        _browserLockTimer.Tick += async (_, _) => await EvaluateBrowserLockAsync();
+        _browserLockTimer.Start();
     }
 
     protected override void ExitThreadCore()
     {
+        _browserLockTimer.Stop();
+        _browserLockTimer.Dispose();
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _logService.LogInfo("StudentAgent stopping.");
@@ -147,5 +159,42 @@ public sealed class AgentApplicationContext : ApplicationContext
         _logsMenuItem.Text = StudentAgentText.Logs;
         _exitMenuItem.Text = StudentAgentText.Exit;
         _notifyIcon.Text = StudentAgentText.AgentName;
+    }
+
+    private async Task EvaluateBrowserLockAsync()
+    {
+        if (_browserCheckInProgress || !_settingsStore.Current.BrowserLockEnabled)
+        {
+            return;
+        }
+
+        var browsers = _processService.GetRunningBrowsers();
+        if (browsers.Count == 0)
+        {
+            return;
+        }
+
+        _browserCheckInProgress = true;
+
+        try
+        {
+            using var warningForm = new BrowserLockWarningForm(StudentAgentText.BrowserUsageForbiddenMessage, 10);
+            warningForm.Show();
+            await Task.Delay(TimeSpan.FromSeconds(10));
+
+            if (!_settingsStore.Current.BrowserLockEnabled)
+            {
+                warningForm.Close();
+                return;
+            }
+
+            var killedCount = _processService.KillRunningBrowsers();
+            _logService.LogWarning(StudentAgentText.BrowserLockKilledBrowsersLog(killedCount));
+            warningForm.Close();
+        }
+        finally
+        {
+            _browserCheckInProgress = false;
+        }
     }
 }

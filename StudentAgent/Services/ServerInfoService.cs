@@ -5,6 +5,13 @@ namespace StudentAgent.Services;
 
 public sealed class ServerInfoService
 {
+    private readonly AgentSettingsStore _settingsStore;
+
+    public ServerInfoService(AgentSettingsStore settingsStore)
+    {
+        _settingsStore = settingsStore;
+    }
+
     public ServerInfoDto GetInfo()
     {
         var machineName = Environment.MachineName;
@@ -16,6 +23,7 @@ public sealed class ServerInfoService
             currentUser,
             osDescription,
             DateTime.UtcNow,
-            true);
+            true,
+            _settingsStore.Current.BrowserLockEnabled);
     }
 }

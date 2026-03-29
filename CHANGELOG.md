@@ -48,6 +48,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Both teacher clients now treat the `Agents` list as the primary connection entry point instead of manual URL entry.
 - Bulk folder distribution now recreates the selected folder and its full internal directory structure on each target student machine.
 - Both teacher clients now expose a dedicated `Group Commands` menu for teacher-side multi-agent actions against configured student folders, plus a nested `Student Work` submenu for creating, collecting, and clearing the configured student work folder on reachable student machines.
+- Both teacher clients now expose a `Browser lock` checkbox in the agents list. Toggling it enables or disables browser blocking on that student PC, and the student agent now shows a visible 10-second warning before force-closing browser processes that remain open.
 - Both teacher clients now use the current local teacher folder as the destination root when collecting student work, creating one subfolder per student machine.
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 - `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.

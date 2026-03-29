@@ -15,4 +15,6 @@ public sealed class AgentRuntimeSettings
     public string VisibleBannerText { get; set; } = "Teacher monitoring enabled";
 
     public UiLanguage Language { get; set; } = UiLanguageExtensions.GetDefault();
+
+    public bool BrowserLockEnabled { get; set; }
 }

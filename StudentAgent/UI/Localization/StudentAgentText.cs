@@ -56,4 +56,10 @@ internal static class StudentAgentText
     public static string SettingsSaved => IsUk ? "Налаштування збережено." : "Settings saved.";
     public static string ProtectedMenuAccessDeniedLog => IsUk ? "У доступі до захищеного меню відмовлено через неправильний пароль." : "Protected menu access denied because of an invalid password.";
     public static string ExitDeniedBecauseNotAdminLog => IsUk ? "Вихід заборонено, тому що поточний користувач не адміністратор." : "Exit denied because current user is not an administrator.";
+    public static string BrowserUsageForbiddenTitle => IsUk ? "Браузер заблоковано" : "Browser blocked";
+    public static string BrowserUsageForbiddenMessage => IsUk ? "Використання браузера заборонене вчителем до кінця уроку." : "Browser usage is forbidden by the teacher until the end of the lesson.";
+    public static string BrowserWillCloseIn(int seconds) => IsUk ? $"Браузер буде закрито через {seconds} с." : $"The browser will be closed in {seconds} s.";
+    public static string BrowserLockEnabledLog => IsUk ? "Викладач увімкнув блокування браузера." : "Teacher enabled browser lock.";
+    public static string BrowserLockDisabledLog => IsUk ? "Викладач вимкнув блокування браузера." : "Teacher disabled browser lock.";
+    public static string BrowserLockKilledBrowsersLog(int count) => IsUk ? $"Завершено браузерів: {count}." : $"Closed browser processes: {count}.";
 }

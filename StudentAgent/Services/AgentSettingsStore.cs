@@ -56,6 +56,15 @@ public sealed class AgentSettingsStore
         }
     }
 
+    public void UpdateBrowserLock(bool enabled)
+    {
+        lock (_sync)
+        {
+            _current.BrowserLockEnabled = enabled;
+            Save(_current);
+        }
+    }
+
     private AgentRuntimeSettings Load(AgentOptions defaults)
     {
         if (File.Exists(_settingsPath))
@@ -81,7 +90,8 @@ public sealed class AgentSettingsStore
             SharedSecret = defaults.SharedSecret,
             AdminPasswordHash = defaults.AdminPasswordHash,
             VisibleBannerText = defaults.VisibleBannerText,
-            Language = UiLanguageExtensions.GetDefault()
+            Language = UiLanguageExtensions.GetDefault(),
+            BrowserLockEnabled = defaults.BrowserLockEnabled
         }, defaults);
     }
 
@@ -103,6 +113,7 @@ public sealed class AgentSettingsStore
         value.AdminPasswordHash = string.IsNullOrWhiteSpace(value.AdminPasswordHash) ? defaults.AdminPasswordHash : value.AdminPasswordHash.Trim();
         value.VisibleBannerText = string.IsNullOrWhiteSpace(value.VisibleBannerText) ? defaults.VisibleBannerText : value.VisibleBannerText.Trim();
         value.Language = value.Language.Normalize();
+        value.BrowserLockEnabled = value.BrowserLockEnabled;
         return value;
     }
 
@@ -115,7 +126,8 @@ public sealed class AgentSettingsStore
             SharedSecret = settings.SharedSecret,
             AdminPasswordHash = settings.AdminPasswordHash,
             VisibleBannerText = settings.VisibleBannerText,
-            Language = settings.Language
+            Language = settings.Language,
+            BrowserLockEnabled = settings.BrowserLockEnabled
         };
     }
 

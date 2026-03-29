@@ -89,6 +89,20 @@ try
         }
     });
 
+    app.MapPost("/api/browser-lock", ([FromBody] BrowserLockStateRequest request, [FromServices] AgentSettingsStore store, [FromServices] AgentLogService agentLog) =>
+    {
+        try
+        {
+            store.UpdateBrowserLock(request.Enabled);
+            agentLog.LogInfo(request.Enabled ? StudentAgentText.BrowserLockEnabledLog : StudentAgentText.BrowserLockDisabledLog);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
     app.MapGet("/api/files/roots", ([FromServices] FileService service) =>
     {
         return Results.Ok(service.GetRoots());
@@ -193,7 +207,7 @@ try
     });
 
     logService.LogInfo("StudentAgent starting.");
-    using var context = new AgentApplicationContext(app, settingsStore, logService);
+    using var context = new AgentApplicationContext(app, settingsStore, logService, app.Services.GetRequiredService<ProcessService>());
     app.StartAsync().GetAwaiter().GetResult();
     logService.LogInfo($"StudentAgent started on port {settingsStore.Current.Port}.");
     Application.Run(context);

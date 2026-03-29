@@ -22,6 +22,7 @@ public partial class MainForm : Form
     private BindingList<FileSystemEntryDto> _localEntries = new();
     private BindingList<FileSystemEntryDto> _remoteEntries = new();
     private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
+    private bool _suppressBrowserLockEvents;
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
@@ -35,6 +36,8 @@ public partial class MainForm : Form
         localFilesGrid.AutoGenerateColumns = false;
         remoteFilesGrid.AutoGenerateColumns = false;
         agentsGrid.AutoGenerateColumns = false;
+        agentsGrid.CurrentCellDirtyStateChanged += agentsGrid_CurrentCellDirtyStateChanged;
+        agentsGrid.CellValueChanged += agentsGrid_CellValueChanged;
         agentsGrid.DataSource = _agents;
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
@@ -64,6 +67,30 @@ public partial class MainForm : Form
     }
 
     private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
+
+    private void agentsGrid_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+    {
+        if (agentsGrid.IsCurrentCellDirty)
+        {
+            agentsGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+    }
+
+    private async void agentsGrid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (_suppressBrowserLockEvents || e.RowIndex < 0 || e.ColumnIndex != 0)
+        {
+            return;
+        }
+
+        if (agentsGrid.Rows[e.RowIndex].DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        var requestedValue = Convert.ToBoolean(agentsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value ?? false);
+        await ToggleBrowserLockAsync(agent, requestedValue);
+    }
 
     private async void settingsButton_Click(object? sender, EventArgs e)
     {
@@ -1014,6 +1041,29 @@ public partial class MainForm : Form
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
     }
 
+    private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
+    {
+        if (!string.Equals(agent.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(TeacherClientText.BrowserLockRequiresOnlineAgent);
+            ApplyAgentFilters();
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            await client.SetBrowserLockEnabledAsync(enabled);
+            ReplaceAgentRow(agent with { BrowserLockEnabled = enabled });
+            SetStatus(enabled ? TeacherClientText.BrowserLockEnabledFor(agent.MachineName) : TeacherClientText.BrowserLockDisabledFor(agent.MachineName));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.BrowserLockToggleFailed}: {ex.Message}");
+            ApplyAgentFilters();
+        }
+    }
+
     private string GetCurrentServerUrlOrThrow()
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
@@ -1037,6 +1087,17 @@ public partial class MainForm : Form
             .OfType<DiscoveredAgentRow>()
             .Distinct()
             .ToList();
+    }
+
+    private void ReplaceAgentRow(DiscoveredAgentRow updated)
+    {
+        var index = _allAgents.FindIndex(x => string.Equals(x.AgentId, updated.AgentId, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+        {
+            _allAgents[index] = updated;
+        }
+
+        ApplyAgentFilters();
     }
 
     private void agentFilters_Changed(object? sender, EventArgs e)
@@ -1064,8 +1125,10 @@ public partial class MainForm : Form
                 agent.GroupName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                 agent.MacAddressesDisplay.Contains(search, StringComparison.OrdinalIgnoreCase));
 
+        _suppressBrowserLockEvents = true;
         _agents = new BindingList<DiscoveredAgentRow>(filtered.ToList());
         agentsGrid.DataSource = _agents;
+        _suppressBrowserLockEvents = false;
     }
 
     private void RefreshGroupFilterOptions()
@@ -1101,17 +1164,53 @@ public partial class MainForm : Form
         var updatedAgents = new List<DiscoveredAgentRow>(mergedAgents.Count);
         foreach (var agent in mergedAgents)
         {
-            if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
-            {
-                updatedAgents.Add(agent with { Status = TeacherClientText.Online });
-                continue;
-            }
-
             var reachabilityClient = new TeacherApiClient(
                 $"http://{agent.RespondingAddress}:{agent.Port}",
                 _clientSettings.SharedSecret);
 
+            if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
+            {
+                try
+                {
+                    var info = await reachabilityClient.GetServerInfoAsync();
+                    if (info is not null)
+                    {
+                        updatedAgents.Add(agent with
+                        {
+                            Status = TeacherClientText.Online,
+                            CurrentUser = info.CurrentUser,
+                            BrowserLockEnabled = info.IsBrowserLockEnabled
+                        });
+                        continue;
+                    }
+                }
+                catch
+                {
+                }
+
+                updatedAgents.Add(agent with { Status = TeacherClientText.Online });
+                continue;
+            }
+
             var isReachable = await reachabilityClient.IsServerReachableAsync();
+            if (isReachable)
+            {
+                try
+                {
+                    var info = await reachabilityClient.GetServerInfoAsync();
+                    updatedAgents.Add(agent with
+                    {
+                        Status = TeacherClientText.Online,
+                        CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
+                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled
+                    });
+                    continue;
+                }
+                catch
+                {
+                }
+            }
+
             updatedAgents.Add(agent with
             {
                 Status = isReachable ? TeacherClientText.Online : TeacherClientText.Offline
@@ -1210,6 +1309,7 @@ public partial class MainForm : Form
         DateTime LastSeenUtc,
         bool IsManual)
     {
+        public bool BrowserLockEnabled { get; set; }
         public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
         public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)

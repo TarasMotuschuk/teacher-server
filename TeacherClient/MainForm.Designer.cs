@@ -214,20 +214,22 @@ partial class MainForm
         ConfigureGrid(localFilesGrid);
         ConfigureGrid(remoteFilesGrid);
         agentsGrid.MultiSelect = true;
+        agentsGrid.ReadOnly = false;
 
         agentsGrid.Dock = DockStyle.Fill;
         agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Status, DataPropertyName = "Status", Width = 100 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Group, DataPropertyName = "GroupName", Width = 140 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Machine, DataPropertyName = "MachineName", Width = 180 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.User, DataPropertyName = "CurrentUser", Width = 160 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 150 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Port, DataPropertyName = "Port", Width = 80 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC", DataPropertyName = "MacAddressesDisplay", Width = 220 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Notes, DataPropertyName = "Notes", Width = 200 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Version.TrimEnd(':'), DataPropertyName = "Version", Width = 110 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190 });
+        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.BrowserLock, DataPropertyName = "BrowserLockEnabled", Width = 90 });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Status, DataPropertyName = "Status", Width = 100, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Group, DataPropertyName = "GroupName", Width = 140, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Machine, DataPropertyName = "MachineName", Width = 180, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.User, DataPropertyName = "CurrentUser", Width = 160, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 150, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Port, DataPropertyName = "Port", Width = 80, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC", DataPropertyName = "MacAddressesDisplay", Width = 220, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Notes, DataPropertyName = "Notes", Width = 200, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Version.TrimEnd(':'), DataPropertyName = "Version", Width = 110, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190, ReadOnly = true });
 
         processesGrid.Dock = DockStyle.Fill;
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "PID", DataPropertyName = "Id", Width = 90 });

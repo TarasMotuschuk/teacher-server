@@ -39,6 +39,7 @@ internal static class CrossPlatformText
     public static string AutoReconnect => IsUk ? "Автоперепідключення" : "Auto-reconnect";
     public static string Source => IsUk ? "Джерело" : "Source";
     public static string Status => IsUk ? "Статус" : "Status";
+    public static string BrowserLock => IsUk ? "Блок браузера" : "Browser lock";
     public static string Group => IsUk ? "Група" : "Group";
     public static string Machine => IsUk ? "Машина" : "Machine";
     public static string User => IsUk ? "Користувач" : "User";
@@ -90,6 +91,10 @@ internal static class CrossPlatformText
     public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть агент." : "Choose an agent first.";
     public static string ChooseAgentsForDistribution => IsUk ? "Виберіть одного або кількох агентів для розсилки." : "Choose one or more agents for distribution.";
     public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн-агентів для групового копіювання." : "No online agents are available for bulk copy.";
+    public static string BrowserLockEnabledFor(string machine) => IsUk ? $"Блокування браузера увімкнено на {machine}" : $"Browser lock enabled on {machine}";
+    public static string BrowserLockDisabledFor(string machine) => IsUk ? $"Блокування браузера вимкнено на {machine}" : $"Browser lock disabled on {machine}";
+    public static string BrowserLockToggleFailed => IsUk ? "Не вдалося оновити блокування браузера" : "Failed to update browser lock";
+    public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн-агентів." : "Browser lock can only be changed for online agents.";
     public static string ConnectionFailed => IsUk ? "Підключення не вдалося." : "Connection failed.";
     public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ручний агент." : "Choose a manual agent first.";
     public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";

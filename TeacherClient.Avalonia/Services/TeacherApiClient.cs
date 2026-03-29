@@ -43,6 +43,12 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task SetBrowserLockEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/browser-lock", new BrowserLockStateRequest(enabled), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<DirectoryListingDto?> GetRemoteDirectoryAsync(string? path, CancellationToken cancellationToken = default)
     {
         var requestUri = string.IsNullOrWhiteSpace(path)

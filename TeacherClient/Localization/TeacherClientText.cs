@@ -41,6 +41,7 @@ internal static class TeacherClientText
     public static string FilesTab => IsUk ? "Файли" : "Files";
     public static string Search => IsUk ? "Пошук" : "Search";
     public static string Group => IsUk ? "Група" : "Group";
+    public static string BrowserLock => IsUk ? "Блок браузера" : "Browser lock";
     public static string Status => IsUk ? "Статус" : "Status";
     public static string AutoReconnect => IsUk ? "Автоперепідключення" : "Auto-reconnect";
     public static string AllGroups => IsUk ? "Усі групи" : "All groups";
@@ -110,6 +111,10 @@ internal static class TeacherClientText
     public static string ChooseLocalFileOrFolderToDistribute => IsUk ? "Виберіть локальний файл або папку для розсилки." : "Choose a local file or folder to distribute.";
     public static string ChooseAgentsForDistribution => IsUk ? "Виберіть одного або кількох агентів для розсилки." : "Choose one or more agents for distribution.";
     public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн-агентів для групового копіювання." : "No online agents are available for bulk copy.";
+    public static string BrowserLockEnabledFor(string machine) => IsUk ? $"Блокування браузера увімкнено на {machine}" : $"Browser lock enabled on {machine}";
+    public static string BrowserLockDisabledFor(string machine) => IsUk ? $"Блокування браузера вимкнено на {machine}" : $"Browser lock disabled on {machine}";
+    public static string BrowserLockToggleFailed => IsUk ? "Не вдалося оновити блокування браузера" : "Failed to update browser lock";
+    public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн-агентів." : "Browser lock can only be changed for online agents.";
     public static string DistributionDestinationPathRequired => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
     public static string ChooseLocalEntryFirst => IsUk ? "Спочатку виберіть локальний елемент." : "Choose a local entry first.";

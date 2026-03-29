@@ -69,6 +69,16 @@ public partial class MainWindow : Window
 
     private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
 
+    private async void BrowserLockCheckBox_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox || checkBox.Tag is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        await ToggleBrowserLockAsync(agent, checkBox.IsChecked == true);
+    }
+
     private async void SettingsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var dialog = new SettingsWindow(_clientSettings);
@@ -222,6 +232,29 @@ public partial class MainWindow : Window
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
     }
 
+    private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
+    {
+        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(CrossPlatformText.BrowserLockRequiresOnlineAgent);
+            ApplyAgentFilters();
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            await client.SetBrowserLockEnabledAsync(enabled);
+            ReplaceAgentRow(agent with { BrowserLockEnabled = enabled });
+            SetStatus(enabled ? CrossPlatformText.BrowserLockEnabledFor(agent.MachineName) : CrossPlatformText.BrowserLockDisabledFor(agent.MachineName));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.BrowserLockToggleFailed}: {ex.Message}");
+            ApplyAgentFilters();
+        }
+    }
+
     private string GetCurrentServerUrlOrThrow()
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
@@ -295,17 +328,53 @@ public partial class MainWindow : Window
         var updatedAgents = new List<DiscoveredAgentRow>(mergedAgents.Count);
         foreach (var agent in mergedAgents)
         {
-            if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
-            {
-                updatedAgents.Add(agent with { Status = CrossPlatformText.Online });
-                continue;
-            }
-
             var reachabilityClient = new TeacherApiClient(
                 $"http://{agent.RespondingAddress}:{agent.Port}",
                 _clientSettings.SharedSecret);
 
+            if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
+            {
+                try
+                {
+                    var info = await reachabilityClient.GetServerInfoAsync();
+                    if (info is not null)
+                    {
+                        updatedAgents.Add(agent with
+                        {
+                            Status = CrossPlatformText.Online,
+                            CurrentUser = info.CurrentUser,
+                            BrowserLockEnabled = info.IsBrowserLockEnabled
+                        });
+                        continue;
+                    }
+                }
+                catch
+                {
+                }
+
+                updatedAgents.Add(agent with { Status = CrossPlatformText.Online });
+                continue;
+            }
+
             var isReachable = await reachabilityClient.IsServerReachableAsync();
+            if (isReachable)
+            {
+                try
+                {
+                    var info = await reachabilityClient.GetServerInfoAsync();
+                    updatedAgents.Add(agent with
+                    {
+                        Status = CrossPlatformText.Online,
+                        CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
+                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled
+                    });
+                    continue;
+                }
+                catch
+                {
+                }
+            }
+
             updatedAgents.Add(agent with
             {
                 Status = isReachable ? CrossPlatformText.Online : CrossPlatformText.Offline
@@ -1051,6 +1120,17 @@ public partial class MainWindow : Window
             .ToList() ?? [];
     }
 
+    private void ReplaceAgentRow(DiscoveredAgentRow updated)
+    {
+        var index = _allAgents.FindIndex(x => string.Equals(x.AgentId, updated.AgentId, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+        {
+            _allAgents[index] = updated;
+        }
+
+        ApplyAgentFilters();
+    }
+
     private static IEnumerable<DiscoveredAgentRow> MergeAgents(
         IEnumerable<DiscoveredAgentRow> manualRows,
         IEnumerable<DiscoveredAgentRow> discoveredRows)
@@ -1186,6 +1266,7 @@ public partial class MainWindow : Window
         DateTime LastSeenUtc,
         bool IsManual)
     {
+        public bool BrowserLockEnabled { get; set; }
         public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
         public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
@@ -1284,19 +1365,20 @@ public partial class MainWindow : Window
         UpLocalButton.Content = CrossPlatformText.Up;
         UpRemoteButton.Content = CrossPlatformText.Up;
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
-        if (AgentsGrid.Columns.Count >= 11)
+        if (AgentsGrid.Columns.Count >= 12)
         {
-            AgentsGrid.Columns[0].Header = CrossPlatformText.Source;
-            AgentsGrid.Columns[1].Header = CrossPlatformText.Status;
-            AgentsGrid.Columns[2].Header = CrossPlatformText.Group;
-            AgentsGrid.Columns[3].Header = CrossPlatformText.Machine;
-            AgentsGrid.Columns[4].Header = CrossPlatformText.User;
-            AgentsGrid.Columns[5].Header = "IP";
-            AgentsGrid.Columns[6].Header = CrossPlatformText.Port;
-            AgentsGrid.Columns[7].Header = "MAC";
-            AgentsGrid.Columns[8].Header = CrossPlatformText.Notes;
-            AgentsGrid.Columns[9].Header = CrossPlatformText.Version;
-            AgentsGrid.Columns[10].Header = CrossPlatformText.LastSeenUtc;
+            AgentsGrid.Columns[0].Header = CrossPlatformText.BrowserLock;
+            AgentsGrid.Columns[1].Header = CrossPlatformText.Source;
+            AgentsGrid.Columns[2].Header = CrossPlatformText.Status;
+            AgentsGrid.Columns[3].Header = CrossPlatformText.Group;
+            AgentsGrid.Columns[4].Header = CrossPlatformText.Machine;
+            AgentsGrid.Columns[5].Header = CrossPlatformText.User;
+            AgentsGrid.Columns[6].Header = "IP";
+            AgentsGrid.Columns[7].Header = CrossPlatformText.Port;
+            AgentsGrid.Columns[8].Header = "MAC";
+            AgentsGrid.Columns[9].Header = CrossPlatformText.Notes;
+            AgentsGrid.Columns[10].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[11].Header = CrossPlatformText.LastSeenUtc;
         }
 
         if (ProcessesGrid.Columns.Count >= 6)

@@ -5,4 +5,7 @@ public sealed record ServerInfoDto(
     string CurrentUser,
     string OsDescription,
     DateTime ServerTimeUtc,
-    bool IsVisibleModeEnabled);
+    bool IsVisibleModeEnabled,
+    bool IsBrowserLockEnabled);
+
+public sealed record BrowserLockStateRequest(bool Enabled);
