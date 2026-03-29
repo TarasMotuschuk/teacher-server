@@ -23,6 +23,7 @@ public partial class MainForm : Form
     private BindingList<FileSystemEntryDto> _remoteEntries = new();
     private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
     private bool _suppressBrowserLockEvents;
+    private bool _suppressDriveSelectionEvents;
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
@@ -48,6 +49,7 @@ public partial class MainForm : Form
         statusFilterComboBox.Items.AddRange([TeacherClientText.AllStatuses, TeacherClientText.Online, TeacherClientText.Offline, TeacherClientText.Unknown]);
         statusFilterComboBox.SelectedIndex = 0;
         autoReconnectCheckBox.Checked = true;
+        PopulateLocalRoots();
 
         _agentRefreshTimer.Interval = 15000;
         _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync();
@@ -291,6 +293,7 @@ public partial class MainForm : Form
                 .ToList();
 
             localPathTextBox.Text = info.FullName;
+            SelectRoot(localDriveComboBox, info.FullName);
             _localEntries = new BindingList<FileSystemEntryDto>(entries);
             localFilesGrid.DataSource = _localEntries;
         }
@@ -308,6 +311,7 @@ public partial class MainForm : Form
         {
             using var cursorScope = new CursorScope(this);
             var client = CreateClient();
+            await PopulateRemoteRootsAsync(client);
             var listing = await client.GetRemoteDirectoryAsync(path);
             if (listing is null)
             {
@@ -316,6 +320,7 @@ public partial class MainForm : Form
             }
 
             remotePathTextBox.Text = listing.CurrentPath;
+            SelectRoot(remoteDriveComboBox, listing.CurrentPath);
             _remoteParentPath = listing.ParentPath;
             _remoteEntries = new BindingList<FileSystemEntryDto>(listing.Entries.ToList());
             remoteFilesGrid.DataSource = _remoteEntries;
@@ -371,6 +376,91 @@ public partial class MainForm : Form
         return string.Join(", ", values);
     }
 
+    private void PopulateLocalRoots()
+    {
+        var roots = DriveInfo.GetDrives()
+            .Select(x => x.RootDirectory.FullName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        _suppressDriveSelectionEvents = true;
+        try
+        {
+            localDriveComboBox.Items.Clear();
+            localDriveComboBox.Items.AddRange(roots);
+            if (localDriveComboBox.Items.Count > 0 && localDriveComboBox.SelectedIndex < 0)
+            {
+                localDriveComboBox.SelectedIndex = 0;
+            }
+        }
+        finally
+        {
+            _suppressDriveSelectionEvents = false;
+        }
+    }
+
+    private async Task PopulateRemoteRootsAsync(TeacherApiClient client)
+    {
+        var roots = (await client.GetRootsAsync())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        _suppressDriveSelectionEvents = true;
+        try
+        {
+            var currentItems = remoteDriveComboBox.Items.Cast<object>()
+                .Select(x => x.ToString())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Cast<string>()
+                .ToArray();
+
+            if (currentItems.SequenceEqual(roots, StringComparer.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            remoteDriveComboBox.Items.Clear();
+            remoteDriveComboBox.Items.AddRange(roots);
+            if (remoteDriveComboBox.Items.Count > 0 && remoteDriveComboBox.SelectedIndex < 0)
+            {
+                remoteDriveComboBox.SelectedIndex = 0;
+            }
+        }
+        finally
+        {
+            _suppressDriveSelectionEvents = false;
+        }
+    }
+
+    private void SelectRoot(ComboBox comboBox, string fullPath)
+    {
+        var root = Path.GetPathRoot(fullPath);
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        _suppressDriveSelectionEvents = true;
+        try
+        {
+            var match = comboBox.Items.Cast<object>()
+                .Select(x => x.ToString())
+                .FirstOrDefault(x => string.Equals(x, root, StringComparison.OrdinalIgnoreCase));
+
+            if (match is not null)
+            {
+                comboBox.SelectedItem = match;
+            }
+        }
+        finally
+        {
+            _suppressDriveSelectionEvents = false;
+        }
+    }
+
     private async void localFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || localFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry || !entry.IsDirectory)
@@ -406,6 +496,26 @@ public partial class MainForm : Form
         {
             await LoadRemoteDirectoryAsync(_remoteParentPath);
         }
+    }
+
+    private async void localDriveComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (_suppressDriveSelectionEvents || localDriveComboBox.SelectedItem is not string root || string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        await LoadLocalDirectoryAsync(root);
+    }
+
+    private async void remoteDriveComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (_suppressDriveSelectionEvents || remoteDriveComboBox.SelectedItem is not string root || string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        await LoadRemoteDirectoryAsync(root);
     }
 
     private async void agentsGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)

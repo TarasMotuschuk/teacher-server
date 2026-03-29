@@ -54,6 +54,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - `TeacherClient` toolbar buttons were enlarged and simplified to icon-first actions with hover tooltips.
 - `TeacherClient`, `TeacherClient.Avalonia`, and `StudentAgent` now expose Ukrainian and English UI flows through their settings dialogs and localized runtime text.
 - Local and remote file grids in both teacher clients now show folder/file icons next to names, separate extension and file-attribute columns, and human-readable file sizes.
+- File panels in both teacher clients now include direct drive selectors for switching local and remote roots, and the file grid columns are weighted so the name column uses the majority of the width.
 
 ### Notes
 

@@ -49,6 +49,9 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
+
     public async Task<DirectoryListingDto?> GetRemoteDirectoryAsync(string? path, CancellationToken cancellationToken = default)
     {
         var requestUri = string.IsNullOrWhiteSpace(path)

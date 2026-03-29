@@ -46,6 +46,7 @@ Available endpoints:
 - process list refresh and remote process termination;
 - dual-pane local/remote file browsing;
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
+- drive selectors for switching local and remote roots directly from the file panels;
 - file upload and download;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
@@ -71,6 +72,7 @@ Available endpoints:
 - browse remote processes and terminate a selected process;
 - browse local and remote file trees in dual panes;
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
+- drive selectors for switching local and remote roots directly from the file panels;
 - upload and download files;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;

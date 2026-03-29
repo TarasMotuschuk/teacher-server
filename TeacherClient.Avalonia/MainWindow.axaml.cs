@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<DiscoveredAgentRow> _allAgents = [];
+    private bool _suppressDriveSelection;
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
@@ -42,6 +43,7 @@ public partial class MainWindow : Window
         AgentsGrid.ItemsSource = _agents;
         LocalPathTextBox.Text = GetDefaultLocalPath();
         _manualAgents = _manualAgentStore.Load().ToList();
+        PopulateLocalRoots();
 
         GroupFilterComboBox.ItemsSource = new[] { CrossPlatformText.AllGroups };
         GroupFilterComboBox.SelectedIndex = 0;
@@ -471,6 +473,7 @@ public partial class MainWindow : Window
                 .ToList();
 
             LocalPathTextBox.Text = info.FullName;
+            SelectRoot(LocalDriveComboBox, info.FullName);
             ReplaceItems(_localEntries, entries);
             return Task.CompletedTask;
         }, CrossPlatformText.LocalBrowseError);
@@ -481,6 +484,7 @@ public partial class MainWindow : Window
         await RunBusyAsync(async () =>
         {
             var client = CreateClient();
+            await PopulateRemoteRootsAsync(client);
             var listing = await client.GetRemoteDirectoryAsync(path);
             if (listing is null)
             {
@@ -489,6 +493,7 @@ public partial class MainWindow : Window
             }
 
             RemotePathTextBox.Text = listing.CurrentPath;
+            SelectRoot(RemoteDriveComboBox, listing.CurrentPath);
             _remoteParentPath = listing.ParentPath;
             ReplaceItems(_remoteEntries, listing.Entries);
         }, CrossPlatformText.RemoteBrowseError);
@@ -734,6 +739,26 @@ public partial class MainWindow : Window
         {
             await LoadRemoteDirectoryAsync(_remoteParentPath);
         }
+    }
+
+    private async void LocalDriveComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressDriveSelection || LocalDriveComboBox.SelectedItem is not string root || string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        await LoadLocalDirectoryAsync(root);
+    }
+
+    private async void RemoteDriveComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressDriveSelection || RemoteDriveComboBox.SelectedItem is not string root || string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        await LoadRemoteDirectoryAsync(root);
     }
 
     private async void AgentsGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -1259,6 +1284,77 @@ public partial class MainWindow : Window
         }
 
         return Directory.GetCurrentDirectory();
+    }
+
+    private void PopulateLocalRoots()
+    {
+        var roots = DriveInfo.GetDrives()
+            .Select(x => x.RootDirectory.FullName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (roots.Length == 0)
+        {
+            roots = [Path.GetPathRoot(GetDefaultLocalPath()) ?? "/"];
+        }
+
+        _suppressDriveSelection = true;
+        try
+        {
+            LocalDriveComboBox.ItemsSource = roots;
+            if (LocalDriveComboBox.SelectedItem is null && roots.Length > 0)
+            {
+                LocalDriveComboBox.SelectedItem = roots[0];
+            }
+        }
+        finally
+        {
+            _suppressDriveSelection = false;
+        }
+    }
+
+    private async Task PopulateRemoteRootsAsync(TeacherApiClient client)
+    {
+        var roots = (await client.GetRootsAsync())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        _suppressDriveSelection = true;
+        try
+        {
+            RemoteDriveComboBox.ItemsSource = roots;
+            if (RemoteDriveComboBox.SelectedItem is null && roots.Length > 0)
+            {
+                RemoteDriveComboBox.SelectedItem = roots[0];
+            }
+        }
+        finally
+        {
+            _suppressDriveSelection = false;
+        }
+    }
+
+    private void SelectRoot(ComboBox comboBox, string fullPath)
+    {
+        var root = Path.GetPathRoot(fullPath);
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        _suppressDriveSelection = true;
+        try
+        {
+            comboBox.SelectedItem = root;
+        }
+        finally
+        {
+            _suppressDriveSelection = false;
+        }
     }
 
     private string GetConfiguredStudentWorkPath()

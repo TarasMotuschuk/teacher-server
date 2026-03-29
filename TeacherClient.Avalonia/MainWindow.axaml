@@ -185,17 +185,19 @@
           <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
             <StackPanel Grid.Column="0" Margin="0,0,8,0" Spacing="8">
               <TextBlock x:Name="TeacherPcTextBlock" FontWeight="Bold" Text="Teacher PC" />
-              <Grid ColumnDefinitions="70,*">
-                <Button x:Name="UpLocalButton" Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
-                <TextBox x:Name="LocalPathTextBox" Grid.Column="1" IsReadOnly="True" />
+              <Grid ColumnDefinitions="140,70,*">
+                <ComboBox x:Name="LocalDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="LocalDriveComboBox_OnSelectionChanged" />
+                <Button x:Name="UpLocalButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
+                <TextBox x:Name="LocalPathTextBox" Grid.Column="2" IsReadOnly="True" />
               </Grid>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="8">
               <TextBlock x:Name="StudentPcTextBlock" FontWeight="Bold" Text="Student PC" />
-              <Grid ColumnDefinitions="70,*">
-                <Button x:Name="UpRemoteButton" Grid.Column="0" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
-                <TextBox x:Name="RemotePathTextBox" Grid.Column="1" IsReadOnly="True" />
+              <Grid ColumnDefinitions="140,70,*">
+                <ComboBox x:Name="RemoteDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="RemoteDriveComboBox_OnSelectionChanged" />
+                <Button x:Name="UpRemoteButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
+                <TextBox x:Name="RemotePathTextBox" Grid.Column="2" IsReadOnly="True" />
               </Grid>
             </StackPanel>
           </Grid>
@@ -209,11 +211,11 @@
                       SelectionMode="Single"
                       DoubleTapped="LocalFilesGrid_OnDoubleTapped">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="2*" />
-                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="120" />
-                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="120" />
-                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="120" />
-                <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="220" />
+                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="5.8*" />
+                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="1*" />
+                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="1*" />
+                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="1*" />
+                <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="1.2*" />
               </DataGrid.Columns>
             </DataGrid>
 
@@ -224,11 +226,11 @@
                       SelectionMode="Single"
                       DoubleTapped="RemoteFilesGrid_OnDoubleTapped">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="2*" />
-                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="120" />
-                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="120" />
-                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="120" />
-                <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="220" />
+                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="5.8*" />
+                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="1*" />
+                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="1*" />
+                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="1*" />
+                <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="1.2*" />
               </DataGrid.Columns>
             </DataGrid>
           </Grid>

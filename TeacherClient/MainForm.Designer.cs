@@ -20,6 +20,8 @@ partial class MainForm
     private Button killProcessButton = null!;
     private DataGridView localFilesGrid = null!;
     private DataGridView remoteFilesGrid = null!;
+    private ComboBox localDriveComboBox = null!;
+    private ComboBox remoteDriveComboBox = null!;
     private TextBox localPathTextBox = null!;
     private TextBox remotePathTextBox = null!;
     private Button refreshFilesButton = null!;
@@ -66,6 +68,8 @@ partial class MainForm
         killProcessButton = new Button();
         localFilesGrid = new DataGridView();
         remoteFilesGrid = new DataGridView();
+        localDriveComboBox = new ComboBox();
+        remoteDriveComboBox = new ComboBox();
         localPathTextBox = new TextBox();
         remotePathTextBox = new TextBox();
         refreshFilesButton = new Button();
@@ -243,19 +247,19 @@ partial class MainForm
 
         localFilesGrid.Dock = DockStyle.Fill;
         localFilesGrid.CellDoubleClick += localFilesGrid_CellDoubleClick;
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 240 });
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", Width = 110 });
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", Width = 120 });
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Size, DataPropertyName = "SizeDisplay", Width = 120 });
-        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", Width = 190 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 58F, MinimumWidth = 260 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Size, DataPropertyName = "SizeDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 95 });
+        localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 12F, MinimumWidth = 150 });
 
         remoteFilesGrid.Dock = DockStyle.Fill;
         remoteFilesGrid.CellDoubleClick += remoteFilesGrid_CellDoubleClick;
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 240 });
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", Width = 110 });
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", Width = 120 });
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Size, DataPropertyName = "SizeDisplay", Width = 120 });
-        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", Width = 190 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 58F, MinimumWidth = 260 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Size, DataPropertyName = "SizeDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 95 });
+        remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 12F, MinimumWidth = 150 });
 
         refreshAgentsButton.Text = TeacherClientText.RefreshAgents;
         refreshAgentsButton.Click += refreshAgentsButton_Click;
@@ -437,11 +441,18 @@ partial class MainForm
         var localPathLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 3,
             RowCount = 1
         };
+        localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
         localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76F));
         localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        localDriveComboBox.Dock = DockStyle.Fill;
+        localDriveComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        localDriveComboBox.Margin = new Padding(0, 0, 10, 0);
+        localDriveComboBox.MinimumSize = new Size(0, 42);
+        localDriveComboBox.SelectedIndexChanged += localDriveComboBox_SelectedIndexChanged;
 
         upLocalButton.Dock = DockStyle.Fill;
         upLocalButton.MinimumSize = new Size(64, 42);
@@ -452,8 +463,9 @@ partial class MainForm
         localPathTextBox.ReadOnly = true;
         localPathTextBox.Margin = new Padding(0, 2, 0, 2);
 
-        localPathLayout.Controls.Add(upLocalButton, 0, 0);
-        localPathLayout.Controls.Add(localPathTextBox, 1, 0);
+        localPathLayout.Controls.Add(localDriveComboBox, 0, 0);
+        localPathLayout.Controls.Add(upLocalButton, 1, 0);
+        localPathLayout.Controls.Add(localPathTextBox, 2, 0);
 
         localPanelLayout.Controls.Add(localLabel, 0, 0);
         localPanelLayout.Controls.Add(localPathLayout, 0, 1);
@@ -481,11 +493,18 @@ partial class MainForm
         var remotePathLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 3,
             RowCount = 1
         };
+        remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
         remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76F));
         remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        remoteDriveComboBox.Dock = DockStyle.Fill;
+        remoteDriveComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        remoteDriveComboBox.Margin = new Padding(0, 0, 10, 0);
+        remoteDriveComboBox.MinimumSize = new Size(0, 42);
+        remoteDriveComboBox.SelectedIndexChanged += remoteDriveComboBox_SelectedIndexChanged;
 
         upRemoteButton.Dock = DockStyle.Fill;
         upRemoteButton.MinimumSize = new Size(64, 42);
@@ -496,8 +515,9 @@ partial class MainForm
         remotePathTextBox.ReadOnly = true;
         remotePathTextBox.Margin = new Padding(0, 2, 0, 2);
 
-        remotePathLayout.Controls.Add(upRemoteButton, 0, 0);
-        remotePathLayout.Controls.Add(remotePathTextBox, 1, 0);
+        remotePathLayout.Controls.Add(remoteDriveComboBox, 0, 0);
+        remotePathLayout.Controls.Add(upRemoteButton, 1, 0);
+        remotePathLayout.Controls.Add(remotePathTextBox, 2, 0);
 
         remotePanelLayout.Controls.Add(remoteLabel, 0, 0);
         remotePanelLayout.Controls.Add(remotePathLayout, 0, 1);
