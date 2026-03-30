@@ -32,7 +32,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Publishing StudentAgent service bundle..."
-powershell.exe -ExecutionPolicy Bypass -File $servicePublishScript `
+& $servicePublishScript `
     -Configuration $Configuration `
     -Runtime $Runtime `
     -OutputDirectory $studentPayloadDirectory
@@ -42,7 +42,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Generating WiX payload fragments..."
-powershell.exe -ExecutionPolicy Bypass -File $fragmentGenerator `
+& $fragmentGenerator `
     -SourceDirectory $teacherPayloadDirectory `
     -DirectoryRefId "TEACHERDIR" `
     -ComponentGroupId "TeacherPayloadGroup" `
@@ -53,7 +53,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Generating teacher WiX fragment failed."
 }
 
-powershell.exe -ExecutionPolicy Bypass -File $fragmentGenerator `
+& $fragmentGenerator `
     -SourceDirectory $studentPayloadDirectory `
     -DirectoryRefId "STUDENTDIR" `
     -ComponentGroupId "StudentPayloadGroup" `

@@ -20,13 +20,8 @@
       </Directory>
     </StandardDirectory>
 
-    <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ProgramMenuTeacherServerFolder" Name="Teacher Server" />
-    </StandardDirectory>
-
     <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher client." Level="1" AllowAdvertise="no">
       <ComponentRef Id="TeacherClientMainComponent" />
-      <ComponentRef Id="TeacherStartMenuComponent" />
       <ComponentGroupRef Id="TeacherPayloadGroup" />
     </Feature>
 
@@ -38,16 +33,6 @@
 
     <Component Id="TeacherClientMainComponent" Directory="TEACHERDIR" Guid="*">
       <File Id="TeacherClientExe" Source="$(var.TeacherPayloadDir)\TeacherClient.exe" KeyPath="yes" />
-    </Component>
-
-    <Component Id="TeacherStartMenuComponent" Directory="ProgramMenuTeacherServerFolder" Guid="*">
-      <Shortcut Id="TeacherClientStartMenuShortcut"
-                Name="Teacher Client"
-                Target="[TEACHERDIR]TeacherClient.exe"
-                WorkingDirectory="TEACHERDIR"
-                Description="Teacher classroom administration client." />
-      <RemoveFolder Id="RemoveTeacherProgramMenuFolder" On="uninstall" />
-      <RegistryValue Root="HKLM" Key="Software\TeacherServer\Installer" Name="TeacherShortcutInstalled" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <Component Id="StudentServiceMainComponent" Directory="STUDENTDIR" Guid="*">

@@ -17,12 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Product.wxs" />
-    <Compile Include="Generated\TeacherPayload.wxs" Condition="Exists('Generated\\TeacherPayload.wxs')" />
-    <Compile Include="Generated\StudentPayload.wxs" Condition="Exists('Generated\\StudentPayload.wxs')" />
-  </ItemGroup>
-  
-  <ItemGroup>
     <Content Include="Resources\License.rtf" />
   </ItemGroup>
   
