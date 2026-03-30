@@ -14,21 +14,21 @@
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\StudentAgent\AgentOptions.cs" Link="Shared\AgentOptions.cs" />
-    <Compile Include="..\StudentAgent\AgentRuntimeSettings.cs" Link="Shared\AgentRuntimeSettings.cs" />
-    <Compile Include="..\StudentAgent\Auth\GlobalExceptionLoggingMiddleware.cs" Link="Shared\Auth\GlobalExceptionLoggingMiddleware.cs" />
-    <Compile Include="..\StudentAgent\Auth\RequestLoggingMiddleware.cs" Link="Shared\Auth\RequestLoggingMiddleware.cs" />
-    <Compile Include="..\StudentAgent\Auth\SharedSecretMiddleware.cs" Link="Shared\Auth\SharedSecretMiddleware.cs" />
-    <Compile Include="..\StudentAgent\Hosting\StudentAgentHostExtensions.cs" Link="Shared\Hosting\StudentAgentHostExtensions.cs" />
-    <Compile Include="..\StudentAgent\Services\AgentDiscoveryService.cs" Link="Shared\Services\AgentDiscoveryService.cs" />
-    <Compile Include="..\StudentAgent\Services\AgentLogService.cs" Link="Shared\Services\AgentLogService.cs" />
-    <Compile Include="..\StudentAgent\Services\AgentSettingsStore.cs" Link="Shared\Services\AgentSettingsStore.cs" />
-    <Compile Include="..\StudentAgent\Services\BrowserLockEnforcementService.cs" Link="Shared\Services\BrowserLockEnforcementService.cs" />
-    <Compile Include="..\StudentAgent\Services\FileService.cs" Link="Shared\Services\FileService.cs" />
-    <Compile Include="..\StudentAgent\Services\NetworkIdentityService.cs" Link="Shared\Services\NetworkIdentityService.cs" />
-    <Compile Include="..\StudentAgent\Services\ProcessService.cs" Link="Shared\Services\ProcessService.cs" />
-    <Compile Include="..\StudentAgent\Services\ServerInfoService.cs" Link="Shared\Services\ServerInfoService.cs" />
-    <Compile Include="..\StudentAgent\UI\Localization\StudentAgentText.cs" Link="Shared\Localization\StudentAgentText.cs" />
+    <Compile Include="..\StudentAgent.Shared\AgentOptions.cs" Link="Shared\AgentOptions.cs" />
+    <Compile Include="..\StudentAgent.Shared\AgentRuntimeSettings.cs" Link="Shared\AgentRuntimeSettings.cs" />
+    <Compile Include="..\StudentAgent.Shared\Auth\GlobalExceptionLoggingMiddleware.cs" Link="Shared\Auth\GlobalExceptionLoggingMiddleware.cs" />
+    <Compile Include="..\StudentAgent.Shared\Auth\RequestLoggingMiddleware.cs" Link="Shared\Auth\RequestLoggingMiddleware.cs" />
+    <Compile Include="..\StudentAgent.Shared\Auth\SharedSecretMiddleware.cs" Link="Shared\Auth\SharedSecretMiddleware.cs" />
+    <Compile Include="..\StudentAgent.Shared\Hosting\StudentAgentHostExtensions.cs" Link="Shared\Hosting\StudentAgentHostExtensions.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\AgentDiscoveryService.cs" Link="Shared\Services\AgentDiscoveryService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\AgentLogService.cs" Link="Shared\Services\AgentLogService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\AgentSettingsStore.cs" Link="Shared\Services\AgentSettingsStore.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\BrowserLockEnforcementService.cs" Link="Shared\Services\BrowserLockEnforcementService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\FileService.cs" Link="Shared\Services\FileService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\NetworkIdentityService.cs" Link="Shared\Services\NetworkIdentityService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\ProcessService.cs" Link="Shared\Services\ProcessService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\ServerInfoService.cs" Link="Shared\Services\ServerInfoService.cs" />
+    <Compile Include="..\StudentAgent.Shared\UI\Localization\StudentAgentText.cs" Link="Shared\Localization\StudentAgentText.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="appsettings.json">
