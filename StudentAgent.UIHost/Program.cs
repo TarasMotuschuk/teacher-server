@@ -1,29 +1,37 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using StudentAgent;
-using StudentAgent.Hosting;
 using StudentAgent.Services;
-using StudentAgent.UI;
+using StudentAgent.UIHost;
 using StudentAgent.UI.Localization;
-
-// Deprecated legacy entrypoint.
-// Production deployment should move to StudentAgent.Service + StudentAgent.UIHost.
-// Remove this all-in-one host after the service-based flow is fully validated on Windows.
 
 try
 {
     ApplicationConfiguration.Initialize();
     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 
-    var builder = WebApplication.CreateBuilder(args);
-    builder.Services.AddStudentAgentRuntimeServices(builder.Configuration);
+    var configuration = new ConfigurationBuilder()
+        .SetBasePath(AppContext.BaseDirectory)
+        .AddJsonFile("appsettings.json", optional: true)
+        .Build();
 
-    var app = builder.Build();
-    var settingsStore = app.Services.GetRequiredService<AgentSettingsStore>();
-    var logService = app.Services.GetRequiredService<AgentLogService>();
+    var services = new ServiceCollection();
+    services.Configure<AgentOptions>(configuration.GetSection(AgentOptions.SectionName));
+    services.AddSingleton<AgentLogService>();
+    services.AddSingleton<AgentSettingsStore>();
+    services.AddSingleton<ProcessService>();
+
+    using var serviceProvider = services.BuildServiceProvider();
+    var settingsStore = serviceProvider.GetRequiredService<AgentSettingsStore>();
+    var logService = serviceProvider.GetRequiredService<AgentLogService>();
+    var processService = serviceProvider.GetRequiredService<ProcessService>();
+
     StudentAgentText.SetLanguage(settingsStore.Current.Language);
 
     Application.ThreadException += (_, exceptionArgs) =>
     {
-        logService.LogError($"UI thread exception: {exceptionArgs.Exception}");
+        logService.LogError($"UIHost thread exception: {exceptionArgs.Exception}");
         MessageBox.Show(
             exceptionArgs.Exception.ToString(),
             StudentAgentText.StudentAgentUiError,
@@ -35,7 +43,7 @@ try
     {
         if (exceptionArgs.ExceptionObject is Exception exception)
         {
-            logService.LogError($"Unhandled exception: {exception}");
+            logService.LogError($"UIHost unhandled exception: {exception}");
             MessageBox.Show(
                 exception.ToString(),
                 StudentAgentText.StudentAgentFatalError,
@@ -44,12 +52,8 @@ try
         }
     };
 
-    app.ConfigureStudentAgentWeb();
-
-    logService.LogInfo("StudentAgent starting.");
-    using var context = new AgentApplicationContext(app, settingsStore, logService, app.Services.GetRequiredService<ProcessService>());
-    app.StartAsync().GetAwaiter().GetResult();
-    logService.LogInfo($"StudentAgent started on port {settingsStore.Current.Port}.");
+    logService.LogInfo("StudentAgent.UIHost starting.");
+    using var context = new UIHostApplicationContext(settingsStore, logService, processService);
     Application.Run(context);
 }
 catch (Exception ex)
@@ -57,11 +61,6 @@ catch (Exception ex)
     var startupLogPath = GetStartupErrorLogPath();
     Directory.CreateDirectory(Path.GetDirectoryName(startupLogPath)!);
     File.WriteAllText(startupLogPath, ex.ToString());
-    MessageBox.Show(
-        $"{StudentAgentText.StartupFailed}{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}{StudentAgentText.StartupDetailsWritten}{Environment.NewLine}{startupLogPath}",
-        StudentAgentText.StartupError,
-        MessageBoxButtons.OK,
-        MessageBoxIcon.Error);
 }
 
 static string GetStartupErrorLogPath()
@@ -71,5 +70,5 @@ static string GetStartupErrorLogPath()
         ? Path.Combine(AppContext.BaseDirectory, "logs")
         : Path.Combine(localAppData, "TeacherServer", "StudentAgent", "logs");
 
-    return Path.Combine(root, "studentagent-startup-error.log");
+    return Path.Combine(root, "studentagent-uihost-startup-error.log");
 }

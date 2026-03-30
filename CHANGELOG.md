@@ -33,6 +33,11 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Group commands in both teacher clients for clearing the configured student destination folder on either selected agents or all online agents.
 - Teacher-side student work folder settings with automatic shared-folder provisioning on reachable student PCs.
 - Group commands in both teacher clients for collecting student work folders from either selected agents or all online agents into teacher-side folders named after each student machine.
+- Initial `StudentAgent.Service` Windows Service host plus install/uninstall scripts for privileged runtime hosting.
+- Background browser-lock enforcement in the service host so browser blocking can continue even without a tray UI process.
+- Initial `StudentAgent.UIHost` companion app plus a service-side launcher foundation for running visible tray and overlay UX inside the active student session.
+- Added a `Publish-ServiceBundle.ps1` workflow so the Windows service and session UI host can be published into one deployment folder for installation.
+- Marked the legacy monolithic `StudentAgent` entrypoint as deprecated while `StudentAgent.Service` plus `StudentAgent.UIHost` becomes the intended production deployment path.
 
 ### Changed
 

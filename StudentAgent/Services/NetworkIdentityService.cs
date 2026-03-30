@@ -34,8 +34,13 @@ public sealed class NetworkIdentityService
                networkInterface.NetworkInterfaceType != NetworkInterfaceType.Tunnel;
     }
 
-    private static string FormatMacAddress(string raw)
+    private static string FormatMacAddress(string? raw)
     {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return string.Empty;
+        }
+
         return string.Join(":", Enumerable.Range(0, raw.Length / 2).Select(i => raw.Substring(i * 2, 2)));
     }
 }

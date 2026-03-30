@@ -2,7 +2,9 @@
 
 `Teacher Server` is a .NET 8 classroom administration solution for a transparent, teacher-controlled environment. It includes:
 
-- `StudentAgent`: ASP.NET Core agent running on the student workstation.
+- `StudentAgent`: ASP.NET Core tray-oriented agent running on the student workstation.
+- `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
+- `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
 - `TeacherClient`: Windows Forms application used by the teacher.
 - `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
 - `Teacher.Common`: shared DTOs and request contracts.
@@ -14,6 +16,16 @@ The current implementation focuses on visible and explicitly authorized administ
 ### StudentAgent
 
 `StudentAgent` exposes a small HTTP API secured with the `X-Teacher-Secret` header.
+
+This project is now considered a deprecated legacy all-in-one entrypoint. It remains in the repository as a temporary developer-friendly host while the production deployment path transitions to `StudentAgent.Service` plus `StudentAgent.UIHost`.
+
+### StudentAgent.Service
+
+`StudentAgent.Service` is the new privileged Windows Service host for the same runtime API and policy engine. It is intended to own always-on background enforcement even when no teacher-visible tray UI is running.
+
+### StudentAgent.UIHost
+
+`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session.
 
 Available endpoints:
 
@@ -148,6 +160,16 @@ For this repository specifically, templates are optional. The checked-in project
 
 `StudentAgent` also listens for UDP discovery requests on port `5056` by default and responds with machine identity data that `TeacherClient` can use to build its agent list.
 
+### Install StudentAgent.Service
+
+1. Run [Publish-ServiceBundle.ps1](/Users/taras/Projects/OWN-GITHUB/teacher-server/StudentAgent.Service/Publish-ServiceBundle.ps1) on Windows to publish both `StudentAgent.Service` and `StudentAgent.UIHost` into a single folder.
+2. Confirm that `StudentAgent.Service.exe` and `StudentAgent.UIHost.exe` are sitting beside each other in the publish folder.
+3. Run [Install-Service.ps1](/Users/taras/Projects/OWN-GITHUB/teacher-server/StudentAgent.Service/Install-Service.ps1) from an elevated PowerShell window.
+4. Optionally pass `-StartAfterInstall` to start the service immediately.
+5. Use [Uninstall-Service.ps1](/Users/taras/Projects/OWN-GITHUB/teacher-server/StudentAgent.Service/Uninstall-Service.ps1) to remove it later.
+
+This service bundle is now the intended production deployment path. The original `StudentAgent` project remains useful as a developer-friendly entrypoint while the service/UIHost split is being completed.
+
 Example configuration:
 
 ```json
@@ -251,4 +273,4 @@ README.md
 - restrict remote file operations to approved directories;
 - add structured audit logs;
 - add automated tests for API and client behaviors;
-- decide whether `StudentAgent` should remain an app process or become a managed Windows service with a visible presence.
+- finish Windows validation for the `StudentAgent.Service` + `StudentAgent.UIHost` deployment path, then delete the deprecated monolithic `StudentAgent` entrypoint.

@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Description>Deprecated legacy all-in-one StudentAgent host kept temporarily for developer validation while StudentAgent.Service and StudentAgent.UIHost become the primary deployment path.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />

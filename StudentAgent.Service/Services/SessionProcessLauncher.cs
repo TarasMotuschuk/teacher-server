@@ -1,0 +1,157 @@
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+
+namespace StudentAgent.Service.Services;
+
+internal static class SessionProcessLauncher
+{
+    public static int GetActiveSessionId()
+    {
+        var sessionId = WTSGetActiveConsoleSessionId();
+        return sessionId == 0xFFFFFFFF ? -1 : unchecked((int)sessionId);
+    }
+
+    public static void StartProcessInSession(string applicationPath, string arguments, int sessionId)
+    {
+        if (!WTSQueryUserToken(sessionId, out var impersonationToken))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "WTSQueryUserToken failed.");
+        }
+
+        try
+        {
+            if (!DuplicateTokenEx(
+                    impersonationToken,
+                    0x02000000 | 0x000F0000 | 0x00000008 | 0x00000002 | 0x00000001,
+                    IntPtr.Zero,
+                    2,
+                    1,
+                    out var primaryToken))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "DuplicateTokenEx failed.");
+            }
+
+            try
+            {
+                if (!CreateEnvironmentBlock(out var environment, primaryToken, false))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateEnvironmentBlock failed.");
+                }
+
+                try
+                {
+                    var startupInfo = new STARTUPINFO
+                    {
+                        cb = Marshal.SizeOf<STARTUPINFO>(),
+                        lpDesktop = @"winsta0\default"
+                    };
+
+                    var commandLine = string.IsNullOrWhiteSpace(arguments)
+                        ? $"\"{applicationPath}\""
+                        : $"\"{applicationPath}\" {arguments}";
+
+                    if (!CreateProcessAsUser(
+                            primaryToken,
+                            null,
+                            commandLine,
+                            IntPtr.Zero,
+                            IntPtr.Zero,
+                            false,
+                            0x00000400 | 0x00000010,
+                            environment,
+                            Path.GetDirectoryName(applicationPath),
+                            ref startupInfo,
+                            out var processInformation))
+                    {
+                        throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessAsUser failed.");
+                    }
+
+                    CloseHandle(processInformation.hThread);
+                    CloseHandle(processInformation.hProcess);
+                }
+                finally
+                {
+                    DestroyEnvironmentBlock(environment);
+                }
+            }
+            finally
+            {
+                CloseHandle(primaryToken);
+            }
+        }
+        finally
+        {
+            CloseHandle(impersonationToken);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct STARTUPINFO
+    {
+        public int cb;
+        public string? lpReserved;
+        public string? lpDesktop;
+        public string? lpTitle;
+        public int dwX;
+        public int dwY;
+        public int dwXSize;
+        public int dwYSize;
+        public int dwXCountChars;
+        public int dwYCountChars;
+        public int dwFillAttribute;
+        public int dwFlags;
+        public short wShowWindow;
+        public short cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern uint WTSGetActiveConsoleSessionId();
+
+    [DllImport("Wtsapi32.dll", SetLastError = true)]
+    private static extern bool WTSQueryUserToken(int sessionId, out IntPtr token);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool DuplicateTokenEx(
+        IntPtr existingTokenHandle,
+        int desiredAccess,
+        IntPtr tokenAttributes,
+        int impersonationLevel,
+        int tokenType,
+        out IntPtr duplicateTokenHandle);
+
+    [DllImport("userenv.dll", SetLastError = true)]
+    private static extern bool CreateEnvironmentBlock(out IntPtr environment, IntPtr token, bool inherit);
+
+    [DllImport("userenv.dll", SetLastError = true)]
+    private static extern bool DestroyEnvironmentBlock(IntPtr environment);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool CreateProcessAsUser(
+        IntPtr token,
+        string? applicationName,
+        string commandLine,
+        IntPtr processAttributes,
+        IntPtr threadAttributes,
+        bool inheritHandles,
+        int creationFlags,
+        IntPtr environment,
+        string? currentDirectory,
+        ref STARTUPINFO startupInfo,
+        out PROCESS_INFORMATION processInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
+}
