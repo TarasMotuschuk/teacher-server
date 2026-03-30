@@ -300,7 +300,7 @@ For Intel Macs, use `osx-x64` instead of `osx-arm64`.
 ```text
 TeacherServer.sln
 Teacher.Common/
-StudentAgent/
+StudentAgent.Shared/
 StudentAgent.Service/
 StudentAgent.UIHost/
 TeacherServer.Setup/
@@ -316,7 +316,7 @@ README.md
 
 - `GET /health` is intentionally left open for diagnostics.
 - Swagger UI is available only in development mode.
-- `StudentAgent` currently sets `IsVisibleModeEnabled` to `true` in the info response.
+- The student-side runtime currently sets `IsVisibleModeEnabled` to `true` in the info response.
 - The repository is a good baseline for adding TLS, access control, audit logging, and folder restrictions.
 
 ## Recommended next steps

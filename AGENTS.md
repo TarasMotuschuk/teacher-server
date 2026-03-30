@@ -7,7 +7,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 ## Repository map
 
 - `Teacher.Common/`: shared contracts and DTOs.
-- `StudentAgent/`: shared student-side runtime, UI, and hosting source files used by the Windows service and UI host.
+- `StudentAgent.Shared/`: shared student-side runtime, UI, and hosting source files used by the Windows service and UI host.
 - `StudentAgent.Service/`: privileged Windows Service host for the student machine.
 - `StudentAgent.UIHost/`: session-aware Windows Forms UI host for tray controls, warnings, and visible overlays.
 - `TeacherServer.Setup/`: WiX-based Windows installer project and MSI build scripts.
