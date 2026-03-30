@@ -7,7 +7,9 @@ This repository contains a Windows-oriented classroom administration solution bu
 ## Repository map
 
 - `Teacher.Common/`: shared contracts and DTOs.
-- `StudentAgent/`: ASP.NET Core minimal API for the student machine.
+- `StudentAgent/`: shared student-side runtime, UI, and hosting source files used by the Windows service and UI host.
+- `StudentAgent.Service/`: privileged Windows Service host for the student machine.
+- `StudentAgent.UIHost/`: session-aware Windows Forms UI host for tray controls, warnings, and visible overlays.
 - `TeacherClient/`: Windows Forms client for the teacher machine.
 - `TeacherClient.Avalonia/`: cross-platform Avalonia client for teacher workstations on macOS, Linux, and Windows.
 - `TeacherServer.sln`: main solution file.

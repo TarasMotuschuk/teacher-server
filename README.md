@@ -2,7 +2,6 @@
 
 `Teacher Server` is a .NET 8 classroom administration solution for a transparent, teacher-controlled environment. It includes:
 
-- `StudentAgent`: ASP.NET Core tray-oriented agent running on the student workstation.
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
 - `TeacherClient`: Windows Forms application used by the teacher.
@@ -12,12 +11,6 @@
 The current implementation focuses on visible and explicitly authorized administration tasks such as viewing processes and managing files. It does not include stealth monitoring, persistence tricks, hidden startup, or covert control flows.
 
 ## Project overview
-
-### StudentAgent
-
-`StudentAgent` exposes a small HTTP API secured with the `X-Teacher-Secret` header.
-
-This project is now considered a deprecated legacy all-in-one entrypoint. It remains in the repository as a temporary developer-friendly host while the production deployment path transitions to `StudentAgent.Service` plus `StudentAgent.UIHost`.
 
 ### StudentAgent.Service
 
@@ -112,7 +105,7 @@ Available endpoints:
 - Transport: `HTTP`
 - Authentication: shared secret header
 
-The solution is Windows-oriented. Both `StudentAgent` and `TeacherClient` target `net8.0-windows`.
+The solution is Windows-oriented. `StudentAgent.Service`, `StudentAgent.UIHost`, and `TeacherClient` target `net8.0-windows`.
 
 ## Security and operational boundaries
 
@@ -148,17 +141,17 @@ dotnet new install Avalonia.Templates
 
 For this repository specifically, templates are optional. The checked-in project is enough to restore and build once the .NET SDK is installed.
 
-### Start StudentAgent
+### Start StudentAgent.Service
 
 1. Open the solution in Visual Studio or use the CLI.
-2. Review `StudentAgent/appsettings.json`.
+2. Review [StudentAgent.Service/appsettings.json](/Users/taras/Projects/OWN-GITHUB/teacher-server/StudentAgent.Service/appsettings.json) and [StudentAgent.UIHost/appsettings.json](/Users/taras/Projects/OWN-GITHUB/teacher-server/StudentAgent.UIHost/appsettings.json).
 3. Change the default shared secret before use.
-4. Start the agent.
+4. Publish the service bundle and install the service.
 5. Ensure TCP port `5055` is reachable from the teacher machine.
 
-`StudentAgent` currently targets `net8.0-windows`, so it should be built and run on Windows.
+`StudentAgent.Service` and `StudentAgent.UIHost` target `net8.0-windows`, so they should be built and run on Windows.
 
-`StudentAgent` also listens for UDP discovery requests on port `5056` by default and responds with machine identity data that `TeacherClient` can use to build its agent list.
+`StudentAgent.Service` listens for UDP discovery requests on port `5056` by default and responds with machine identity data that `TeacherClient` can use to build its agent list.
 
 ### Install StudentAgent.Service
 
@@ -168,7 +161,7 @@ For this repository specifically, templates are optional. The checked-in project
 4. Optionally pass `-StartAfterInstall` to start the service immediately.
 5. Use [Uninstall-Service.ps1](/Users/taras/Projects/OWN-GITHUB/teacher-server/StudentAgent.Service/Uninstall-Service.ps1) to remove it later.
 
-This service bundle is now the intended production deployment path. The original `StudentAgent` project remains useful as a developer-friendly entrypoint while the service/UIHost split is being completed.
+This service bundle is the intended deployment path for Windows student machines.
 
 Example configuration:
 
@@ -273,4 +266,4 @@ README.md
 - restrict remote file operations to approved directories;
 - add structured audit logs;
 - add automated tests for API and client behaviors;
-- finish Windows validation for the `StudentAgent.Service` + `StudentAgent.UIHost` deployment path, then delete the deprecated monolithic `StudentAgent` entrypoint.
+- tighten and polish the `StudentAgent.Service` + `StudentAgent.UIHost` deployment path after broader Windows classroom testing.
