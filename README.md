@@ -4,8 +4,10 @@
 
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
+- `TeacherServer.Setup`: WiX-based MSI installer project for Windows deployment.
 - `TeacherClient`: Windows Forms application used by the teacher.
 - `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
+- `TeacherClient.Avalonia.Setup`: macOS packaging project that builds a `.app` bundle and a `.pkg` installer.
 - `Teacher.Common`: shared DTOs and request contracts.
 
 The current implementation focuses on visible and explicitly authorized administration tasks such as viewing processes and managing files. It does not include stealth monitoring, persistence tricks, hidden startup, or covert control flows.
@@ -163,6 +165,39 @@ For this repository specifically, templates are optional. The checked-in project
 
 This service bundle is the intended deployment path for Windows student machines.
 
+### Build Windows MSI installer
+
+1. On Windows, open an elevated PowerShell window in [TeacherServer.Setup](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherServer.Setup).
+2. If PowerShell blocks script execution for the current session, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+```
+
+3. Build the MSI:
+
+```powershell
+.\Build-Msi.ps1
+```
+
+Or use the wrapper:
+
+```cmd
+Build-Msi.cmd
+```
+
+4. The script will:
+   - publish a self-contained `TeacherClient` payload;
+   - publish a self-contained `StudentAgent.Service` + `StudentAgent.UIHost` payload;
+   - generate WiX payload fragments;
+   - build an MSI into [TeacherServer.Setup/dist](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherServer.Setup/dist).
+
+5. Run the generated `.msi` on Windows and choose the desired feature during setup:
+   - `Teacher workstation tools`
+   - `Student workstation tools`
+
+When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service` and `StudentAgent.UIHost` together and registers the Windows service automatically.
+
 Example configuration:
 
 ```json
@@ -218,6 +253,27 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 6. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 7. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
 8. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
+
+### Build macOS installer for TeacherClient.Avalonia
+
+1. Open Terminal on macOS.
+2. Run:
+
+```bash
+cd TeacherClient.Avalonia.Setup
+bash ./Build-MacInstaller.sh
+```
+
+3. The setup project will:
+   - publish a self-contained Avalonia build for `osx-arm64`;
+   - assemble `Teacher Classroom Client.app`;
+   - build a macOS installer package.
+
+4. The outputs are:
+   - app bundle: [TeacherClient.Avalonia.Setup/artifacts/Teacher Classroom Client.app](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/artifacts/Teacher%20Classroom%20Client.app)
+   - installer: [TeacherClient.Avalonia.Setup/dist/TeacherClassroomClient-macos.pkg](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/dist/TeacherClassroomClient-macos.pkg)
+
+5. Install the app by opening the generated `.pkg`.
 9. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
 10. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
 11. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.

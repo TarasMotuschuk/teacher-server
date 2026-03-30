@@ -1,0 +1,78 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+      Name="Teacher Server"
+      Manufacturer="Taras Motuschuk"
+      Version="1.0.0"
+      UpgradeCode="9D624377-0AA5-4E8A-970A-5640C752EA0A"
+      Scope="perMachine"
+      InstallerVersion="500"
+      Language="1033">
+
+    <SummaryInformation Description="Teacher Server classroom tools installer." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Teacher Server is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Teacher Server">
+        <Directory Id="TEACHERDIR" Name="Teacher" />
+        <Directory Id="STUDENTDIR" Name="Student" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ProgramMenuTeacherServerFolder" Name="Teacher Server" />
+    </StandardDirectory>
+
+    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher client." Level="1" AllowAdvertise="no">
+      <ComponentRef Id="TeacherClientMainComponent" />
+      <ComponentRef Id="TeacherStartMenuComponent" />
+      <ComponentGroupRef Id="TeacherPayloadGroup" />
+    </Feature>
+
+    <Feature Id="StudentFeature" Title="Student workstation tools" Description="Install the privileged student service and session UI host." Level="1" AllowAdvertise="no">
+      <ComponentRef Id="StudentServiceMainComponent" />
+      <ComponentRef Id="StudentUiHostMainComponent" />
+      <ComponentGroupRef Id="StudentPayloadGroup" />
+    </Feature>
+
+    <Component Id="TeacherClientMainComponent" Directory="TEACHERDIR" Guid="*">
+      <File Id="TeacherClientExe" Source="$(var.TeacherPayloadDir)\TeacherClient.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="TeacherStartMenuComponent" Directory="ProgramMenuTeacherServerFolder" Guid="*">
+      <Shortcut Id="TeacherClientStartMenuShortcut"
+                Name="Teacher Client"
+                Target="[TEACHERDIR]TeacherClient.exe"
+                WorkingDirectory="TEACHERDIR"
+                Description="Teacher classroom administration client." />
+      <RemoveFolder Id="RemoveTeacherProgramMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="Software\TeacherServer\Installer" Name="TeacherShortcutInstalled" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="StudentServiceMainComponent" Directory="STUDENTDIR" Guid="*">
+      <File Id="StudentAgentServiceExe" Source="$(var.StudentPayloadDir)\StudentAgent.Service.exe" KeyPath="yes" />
+      <ServiceInstall Id="StudentAgentServiceInstaller"
+                      Name="StudentAgentService"
+                      DisplayName="StudentAgent Service"
+                      Description="Privileged StudentAgent runtime host for classroom control."
+                      Type="ownProcess"
+                      Start="auto"
+                      ErrorControl="normal"
+                      Account="LocalSystem" />
+      <ServiceControl Id="StudentAgentServiceController"
+                      Name="StudentAgentService"
+                      Start="install"
+                      Stop="both"
+                      Remove="uninstall"
+                      Wait="yes" />
+    </Component>
+
+    <Component Id="StudentUiHostMainComponent" Directory="STUDENTDIR" Guid="*">
+      <File Id="StudentAgentUiHostExe" Source="$(var.StudentPayloadDir)\StudentAgent.UIHost.exe" KeyPath="yes" />
+    </Component>
+
+    <ui:WixUI Id="WixUI_FeatureTree" />
+    <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
+  </Package>
+</Wix>

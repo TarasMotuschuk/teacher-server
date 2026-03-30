@@ -38,6 +38,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Initial `StudentAgent.UIHost` companion app plus a service-side launcher foundation for running visible tray and overlay UX inside the active student session.
 - Added a `Publish-ServiceBundle.ps1` workflow so the Windows service and session UI host can be published into one deployment folder for installation.
 - Removed the deprecated monolithic `StudentAgent` project from the solution so `StudentAgent.Service` plus `StudentAgent.UIHost` is now the supported Windows deployment path.
+- Added a WiX-based `TeacherServer.Setup` MSI workflow that publishes payloads and builds a single Windows installer with feature selection for either the teacher workstation tools or the student workstation tools.
+- Added a dedicated `TeacherClient.Avalonia.Setup` packaging project for macOS that produces a self-contained `.app` bundle and a `.pkg` installer for the Avalonia teacher client.
 
 ### Changed
 
@@ -66,6 +68,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - `TeacherClient` no longer shows a wait cursor during background agent auto-refresh, reducing the appearance of random UI stalls.
 - Both teacher clients now expose a group browser command for enabling browser blocking across all online student PCs at once.
 - Both teacher clients now show a branded splash screen during startup.
+- Windows deployment now supports an MSI installer flow that packages the self-contained `TeacherClient` and the `StudentAgent.Service` + `StudentAgent.UIHost` pair into selectable install features.
+- macOS deployment for `TeacherClient.Avalonia` now has a dedicated packaging flow that builds an installable `.pkg` for `/Applications`.
 
 ### Notes
 

@@ -1,0 +1,33 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <Cultures>en-us</Cultures>
+    <DefineConstants>
+      TeacherPayloadDir=$(MSBuildProjectDirectory)\artifacts\Teacher;
+      StudentPayloadDir=$(MSBuildProjectDirectory)\artifacts\Student;
+      GeneratedFragmentsDir=$(MSBuildProjectDirectory)\Generated
+    </DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Product.wxs" />
+    <Compile Include="Generated\TeacherPayload.wxs" Condition="Exists('Generated\\TeacherPayload.wxs')" />
+    <Compile Include="Generated\StudentPayload.wxs" Condition="Exists('Generated\\StudentPayload.wxs')" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="Resources\License.rtf" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <WixExtension Include="WixToolset.UI.wixext" />
+    <WixExtension Include="WixToolset.Util.wixext" />
+  </ItemGroup>
+</Project>

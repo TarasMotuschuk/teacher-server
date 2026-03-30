@@ -7,3 +7,8 @@ obj/
 *.cache
 *.pdb
 *.log
+TeacherServer.Setup/artifacts/
+TeacherServer.Setup/Generated/
+TeacherServer.Setup/dist/
+TeacherClient.Avalonia.Setup/artifacts/
+TeacherClient.Avalonia.Setup/dist/
