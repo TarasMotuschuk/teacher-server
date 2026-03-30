@@ -253,6 +253,16 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 6. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 7. In the `Files` tab, select a local file or folder and either send it to the selected student agents or to all online student agents.
 8. Folder distribution recreates the selected folder and its full internal structure under the configured destination path on each target student machine.
+9. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
+10. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
+11. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
+12. Use `Group Commands -> Student Work -> Clear work folder on all PCs` to empty the configured student work folder on all reachable student machines while leaving the folder itself in place.
+13. Use the `Browser lock` checkbox in the agents list to enable or disable browser blocking for a specific online student PC. While enabled, the student agent checks for running browsers every minute, shows a visible warning for 10 seconds, and then force-closes browser processes that are still open.
+14. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
+15. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
+16. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
+17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
+18. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
 ### Build macOS installer for TeacherClient.Avalonia
 
@@ -274,18 +284,8 @@ bash ./Build-MacInstaller.sh
    - installer: [TeacherClient.Avalonia.Setup/dist/TeacherClassroomClient-macos.pkg](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/dist/TeacherClassroomClient-macos.pkg)
 
 5. Install the app by opening the generated `.pkg`.
-9. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
-10. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
-11. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
-12. Use `Group Commands -> Student Work -> Clear work folder on all PCs` to empty the configured student work folder on all reachable student machines while leaving the folder itself in place.
-13. Use the `Browser lock` checkbox in the agents list to enable or disable browser blocking for a specific online student PC. While enabled, the student agent checks for running browsers every minute, shows a visible warning for 10 seconds, and then force-closes browser processes that are still open.
-14. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
-15. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
-16. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
-18. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
-To test from a Mac, run `StudentAgent` on a reachable Windows machine first, then connect to it from the Avalonia client.
+To test from a Mac, make sure `StudentAgent.Service` is installed and running on a reachable Windows machine, then connect to it from the Avalonia client.
 
 If you want a distributable build:
 
@@ -301,8 +301,12 @@ For Intel Macs, use `osx-x64` instead of `osx-arm64`.
 TeacherServer.sln
 Teacher.Common/
 StudentAgent/
+StudentAgent.Service/
+StudentAgent.UIHost/
+TeacherServer.Setup/
 TeacherClient/
 TeacherClient.Avalonia/
+TeacherClient.Avalonia.Setup/
 AGENTS.md
 CHANGELOG.md
 README.md
