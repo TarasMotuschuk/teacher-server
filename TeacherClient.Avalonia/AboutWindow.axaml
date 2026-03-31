@@ -11,7 +11,7 @@
     <TextBlock x:Name="DescriptionTextBlock" TextWrapping="Wrap"
                Text="TeacherClient.Avalonia is the cross-platform desktop client for connecting to StudentAgent, browsing processes, and performing classroom file operations from macOS, Linux, or Windows." />
     <TextBlock x:Name="VersionTextBlock" FontWeight="SemiBold" Text="Version: 0.0.0" />
-    <TextBlock x:Name="CopyrightTextBlock" Text="Copyright Taras Motuschuk" />
+    <TextBlock x:Name="CopyrightTextBlock" Text="© 2026 Taras Motuschuk. All rights reserved. Email: mtomekt@gmail.com" />
     <Button x:Name="CloseButton" HorizontalAlignment="Right"
             Width="100"
             Content="Close"

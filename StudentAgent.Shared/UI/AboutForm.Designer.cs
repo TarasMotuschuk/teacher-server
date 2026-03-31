@@ -82,7 +82,7 @@ partial class AboutForm
         versionValueLabel.AutoEllipsis = true;
 
         copyrightLabel.Dock = DockStyle.Fill;
-        copyrightLabel.Text = "Copyright © Taras Motuschuk, 2026";
+        copyrightLabel.Text = "© 2026 Taras Motuschuk. All rights reserved. Email: mtomekt@gmail.com";
         copyrightLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         closeButton.Text = "Close";

@@ -14,14 +14,26 @@
     <MediaTemplate EmbedCab="yes" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="Teacher Server">
+      <Directory Id="COMPANYFOLDER" Name="MTD">
+        <Directory Id="INSTALLFOLDER" Name="TeacherServer">
         <Directory Id="TEACHERDIR" Name="Teacher" />
         <Directory Id="STUDENTDIR" Name="Student" />
+        </Directory>
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher client." Level="1" AllowAdvertise="no">
+    <StandardDirectory Id="DesktopFolder" />
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="TeacherProgramMenuFolder" Name="MTD">
+        <Directory Id="TeacherProgramMenuAppFolder" Name="TeacherServer" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher client." Level="2" AllowAdvertise="no">
       <ComponentRef Id="TeacherClientMainComponent" />
+      <ComponentRef Id="TeacherDesktopShortcutComponent" />
+      <ComponentRef Id="TeacherStartMenuShortcutComponent" />
       <ComponentGroupRef Id="TeacherPayloadGroup" />
     </Feature>
 
@@ -33,6 +45,26 @@
 
     <Component Id="TeacherClientMainComponent" Directory="TEACHERDIR" Guid="*">
       <File Id="TeacherClientExe" Source="$(var.TeacherPayloadDir)\TeacherClient.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="TeacherDesktopShortcutComponent" Directory="DesktopFolder" Guid="*">
+      <Shortcut Id="TeacherDesktopShortcut"
+                Name="Teacher Client"
+                Target="[TEACHERDIR]TeacherClient.exe"
+                WorkingDirectory="TEACHERDIR"
+                Description="Teacher classroom administration client." />
+      <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="TeacherStartMenuShortcutComponent" Directory="TeacherProgramMenuAppFolder" Guid="*">
+      <Shortcut Id="TeacherStartMenuShortcut"
+                Name="Teacher Client"
+                Target="[TEACHERDIR]TeacherClient.exe"
+                WorkingDirectory="TEACHERDIR"
+                Description="Teacher classroom administration client." />
+      <RemoveFolder Id="RemoveTeacherProgramMenuAppFolder" On="uninstall" />
+      <RemoveFolder Id="RemoveTeacherProgramMenuFolder" Directory="TeacherProgramMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <Component Id="StudentServiceMainComponent" Directory="STUDENTDIR" Guid="*">

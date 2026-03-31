@@ -104,7 +104,7 @@ internal static class CrossPlatformText
     public static string PromptInput => IsUk ? "Ввід" : "Input";
     public static string AboutWindowTitle => IsUk ? "Про TeacherClient.Avalonia" : "About TeacherClient.Avalonia";
     public static string AboutDescription => IsUk ? "TeacherClient.Avalonia — це кросплатформний клієнт для підключення до StudentAgent, перегляду процесів і файлових операцій з macOS, Linux або Windows." : "TeacherClient.Avalonia is the cross-platform desktop client for connecting to StudentAgent, browsing processes, and performing classroom file operations from macOS, Linux, or Windows.";
-    public static string Copyright => "Copyright Taras Motuschuk";
+    public static string Copyright => "© 2026 Taras Motuschuk. All rights reserved. Email: mtomekt@gmail.com";
     public static string MachineSummary(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
     public static string NoAgentsAvailable => IsUk ? "Немає доступних агентів." : "No agents available.";
     public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть агент." : "Choose an agent first.";
