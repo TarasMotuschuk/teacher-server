@@ -29,10 +29,12 @@ internal static class TeacherClientText
     public static string GroupCommandsMenu => IsUk ? "Групові команди" : "Group Commands";
     public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
     public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
+    public static string CommandsMenu => IsUk ? "Команди" : "Commands";
     public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
     public static string SelectedStudentsMenu => IsUk ? "Вибрані ПК" : "Selected PCs";
     public static string AllOnlineStudentsMenu => IsUk ? "Всі онлайн ПК" : "All Online PCs";
     public static string StudentWorkMenu => IsUk ? "Роботи учнів" : "Student Work";
+    public static string FrequentProgramsMenu => IsUk ? "Часті програми" : "Frequent Programs";
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
     public static string Download => IsUk ? "Скачати з агента" : "Download";
@@ -93,6 +95,25 @@ internal static class TeacherClientText
     public static string Prompt => IsUk ? "Параметр" : "Prompt";
     public static string Ok => "OK";
     public static string ManualAgentTitle => IsUk ? "Ручний агент" : "Manual Agent";
+    public static string RemoteCommandTitle => IsUk ? "Віддалена команда" : "Remote Command";
+    public static string RemoteCommandScript => IsUk ? "Команди або сценарій" : "Commands or script";
+    public static string RemoteCommandHint => IsUk ? "Вводьте по одній команді в рядок. Команди будуть виконані послідовно." : "Enter one command per line. Commands will run sequentially.";
+    public static string RunAs => IsUk ? "Запускати як" : "Run as";
+    public static string RunAsCurrentUser => IsUk ? "Поточний користувач" : "Current user";
+    public static string RunAsAdministrator => IsUk ? "Адміністратор" : "Administrator";
+    public static string InsertFromFrequentPrograms => IsUk ? "Вставити з частих програм" : "Insert from frequent programs";
+    public static string FrequentProgramsTitle => IsUk ? "Часті програми" : "Frequent Programs";
+    public static string RefreshFrequentPrograms => IsUk ? "Оновити список частих програм з усіх ПК" : "Refresh frequent programs from all PCs";
+    public static string ManageFrequentPrograms => IsUk ? "Керувати списком частих програм" : "Manage frequent programs";
+    public static string RunCommandOnSelectedStudents => IsUk ? "Виконати команду на вибраних ПК" : "Run command on selected PCs";
+    public static string RunCommandOnAllOnlineStudents => IsUk ? "Виконати команду на всіх онлайн ПК" : "Run command on all online PCs";
+    public static string AddProgram => IsUk ? "Додати" : "Add";
+    public static string RemoveProgram => IsUk ? "Видалити" : "Remove";
+    public static string InsertSelected => IsUk ? "Вставити вибране" : "Insert selected";
+    public static string ProgramName => IsUk ? "Назва програми" : "Program name";
+    public static string CommandText => IsUk ? "Команда" : "Command";
+    public static string ChooseProgramFirst => IsUk ? "Спочатку виберіть програму." : "Choose a program first.";
+    public static string CommandScriptRequired => IsUk ? "Введіть хоча б одну команду." : "Enter at least one command.";
     public static string DisplayName => IsUk ? "Назва" : "Display name";
     public static string IpAddress => IsUk ? "IP адреса" : "IP address";
     public static string Port => IsUk ? "Порт" : "Port";
@@ -180,9 +201,25 @@ internal static class TeacherClientText
     public static string CollectStudentWorkToTeacherPc => IsUk ? "Зібрати роботи учнів на вчительський ПК" : "Collect student work to teacher PC";
     public static string ClearStudentWorkFolderOnAllAgents => IsUk ? "Очистити папку для робіт на всіх ПК" : "Clear work folder on all PCs";
     public static string BulkCommandsResultTitle => IsUk ? "Результат групової команди" : "Group command result";
+    public static string BulkCommandError => IsUk ? "Помилка групового виконання команди" : "Bulk remote command error";
+    public static string FrequentProgramsRefreshError => IsUk ? "Помилка оновлення списку частих програм" : "Failed to refresh frequent programs";
     public static string BulkClearError => IsUk ? "Помилка групового очищення папки" : "Bulk folder clear error";
     public static string BulkCollectError => IsUk ? "Помилка групового збору робіт" : "Bulk work collection error";
     public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
+    public static string RemoteCommandPrompt(int count, bool selectedOnly)
+        => IsUk
+            ? $"Виконати сценарій на {(selectedOnly ? "вибраних" : "всіх онлайн")} учнівських ПК ({count})?"
+            : $"Run the script on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
+    public static string RemoteCommandProgress(string agent, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Виконання команди на {agent} ({agentIndex}/{agentCount})"
+            : $"Running command on {agent} ({agentIndex}/{agentCount})";
+    public static string RemoteCommandCompleted(int count)
+        => IsUk ? $"Команду виконано на {count} учнівських ПК" : $"Ran command on {count} student PCs";
+    public static string RemoteCommandCompletedWithFailures(int succeeded, int failed)
+        => IsUk ? $"Виконання команди: успішно {succeeded}, з помилками {failed}" : $"Remote command: {succeeded} succeeded, {failed} failed";
+    public static string FrequentProgramsRefreshed(int count)
+        => IsUk ? $"Оновлено список частих програм: {count}" : $"Refreshed frequent programs: {count}";
     public static string BrowserLockPrompt(int count)
         => IsUk
             ? $"Увімкнути блокування браузера на всіх онлайн учнівських ПК ({count})?"

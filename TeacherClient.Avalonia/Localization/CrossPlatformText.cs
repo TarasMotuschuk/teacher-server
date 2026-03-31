@@ -27,10 +27,12 @@ internal static class CrossPlatformText
     public static string GroupCommandsTitle => IsUk ? "Групові команди" : "Group Commands";
     public static string BrowserCommandsMenu => IsUk ? "_Браузер" : "_Browser";
     public static string InputCommandsMenu => IsUk ? "_Клавіатура і миша" : "_Keyboard and Mouse";
+    public static string CommandsMenu => IsUk ? "_Команди" : "_Commands";
     public static string PowerCommandsMenu => IsUk ? "_Живлення" : "_Power";
     public static string SelectedStudentsMenu => IsUk ? "_Вибрані ПК" : "_Selected PCs";
     public static string AllOnlineStudentsMenu => IsUk ? "_Всі онлайн ПК" : "_All Online PCs";
     public static string StudentWorkMenu => IsUk ? "_Роботи учнів" : "_Student Work";
+    public static string FrequentProgramsMenu => IsUk ? "_Часті програми" : "_Frequent Programs";
     public static string About => IsUk ? "_Про програму" : "_About";
     public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці агентів і підключіться." : "Ready. Use the Agents tab to select a student machine, then connect.";
     public static string Agents => IsUk ? "Агенти" : "Agents";
@@ -99,6 +101,25 @@ internal static class CrossPlatformText
     public static string Ok => "OK";
     public static string SettingsSaved => IsUk ? "Налаштування збережено." : "Settings saved.";
     public static string ManualAgentTitle => IsUk ? "Ручний агент" : "Manual Agent";
+    public static string RemoteCommandTitle => IsUk ? "Віддалена команда" : "Remote Command";
+    public static string RemoteCommandScript => IsUk ? "Команди або сценарій" : "Commands or script";
+    public static string RemoteCommandHint => IsUk ? "Вводьте по одній команді в рядок. Команди будуть виконані послідовно." : "Enter one command per line. Commands will run sequentially.";
+    public static string RunAs => IsUk ? "Запускати як" : "Run as";
+    public static string RunAsCurrentUser => IsUk ? "Поточний користувач" : "Current user";
+    public static string RunAsAdministrator => IsUk ? "Адміністратор" : "Administrator";
+    public static string InsertFromFrequentPrograms => IsUk ? "Вставити з частих програм" : "Insert from frequent programs";
+    public static string FrequentProgramsTitle => IsUk ? "Часті програми" : "Frequent Programs";
+    public static string RefreshFrequentPrograms => IsUk ? "Оновити список частих програм з усіх ПК" : "Refresh frequent programs from all PCs";
+    public static string ManageFrequentPrograms => IsUk ? "Керувати списком частих програм" : "Manage frequent programs";
+    public static string RunCommandOnSelectedStudents => IsUk ? "Виконати команду на вибраних ПК" : "Run command on selected PCs";
+    public static string RunCommandOnAllOnlineStudents => IsUk ? "Виконати команду на всіх онлайн ПК" : "Run command on all online PCs";
+    public static string AddProgram => IsUk ? "Додати" : "Add";
+    public static string RemoveProgram => IsUk ? "Видалити" : "Remove";
+    public static string InsertSelected => IsUk ? "Вставити вибране" : "Insert selected";
+    public static string ProgramName => IsUk ? "Назва програми" : "Program name";
+    public static string CommandText => IsUk ? "Команда" : "Command";
+    public static string ChooseProgramFirst => IsUk ? "Спочатку виберіть програму." : "Choose a program first.";
+    public static string CommandScriptRequired => IsUk ? "Введіть хоча б одну команду." : "Enter at least one command.";
     public static string DisplayName => IsUk ? "Назва" : "Display name";
     public static string IpAddress => IsUk ? "IP адреса" : "IP address";
     public static string Port => IsUk ? "Порт" : "Port";
@@ -158,12 +179,28 @@ internal static class CrossPlatformText
     public static string DistributionCompletedWithFailures(string name, int succeeded, int failed) => IsUk ? $"Розсилка {name}: успішно {succeeded}, з помилками {failed}" : $"Distributed {name}: {succeeded} succeeded, {failed} failed";
     public static string BulkCopyResultTitle => IsUk ? "Результат групового копіювання" : "Bulk copy result";
     public static string BulkCommandsResultTitle => IsUk ? "Результат групової команди" : "Group command result";
+    public static string BulkCommandError => IsUk ? "Помилка групового виконання команди" : "Bulk remote command error";
+    public static string FrequentProgramsRefreshError => IsUk ? "Помилка оновлення списку частих програм" : "Failed to refresh frequent programs";
     public static string PreparingDistributionPlan => IsUk ? "Підготовка плану копіювання..." : "Preparing distribution plan...";
     public static string DistributionProgress(string agent, string item, int agentIndex, int agentCount, int fileIndex, int fileCount)
         => IsUk
             ? $"Розсилка {item} -> {agent} (агент {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
             : $"Distributing {item} -> {agent} (agent {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
     public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
+    public static string RemoteCommandPrompt(int count, bool selectedOnly)
+        => IsUk
+            ? $"Виконати сценарій на {(selectedOnly ? "вибраних" : "всіх онлайн")} учнівських ПК ({count})?"
+            : $"Run the script on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
+    public static string RemoteCommandProgress(string agent, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Виконання команди на {agent} ({agentIndex}/{agentCount})"
+            : $"Running command on {agent} ({agentIndex}/{agentCount})";
+    public static string RemoteCommandCompleted(int count)
+        => IsUk ? $"Команду виконано на {count} учнівських ПК" : $"Ran command on {count} student PCs";
+    public static string RemoteCommandCompletedWithFailures(int succeeded, int failed)
+        => IsUk ? $"Виконання команди: успішно {succeeded}, з помилками {failed}" : $"Remote command: {succeeded} succeeded, {failed} failed";
+    public static string FrequentProgramsRefreshed(int count)
+        => IsUk ? $"Оновлено список частих програм: {count}" : $"Refreshed frequent programs: {count}";
     public static string BrowserLockPrompt(int count)
         => IsUk
             ? $"Увімкнути блокування браузера на всіх онлайн учнівських ПК ({count})?"

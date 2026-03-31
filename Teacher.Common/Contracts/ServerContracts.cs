@@ -12,6 +12,23 @@ public sealed record ServerInfoDto(
 public sealed record BrowserLockStateRequest(bool Enabled);
 public sealed record InputLockStateRequest(bool Enabled);
 
+public enum RemoteCommandRunAs
+{
+    CurrentUser = 0,
+    Administrator = 1
+}
+
+public sealed record RemoteCommandRequest(
+    string Script,
+    RemoteCommandRunAs RunAs);
+
+public sealed record FrequentProgramShortcutDto(
+    string DisplayName,
+    string CommandText,
+    string ShortcutPath,
+    string? TargetPath,
+    string? Arguments);
+
 public enum PowerActionKind
 {
     Shutdown = 0,

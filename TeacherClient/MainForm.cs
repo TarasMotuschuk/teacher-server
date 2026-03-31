@@ -14,10 +14,12 @@ public partial class MainForm : Form
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
+    private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
+    private List<FrequentProgramEntry> _frequentPrograms = [];
     private List<DiscoveredAgentRow> _allAgents = [];
     private BindingList<DiscoveredAgentRow> _agents = new();
     private BindingList<ProcessInfoDto> _processes = new();
@@ -46,6 +48,7 @@ public partial class MainForm : Form
         localFilesGrid.DataSource = _localEntries;
         remoteFilesGrid.DataSource = _remoteEntries;
         _manualAgents = _manualAgentStore.Load().ToList();
+        _frequentPrograms = _frequentProgramStore.Load().ToList();
         groupFilterComboBox.Items.Add(TeacherClientText.AllGroups);
         groupFilterComboBox.SelectedIndex = 0;
         statusFilterComboBox.Items.AddRange([TeacherClientText.AllStatuses, TeacherClientText.Online, TeacherClientText.Offline, TeacherClientText.Unknown]);
@@ -340,6 +343,124 @@ public partial class MainForm : Form
         }
     }
 
+    private async Task RefreshFrequentProgramsAsync()
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        var collected = new List<FrequentProgramEntry>(_frequentPrograms);
+        var failures = new List<string>();
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(TeacherClientText.RemoteCommandProgress(agent.MachineName, index + 1, targetAgents.Count));
+
+                try
+                {
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var shortcuts = await client.GetPublicDesktopShortcutsAsync();
+                    collected.AddRange(shortcuts
+                        .Where(x => !string.IsNullOrWhiteSpace(x.DisplayName) && !string.IsNullOrWhiteSpace(x.CommandText))
+                        .Select(x => FrequentProgramEntry.Create(x.DisplayName, x.CommandText, RemoteCommandRunAs.CurrentUser)));
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            _frequentProgramStore.Save(collected);
+            _frequentPrograms = _frequentProgramStore.Load().ToList();
+            SetStatus(TeacherClientText.FrequentProgramsRefreshed(_frequentPrograms.Count));
+
+            if (failures.Count > 0)
+            {
+                MessageBox.Show(
+                    this,
+                    string.Join(Environment.NewLine, failures),
+                    TeacherClientText.FrequentProgramsRefreshError,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.FrequentProgramsRefreshError}: {ex.Message}");
+        }
+    }
+
+    private async Task ExecuteRemoteCommandOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        using var dialog = new RemoteCommandDialog(_frequentPrograms);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        if (MessageBox.Show(
+                TeacherClientText.RemoteCommandPrompt(targetAgents.Count, selectedOnly),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+
+                try
+                {
+                    SetStatus(TeacherClientText.RemoteCommandProgress(agent.MachineName, index + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ExecuteRemoteCommandAsync(dialog.Script, dialog.RunAs);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(
+                failures.Count == 0
+                    ? TeacherClientText.RemoteCommandCompleted(succeeded)
+                    : TeacherClientText.RemoteCommandCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                MessageBox.Show(
+                    this,
+                    string.Join(Environment.NewLine, failures),
+                    TeacherClientText.BulkCommandsResultTitle,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.BulkCommandsResultTitle}: {ex.Message}");
+        }
+    }
+
     private async void lockBrowsersOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
@@ -383,6 +504,51 @@ public partial class MainForm : Form
         }
 
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
+    }
+
+    private async void runCommandOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: true);
+    }
+
+    private async void runCommandOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
+    }
+
+    private async void refreshFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
+    {
+        await RefreshFrequentProgramsAsync();
+    }
+
+    private void manageFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new FrequentProgramsDialog(_frequentPrograms);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        _frequentPrograms = dialog.Entries.ToList();
+        _frequentProgramStore.Save(_frequentPrograms);
+        SetStatus(TeacherClientText.FrequentProgramsRefreshed(_frequentPrograms.Count));
     }
 
     private async void shutdownSelectedStudentsMenuItem_Click(object? sender, EventArgs e)

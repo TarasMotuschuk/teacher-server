@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.FrequentProgramsWindow"
+        Width="920"
+        Height="620"
+        MinWidth="820"
+        MinHeight="520"
+        Title="Frequent Programs">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Button x:Name="AddButton" MinWidth="120" Click="AddButton_OnClick" />
+      <Button x:Name="RemoveButton" MinWidth="120" Click="RemoveButton_OnClick" />
+    </StackPanel>
+    <DataGrid x:Name="ProgramsGrid"
+              Grid.Row="1"
+              Margin="0,12,0,12"
+              AutoGenerateColumns="False"
+              CanUserReorderColumns="False"
+              IsReadOnly="True"
+              SelectionMode="Single">
+      <DataGrid.Columns>
+        <DataGridTextColumn Width="2*" />
+        <DataGridTextColumn Width="4*" />
+        <DataGridTextColumn Width="1.5*" />
+      </DataGrid.Columns>
+    </DataGrid>
+    <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="12">
+      <Button x:Name="CloseButton" MinWidth="120" Click="CloseButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>

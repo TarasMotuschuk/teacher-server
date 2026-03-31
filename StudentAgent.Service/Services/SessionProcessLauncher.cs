@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace StudentAgent.Service.Services;
@@ -103,6 +104,39 @@ internal static class SessionProcessLauncher
         }
 
         throw new FileNotFoundException("Entry not found.", targetPath);
+    }
+
+    public static void StartCmdScriptInSession(string scriptPath, int sessionId)
+    {
+        if (!File.Exists(scriptPath))
+        {
+            throw new FileNotFoundException("Script not found.", scriptPath);
+        }
+
+        StartProcessInSession(
+            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            $"/c {QuoteArgument(scriptPath)}",
+            sessionId);
+    }
+
+    public static void StartCmdScriptAsAdministrator(string scriptPath)
+    {
+        if (!File.Exists(scriptPath))
+        {
+            throw new FileNotFoundException("Script not found.", scriptPath);
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            Arguments = $"/c {QuoteArgument(scriptPath)}",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(scriptPath)
+        };
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start command process.");
     }
 
     private static string QuoteArgument(string value)

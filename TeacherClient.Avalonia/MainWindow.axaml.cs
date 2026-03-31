@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
+    private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
+    private List<FrequentProgramEntry> _frequentPrograms = [];
     private List<DiscoveredAgentRow> _allAgents = [];
     private bool _suppressDriveSelection;
     private string? _remoteParentPath;
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
         AgentsGrid.ItemsSource = _agents;
         LocalPathTextBox.Text = GetDefaultLocalPath();
         _manualAgents = _manualAgentStore.Load().ToList();
+        _frequentPrograms = _frequentProgramStore.Load().ToList();
         PopulateLocalRoots();
 
         GroupFilterComboBox.ItemsSource = new[] { CrossPlatformText.AllGroups };
@@ -213,6 +216,108 @@ public partial class MainWindow : Window
                 ? CrossPlatformText.NoAgentsAvailable
                 : CrossPlatformText.MachineSummary(_allAgents.Count, discoveredAgents.Count, _manualAgents.Count));
         }, CrossPlatformText.DiscoveryError);
+    }
+
+    private async Task RefreshFrequentProgramsAsync()
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        var collected = new List<FrequentProgramEntry>(_frequentPrograms);
+        var failures = new List<string>();
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(CrossPlatformText.RemoteCommandProgress(agent.MachineName, index + 1, targetAgents.Count));
+
+                try
+                {
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var shortcuts = await client.GetPublicDesktopShortcutsAsync();
+                    collected.AddRange(shortcuts
+                        .Where(x => !string.IsNullOrWhiteSpace(x.DisplayName) && !string.IsNullOrWhiteSpace(x.CommandText))
+                        .Select(x => FrequentProgramEntry.Create(x.DisplayName, x.CommandText, RemoteCommandRunAs.CurrentUser)));
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            _frequentProgramStore.Save(collected);
+            _frequentPrograms = _frequentProgramStore.Load().ToList();
+            SetStatus(CrossPlatformText.FrequentProgramsRefreshed(_frequentPrograms.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.FrequentProgramsRefreshError,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.FrequentProgramsRefreshError);
+    }
+
+    private async Task ExecuteRemoteCommandOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        var submission = await RemoteCommandWindow.ShowAsync(this, _frequentPrograms);
+        if (submission is null)
+        {
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.RemoteCommandPrompt(targetAgents.Count, selectedOnly)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                try
+                {
+                    SetStatus(CrossPlatformText.RemoteCommandProgress(agent.MachineName, index + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ExecuteRemoteCommandAsync(submission.Script, submission.RunAs);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(
+                failures.Count == 0
+                    ? CrossPlatformText.RemoteCommandCompleted(succeeded)
+                    : CrossPlatformText.RemoteCommandCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkCommandsResultTitle);
     }
 
     private async Task ConnectSelectedAgentAsync()
@@ -691,6 +796,51 @@ public partial class MainWindow : Window
         }
 
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
+    }
+
+    private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: true);
+    }
+
+    private async void RunCommandAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
+    }
+
+    private async void RefreshFrequentProgramsMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await RefreshFrequentProgramsAsync();
+    }
+
+    private async void ManageFrequentProgramsMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var entries = await FrequentProgramsWindow.ShowAsync(this, _frequentPrograms);
+        if (entries is null)
+        {
+            return;
+        }
+
+        _frequentPrograms = entries.ToList();
+        _frequentProgramStore.Save(_frequentPrograms);
+        SetStatus(CrossPlatformText.FrequentProgramsRefreshed(_frequentPrograms.Count));
     }
 
     private async void ShutdownSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -1801,9 +1951,12 @@ public partial class MainWindow : Window
         DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
+        CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
+        RunCommandSelectedMenuItem.Header = CrossPlatformText.RunCommandOnSelectedStudents;
+        RunCommandAllMenuItem.Header = CrossPlatformText.RunCommandOnAllOnlineStudents;
         PowerCommandsMenuItem.Header = CrossPlatformText.PowerCommandsMenu;
         SelectedPowerMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         AllOnlinePowerMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
@@ -1813,6 +1966,9 @@ public partial class MainWindow : Window
         ShutdownAllMenuItem.Header = CrossPlatformText.ShutdownCommand;
         RestartAllMenuItem.Header = CrossPlatformText.RestartCommand;
         LogOffAllMenuItem.Header = CrossPlatformText.LogOffCommand;
+        FrequentProgramsMenuItem.Header = CrossPlatformText.FrequentProgramsMenu;
+        RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
+        ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;

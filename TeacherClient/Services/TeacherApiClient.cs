@@ -117,6 +117,15 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ExecuteRemoteCommandAsync(string script, RemoteCommandRunAs runAs, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/commands/run", new RemoteCommandRequest(script, runAs), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<IReadOnlyList<FrequentProgramShortcutDto>> GetPublicDesktopShortcutsAsync(CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<FrequentProgramShortcutDto>>("api/commands/frequent-programs/public-desktop", cancellationToken) ?? [];
+
     public async Task EnsureRemoteDirectoryPathAsync(string fullPath, CancellationToken cancellationToken = default)
     {
         var normalizedPath = RemoteWindowsPath.Normalize(fullPath);

@@ -13,6 +13,8 @@ try
 
     builder.Services.AddStudentAgentRuntimeServices(builder.Configuration, includeBackgroundPolicies: true);
     builder.Services.AddSingleton<RemoteShellOpenService>();
+    builder.Services.AddSingleton<RemoteCommandService>();
+    builder.Services.AddSingleton<PublicDesktopShortcutService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
 
     var app = builder.Build();
@@ -32,6 +34,22 @@ try
         {
             return Results.BadRequest(new { error = ex.Message });
         }
+    });
+    app.MapPost("/api/commands/run", ([FromBody] RemoteCommandRequest request, [FromServices] RemoteCommandService service) =>
+    {
+        try
+        {
+            var executionMode = service.ExecuteScript(request.Script, request.RunAs);
+            return Results.Ok(new { mode = executionMode });
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapGet("/api/commands/frequent-programs/public-desktop", ([FromServices] PublicDesktopShortcutService service) =>
+    {
+        return Results.Ok(service.GetPublicDesktopShortcuts());
     });
     app.Lifetime.ApplicationStarted.Register(() =>
     {

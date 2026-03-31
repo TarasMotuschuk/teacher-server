@@ -34,6 +34,8 @@ Available endpoints:
 - `POST /api/files/directories`: create directory.
 - `GET /api/files/download`: download file.
 - `POST /api/files/upload`: upload file with `multipart/form-data`.
+- `POST /api/commands/run`: execute a command script on the student machine.
+- `GET /api/commands/frequent-programs/public-desktop`: collect `.lnk` shortcuts from the public desktop for teacher-side frequent program lists.
 
 ### TeacherClient
 
@@ -59,6 +61,8 @@ Available endpoints:
 - remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
+- grouped remote command execution for either selected students or all online students, with support for multi-line command scripts and a `Current user` or `Administrator` run mode;
+- a teacher-managed frequent programs list that can be refreshed from public desktop shortcuts gathered across online student PCs and then curated manually by the teacher;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
@@ -91,6 +95,8 @@ Available endpoints:
 - remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
+- grouped remote command execution for either selected students or all online students, with support for multi-line command scripts and a `Current user` or `Administrator` run mode;
+- a teacher-managed frequent programs list that can be refreshed from public desktop shortcuts gathered across online student PCs and then curated manually by the teacher;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;

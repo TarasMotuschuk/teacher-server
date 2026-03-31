@@ -137,6 +137,10 @@ partial class MainForm
         inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, lockInputOnAllOnlineStudentsMenuItem_Click);
         inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, unlockInputOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(inputMenuItem);
+        var commandsMenuItem = new ToolStripMenuItem(TeacherClientText.CommandsMenu);
+        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
+        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
         var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
         var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
         powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);
@@ -149,6 +153,10 @@ partial class MainForm
         powerMenuItem.DropDownItems.Add(powerSelectedMenuItem);
         powerMenuItem.DropDownItems.Add(powerAllOnlineMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(powerMenuItem);
+        var frequentProgramsMenuItem = new ToolStripMenuItem(TeacherClientText.FrequentProgramsMenu);
+        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.RefreshFrequentPrograms, null, refreshFrequentProgramsMenuItem_Click);
+        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.ManageFrequentPrograms, null, manageFrequentProgramsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(frequentProgramsMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
         studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, createStudentWorkFolderOnAllAgentsMenuItem_Click);

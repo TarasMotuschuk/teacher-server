@@ -11,12 +11,15 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Initial Visual Studio solution with `Teacher.Common`, a student-side runtime, and `TeacherClient`.
 - Cross-platform `TeacherClient.Avalonia` desktop client for macOS, Linux, and Windows.
 - Shared DTO contracts for process, file, and server operations.
+- Shared DTO contracts for remote command execution and teacher-side frequent program collection.
 - Student-side HTTP API for process inspection, process termination, file browsing, upload, download, deletion, and remote directory creation.
 - Student-side process details and process restart endpoints for richer teacher-side process management.
 - Teacher-side Windows Forms UI for connecting to the student agent and performing supported remote actions.
 - Avalonia desktop UI with process management and dual-pane local/remote file operations.
 - Double-click process details dialogs in both teacher clients, with full process metadata and `Kill` / `Restart` actions.
 - Remote file-manager action for opening the selected file or folder directly on the connected student PC from both teacher clients.
+- Group command support for executing multi-line remote command scripts on either selected student PCs or all online student PCs, with a choice between current-user and administrator execution.
+- Teacher-managed frequent programs lists in both teacher clients, with refresh from `C:\Users\Public\Desktop` shortcuts gathered across online student PCs and manual add/remove curation.
 - Shared-secret middleware using the `X-Teacher-Secret` request header.
 - Student-side tray application flow with protected `Settings`, `Logs`, `About`, and administrator-gated `Exit`.
 - WinForms designer-friendly forms for `StudentAgent` and `TeacherClient` dialogs.

@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.RemoteCommandWindow"
+        Width="920"
+        Height="680"
+        MinWidth="820"
+        MinHeight="620"
+        Title="Remote Command">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+    <TextBlock x:Name="ScriptLabelTextBlock"
+               FontSize="18"
+               FontWeight="SemiBold"
+               Text="Commands or script" />
+    <TextBlock x:Name="HintTextBlock"
+               Grid.Row="1"
+               Margin="0,8,0,12"
+               TextWrapping="Wrap"
+               Text="Enter one command per line. Commands will run sequentially." />
+    <Grid Grid.Row="2" ColumnDefinitions="3*,2*">
+      <TextBox x:Name="ScriptTextBox"
+               Margin="0,0,12,0"
+               AcceptsReturn="True"
+               TextWrapping="NoWrap" />
+      <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <TextBlock x:Name="RunAsLabelTextBlock" Text="Run as" />
+        <ComboBox x:Name="RunAsComboBox" Grid.Row="1" Margin="0,8,0,16" />
+        <TextBlock x:Name="FrequentProgramsLabelTextBlock" Grid.Row="2" Text="Frequent Programs" />
+        <ListBox x:Name="FrequentProgramsListBox" Grid.Row="3" Margin="0,8,0,12" />
+        <Button x:Name="InsertSelectedButton" Grid.Row="4" HorizontalAlignment="Right" Click="InsertSelectedButton_OnClick" />
+      </Grid>
+    </Grid>
+    <StackPanel Grid.Row="3"
+                Margin="0,16,0,0"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="12">
+      <Button x:Name="CancelButton" MinWidth="120" Click="CancelButton_OnClick" />
+      <Button x:Name="OkButton" MinWidth="120" Click="OkButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>
