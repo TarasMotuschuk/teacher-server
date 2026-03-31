@@ -12,6 +12,18 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - `GET /api/registry/keys` and `GET /api/registry/values` endpoints on StudentAgent.Service for read-only registry access
 - `RegistryService` on the agent side supports all five root hives (HKLM, HKCU, HKCR, HKU, HKCC) with formatted value display (REG_SZ, REG_DWORD, REG_BINARY, REG_MULTI_SZ, REG_QWORD, REG_EXPAND_SZ)
 
+## [1.0.5] - 2026-03-31
+
+### Changed
+
+- StudentAgent shared system data directory now grants standard users access so StudentAgent.UIHost can start and work from ProgramData
+- shared path helper permissions were expanded for the UIHost runtime
+- Windows student-side hosts now use the updated shared data access model
+
+### Notes
+
+- Windows release build only.
+- TeacherClient.Avalonia is not built for Windows by this command.
 ## [1.0.4] - 2026-03-31
 
 ### Changed
@@ -143,3 +155,4 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
+

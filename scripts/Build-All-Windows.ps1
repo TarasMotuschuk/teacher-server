@@ -118,6 +118,7 @@ function Commit-And-Push {
         AGENTS.md `
         CHANGELOG.md `
         StudentAgent.Service\Program.cs `
+        StudentAgent.Shared\Services\StudentAgentPathHelper.cs `
         TeacherClient\MainForm.cs `
         TeacherClient\Program.cs `
         TeacherServer.Setup\Product.wxs `
@@ -128,8 +129,14 @@ function Commit-And-Push {
     git commit -m "Release $Version"
     if ($LASTEXITCODE -ne 0) { throw "git commit failed." }
 
+    git tag -a "v$Version" -m "Release $Version"
+    if ($LASTEXITCODE -ne 0) { throw "git tag failed." }
+
     git push origin HEAD
     if ($LASTEXITCODE -ne 0) { throw "git push failed." }
+
+    git push origin "v$Version"
+    if ($LASTEXITCODE -ne 0) { throw "git tag push failed." }
 }
 
 Push-Location $repoRoot
