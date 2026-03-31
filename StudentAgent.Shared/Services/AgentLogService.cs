@@ -56,13 +56,5 @@ public sealed class AgentLogService
     }
 
     private static string GetLogDirectory()
-    {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(localAppData))
-        {
-            return Path.Combine(AppContext.BaseDirectory, "logs");
-        }
-
-        return Path.Combine(localAppData, "TeacherServer", "StudentAgent", "logs");
-    }
+        => StudentAgentPathHelper.GetLogsDirectory();
 }

@@ -13,12 +13,7 @@ public sealed class RemoteCommandService
     {
         _logService = logService;
 
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var root = string.IsNullOrWhiteSpace(localAppData)
-            ? Path.Combine(AppContext.BaseDirectory, "data")
-            : Path.Combine(localAppData, "TeacherServer", "StudentAgent");
-
-        _scriptsDirectory = Path.Combine(root, "remote-commands");
+        _scriptsDirectory = Path.Combine(StudentAgentPathHelper.GetRootDirectory(), "remote-commands");
         Directory.CreateDirectory(_scriptsDirectory);
     }
 

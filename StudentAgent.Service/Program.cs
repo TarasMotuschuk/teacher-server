@@ -78,11 +78,4 @@ catch (Exception ex)
 }
 
 static string GetStartupErrorLogPath()
-{
-    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-    var root = string.IsNullOrWhiteSpace(localAppData)
-        ? Path.Combine(AppContext.BaseDirectory, "logs")
-        : Path.Combine(localAppData, "TeacherServer", "StudentAgent", "logs");
-
-    return Path.Combine(root, "studentagent-service-startup-error.log");
-}
+    => Path.Combine(StudentAgentPathHelper.GetLogsDirectory(), "studentagent-service-startup-error.log");

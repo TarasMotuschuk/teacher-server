@@ -22,6 +22,7 @@
     <Compile Include="..\StudentAgent.Shared\Services\AgentLogService.cs" Link="Shared\Services\AgentLogService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\AgentSettingsStore.cs" Link="Shared\Services\AgentSettingsStore.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\ProcessService.cs" Link="Shared\Services\ProcessService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\StudentAgentPathHelper.cs" Link="Shared\Services\StudentAgentPathHelper.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\Localization\StudentAgentText.cs" Link="Shared\Localization\StudentAgentText.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\AgentUiApplicationContextBase.cs" Link="Shared\UI\AgentUiApplicationContextBase.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\AboutForm.cs" Link="Shared\UI\AboutForm.cs" />

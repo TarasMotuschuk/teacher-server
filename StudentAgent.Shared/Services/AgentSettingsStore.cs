@@ -220,13 +220,5 @@ public sealed class AgentSettingsStore
     }
 
     private static string GetDataDirectory()
-    {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(localAppData))
-        {
-            return Path.Combine(AppContext.BaseDirectory, "data");
-        }
-
-        return Path.Combine(localAppData, "TeacherServer", "StudentAgent");
-    }
+        => StudentAgentPathHelper.GetRootDirectory();
 }
