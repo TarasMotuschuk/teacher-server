@@ -1,9 +1,21 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project currently starts with an initial baseline release.
 
+## [1.0.1] - 2026-03-31
+
+### Changed
+
+- Windows MSI now installs into C:\Program Files\MTD\TeacherServer
+- Teacher workstation tools are disabled by default in the installer feature tree
+- Teacher Client installation now adds Desktop and Start Menu shortcuts
+
+### Notes
+
+- Windows release build only.
+- TeacherClient.Avalonia is not built for Windows by this command.
 ## [0.1.0] - 2026-03-25
 
 ### Added
@@ -83,3 +95,4 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
+

@@ -36,6 +36,16 @@ This repository contains a Windows-oriented classroom administration solution bu
 - Prefer validating changes with `dotnet build TeacherServer.sln`.
 - If a change affects runtime behavior, mention what was validated and what still needs manual testing on Windows.
 
+## Release workflow
+
+- For the standard Windows release flow, use `powershell -ExecutionPolicy Bypass -File .\scripts\Build-All-Windows.ps1 -Version <x.y.z> -ReleaseSummary "<item 1>; <item 2>; <item 3>"`.
+- The `build all windows` command must perform these steps in order: bump the Windows installer version, run a clean Windows build, skip `TeacherClient.Avalonia` Windows builds, append a new release entry to `CHANGELOG.md`, then create a git commit and push it to `origin`.
+- The `build all windows` command is Windows-only. It does not build the macOS Avalonia installer from `TeacherClient.Avalonia.Setup/`.
+- Before running the Windows release flow, the agent must propose both the next version and the `ReleaseSummary` to the user.
+- The proposed `ReleaseSummary` should be formed by the agent from the current unreleased work, or from the concrete changes made in the current task if there is no dedicated unreleased section yet.
+- The user must explicitly confirm the proposed version and `ReleaseSummary`, or provide corrections, before the agent runs the release workflow.
+- After confirmation, the agent should continue the workflow without asking for the same release details again unless the scope changes.
+
 ## Documentation
 
 - Keep `README.md` accurate when capabilities, setup steps, or security assumptions change.
