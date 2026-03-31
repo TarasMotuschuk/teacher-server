@@ -1,3 +1,6 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
+
 namespace StudentAgent.Services;
 
 internal static class StudentAgentPathHelper
@@ -7,18 +10,74 @@ internal static class StudentAgentPathHelper
         var commonAppData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         if (!string.IsNullOrWhiteSpace(commonAppData))
         {
-            return Path.Combine(commonAppData, "TeacherServer", "StudentAgent");
+            var root = Path.Combine(commonAppData, "TeacherServer", "StudentAgent");
+            EnsureDirectoryExists(root);
+            TryGrantUsersModifyAccess(root);
+            return root;
         }
 
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         if (!string.IsNullOrWhiteSpace(localAppData))
         {
-            return Path.Combine(localAppData, "TeacherServer", "StudentAgent");
+            var root = Path.Combine(localAppData, "TeacherServer", "StudentAgent");
+            EnsureDirectoryExists(root);
+            return root;
         }
 
-        return Path.Combine(AppContext.BaseDirectory, "data");
+        var fallback = Path.Combine(AppContext.BaseDirectory, "data");
+        EnsureDirectoryExists(fallback);
+        return fallback;
     }
 
     public static string GetLogsDirectory()
         => Path.Combine(GetRootDirectory(), "logs");
+
+    private static void EnsureDirectoryExists(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+        }
+    }
+
+    private static void TryGrantUsersModifyAccess(string root)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            var security = Directory.GetAccessControl(root);
+            var usersSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+
+            var hasRule = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .OfType<FileSystemAccessRule>()
+                .Any(rule =>
+                    rule.IdentityReference == usersSid &&
+                    rule.AccessControlType == AccessControlType.Allow &&
+                    rule.FileSystemRights.HasFlag(FileSystemRights.Modify));
+
+            if (hasRule)
+            {
+                return;
+            }
+
+            var rule = new FileSystemAccessRule(
+                usersSid,
+                FileSystemRights.Modify | FileSystemRights.Synchronize,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow);
+
+            security.AddAccessRule(rule);
+            Directory.SetAccessControl(root, security);
+        }
+        catch
+        {
+            // If we cannot change ACLs in the current context, callers can still use the directory
+            // when permissions are already sufficient.
+        }
+    }
 }
