@@ -39,7 +39,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 ## Release workflow
 
 - For the standard Windows release flow, use `powershell -ExecutionPolicy Bypass -File .\scripts\Build-All-Windows.ps1 -Version <x.y.z> -ReleaseSummary "<item 1>; <item 2>; <item 3>"`.
-- The `build all windows` command must perform these steps in order: bump the Windows installer version, run a clean Windows build, skip `TeacherClient.Avalonia` Windows builds, append a new release entry to `CHANGELOG.md`, then create a git commit and push it to `origin`.
+- The `build all windows` command must perform these steps in order: bump the Windows installer version, run a clean Windows build, skip `TeacherClient.Avalonia` Windows builds, append a new release entry to `CHANGELOG.md`, create a git commit, create an annotated git tag `v<x.y.z>`, then push both the commit and the tag to `origin`.
 - The `build all windows` command is Windows-only. It does not build the macOS Avalonia installer from `TeacherClient.Avalonia.Setup/`.
 - Before running the Windows release flow, the agent must propose both the next version and the `ReleaseSummary` to the user.
 - The proposed `ReleaseSummary` should be formed by the agent from the current unreleased work, or from the concrete changes made in the current task if there is no dedicated unreleased section yet.
