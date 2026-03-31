@@ -4,7 +4,7 @@
   <Package
       Name="Teacher Server"
       Manufacturer="Taras Motuschuk"
-      Version="1.0.3"
+      Version="1.0.4"
       UpgradeCode="9D624377-0AA5-4E8A-970A-5640C752EA0A"
       Scope="perMachine"
       InstallerVersion="500"
@@ -100,6 +100,7 @@
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
+
 
 
 

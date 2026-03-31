@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project currently starts with an initial baseline release.
 
+## [1.0.4] - 2026-03-31
+
+### Changed
+
+- StudentAgent service and UIHost now share one system data path helper instead of duplicating path logic
+- service logs and settings path resolution were centralized into shared runtime code
+- remote command and startup path handling were simplified across the Windows student-side hosts
+
+### Notes
+
+- Windows release build only.
+- TeacherClient.Avalonia is not built for Windows by this command.
 ## [1.0.3] - 2026-03-31
 
 ### Changed
@@ -122,4 +134,5 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
+
 
