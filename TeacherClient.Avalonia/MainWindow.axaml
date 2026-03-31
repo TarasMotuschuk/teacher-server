@@ -208,6 +208,7 @@
             <Button x:Name="SendToSelectedStudentsButton" Margin="0,0,10,10" Content="Send to selected students" Click="SendToSelectedStudentsButton_OnClick" />
             <Button x:Name="SendToAllOnlineStudentsButton" Margin="0,0,10,10" Content="Send to all online students" Click="SendToAllOnlineStudentsButton_OnClick" />
             <Button x:Name="DownloadButton" Margin="0,0,10,10" Content="&lt;- Download" Click="DownloadButton_OnClick" />
+            <Button x:Name="OpenRemoteButton" Margin="0,0,10,10" Content="Open on Student PC" Click="OpenRemoteButton_OnClick" />
             <Button x:Name="DeleteLocalButton" Margin="0,0,10,10" Content="Delete Local" Click="DeleteLocalButton_OnClick" />
             <Button x:Name="DeleteRemoteButton" Margin="0,0,10,10" Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />
             <Button x:Name="NewRemoteFolderButton" Margin="0,0,10,10" Content="New Remote Folder" Click="NewRemoteFolderButton_OnClick" />

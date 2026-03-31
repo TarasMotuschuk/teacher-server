@@ -27,6 +27,7 @@ partial class MainForm
     private Button refreshFilesButton = null!;
     private Button uploadButton = null!;
     private Button downloadButton = null!;
+    private Button openRemoteButton = null!;
     private Button deleteLocalButton = null!;
     private Button deleteRemoteButton = null!;
     private Button newRemoteFolderButton = null!;
@@ -75,6 +76,7 @@ partial class MainForm
         refreshFilesButton = new Button();
         uploadButton = new Button();
         downloadButton = new Button();
+        openRemoteButton = new Button();
         deleteLocalButton = new Button();
         deleteRemoteButton = new Button();
         newRemoteFolderButton = new Button();
@@ -118,6 +120,7 @@ partial class MainForm
         filesMenuItem.DropDownItems.Add(TeacherClientText.SendToSelectedStudents, null, sendToSelectedStudentsButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.SendToAllOnlineStudents, null, sendToAllOnlineStudentsButton_Click);
         filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, downloadButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenRemote, null, openRemoteButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, deleteLocalButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, deleteRemoteButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
@@ -304,6 +307,8 @@ partial class MainForm
         uploadButton.Click += uploadButton_Click;
         downloadButton.Text = TeacherClientText.Download;
         downloadButton.Click += downloadButton_Click;
+        openRemoteButton.Text = TeacherClientText.OpenRemote;
+        openRemoteButton.Click += openRemoteButton_Click;
         deleteLocalButton.Text = TeacherClientText.DeleteLocal;
         deleteLocalButton.Click += deleteLocalButton_Click;
         deleteRemoteButton.Text = TeacherClientText.DeleteRemote;
@@ -425,6 +430,7 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, ToolbarIconKind.UploadGroup, sendToSelectedStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, ToolbarIconKind.Broadcast, sendToAllOnlineStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, ToolbarIconKind.Download, downloadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, ToolbarIconKind.OpenRemote, openRemoteButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, ToolbarIconKind.Remove, deleteLocalButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, ToolbarIconKind.Remove, deleteRemoteButton_Click));
@@ -613,6 +619,7 @@ partial class MainForm
             ToolbarIconKind.Upload => Color.FromArgb(2, 132, 199),
             ToolbarIconKind.UploadGroup => Color.FromArgb(37, 99, 235),
             ToolbarIconKind.Download => Color.FromArgb(14, 116, 144),
+            ToolbarIconKind.OpenRemote => Color.FromArgb(37, 99, 235),
             ToolbarIconKind.Broadcast => Color.FromArgb(124, 58, 237),
             ToolbarIconKind.NewFolder => Color.FromArgb(202, 138, 4),
             _ => Color.FromArgb(71, 85, 105)
@@ -696,6 +703,12 @@ partial class MainForm
                 graphics.DrawLine(pen, 18, 18, 14, 22);
                 graphics.DrawLine(pen, 7, 6, 21, 6);
                 break;
+            case ToolbarIconKind.OpenRemote:
+                graphics.DrawRectangle(pen, 5, 7, 10, 14);
+                graphics.DrawLine(pen, 12, 14, 22, 14);
+                graphics.DrawLine(pen, 18, 10, 22, 14);
+                graphics.DrawLine(pen, 18, 18, 22, 14);
+                break;
             case ToolbarIconKind.Broadcast:
                 graphics.FillEllipse(accentBrush, 12, 12, 4, 4);
                 graphics.DrawArc(pen, 8, 8, 12, 12, 315, 90);
@@ -729,6 +742,7 @@ partial class MainForm
         Upload,
         UploadGroup,
         Download,
+        OpenRemote,
         Broadcast,
         NewFolder
     }

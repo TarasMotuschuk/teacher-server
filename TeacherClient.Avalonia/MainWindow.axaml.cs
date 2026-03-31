@@ -845,6 +845,22 @@ public partial class MainWindow : Window
         }, CrossPlatformText.DownloadError);
     }
 
+    private async void OpenRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            var client = CreateClient();
+            await client.OpenRemoteEntryAsync(entry.FullPath);
+            SetStatus(CrossPlatformText.OpenedRemote(entry.Name));
+        }, CrossPlatformText.OpenRemoteError);
+    }
+
     private async void DeleteLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
@@ -1836,6 +1852,7 @@ public partial class MainWindow : Window
         SendToSelectedStudentsButton.Content = CrossPlatformText.SendToSelectedStudents;
         SendToAllOnlineStudentsButton.Content = CrossPlatformText.SendToAllOnlineStudents;
         DownloadButton.Content = CrossPlatformText.DownloadArrow;
+        OpenRemoteButton.Content = CrossPlatformText.OpenRemote;
         DeleteLocalButton.Content = CrossPlatformText.DeleteLocal;
         DeleteRemoteButton.Content = CrossPlatformText.DeleteRemote;
         NewRemoteFolderButton.Content = CrossPlatformText.NewRemoteFolder;

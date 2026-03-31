@@ -36,6 +36,7 @@ internal static class TeacherClientText
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
     public static string Download => IsUk ? "Скачати з агента" : "Download";
+    public static string OpenRemote => IsUk ? "Відкрити на учнівському ПК" : "Open on Student PC";
     public static string DeleteLocal => IsUk ? "Видалити локально" : "Delete Local";
     public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
     public static string NewRemoteFolder => IsUk ? "Нова віддалена папка" : "New Remote Folder";
@@ -137,6 +138,8 @@ internal static class TeacherClientText
     public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн-агентів." : "Keyboard and mouse lock can only be changed for online agents.";
     public static string DistributionDestinationPathRequired => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
+    public static string OpenRemoteError => IsUk ? "Помилка віддаленого відкриття" : "Remote open error";
+    public static string FormatOpenedRemote(string name) => IsUk ? $"Відкрито на учнівському ПК: {name}" : $"Opened on student PC: {name}";
     public static string ChooseLocalEntryFirst => IsUk ? "Спочатку виберіть локальний елемент." : "Choose a local entry first.";
     public static string ChooseRemoteEntryFirst => IsUk ? "Спочатку виберіть віддалений елемент." : "Choose a remote entry first.";
     public static string DeleteLocalEntryTitle => IsUk ? "Видалити локальний елемент" : "Delete Local Entry";

@@ -16,6 +16,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Teacher-side Windows Forms UI for connecting to the student agent and performing supported remote actions.
 - Avalonia desktop UI with process management and dual-pane local/remote file operations.
 - Double-click process details dialogs in both teacher clients, with full process metadata and `Kill` / `Restart` actions.
+- Remote file-manager action for opening the selected file or folder directly on the connected student PC from both teacher clients.
 - Shared-secret middleware using the `X-Teacher-Secret` request header.
 - Student-side tray application flow with protected `Settings`, `Logs`, `About`, and administrator-gated `Exit`.
 - WinForms designer-friendly forms for `StudentAgent` and `TeacherClient` dialogs.

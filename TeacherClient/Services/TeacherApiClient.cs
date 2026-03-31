@@ -111,6 +111,12 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task OpenRemoteEntryAsync(string fullPath, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/files/open", new OpenRemoteEntryRequest(fullPath), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task EnsureRemoteDirectoryPathAsync(string fullPath, CancellationToken cancellationToken = default)
     {
         var normalizedPath = RemoteWindowsPath.Normalize(fullPath);

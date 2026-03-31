@@ -56,6 +56,7 @@ Available endpoints:
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
 - file upload and download;
+- remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
@@ -87,6 +88,7 @@ Available endpoints:
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
 - upload and download files;
+- remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
@@ -222,7 +224,7 @@ Example configuration:
 6. Open `Connection -> Settings` and choose the preferred UI language, the shared secret, the destination folder path for bulk distribution, and the student work base path plus work folder name.
 7. Connect to a selected agent from the `Agents` list.
 8. On the `Processes` tab, double-click a process to inspect full details and optionally `Kill` or `Restart` it.
-9. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
+9. In the `Files` tab, you can upload to the currently connected agent, download from it, or remotely open the selected file or folder on the student PC.
 10. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
 11. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
 12. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.

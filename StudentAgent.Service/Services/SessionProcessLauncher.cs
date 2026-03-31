@@ -85,6 +85,29 @@ internal static class SessionProcessLauncher
         }
     }
 
+    public static void StartShellOpenInSession(string targetPath, int sessionId)
+    {
+        if (Directory.Exists(targetPath))
+        {
+            StartProcessInSession(Path.Combine(Environment.SystemDirectory, "explorer.exe"), QuoteArgument(targetPath), sessionId);
+            return;
+        }
+
+        if (File.Exists(targetPath))
+        {
+            StartProcessInSession(
+                Path.Combine(Environment.SystemDirectory, "rundll32.exe"),
+                $"shell32.dll,ShellExec_RunDLL {QuoteArgument(targetPath)}",
+                sessionId);
+            return;
+        }
+
+        throw new FileNotFoundException("Entry not found.", targetPath);
+    }
+
+    private static string QuoteArgument(string value)
+        => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct STARTUPINFO
     {

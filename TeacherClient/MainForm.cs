@@ -876,6 +876,27 @@ public partial class MainForm : Form
         }
     }
 
+    private async void openRemoteButton_Click(object? sender, EventArgs e)
+    {
+        if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(TeacherClientText.ChooseRemoteEntryFirst);
+            return;
+        }
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            var client = CreateClient();
+            await client.OpenRemoteEntryAsync(entry.FullPath);
+            SetStatus(TeacherClientText.FormatOpenedRemote(entry.Name));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.OpenRemoteError}: {ex.Message}");
+        }
+    }
+
     private async void deleteLocalButton_Click(object sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)

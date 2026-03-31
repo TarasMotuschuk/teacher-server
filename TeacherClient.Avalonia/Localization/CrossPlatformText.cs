@@ -59,6 +59,7 @@ internal static class CrossPlatformText
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string UploadArrow => IsUk ? "Завантажити ->" : "Upload ->";
     public static string DownloadArrow => IsUk ? "<- Скачати" : "<- Download";
+    public static string OpenRemote => IsUk ? "Відкрити на учнівському ПК" : "Open on Student PC";
     public static string DeleteLocal => IsUk ? "Видалити локально" : "Delete Local";
     public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
     public static string NewRemoteFolder => IsUk ? "Нова віддалена папка" : "New Remote Folder";
@@ -239,6 +240,8 @@ internal static class CrossPlatformText
             ? $"Очистити вміст папки {path} на {(allOnline ? "всіх онлайн" : "вибраних")} учнях ({count})? Сама папка залишиться."
             : $"Clear the contents of folder {path} on {(allOnline ? "all online" : "selected")} students ({count})? The folder itself will remain.";
     public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
+    public static string OpenRemoteError => IsUk ? "Помилка віддаленого відкриття" : "Remote open error";
+    public static string OpenedRemote(string name) => IsUk ? $"Відкрито на учнівському ПК: {name}" : $"Opened on student PC: {name}";
     public static string Downloaded(string name) => IsUk ? $"Скачано {name}" : $"Downloaded {name}";
     public static string DownloadError => IsUk ? "Помилка скачування файлу" : "Download error";
     public static string ChooseLocalEntryFirst => IsUk ? "Спочатку виберіть локальний елемент." : "Choose a local entry first.";

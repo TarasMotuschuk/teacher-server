@@ -12,6 +12,7 @@ try
     });
 
     builder.Services.AddStudentAgentRuntimeServices(builder.Configuration, includeBackgroundPolicies: true);
+    builder.Services.AddSingleton<RemoteShellOpenService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
 
     var app = builder.Build();
@@ -20,6 +21,18 @@ try
     StudentAgentText.SetLanguage(settingsStore.Current.Language);
 
     app.ConfigureStudentAgentWeb();
+    app.MapPost("/api/files/open", ([FromBody] OpenRemoteEntryRequest request, [FromServices] RemoteShellOpenService service) =>
+    {
+        try
+        {
+            service.OpenEntry(request.FullPath);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
     app.Lifetime.ApplicationStarted.Register(() =>
     {
         logService.LogInfo($"StudentAgent.Service started on port {settingsStore.Current.Port}.");
