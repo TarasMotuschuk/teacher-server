@@ -17,6 +17,7 @@ public static class StudentAgentHostExtensions
         services.AddSingleton<FileService>();
         services.AddSingleton<ServerInfoService>();
         services.AddSingleton<NetworkIdentityService>();
+        services.AddSingleton<RegistryService>();
         services.AddHostedService<AgentDiscoveryService>();
 
         if (includeBackgroundPolicies)
@@ -128,6 +129,30 @@ public static class StudentAgentHostExtensions
                 agentLog.LogWarning(logMessage);
                 service.ExecutePowerAction(request.Action);
                 return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/registry/keys", (string? path, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetSubKeys(path ?? string.Empty));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/registry/values", (string? path, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetValues(path ?? string.Empty));
             }
             catch (Exception ex)
             {

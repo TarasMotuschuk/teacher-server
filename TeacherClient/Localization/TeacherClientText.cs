@@ -323,6 +323,11 @@ internal static class TeacherClientText
     public static string DeleteLocalEntryPrompt(string name) => IsUk ? $"Видалити локальний елемент {name}?" : $"Delete local entry {name}?";
     public static string DeleteRemoteEntryPrompt(string name) => IsUk ? $"Видалити віддалений елемент {name}?" : $"Delete remote entry {name}?";
     public static string FormatConnectedToAgent(string source, string machine, string user) => IsUk ? $"Підключено до {source} агента {machine} ({user})" : $"Connected to {source} agent {machine} ({user})";
+    public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
+    public static string RegistryValueType => IsUk ? "Тип" : "Type";
+    public static string RegistryValueData => IsUk ? "Дані" : "Data";
+    public static string RegistryLoadError => IsUk ? "Помилка завантаження реєстру" : "Registry load error";
+    public static string FormatLoadedRegistryValues(int count) => IsUk ? $"Значень у ключі: {count}" : $"Values in key: {count}";
 
     private static string GetPowerActionVerb(PowerActionKind action) => action switch
     {

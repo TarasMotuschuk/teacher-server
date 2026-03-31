@@ -22,6 +22,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
     private readonly ObservableCollection<FileSystemEntryDto> _remoteEntries = [];
+    private readonly ObservableCollection<RegistryNode> _registryRoots = [];
+    private readonly ObservableCollection<RegistryValueDto> _registryValues = [];
     private readonly DispatcherTimer _agentRefreshTimer = new();
     private readonly DispatcherTimer _connectionMonitorTimer = new();
     private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +45,10 @@ public partial class MainWindow : Window
         LocalFilesGrid.ItemsSource = _localEntries;
         RemoteFilesGrid.ItemsSource = _remoteEntries;
         AgentsGrid.ItemsSource = _agents;
+        RegistryTreeView.ItemsSource = _registryRoots;
+        RegistryValuesGrid.ItemsSource = _registryValues;
+        RegistryTreeView.AddHandler(TreeViewItem.ExpandedEvent, RegistryTreeView_NodeExpanded);
+        InitializeRegistryTree();
         LocalPathTextBox.Text = GetDefaultLocalPath();
         _manualAgents = _manualAgentStore.Load().ToList();
         _frequentPrograms = _frequentProgramStore.Load().ToList();
@@ -559,6 +565,57 @@ public partial class MainWindow : Window
     }
 
     private async void RefreshProcessesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await LoadProcessesAsync();
+
+    private void RefreshRegistryButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => InitializeRegistryTree();
+
+    private void RegistryTreeView_NodeExpanded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (e.Source is TreeViewItem { DataContext: RegistryNode { IsLoaded: false } node })
+            _ = LoadRegistrySubKeysAsync(node);
+    }
+
+    private async void RegistryTreeView_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (RegistryTreeView.SelectedItem is not RegistryNode node) return;
+        try
+        {
+            var client = CreateClient();
+            var values = await client.GetRegistryValuesAsync(node.Path);
+            ReplaceItems(_registryValues, values);
+            SetStatus(CrossPlatformText.LoadedRegistryValues(values.Count));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryLoadError}: {ex.Message}");
+        }
+    }
+
+    private async Task LoadRegistrySubKeysAsync(RegistryNode node)
+    {
+        node.IsLoaded = true;
+        try
+        {
+            var client = CreateClient();
+            var subKeys = await client.GetRegistrySubKeysAsync(node.Path);
+            node.Children.Clear();
+            foreach (var key in subKeys)
+                node.Children.Add(new RegistryNode(key.Name, key.Path, key.HasChildren));
+        }
+        catch (Exception ex)
+        {
+            node.IsLoaded = false;
+            SetStatus($"{CrossPlatformText.RegistryLoadError}: {ex.Message}");
+        }
+    }
+
+    private void InitializeRegistryTree()
+    {
+        _registryRoots.Clear();
+        _registryValues.Clear();
+        string[] hives = ["HKEY_LOCAL_MACHINE", "HKEY_CURRENT_USER", "HKEY_CLASSES_ROOT", "HKEY_USERS", "HKEY_CURRENT_CONFIG"];
+        foreach (var hive in hives)
+            _registryRoots.Add(new RegistryNode(hive, hive, hasChildren: true));
+    }
 
     private async void ProcessesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
@@ -2066,5 +2123,21 @@ public partial class MainWindow : Window
         {
             StatusTextBlock.Text = CrossPlatformText.StatusReady;
         }
+    }
+}
+
+public sealed class RegistryNode
+{
+    public string Name { get; }
+    public string Path { get; }
+    public bool IsLoaded { get; set; }
+    public ObservableCollection<RegistryNode> Children { get; } = [];
+
+    public RegistryNode(string name, string path, bool hasChildren)
+    {
+        Name = name;
+        Path = path;
+        if (hasChildren)
+            Children.Add(new RegistryNode("...", path, hasChildren: false));
     }
 }

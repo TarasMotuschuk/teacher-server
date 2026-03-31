@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project currently starts with an initial baseline release.
 
+## [Unreleased]
+
+### Added
+
+- Remote registry viewer tab in both TeacherClient (WinForms) and TeacherClient.Avalonia: browse the full registry tree of a connected student machine with lazy-loaded subkeys and a value list showing Name, Type, and Data columns
+- `GET /api/registry/keys` and `GET /api/registry/values` endpoints on StudentAgent.Service for read-only registry access
+- `RegistryService` on the agent side supports all five root hives (HKLM, HKCU, HKCR, HKU, HKCC) with formatted value display (REG_SZ, REG_DWORD, REG_BINARY, REG_MULTI_SZ, REG_QWORD, REG_EXPAND_SZ)
+
 ## [1.0.4] - 2026-03-31
 
 ### Changed

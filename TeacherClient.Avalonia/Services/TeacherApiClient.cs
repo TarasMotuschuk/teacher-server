@@ -70,6 +70,18 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<IReadOnlyList<RegistryKeyDto>> GetRegistrySubKeysAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var requestUri = string.IsNullOrEmpty(path)
+            ? "api/registry/keys"
+            : $"api/registry/keys?path={Uri.EscapeDataString(path)}";
+        return await _httpClient.GetFromJsonAsync<List<RegistryKeyDto>>(requestUri, cancellationToken) ?? [];
+    }
+
+    public async Task<IReadOnlyList<RegistryValueDto>> GetRegistryValuesAsync(string path, CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<RegistryValueDto>>(
+            $"api/registry/values?path={Uri.EscapeDataString(path)}", cancellationToken) ?? [];
+
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
 

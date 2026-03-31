@@ -150,6 +150,11 @@ internal static class CrossPlatformText
     public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
     public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
     public static string ConnectedToAgent(string source, string machine, string user) => IsUk ? $"Підключено до {source} агента {machine} ({user})" : $"Connected to {source} agent {machine} ({user})";
+    public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
+    public static string RegistryValueType => IsUk ? "Тип" : "Type";
+    public static string RegistryValueData => IsUk ? "Дані" : "Data";
+    public static string RegistryLoadError => IsUk ? "Помилка завантаження реєстру" : "Registry load error";
+    public static string LoadedRegistryValues(int count) => IsUk ? $"Значень у ключі: {count}" : $"Values in key: {count}";
     public static string ConnectFromAgentsTabFirst => IsUk ? "Спочатку підключіться до агента на вкладці агентів." : "Connect to an agent from the Agents tab first.";
     public static string ChooseProcessFirst => IsUk ? "Спочатку виберіть процес." : "Choose a process first.";
     public static string TerminateProcessTitle => IsUk ? "Завершити процес" : "Terminate Process";
