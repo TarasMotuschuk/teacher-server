@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project currently starts with an initial baseline release.
 
+## [1.0.3] - 2026-03-31
+
+### Changed
+
+- Service and UIHost runtime settings now stay synchronized so browser lock and input lock changes propagate correctly
+- Remote command execution now launches hidden cmd processes instead of flashing a console window
+- The Windows teacher file toolbar now shows an explicit Open on Student PC button instead of only an icon
+
+### Notes
+
+- Windows release build only.
+- TeacherClient.Avalonia is not built for Windows by this command.
 ## [1.0.2] - 2026-03-31
 
 ### Changed
@@ -110,3 +122,4 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
+
