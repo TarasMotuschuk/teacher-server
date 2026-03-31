@@ -11,6 +11,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Teacher Client now handles connection timeouts without crashing and shows a regular error instead of a JIT dialog
 - Windows MSI now adds a firewall exception for StudentAgent Service during installation
 - StudentAgent.Service startup source was corrected after the latest sync
+- Service and UIHost runtime settings now stay synchronized so browser lock and input lock changes propagate correctly
 
 ### Notes
 
@@ -107,5 +108,4 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
-
 

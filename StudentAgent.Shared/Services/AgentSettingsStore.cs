@@ -10,15 +10,17 @@ public sealed class AgentSettingsStore
 {
     private readonly object _sync = new();
     private readonly string _settingsPath;
+    private readonly AgentOptions _defaults;
     private AgentRuntimeSettings _current;
     public event EventHandler? SettingsChanged;
 
     public AgentSettingsStore(IOptions<AgentOptions> options)
     {
+        _defaults = options.Value;
         var dataDirectory = GetDataDirectory();
         Directory.CreateDirectory(dataDirectory);
         _settingsPath = Path.Combine(dataDirectory, "agentsettings.json");
-        _current = Load(options.Value);
+        _current = Load(_defaults);
         Save(_current);
     }
 
@@ -26,9 +28,23 @@ public sealed class AgentSettingsStore
     {
         get
         {
+            EventHandler? changedHandler = null;
+            var changed = false;
             lock (_sync)
             {
-                return Clone(_current);
+                changed = ReloadFromDiskIfChanged();
+                if (changed)
+                {
+                    changedHandler = SettingsChanged;
+                }
+
+                var snapshot = Clone(_current);
+                if (changed && changedHandler is not null)
+                {
+                    Task.Run(() => changedHandler.Invoke(this, EventArgs.Empty));
+                }
+
+                return snapshot;
             }
         }
     }
@@ -38,6 +54,7 @@ public sealed class AgentSettingsStore
         var hash = HashPassword(password);
         lock (_sync)
         {
+            ReloadFromDiskIfChanged();
             return string.Equals(hash, _current.AdminPasswordHash, StringComparison.OrdinalIgnoreCase);
         }
     }
@@ -46,6 +63,7 @@ public sealed class AgentSettingsStore
     {
         lock (_sync)
         {
+            ReloadFromDiskIfChanged();
             _current.SharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
             _current.Language = language;
             if (!string.IsNullOrWhiteSpace(password))
@@ -55,12 +73,15 @@ public sealed class AgentSettingsStore
 
             Save(_current);
         }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void UpdateBrowserLock(bool enabled)
     {
         lock (_sync)
         {
+            ReloadFromDiskIfChanged();
             _current.BrowserLockEnabled = enabled;
             Save(_current);
         }
@@ -72,11 +93,43 @@ public sealed class AgentSettingsStore
     {
         lock (_sync)
         {
+            ReloadFromDiskIfChanged();
             _current.InputLockEnabled = enabled;
             Save(_current);
         }
 
         SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool ReloadFromDiskIfChanged()
+    {
+        if (!File.Exists(_settingsPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(_settingsPath);
+            var loaded = JsonSerializer.Deserialize<AgentRuntimeSettings>(json);
+            if (loaded is null)
+            {
+                return false;
+            }
+
+            var normalized = Normalize(loaded, _defaults);
+            if (AreEquivalent(_current, normalized))
+            {
+                return false;
+            }
+
+            _current = normalized;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private AgentRuntimeSettings Load(AgentOptions defaults)
@@ -146,6 +199,18 @@ public sealed class AgentSettingsStore
             BrowserLockEnabled = settings.BrowserLockEnabled,
             InputLockEnabled = settings.InputLockEnabled
         };
+    }
+
+    private static bool AreEquivalent(AgentRuntimeSettings left, AgentRuntimeSettings right)
+    {
+        return left.Port == right.Port
+            && left.DiscoveryPort == right.DiscoveryPort
+            && string.Equals(left.SharedSecret, right.SharedSecret, StringComparison.Ordinal)
+            && string.Equals(left.AdminPasswordHash, right.AdminPasswordHash, StringComparison.Ordinal)
+            && string.Equals(left.VisibleBannerText, right.VisibleBannerText, StringComparison.Ordinal)
+            && left.Language == right.Language
+            && left.BrowserLockEnabled == right.BrowserLockEnabled
+            && left.InputLockEnabled == right.InputLockEnabled;
     }
 
     private static string HashPassword(string password)
