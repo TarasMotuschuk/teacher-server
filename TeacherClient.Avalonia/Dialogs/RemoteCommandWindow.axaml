@@ -25,7 +25,24 @@
         <TextBlock x:Name="RunAsLabelTextBlock" Text="Run as" />
         <ComboBox x:Name="RunAsComboBox" Grid.Row="1" Margin="0,8,0,16" />
         <TextBlock x:Name="FrequentProgramsLabelTextBlock" Grid.Row="2" Text="Frequent Programs" />
-        <ListBox x:Name="FrequentProgramsListBox" Grid.Row="3" Margin="0,8,0,12" />
+        <ListBox x:Name="FrequentProgramsListBox" Grid.Row="3" Margin="0,8,0,12">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Border Padding="8,6">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding DisplayName}"
+                             FontWeight="SemiBold"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding CommandText}"
+                             Opacity="0.75"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             MaxHeight="38" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
         <Button x:Name="InsertSelectedButton" Grid.Row="4" HorizontalAlignment="Right" Click="InsertSelectedButton_OnClick" />
       </Grid>
     </Grid>

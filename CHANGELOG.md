@@ -12,6 +12,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Windows MSI now adds a firewall exception for StudentAgent Service during installation
 - StudentAgent.Service startup source was corrected after the latest sync
 - Service and UIHost runtime settings now stay synchronized so browser lock and input lock changes propagate correctly
+- Remote command execution now launches hidden `cmd` processes instead of flashing a console window
+- The Windows teacher file toolbar now shows an explicit `Open on Student PC` button instead of only an icon
 
 ### Notes
 
@@ -108,4 +110,3 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
-

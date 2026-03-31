@@ -13,6 +13,9 @@ internal static class SessionProcessLauncher
     }
 
     public static void StartProcessInSession(string applicationPath, string arguments, int sessionId)
+        => StartProcessInSession(applicationPath, arguments, sessionId, hideWindow: false);
+
+    public static void StartProcessInSession(string applicationPath, string arguments, int sessionId, bool hideWindow)
     {
         if (!WTSQueryUserToken(sessionId, out var impersonationToken))
         {
@@ -44,7 +47,9 @@ internal static class SessionProcessLauncher
                     var startupInfo = new STARTUPINFO
                     {
                         cb = Marshal.SizeOf<STARTUPINFO>(),
-                        lpDesktop = @"winsta0\default"
+                        lpDesktop = @"winsta0\default",
+                        dwFlags = hideWindow ? 0x00000001 : 0,
+                        wShowWindow = hideWindow ? (short)0 : (short)1
                     };
 
                     var commandLine = string.IsNullOrWhiteSpace(arguments)
@@ -58,7 +63,7 @@ internal static class SessionProcessLauncher
                             IntPtr.Zero,
                             IntPtr.Zero,
                             false,
-                            0x00000400 | 0x00000010,
+                            0x00000400 | 0x00000010 | (hideWindow ? 0x08000000 : 0),
                             environment,
                             Path.GetDirectoryName(applicationPath),
                             ref startupInfo,
@@ -116,7 +121,8 @@ internal static class SessionProcessLauncher
         StartProcessInSession(
             Path.Combine(Environment.SystemDirectory, "cmd.exe"),
             $"/c {QuoteArgument(scriptPath)}",
-            sessionId);
+            sessionId,
+            hideWindow: true);
     }
 
     public static void StartCmdScriptAsAdministrator(string scriptPath)

@@ -438,7 +438,7 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, ToolbarIconKind.UploadGroup, sendToSelectedStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, ToolbarIconKind.Broadcast, sendToAllOnlineStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, ToolbarIconKind.Download, downloadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, ToolbarIconKind.OpenRemote, openRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, ToolbarIconKind.OpenRemote, openRemoteButton_Click, showText: true));
         filesToolStrip.Items.Add(new ToolStripSeparator());
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, ToolbarIconKind.Remove, deleteLocalButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, ToolbarIconKind.Remove, deleteRemoteButton_Click));
@@ -589,18 +589,20 @@ partial class MainForm
         };
     }
 
-    private static ToolStripButton CreateToolbarButton(string toolTipText, ToolbarIconKind iconKind, EventHandler onClick)
+    private static ToolStripButton CreateToolbarButton(string toolTipText, ToolbarIconKind iconKind, EventHandler onClick, bool showText = false)
     {
         var button = new ToolStripButton
         {
-            DisplayStyle = ToolStripItemDisplayStyle.Image,
+            DisplayStyle = showText ? ToolStripItemDisplayStyle.ImageAndText : ToolStripItemDisplayStyle.Image,
             AutoSize = false,
-            Width = 46,
+            Width = showText ? 170 : 46,
             Height = 46,
             Image = CreateToolbarIcon(iconKind),
+            Text = showText ? toolTipText : string.Empty,
             ToolTipText = toolTipText,
             Margin = new Padding(2),
-            ImageTransparentColor = Color.Magenta
+            ImageTransparentColor = Color.Magenta,
+            TextImageRelation = TextImageRelation.ImageBeforeText
         };
         button.Click += onClick;
         return button;
