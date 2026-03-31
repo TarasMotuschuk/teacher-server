@@ -186,7 +186,8 @@
                     AutoGenerateColumns="False"
                     CanUserReorderColumns="False"
                     IsReadOnly="True"
-                    SelectionMode="Single">
+                    SelectionMode="Single"
+                    DoubleTapped="ProcessesGrid_OnDoubleTapped">
             <DataGrid.Columns>
               <DataGridTextColumn Header="PID" Binding="{Binding Id}" Width="90" />
               <DataGridTextColumn Header="Process" Binding="{Binding Name}" Width="220" />

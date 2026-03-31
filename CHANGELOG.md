@@ -12,8 +12,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Cross-platform `TeacherClient.Avalonia` desktop client for macOS, Linux, and Windows.
 - Shared DTO contracts for process, file, and server operations.
 - Student-side HTTP API for process inspection, process termination, file browsing, upload, download, deletion, and remote directory creation.
+- Student-side process details and process restart endpoints for richer teacher-side process management.
 - Teacher-side Windows Forms UI for connecting to the student agent and performing supported remote actions.
 - Avalonia desktop UI with process management and dual-pane local/remote file operations.
+- Double-click process details dialogs in both teacher clients, with full process metadata and `Kill` / `Restart` actions.
 - Shared-secret middleware using the `X-Teacher-Secret` request header.
 - Student-side tray application flow with protected `Settings`, `Logs`, `About`, and administrator-gated `Exit`.
 - WinForms designer-friendly forms for `StudentAgent` and `TeacherClient` dialogs.

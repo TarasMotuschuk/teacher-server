@@ -51,6 +51,7 @@ Available endpoints:
 - teacher-configured student work folder settings with automatic shared-folder provisioning on reachable student PCs;
 - user-selectable UI language with English and Ukrainian options;
 - process list refresh and remote process termination;
+- double-click process details with full metadata plus `Kill` and `Restart` actions;
 - dual-pane local/remote file browsing;
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
@@ -81,6 +82,7 @@ Available endpoints:
 - teacher-configured student work folder settings with automatic shared-folder provisioning on reachable student PCs;
 - user-selectable UI language with English and Ukrainian options;
 - browse remote processes and terminate a selected process;
+- double-click process details with full metadata plus `Kill` and `Restart` actions;
 - browse local and remote file trees in dual panes;
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
@@ -219,19 +221,20 @@ Example configuration:
 5. Leave `Auto-reconnect` enabled if you want the client to recover the last active connection automatically.
 6. Open `Connection -> Settings` and choose the preferred UI language, the shared secret, the destination folder path for bulk distribution, and the student work base path plus work folder name.
 7. Connect to a selected agent from the `Agents` list.
-8. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
-9. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
-10. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
-11. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
-12. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
-13. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
-14. Use `Group Commands -> Student Work -> Clear work folder on all PCs` to empty the configured student work folder on all reachable student machines while leaving the folder itself in place.
-15. Use the `Browser lock` checkbox in the agents list to enable or disable browser blocking for a specific online student PC. While enabled, the student agent checks for running browsers every minute, shows a visible warning for 10 seconds, and then force-closes browser processes that are still open.
-16. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
-17. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
-18. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-19. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
-20. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
+8. On the `Processes` tab, double-click a process to inspect full details and optionally `Kill` or `Restart` it.
+9. In the `Files` tab, you can still upload to the currently connected agent, or distribute a selected local file/folder to either the selected student agents or all online student agents.
+10. Once the work folder settings are saved, the client automatically attempts to create the shared student work folder on reachable student PCs and grant broad write access so students can save their work there.
+11. When distributing a folder, the client recreates the selected folder and its full internal directory structure under the configured destination path on every target student machine.
+12. Use `Group Commands -> Destination Folder` to clear the configured student destination folder on either the selected agents or all online agents. The folder itself remains in place.
+13. Use `Group Commands -> Student Work -> Create work folder on all PCs` to provision the configured student work folder across all reachable student machines.
+14. Use `Group Commands -> Student Work -> Collect student work to teacher PC` to gather each student's configured work folder into the current local teacher folder, inside a subfolder named after that student machine.
+15. Use `Group Commands -> Student Work -> Clear work folder on all PCs` to empty the configured student work folder on all reachable student machines while leaving the folder itself in place.
+16. Use the `Browser lock` checkbox in the agents list to enable or disable browser blocking for a specific online student PC. While enabled, the student agent checks for running browsers every minute, shows a visible warning for 10 seconds, and then force-closes browser processes that are still open.
+17. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
+18. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
+19. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
+20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
+21. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
 ### Start TeacherClient.Avalonia on macOS
 

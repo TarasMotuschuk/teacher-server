@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.ProcessDetailsWindow"
+        Width="860"
+        Height="640"
+        MinWidth="760"
+        MinHeight="560"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Title="Process Details">
+  <Grid RowDefinitions="*,Auto" Margin="16">
+    <TextBox x:Name="DetailsTextBox"
+             Grid.Row="0"
+             IsReadOnly="True"
+             AcceptsReturn="True"
+             TextWrapping="Wrap" />
+
+    <StackPanel Grid.Row="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="12"
+                Margin="0,16,0,0">
+      <Button x:Name="KillButton" MinWidth="140" Click="KillButton_OnClick" />
+      <Button x:Name="RestartButton" MinWidth="160" Click="RestartButton_OnClick" />
+      <Button x:Name="CloseButton" MinWidth="120" Click="CloseButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>

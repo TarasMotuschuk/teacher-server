@@ -48,6 +48,17 @@ public static class StudentAgentHostExtensions
 
         app.MapGet("/api/info", (ServerInfoService service) => Results.Ok(service.GetInfo()));
         app.MapGet("/api/processes", (ProcessService service) => Results.Ok(service.GetProcesses()));
+        app.MapGet("/api/processes/{processId:int}", (int processId, ProcessService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetProcessDetails(processId));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
 
         app.MapPost("/api/processes/kill", ([FromBody] KillProcessRequest request, [FromServices] ProcessService service) =>
         {
@@ -55,6 +66,18 @@ public static class StudentAgentHostExtensions
             {
                 service.KillProcess(request.ProcessId);
                 return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/processes/restart", ([FromBody] RestartProcessRequest request, [FromServices] ProcessService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.RestartProcess(request.ProcessId));
             }
             catch (Exception ex)
             {

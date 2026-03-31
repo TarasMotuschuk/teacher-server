@@ -455,6 +455,49 @@ public partial class MainWindow : Window
 
     private async void RefreshProcessesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await LoadProcessesAsync();
 
+    private async void ProcessesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (ProcessesGrid.SelectedItem is not ProcessInfoDto process)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            var client = CreateClient();
+            var details = await client.GetProcessDetailsAsync(process.Id);
+            if (details is null)
+            {
+                SetStatus(CrossPlatformText.ProcessDetailsLoadError);
+                return;
+            }
+
+            var action = await ProcessDetailsWindow.ShowAsync(this, details);
+            if (action == ProcessActionRequested.Kill)
+            {
+                if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.TerminateProcessTitle, CrossPlatformText.TerminateProcessPrompt(process.Name, process.Id)))
+                {
+                    return;
+                }
+
+                await client.KillProcessAsync(process.Id);
+                await LoadProcessesAsync();
+                SetStatus(CrossPlatformText.ProcessTerminated(process.Name));
+            }
+            else if (action == ProcessActionRequested.Restart)
+            {
+                if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.RestartCommand, CrossPlatformText.RestartProcessPrompt(process.Name, process.Id)))
+                {
+                    return;
+                }
+
+                await client.RestartProcessAsync(process.Id);
+                await LoadProcessesAsync();
+                SetStatus(CrossPlatformText.ProcessRestarted(process.Name));
+            }
+        }, CrossPlatformText.ProcessDetailsLoadError);
+    }
+
     private async void KillProcessButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (ProcessesGrid.SelectedItem is not ProcessInfoDto process)

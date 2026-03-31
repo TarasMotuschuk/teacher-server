@@ -9,3 +9,24 @@ public sealed record ProcessInfoDto(
     bool HasVisibleWindow);
 
 public sealed record KillProcessRequest(int ProcessId);
+
+public sealed record RestartProcessRequest(int ProcessId);
+
+public sealed record ProcessDetailsDto(
+    int Id,
+    string Name,
+    string? MainWindowTitle,
+    string? ExecutablePath,
+    string? CommandLine,
+    long WorkingSetBytes,
+    DateTime StartTimeUtc,
+    bool HasVisibleWindow,
+    bool Responding,
+    int SessionId,
+    int ThreadCount,
+    int HandleCount,
+    string? PriorityClass,
+    TimeSpan TotalProcessorTime,
+    string? FileVersion,
+    string? ProductName,
+    string? ErrorMessage);

@@ -258,6 +258,7 @@ partial class MainForm
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190, ReadOnly = true });
 
         processesGrid.Dock = DockStyle.Fill;
+        processesGrid.CellDoubleClick += processesGrid_CellDoubleClick;
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "PID", DataPropertyName = "Id", Width = 90 });
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Process, DataPropertyName = "Name", Width = 220 });
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Window, DataPropertyName = "MainWindowTitle", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 260 });

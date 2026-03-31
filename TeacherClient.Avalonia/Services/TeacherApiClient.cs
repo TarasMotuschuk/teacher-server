@@ -43,6 +43,15 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public Task<ProcessDetailsDto?> GetProcessDetailsAsync(int processId, CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<ProcessDetailsDto>($"api/processes/{processId}", cancellationToken);
+
+    public async Task RestartProcessAsync(int processId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/processes/restart", new RestartProcessRequest(processId), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task SetBrowserLockEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/browser-lock", new BrowserLockStateRequest(enabled), cancellationToken);

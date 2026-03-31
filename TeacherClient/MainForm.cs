@@ -238,6 +238,67 @@ public partial class MainForm : Form
         }
     }
 
+    private async void processesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0 || processesGrid.Rows[e.RowIndex].DataBoundItem is not ProcessInfoDto process)
+        {
+            return;
+        }
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            var client = CreateClient();
+            var details = await client.GetProcessDetailsAsync(process.Id);
+            if (details is null)
+            {
+                SetStatus(TeacherClientText.ProcessDetailsLoadError);
+                return;
+            }
+
+            using var dialog = new ProcessDetailsDialog(details);
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            if (dialog.ActionRequested == ProcessActionRequested.Kill)
+            {
+                if (MessageBox.Show(
+                        TeacherClientText.TerminateProcessPrompt(process.Name, process.Id),
+                        TeacherClientText.TerminateProcessTitle,
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                await client.KillProcessAsync(process.Id);
+                await LoadProcessesAsync();
+                SetStatus(TeacherClientText.FormatProcessTerminated(process.Name));
+            }
+            else if (dialog.ActionRequested == ProcessActionRequested.Restart)
+            {
+                if (MessageBox.Show(
+                        TeacherClientText.RestartProcessPrompt(process.Name, process.Id),
+                        TeacherClientText.RestartCommand,
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                await client.RestartProcessAsync(process.Id);
+                await LoadProcessesAsync();
+                SetStatus(TeacherClientText.FormatProcessRestarted(process.Name));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.ProcessDetailsLoadError}: {ex.Message}");
+        }
+    }
+
     private async Task LoadProcessesAsync()
     {
         try

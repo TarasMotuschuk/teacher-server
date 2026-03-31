@@ -45,6 +45,7 @@ internal static class CrossPlatformText
     public static string AutoReconnect => IsUk ? "Автоперепідключення" : "Auto-reconnect";
     public static string Source => IsUk ? "Джерело" : "Source";
     public static string Status => IsUk ? "Статус" : "Status";
+    public static string ProcessLabel => IsUk ? "Процес" : "Process";
     public static string BrowserLock => IsUk ? "Блок браузера" : "Browser lock";
     public static string InputLock => IsUk ? "Блок вводу" : "Input lock";
     public static string Group => IsUk ? "Група" : "Group";
@@ -132,6 +133,11 @@ internal static class CrossPlatformText
     public static string TerminateProcessTitle => IsUk ? "Завершити процес" : "Terminate Process";
     public static string TerminateProcessPrompt(string name, int id) => IsUk ? $"Завершити процес {name} ({id})?" : $"Terminate process {name} ({id})?";
     public static string ProcessTerminated(string name) => IsUk ? $"Процес {name} завершено" : $"Process {name} terminated";
+    public static string RestartSelected => IsUk ? "Перезапустити вибране" : "Restart Selected";
+    public static string RestartProcessPrompt(string name, int id) => IsUk ? $"Перезапустити процес {name} ({id})?" : $"Restart process {name} ({id})?";
+    public static string ProcessRestarted(string name) => IsUk ? $"Процес {name} перезапущено" : $"Process {name} restarted";
+    public static string ProcessDetailsTitle => IsUk ? "Відомості про процес" : "Process Details";
+    public static string ProcessDetailsLoadError => IsUk ? "Помилка завантаження відомостей про процес" : "Process details load error";
     public static string LoadedProcesses(int count) => IsUk ? $"Завантажено процесів: {count}" : $"Loaded {count} processes";
     public static string ProcessLoadError => IsUk ? "Помилка завантаження процесів" : "Process load error";
     public static string DiscoveryError => IsUk ? "Помилка пошуку агентів" : "Discovery error";
@@ -258,6 +264,21 @@ internal static class CrossPlatformText
     public static string ManualSource => IsUk ? "Вручну" : "Manual";
     public static string ManualAutoSource => IsUk ? "Вручну+Авто" : "Manual+Auto";
     public static string ManualVersion => IsUk ? "Вручну" : "Manual";
+    public static string Window => IsUk ? "Вікно" : "Window";
+    public static string Visible => IsUk ? "Видимий" : "Visible";
+    public static string StartedUtc => IsUk ? "Запущено UTC" : "Started UTC";
+    public static string Responding => IsUk ? "Відповідає" : "Responding";
+    public static string ExecutablePath => IsUk ? "Шлях до exe" : "Executable path";
+    public static string CommandLine => IsUk ? "Командний рядок" : "Command line";
+    public static string SessionId => IsUk ? "Сесія" : "Session ID";
+    public static string ThreadCount => IsUk ? "Потоки" : "Thread count";
+    public static string HandleCount => IsUk ? "Дескриптори" : "Handle count";
+    public static string PriorityClass => IsUk ? "Пріоритет" : "Priority class";
+    public static string TotalProcessorTime => IsUk ? "Процесорний час" : "Total processor time";
+    public static string FileVersion => IsUk ? "Версія файла" : "File version";
+    public static string ProductName => IsUk ? "Продукт" : "Product name";
+    public static string Error => IsUk ? "Помилка" : "Error";
+    public static string NotAvailable => IsUk ? "Not available" : "Not available";
 
     private static string GetPowerActionVerb(PowerActionKind action) => action switch
     {
