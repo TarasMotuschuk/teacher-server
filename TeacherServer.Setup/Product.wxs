@@ -1,9 +1,10 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:firewall="http://wixtoolset.org/schemas/v4/wxs/firewall">
   <Package
       Name="Teacher Server"
       Manufacturer="Taras Motuschuk"
-      Version="1.0.1"
+      Version="1.0.2"
       UpgradeCode="9D624377-0AA5-4E8A-970A-5640C752EA0A"
       Scope="perMachine"
       InstallerVersion="500"
@@ -69,6 +70,12 @@
 
     <Component Id="StudentServiceMainComponent" Directory="STUDENTDIR" Guid="*">
       <File Id="StudentAgentServiceExe" Source="$(var.StudentPayloadDir)\StudentAgent.Service.exe" KeyPath="yes" />
+      <firewall:FirewallException Id="StudentAgentServiceFirewallRule"
+                                  Name="Teacher Server StudentAgent Service"
+                                  Description="Allows the StudentAgent service to accept classroom control connections."
+                                  Program="[#StudentAgentServiceExe]"
+                                  Profile="all"
+                                  Scope="any" />
       <ServiceInstall Id="StudentAgentServiceInstaller"
                       Name="StudentAgentService"
                       DisplayName="StudentAgent Service"
@@ -93,4 +100,5 @@
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
+
 

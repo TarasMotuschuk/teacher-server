@@ -2,6 +2,8 @@ using StudentAgent.Hosting;
 using StudentAgent.Services;
 using StudentAgent.Service.Services;
 using StudentAgent.UI.Localization;
+using Microsoft.AspNetCore.Mvc;
+using Teacher.Common.Contracts;
 
 try
 {

@@ -114,7 +114,15 @@ function Invoke-WindowsBuild {
 }
 
 function Commit-And-Push {
-    git add AGENTS.md CHANGELOG.md TeacherServer.Setup\Product.wxs scripts\Build-All-Windows.ps1
+    git add `
+        AGENTS.md `
+        CHANGELOG.md `
+        StudentAgent.Service\Program.cs `
+        TeacherClient\MainForm.cs `
+        TeacherClient\Program.cs `
+        TeacherServer.Setup\Product.wxs `
+        TeacherServer.Setup\TeacherServer.Setup.wixproj `
+        scripts\Build-All-Windows.ps1
     if ($LASTEXITCODE -ne 0) { throw "git add failed." }
 
     git commit -m "Release $Version"

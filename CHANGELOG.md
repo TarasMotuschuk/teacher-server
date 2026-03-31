@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project currently starts with an initial baseline release.
 
+## [1.0.2] - 2026-03-31
+
+### Changed
+
+- Teacher Client now handles connection timeouts without crashing and shows a regular error instead of a JIT dialog
+- Windows MSI now adds a firewall exception for StudentAgent Service during installation
+- StudentAgent.Service startup source was corrected after the latest sync
+
+### Notes
+
+- Windows release build only.
+- TeacherClient.Avalonia is not built for Windows by this command.
 ## [1.0.1] - 2026-03-31
 
 ### Changed
@@ -95,4 +107,5 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
+
 

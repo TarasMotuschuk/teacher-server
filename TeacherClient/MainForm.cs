@@ -1590,20 +1590,27 @@ public partial class MainForm : Form
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
     {
         using var cursorScope = new CursorScope(this);
-        var client = new TeacherApiClient(serverUrl, _clientSettings.SharedSecret);
-        var info = await client.GetServerInfoAsync();
-        if (info is null)
+        try
         {
-            SetStatus(TeacherClientText.ConnectionFailed);
-            return;
-        }
+            var client = new TeacherApiClient(serverUrl, _clientSettings.SharedSecret);
+            var info = await client.GetServerInfoAsync();
+            if (info is null)
+            {
+                SetStatus(TeacherClientText.ConnectionFailed);
+                return;
+            }
 
-        _lastConnectedAgentId = agent?.AgentId;
-        _lastConnectedServerUrl = serverUrl;
-        SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
-        await LoadProcessesAsync();
-        await LoadLocalDirectoryAsync(localPathTextBox.Text);
-        await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+            _lastConnectedAgentId = agent?.AgentId;
+            _lastConnectedServerUrl = serverUrl;
+            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
+            await LoadProcessesAsync();
+            await LoadLocalDirectoryAsync(localPathTextBox.Text);
+            await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.ConnectionFailed} {ex.Message}");
+        }
     }
 
     private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
