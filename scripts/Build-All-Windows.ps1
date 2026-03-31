@@ -118,6 +118,7 @@ function Commit-And-Push {
         AGENTS.md `
         CHANGELOG.md `
         StudentAgent.Service\Program.cs `
+        StudentAgent.Shared\Services\StudentAgentPathHelper.cs `
         TeacherClient\MainForm.cs `
         TeacherClient\Program.cs `
         TeacherServer.Setup\Product.wxs `

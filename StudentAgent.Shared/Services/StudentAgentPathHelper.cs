@@ -49,7 +49,8 @@ internal static class StudentAgentPathHelper
 
         try
         {
-            var security = Directory.GetAccessControl(root);
+            var directoryInfo = new DirectoryInfo(root);
+            var security = directoryInfo.GetAccessControl();
             var usersSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
 
             var hasRule = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
@@ -72,7 +73,7 @@ internal static class StudentAgentPathHelper
                 AccessControlType.Allow);
 
             security.AddAccessRule(rule);
-            Directory.SetAccessControl(root, security);
+            directoryInfo.SetAccessControl(security);
         }
         catch
         {
