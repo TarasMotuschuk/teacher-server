@@ -1228,6 +1228,33 @@ public partial class MainWindow : Window
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
+    private async void UpdateSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: true);
+    }
+
+    private async void UpdateAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: false);
+    }
+
     private async void RefreshFrequentProgramsMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await RefreshFrequentProgramsAsync();
@@ -1812,6 +1839,51 @@ public partial class MainWindow : Window
         }, CrossPlatformText.BulkPowerActionError(action));
     }
 
+    private async Task StartAgentUpdateOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.BulkAgentUpdatePrompt(targetAgents.Count, selectedOnly)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.StartAgentUpdateAsync();
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.BulkAgentUpdateCompleted(succeeded)
+                : CrossPlatformText.BulkAgentUpdateCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.AgentUpdateStartFailed);
+    }
+
     private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
     {
         var studentWorkPath = GetConfiguredStudentWorkPath();
@@ -2357,6 +2429,9 @@ public partial class MainWindow : Window
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
+        UpdateCommandsMenuItem.Header = CrossPlatformText.UpdateCommandsMenu;
+        UpdateSelectedMenuItem.Header = CrossPlatformText.UpdateSelectedStudents;
+        UpdateAllMenuItem.Header = CrossPlatformText.UpdateAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;

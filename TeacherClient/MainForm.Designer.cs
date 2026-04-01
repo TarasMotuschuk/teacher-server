@@ -151,6 +151,10 @@ partial class MainForm
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
+        var updateMenuItem = new ToolStripMenuItem(TeacherClientText.UpdateCommandsMenu);
+        updateMenuItem.DropDownItems.Add(TeacherClientText.UpdateSelectedStudents, null, updateSelectedStudentsMenuItem_Click);
+        updateMenuItem.DropDownItems.Add(TeacherClientText.UpdateAllOnlineStudents, null, updateAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(updateMenuItem);
         var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
         var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
         powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);

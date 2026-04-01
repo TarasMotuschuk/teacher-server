@@ -80,6 +80,7 @@ Available endpoints:
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
 - manual `Check Agent Update` and `Update Selected Agent` actions for a selected online student PC.
+- bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 
 ### TeacherClient.Avalonia
 
@@ -117,6 +118,7 @@ Available endpoints:
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
 - manual `Check Agent Update` and `Update Selected Agent` actions for a selected online student PC.
+- bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 
 ### Teacher.Common
 

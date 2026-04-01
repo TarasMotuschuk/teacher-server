@@ -834,6 +834,33 @@ public partial class MainForm : Form
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
+    private async void updateSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: true);
+    }
+
+    private async void updateAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: false);
+    }
+
     private async void refreshFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
     {
         await RefreshFrequentProgramsAsync();
@@ -1698,6 +1725,51 @@ public partial class MainForm : Form
             TeacherClientText.BulkCommandsResultTitle,
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning);
+    }
+
+    private async Task StartAgentUpdateOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        if (MessageBox.Show(
+                TeacherClientText.BulkAgentUpdatePrompt(targetAgents.Count, selectedOnly),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.StartAgentUpdateAsync();
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.BulkAgentUpdateCompleted(succeeded)
+            : TeacherClientText.BulkAgentUpdateCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.BulkCommandsResultTitle,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)

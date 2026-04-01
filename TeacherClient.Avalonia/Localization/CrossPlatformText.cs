@@ -25,6 +25,7 @@ internal static class CrossPlatformText
     public static string Help => IsUk ? "_Довідка" : "_Help";
     public static string GroupCommands => IsUk ? "_Групові команди" : "_Group Commands";
     public static string GroupCommandsTitle => IsUk ? "Групові команди" : "Group Commands";
+    public static string UpdateCommandsMenu => IsUk ? "_Оновлення" : "_Updates";
     public static string BrowserCommandsMenu => IsUk ? "_Браузер" : "_Browser";
     public static string InputCommandsMenu => IsUk ? "_Клавіатура і миша" : "_Keyboard and Mouse";
     public static string CommandsMenu => IsUk ? "_Команди" : "_Commands";
@@ -113,6 +114,8 @@ internal static class CrossPlatformText
     public static string ManageFrequentPrograms => IsUk ? "Керувати списком частих програм" : "Manage frequent programs";
     public static string RunCommandOnSelectedStudents => IsUk ? "Виконати команду на вибраних ПК" : "Run command on selected PCs";
     public static string RunCommandOnAllOnlineStudents => IsUk ? "Виконати команду на всіх онлайн ПК" : "Run command on all online PCs";
+    public static string UpdateSelectedStudents => IsUk ? "Оновити вибрані ПК" : "Update selected PCs";
+    public static string UpdateAllOnlineStudents => IsUk ? "Оновити всі онлайн ПК" : "Update all online PCs";
     public static string AddProgram => IsUk ? "Додати" : "Add";
     public static string RemoveProgram => IsUk ? "Видалити" : "Remove";
     public static string InsertSelected => IsUk ? "Вставити вибране" : "Insert selected";
@@ -161,6 +164,18 @@ internal static class CrossPlatformText
     public static string AgentUpdateState(string machine, string state, string? message) => IsUk
         ? $"{machine}: стан оновлення {state}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" ({message})")}"
         : $"{machine}: update state {state}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" ({message})")}";
+    public static string BulkAgentUpdatePrompt(int count, bool selectedOnly) => IsUk
+        ? $"Запустити оновлення на {(selectedOnly ? "вибраних" : "всіх онлайн")} учнівських ПК ({count})?"
+        : $"Start the update on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
+    public static string BulkAgentUpdateProgress(string machine, int index, int total) => IsUk
+        ? $"Оновлення агента: {machine} ({index}/{total})"
+        : $"Updating agent: {machine} ({index}/{total})";
+    public static string BulkAgentUpdateCompleted(int succeeded) => IsUk
+        ? $"Оновлення запущено на {succeeded} учн. ПК"
+        : $"Started updates on {succeeded} student PCs";
+    public static string BulkAgentUpdateCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Оновлення запущено: успішно {succeeded}, з помилками {failures}"
+        : $"Started updates: {succeeded} succeeded, {failures} failed";
     public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
     public static string RegistryValueType => IsUk ? "Тип" : "Type";
     public static string RegistryValueData => IsUk ? "Дані" : "Data";
