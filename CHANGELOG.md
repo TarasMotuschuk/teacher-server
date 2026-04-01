@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-04-01
+
 ### Added
 
 - Remote registry viewer tab in both TeacherClient (WinForms) and TeacherClient.Avalonia: browse the full registry tree of a connected student machine with lazy-loaded subkeys and a value list showing Name, Type, and Data columns
@@ -22,6 +24,11 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - Avalonia registry tree now renders reliably with visible text on the light registry panel
 - Both teacher clients now edit registry values from raw registry data instead of formatted display text, preventing corrupted writes for binary, DWORD, QWORD, multi-string, and expandable-string values
+
+### Notes
+
+- Release tagging flow only.
+- Windows MSI and macOS `.pkg` builds are produced by GitHub Actions for this release.
 
 ## [1.0.5] - 2026-03-31
 
