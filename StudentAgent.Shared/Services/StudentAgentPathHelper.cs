@@ -32,6 +32,15 @@ internal static class StudentAgentPathHelper
     public static string GetLogsDirectory()
         => Path.Combine(GetRootDirectory(), "logs");
 
+    public static string GetUpdatesDirectory()
+        => Path.Combine(GetRootDirectory(), "updates");
+
+    public static string GetUpdateStagingDirectory()
+        => Path.Combine(GetUpdatesDirectory(), "staging");
+
+    public static string GetUpdateBackupDirectory()
+        => Path.Combine(GetUpdatesDirectory(), "backup");
+
     private static void EnsureDirectoryExists(string path)
     {
         if (!Directory.Exists(path))

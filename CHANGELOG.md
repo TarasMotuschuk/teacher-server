@@ -6,6 +6,12 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- Phase 1 student-agent update pipeline: `StudentAgent.Updater`, update status/check/start endpoints, and manual teacher-side update commands for a selected online agent
+- `StudentAgent.Service` can now read a JSON update manifest, download a ZIP payload, verify SHA-256 when provided, and launch the updater against the installed service directory
+- `Publish-ServiceBundle.ps1` now publishes `StudentAgent.Updater` beside the service and UIHost binaries so installed student bundles are update-ready
+
 ## [1.0.6] - 2026-04-01
 
 ### Added

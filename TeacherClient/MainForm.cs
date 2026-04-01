@@ -428,6 +428,16 @@ public partial class MainForm : Form
         await ConnectSelectedAgentAsync();
     }
 
+    private async void checkSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
+    {
+        await CheckSelectedAgentUpdateAsync();
+    }
+
+    private async void startSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
+    {
+        await StartSelectedAgentUpdateAsync();
+    }
+
     private async void addManualAgentButton_Click(object? sender, EventArgs e)
     {
         using var dialog = new ManualAgentDialog();
@@ -1460,6 +1470,66 @@ public partial class MainForm : Form
         }
 
         await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source);
+    }
+
+    private async Task CheckSelectedAgentUpdateAsync()
+    {
+        if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus(TeacherClientText.ChooseAgentFirst);
+            return;
+        }
+
+        if (!string.Equals(agent.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(TeacherClientText.AgentUpdateRequiresOnlineAgent);
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            var update = await client.CheckForUpdatesAsync();
+            if (update is null)
+            {
+                SetStatus($"{TeacherClientText.AgentUpdateCheckFailed}: empty response");
+                return;
+            }
+
+            SetStatus(update.UpdateAvailable
+                ? TeacherClientText.AgentUpdateAvailable(agent.MachineName, update.AvailableVersion ?? "?")
+                : TeacherClientText.AgentUpToDate(agent.MachineName, update.CurrentVersion));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.AgentUpdateCheckFailed}: {ex.Message}");
+        }
+    }
+
+    private async Task StartSelectedAgentUpdateAsync()
+    {
+        if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus(TeacherClientText.ChooseAgentFirst);
+            return;
+        }
+
+        if (!string.Equals(agent.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(TeacherClientText.AgentUpdateRequiresOnlineAgent);
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            var status = await client.StartAgentUpdateAsync();
+            SetStatus(TeacherClientText.AgentUpdateStarted(agent.MachineName, status?.AvailableVersion ?? "?"));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.AgentUpdateStartFailed}: {ex.Message}");
+        }
     }
 
     private async Task DistributeLocalSelectionAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)

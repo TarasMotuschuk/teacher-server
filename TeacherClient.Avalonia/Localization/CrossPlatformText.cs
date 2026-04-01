@@ -150,6 +150,17 @@ internal static class CrossPlatformText
     public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
     public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
     public static string ConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";
+    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення агента" : "Check Agent Update";
+    public static string StartAgentUpdate => IsUk ? "Оновити вибраний агент" : "Update Selected Agent";
+    public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн-агент." : "The agent must be online to update.";
+    public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення агента" : "Failed to check for agent updates";
+    public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення агента" : "Failed to start agent update";
+    public static string AgentUpToDate(string machine, string version) => IsUk ? $"{machine}: актуальна версія {version}" : $"{machine}: already on version {version}";
+    public static string AgentUpdateAvailable(string machine, string version) => IsUk ? $"{machine}: доступне оновлення {version}" : $"{machine}: update {version} is available";
+    public static string AgentUpdateStarted(string machine, string version) => IsUk ? $"{machine}: запущено оновлення до {version}" : $"{machine}: started update to {version}";
+    public static string AgentUpdateState(string machine, string state, string? message) => IsUk
+        ? $"{machine}: стан оновлення {state}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" ({message})")}"
+        : $"{machine}: update state {state}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" ({message})")}";
     public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
     public static string RegistryValueType => IsUk ? "Тип" : "Type";
     public static string RegistryValueData => IsUk ? "Дані" : "Data";

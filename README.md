@@ -40,6 +40,9 @@ Available endpoints:
 - `GET /api/registry/values`: list registry values at a given path with formatted type and data display.
 - `GET /api/registry/export`: export the selected registry key subtree as a `.reg` file.
 - `POST /api/registry/import`: import a `.reg` file and apply its key/value changes on the student machine.
+- `GET /api/update/status`: read the current student-agent update state.
+- `GET /api/update/check`: check the configured update manifest for a newer student-agent version.
+- `POST /api/update/start`: download and start installing a newer student-agent version by launching `StudentAgent.Updater`.
 
 ### TeacherClient
 
@@ -76,6 +79,7 @@ Available endpoints:
 - local and remote deletion with confirmation dialogs;
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
+- manual `Check Agent Update` and `Update Selected Agent` actions for a selected online student PC.
 
 ### TeacherClient.Avalonia
 
@@ -112,6 +116,7 @@ Available endpoints:
 - create remote folders;
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
+- manual `Check Agent Update` and `Update Selected Agent` actions for a selected online student PC.
 
 ### Teacher.Common
 
@@ -223,10 +228,15 @@ Example configuration:
   "Agent": {
     "Port": 5055,
     "SharedSecret": "replace-with-a-real-secret",
-    "VisibleBannerText": "Teacher monitoring enabled"
+    "VisibleBannerText": "Teacher monitoring enabled",
+    "UpdateManifestUrl": "https://example.com/student-agent/version.json"
   }
 }
 ```
+
+`UpdateManifestUrl` is optional. When configured, `StudentAgent.Service` can check a release manifest, download a ZIP update payload, verify its SHA-256 checksum when present, and hand off installation to `StudentAgent.Updater`.
+
+For GitHub-based releases, this repository can publish a student-agent update bundle on tag push. The auto-update manifest is emitted as `student-agent-version.json` in the GitHub Release assets and points to the matching `student-agent-update-<version>.zip`.
 
 ### Start TeacherClient
 

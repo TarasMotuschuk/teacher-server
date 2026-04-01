@@ -135,6 +135,16 @@ public partial class MainWindow : Window
         await ConnectSelectedAgentAsync();
     }
 
+    private async void CheckSelectedAgentUpdateMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await CheckSelectedAgentUpdateAsync();
+    }
+
+    private async void StartSelectedAgentUpdateMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await StartSelectedAgentUpdateAsync();
+    }
+
     private async void AddManualAgentButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var dialog = new ManualAgentWindow();
@@ -336,6 +346,66 @@ public partial class MainWindow : Window
         }
 
         await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source);
+    }
+
+    private async Task CheckSelectedAgentUpdateAsync()
+    {
+        if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentFirst);
+            return;
+        }
+
+        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(CrossPlatformText.AgentUpdateRequiresOnlineAgent);
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            var update = await client.CheckForUpdatesAsync();
+            if (update is null)
+            {
+                SetStatus($"{CrossPlatformText.AgentUpdateCheckFailed}: empty response");
+                return;
+            }
+
+            SetStatus(update.UpdateAvailable
+                ? CrossPlatformText.AgentUpdateAvailable(agent.MachineName, update.AvailableVersion ?? "?")
+                : CrossPlatformText.AgentUpToDate(agent.MachineName, update.CurrentVersion));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.AgentUpdateCheckFailed}: {ex.Message}");
+        }
+    }
+
+    private async Task StartSelectedAgentUpdateAsync()
+    {
+        if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentFirst);
+            return;
+        }
+
+        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(CrossPlatformText.AgentUpdateRequiresOnlineAgent);
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            var status = await client.StartAgentUpdateAsync();
+            SetStatus(CrossPlatformText.AgentUpdateStarted(agent.MachineName, status?.AvailableVersion ?? "?"));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.AgentUpdateStartFailed}: {ex.Message}");
+        }
     }
 
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
@@ -2277,6 +2347,8 @@ public partial class MainWindow : Window
         SettingsMenuItem.Header = CrossPlatformText.Settings;
         RefreshAgentsMenuItem.Header = CrossPlatformText.RefreshAgents;
         ConnectSelectedMenuItem.Header = CrossPlatformText.ConnectSelectedAgent;
+        CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
+        StartAgentUpdateMenuItem.Header = CrossPlatformText.StartAgentUpdate;
         AddManualMenuItem.Header = CrossPlatformText.AddManualAgent;
         EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;

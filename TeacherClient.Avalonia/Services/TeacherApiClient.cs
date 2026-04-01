@@ -140,6 +140,19 @@ public sealed class TeacherApiClient
         return await response.Content.ReadFromJsonAsync<ImportRegistryFileResult>(cancellationToken);
     }
 
+    public Task<AgentUpdateStatusDto?> GetUpdateStatusAsync(CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<AgentUpdateStatusDto>("api/update/status", cancellationToken);
+
+    public Task<UpdateInfoDto?> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<UpdateInfoDto>("api/update/check", cancellationToken);
+
+    public async Task<AgentUpdateStatusDto?> StartAgentUpdateAsync(bool checkForUpdatesFirst = true, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/update/start", new StartAgentUpdateRequest(checkForUpdatesFirst), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AgentUpdateStatusDto>(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
 

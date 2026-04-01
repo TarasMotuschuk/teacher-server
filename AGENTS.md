@@ -43,6 +43,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 - The `build all windows` command is Windows-only. It does not build the macOS Avalonia installer from `TeacherClient.Avalonia.Setup/`.
 - For a lightweight release without the Windows-only script, use a separate `release only` flow: bump `Directory.Build.props` to the confirmed version, move the current `Unreleased` notes into a dated `CHANGELOG.md` release entry, create a git commit, create an annotated tag `v<x.y.z>`, and push both the commit and the tag to `origin`.
 - The `release only` flow must not run local MSI or `.pkg` packaging steps when the repository is already configured to build installers in GitHub Actions.
+- When a tag `v<x.y.z>` is pushed, prefer relying on GitHub Actions to publish release assets for auto-update consumers, including the student-agent update ZIP, checksum, and JSON manifest.
 - Before running the Windows release flow, the agent must propose both the next version and the `ReleaseSummary` to the user.
 - The proposed `ReleaseSummary` should be formed by the agent from the current unreleased work, or from the concrete changes made in the current task if there is no dedicated unreleased section yet.
 - The user must explicitly confirm the proposed version and `ReleaseSummary`, or provide corrections, before the agent runs the release workflow.

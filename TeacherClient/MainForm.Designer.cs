@@ -112,6 +112,10 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, settingsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, refreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, connectSelectedAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.CheckForAgentUpdate, null, checkSelectedAgentUpdateButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.StartAgentUpdate, null, startSelectedAgentUpdateButton_Click);
+        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, addManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, editManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, removeManualAgentButton_Click);
@@ -351,6 +355,8 @@ partial class MainForm
         var agentsToolStrip = CreateTabToolStrip();
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, ToolbarIconKind.Refresh, refreshAgentsButton_Click));
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, ToolbarIconKind.Link, connectSelectedAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.CheckForAgentUpdate, ToolbarIconKind.Refresh, checkSelectedAgentUpdateButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartAgentUpdate, ToolbarIconKind.Settings, startSelectedAgentUpdateButton_Click));
         agentsToolStrip.Items.Add(new ToolStripSeparator());
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, ToolbarIconKind.Add, addManualAgentButton_Click));
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, ToolbarIconKind.Edit, editManualAgentButton_Click));

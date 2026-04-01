@@ -43,6 +43,10 @@
           <MenuItem x:Name="SettingsMenuItem" Header="_Settings" Click="SettingsButton_OnClick" />
           <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
           <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
+          <Separator />
+          <MenuItem x:Name="CheckAgentUpdateMenuItem" Header="Check Agent Update" Click="CheckSelectedAgentUpdateMenuItem_OnClick" />
+          <MenuItem x:Name="StartAgentUpdateMenuItem" Header="Update Selected Agent" Click="StartSelectedAgentUpdateMenuItem_OnClick" />
+          <Separator />
           <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
         <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
