@@ -606,6 +606,9 @@ partial class MainForm
         registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, ToolbarIconKind.Edit, editRegistryValueButton_Click));
         registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, ToolbarIconKind.Remove, deleteRegistryValueButton_Click));
         registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, ToolbarIconKind.Remove, deleteRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(new ToolStripSeparator());
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ExportRegFile, ToolbarIconKind.Download, exportRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ImportRegFile, ToolbarIconKind.Upload, importRegistryFileButton_Click));
 
         var registrySplit = new SplitContainer
         {

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Teacher.Common;
 using Teacher.Common.Localization;
@@ -694,13 +695,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new Dialogs.RegistryEditDialog(value.Name, value.TypeDisplay, value.DataDisplay);
-        var result = await dialog.ShowDialog<bool?>(this);
-        if (result != true) return;
-
         try
         {
             var client = CreateClient();
+            var editableValue = (await client.GetRegistryValuesForEditAsync(node.Path))
+                .FirstOrDefault(x => string.Equals(x.Name, value.Name, StringComparison.Ordinal));
+            if (editableValue is null)
+            {
+                SetStatus($"{CrossPlatformText.RegistryError}: {CrossPlatformText.SelectValueFirst}");
+                return;
+            }
+
+            var dialog = new Dialogs.RegistryEditDialog(editableValue.Name, editableValue.RawType, editableValue.RawData);
+            var result = await dialog.ShowDialog<bool?>(this);
+            if (result != true) return;
+
             await client.SetRegistryValueAsync(node.Path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(CrossPlatformText.ValueUpdated);
             await LoadRegistryValuesAsync(node);
@@ -770,6 +779,119 @@ public partial class MainWindow : Window
 
     private void DeleteKeyButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         => _ = HandleDeleteKeyAsync();
+
+    private async Task HandleExportRegistryAsync()
+    {
+        if (RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            SetStatus(CrossPlatformText.SelectKeyFirst);
+            return;
+        }
+
+        if (StorageProvider is null)
+        {
+            SetStatus(CrossPlatformText.RegistryExportError);
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = CrossPlatformText.ExportRegFile,
+            SuggestedFileName = $"{node.Path.Replace('\\', '_')}.reg",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Registry files")
+                {
+                    Patterns = ["*.reg"]
+                }
+            ],
+            DefaultExtension = "reg"
+        });
+
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            var destinationPath = file.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(destinationPath))
+            {
+                throw new InvalidOperationException("Only local file targets are supported.");
+            }
+
+            await client.ExportRegistryKeyAsync(node.Path, destinationPath);
+            SetStatus(CrossPlatformText.ExportedRegistryKey(node.Path));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryExportError}: {ex.Message}");
+        }
+    }
+
+    private void ExportRegistryButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleExportRegistryAsync();
+
+    private async Task HandleImportRegistryAsync()
+    {
+        if (StorageProvider is null)
+        {
+            SetStatus(CrossPlatformText.RegistryImportError);
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = CrossPlatformText.ImportRegFile,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Registry files")
+                {
+                    Patterns = ["*.reg"]
+                }
+            ]
+        });
+
+        var file = files.FirstOrDefault();
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var filePath = file.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new InvalidOperationException("Only local file sources are supported.");
+            }
+
+            var client = CreateClient();
+            var result = await client.ImportRegistryFileAsync(filePath);
+
+            if (RegistryTreeView.SelectedItem is RegistryNode selectedNode)
+            {
+                await LoadRegistrySubKeysAsync(selectedNode);
+                await LoadRegistryValuesAsync(selectedNode);
+            }
+            else
+            {
+                InitializeRegistryTree();
+            }
+
+            SetStatus(CrossPlatformText.ImportedRegistryFile(result?.KeysProcessed ?? 0, result?.ValuesProcessed ?? 0));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryImportError}: {ex.Message}");
+        }
+    }
+
+    private void ImportRegistryButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleImportRegistryAsync();
 
     private async void ProcessesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
@@ -2192,6 +2314,7 @@ public partial class MainWindow : Window
         AgentsTabItem.Header = CrossPlatformText.Agents;
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;
+        RegistryTabItem.Header = CrossPlatformText.RegistryTab;
         RefreshAgentsButton.Content = CrossPlatformText.RefreshAgents;
         ConnectSelectedAgentButton.Content = CrossPlatformText.ConnectSelectedAgent;
         AddManualAgentButton.Content = CrossPlatformText.AddManualAgent;
@@ -2227,6 +2350,14 @@ public partial class MainWindow : Window
         StudentPcTextBlock.Text = CrossPlatformText.StudentPc;
         UpLocalButton.Content = CrossPlatformText.Up;
         UpRemoteButton.Content = CrossPlatformText.Up;
+        RefreshRegistryButton.Content = CrossPlatformText.Refresh;
+        NewValueButton.Content = CrossPlatformText.NewValue;
+        NewKeyButton.Content = CrossPlatformText.NewKey;
+        EditValueButton.Content = CrossPlatformText.EditValue;
+        DeleteValueButton.Content = CrossPlatformText.DeleteValue;
+        DeleteKeyButton.Content = CrossPlatformText.DeleteKey;
+        ExportRegistryButton.Content = CrossPlatformText.ExportRegFile;
+        ImportRegistryButton.Content = CrossPlatformText.ImportRegFile;
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
         if (AgentsGrid.Columns.Count >= 13)
         {
@@ -2272,6 +2403,14 @@ public partial class MainWindow : Window
             RemoteFilesGrid.Columns[3].Header = CrossPlatformText.Size;
             RemoteFilesGrid.Columns[4].Header = CrossPlatformText.ModifiedUtc;
         }
+
+        if (RegistryValuesGrid.Columns.Count >= 3)
+        {
+            RegistryValuesGrid.Columns[0].Header = CrossPlatformText.Name;
+            RegistryValuesGrid.Columns[1].Header = CrossPlatformText.RegistryValueType;
+            RegistryValuesGrid.Columns[2].Header = CrossPlatformText.RegistryValueData;
+        }
+
         if (StatusTextBlock.Text == "Ready. Use the Agents tab to select a student machine, then connect." ||
             StatusTextBlock.Text == "Готово. Виберіть машину на вкладці агентів і підключіться.")
         {

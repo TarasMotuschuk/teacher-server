@@ -118,6 +118,28 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ExportRegistryKeyAsync(string path, string destinationFilePath, CancellationToken cancellationToken = default)
+    {
+        await using var source = await _httpClient.GetStreamAsync(
+            $"api/registry/export?path={Uri.EscapeDataString(path)}",
+            cancellationToken);
+        await using var destination = File.Create(destinationFilePath);
+        await source.CopyToAsync(destination, cancellationToken);
+    }
+
+    public async Task<ImportRegistryFileResult?> ImportRegistryFileAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        await using var stream = File.OpenRead(filePath);
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        content.Add(fileContent, "file", Path.GetFileName(filePath));
+
+        using var response = await _httpClient.PostAsync("api/registry/import", content, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ImportRegistryFileResult>(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
 

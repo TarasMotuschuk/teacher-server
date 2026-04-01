@@ -38,6 +38,8 @@ Available endpoints:
 - `GET /api/commands/frequent-programs/public-desktop`: collect `.lnk` shortcuts from the public desktop for teacher-side frequent program lists.
 - `GET /api/registry/keys`: list registry subkeys at a given path; empty path returns the five root hives.
 - `GET /api/registry/values`: list registry values at a given path with formatted type and data display.
+- `GET /api/registry/export`: export the selected registry key subtree as a `.reg` file.
+- `POST /api/registry/import`: import a `.reg` file and apply its key/value changes on the student machine.
 
 ### TeacherClient
 
@@ -73,6 +75,7 @@ Available endpoints:
 - remote directory creation;
 - local and remote deletion with confirmation dialogs;
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
+- export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
 
 ### TeacherClient.Avalonia
 
@@ -108,6 +111,7 @@ Available endpoints:
 - delete local and remote entries;
 - create remote folders;
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
+- export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
 
 ### Teacher.Common
 

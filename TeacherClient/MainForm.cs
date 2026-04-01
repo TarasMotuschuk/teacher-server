@@ -268,12 +268,20 @@ public partial class MainForm : Form
             return;
         }
 
-        using var dialog = new RegistryEditDialog(value.Name, value.TypeDisplay, value.DataDisplay);
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
-
         try
         {
             var client = CreateClient();
+            var editableValue = (await client.GetRegistryValuesForEditAsync(path))
+                .FirstOrDefault(x => string.Equals(x.Name, value.Name, StringComparison.Ordinal));
+            if (editableValue is null)
+            {
+                SetStatus($"{TeacherClientText.RegistryError}: {TeacherClientText.SelectValueFirst}");
+                return;
+            }
+
+            using var dialog = new RegistryEditDialog(editableValue.Name, editableValue.RawType, editableValue.RawData);
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
             await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(TeacherClientText.ValueUpdated);
             await LoadRegistryValuesAsync(path);
@@ -281,6 +289,73 @@ public partial class MainForm : Form
         catch (Exception ex)
         {
             SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void exportRegistryKeyButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Filter = TeacherClientText.RegFilesFilter,
+            DefaultExt = "reg",
+            FileName = $"{path.Replace('\\', '_')}.reg"
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.ExportRegistryKeyAsync(path, dialog.FileName);
+            SetStatus(TeacherClientText.ExportedRegistryKey(path));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryExportError}: {ex.Message}");
+        }
+    }
+
+    private async void importRegistryFileButton_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = TeacherClientText.RegFilesFilter,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            var result = await client.ImportRegistryFileAsync(dialog.FileName);
+            if (registryTreeView.SelectedNode?.Tag is string path)
+            {
+                await LoadRegistrySubKeysAsync(registryTreeView.SelectedNode);
+                await LoadRegistryValuesAsync(path);
+            }
+            else
+            {
+                InitializeRegistryTree();
+            }
+
+            SetStatus(TeacherClientText.ImportedRegistryFile(result?.KeysProcessed ?? 0, result?.ValuesProcessed ?? 0));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryImportError}: {ex.Message}");
         }
     }
 

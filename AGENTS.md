@@ -41,10 +41,12 @@ This repository contains a Windows-oriented classroom administration solution bu
 - For the standard Windows release flow, use `powershell -ExecutionPolicy Bypass -File .\scripts\Build-All-Windows.ps1 -Version <x.y.z> -ReleaseSummary "<item 1>; <item 2>; <item 3>"`.
 - The `build all windows` command must perform these steps in order: bump the Windows installer version, run a clean Windows build, skip `TeacherClient.Avalonia` Windows builds, append a new release entry to `CHANGELOG.md`, create a git commit, create an annotated git tag `v<x.y.z>`, then push both the commit and the tag to `origin`.
 - The `build all windows` command is Windows-only. It does not build the macOS Avalonia installer from `TeacherClient.Avalonia.Setup/`.
+- For a lightweight release without the Windows-only script, use a separate `release only` flow: bump `Directory.Build.props` to the confirmed version, move the current `Unreleased` notes into a dated `CHANGELOG.md` release entry, create a git commit, create an annotated tag `v<x.y.z>`, and push both the commit and the tag to `origin`.
+- The `release only` flow must not run local MSI or `.pkg` packaging steps when the repository is already configured to build installers in GitHub Actions.
 - Before running the Windows release flow, the agent must propose both the next version and the `ReleaseSummary` to the user.
 - The proposed `ReleaseSummary` should be formed by the agent from the current unreleased work, or from the concrete changes made in the current task if there is no dedicated unreleased section yet.
 - The user must explicitly confirm the proposed version and `ReleaseSummary`, or provide corrections, before the agent runs the release workflow.
-- After confirmation, the agent should continue the workflow without asking for the same release details again unless the scope changes.
+- After confirmation, the agent should continue the selected release workflow without asking for the same release details again unless the scope changes.
 
 ## Documentation
 

@@ -288,6 +288,9 @@
             <Button x:Name="EditValueButton" Width="110" Content="Edit Value" Click="EditValueButton_OnClick" />
             <Button x:Name="DeleteValueButton" Width="110" Content="Delete Value" Click="DeleteValueButton_OnClick" />
             <Button x:Name="DeleteKeyButton" Width="110" Content="Delete Key" Click="DeleteKeyButton_OnClick" />
+            <Separator />
+            <Button x:Name="ExportRegistryButton" Width="120" Content="Export .reg" Click="ExportRegistryButton_OnClick" />
+            <Button x:Name="ImportRegistryButton" Width="120" Content="Import .reg" Click="ImportRegistryButton_OnClick" />
           </StackPanel>
 
           <Grid Grid.Row="1" ColumnDefinitions="340,*">
@@ -295,10 +298,11 @@
                       Grid.Column="0"
                       Margin="0,0,8,0"
                       Background="#FFFFFF"
+                      Foreground="#111827"
                       SelectionChanged="RegistryTreeView_SelectionChanged">
               <TreeView.ItemTemplate>
                 <TreeDataTemplate ItemsSource="{Binding Children}">
-                  <TextBlock Text="{Binding Name}" />
+                  <TextBlock Foreground="#111827" Text="{Binding Name}" />
                 </TreeDataTemplate>
               </TreeView.ItemTemplate>
             </TreeView>
