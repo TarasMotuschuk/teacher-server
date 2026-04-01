@@ -7,7 +7,8 @@ public sealed record ServerInfoDto(
     DateTime ServerTimeUtc,
     bool IsVisibleModeEnabled,
     bool IsBrowserLockEnabled,
-    bool IsInputLockEnabled);
+    bool IsInputLockEnabled,
+    string AgentVersion);
 
 public sealed record BrowserLockStateRequest(bool Enabled);
 public sealed record InputLockStateRequest(bool Enabled);

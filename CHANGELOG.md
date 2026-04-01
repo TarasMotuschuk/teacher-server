@@ -9,8 +9,11 @@ The format is based on Keep a Changelog, and this project currently starts with 
 ### Added
 
 - Remote registry viewer tab in both TeacherClient (WinForms) and TeacherClient.Avalonia: browse the full registry tree of a connected student machine with lazy-loaded subkeys and a value list showing Name, Type, and Data columns
-- `GET /api/registry/keys` and `GET /api/registry/values` endpoints on StudentAgent.Service for read-only registry access
-- `RegistryService` on the agent side supports all five root hives (HKLM, HKCU, HKCR, HKU, HKCC) with formatted value display (REG_SZ, REG_DWORD, REG_BINARY, REG_MULTI_SZ, REG_QWORD, REG_EXPAND_SZ)
+- Registry editing support: create, edit, and delete registry values (REG_SZ, REG_DWORD, REG_QWORD, REG_EXPAND_SZ, REG_MULTI_SZ, REG_BINARY) and create/delete registry keys in both teacher clients
+- `GET /api/registry/keys`, `GET /api/registry/values`, `POST /api/registry/values`, `DELETE /api/registry/values`, `POST /api/registry/keys`, `DELETE /api/registry/keys` endpoints on StudentAgent.Service
+- `RegistryService` on the agent side supports all five root hives (HKLM, HKCU, HKCR, HKU, HKCC) with formatted value display and full write support
+- `Directory.Build.props` as single source of truth for the assembly version; all projects pick up the version automatically at build time
+- Agent now reports its version via `GET /api/info` (`AgentVersion` field in `ServerInfoDto`); both teacher clients display the connected agent version in the status bar
 
 ## [1.0.5] - 2026-03-31
 

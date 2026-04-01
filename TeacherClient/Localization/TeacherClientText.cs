@@ -322,7 +322,7 @@ internal static class TeacherClientText
     public static string FormatCreatedRemoteFolder(string name) => IsUk ? $"Створено віддалену папку {name}" : $"Created remote folder {name}";
     public static string DeleteLocalEntryPrompt(string name) => IsUk ? $"Видалити локальний елемент {name}?" : $"Delete local entry {name}?";
     public static string DeleteRemoteEntryPrompt(string name) => IsUk ? $"Видалити віддалений елемент {name}?" : $"Delete remote entry {name}?";
-    public static string FormatConnectedToAgent(string source, string machine, string user) => IsUk ? $"Підключено до {source} агента {machine} ({user})" : $"Connected to {source} agent {machine} ({user})";
+    public static string FormatConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";
     public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
     public static string RegistryValueType => IsUk ? "Тип" : "Type";
     public static string RegistryValueData => IsUk ? "Дані" : "Data";

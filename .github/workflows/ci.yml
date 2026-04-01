@@ -65,11 +65,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Read version from installer manifest
+      - name: Read version from Directory.Build.props
         id: version
         run: |
-          VERSION=$(grep -oE 'Version="[0-9]+\.[0-9]+\.[0-9]+"' TeacherServer.Setup/Product.wxs \
-            | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          VERSION=$(grep -oE '<Version>[0-9]+\.[0-9]+\.[0-9]+</Version>' Directory.Build.props \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build Avalonia .pkg

@@ -14,6 +14,7 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $productWxsPath = Join-Path $repoRoot "TeacherServer.Setup\Product.wxs"
+$directoryBuildPropsPath = Join-Path $repoRoot "Directory.Build.props"
 $changeLogPath = Join-Path $repoRoot "CHANGELOG.md"
 $msiBuildScript = Join-Path $repoRoot "TeacherServer.Setup\Build-Msi.ps1"
 
@@ -47,6 +48,22 @@ function Update-InstallerVersion {
     }
 
     Set-Content -LiteralPath $productWxsPath -Value $updated -Encoding UTF8
+}
+
+function Update-DirectoryBuildProps {
+    $content = Get-Content -LiteralPath $directoryBuildPropsPath -Raw
+    $updated = [System.Text.RegularExpressions.Regex]::Replace(
+        $content,
+        '<Version>\d+\.\d+\.\d+</Version>',
+        "<Version>$Version</Version>",
+        1
+    )
+
+    if ($updated -eq $content) {
+        throw "Could not update <Version> in $directoryBuildPropsPath."
+    }
+
+    Set-Content -LiteralPath $directoryBuildPropsPath -Value $updated -Encoding UTF8
 }
 
 function Update-Changelog {
@@ -115,6 +132,7 @@ function Invoke-WindowsBuild {
 
 function Commit-And-Push {
     git add `
+        Directory.Build.props `
         AGENTS.md `
         CHANGELOG.md `
         StudentAgent.Service\Program.cs `
@@ -141,6 +159,7 @@ function Commit-And-Push {
 
 Push-Location $repoRoot
 try {
+    Update-DirectoryBuildProps
     Update-InstallerVersion
     Update-Changelog
     Clean-WindowsBuildArtifacts

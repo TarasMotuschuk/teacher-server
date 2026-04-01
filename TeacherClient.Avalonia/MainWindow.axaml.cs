@@ -349,7 +349,7 @@ public partial class MainWindow : Window
 
         _lastConnectedAgentId = agent?.AgentId;
         _lastConnectedServerUrl = serverUrl;
-        SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
+        SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser, info.AgentVersion));
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);

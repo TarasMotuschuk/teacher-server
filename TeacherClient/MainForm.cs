@@ -1813,7 +1813,7 @@ public partial class MainForm : Form
 
             _lastConnectedAgentId = agent?.AgentId;
             _lastConnectedServerUrl = serverUrl;
-            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
+            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser, info.AgentVersion));
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);

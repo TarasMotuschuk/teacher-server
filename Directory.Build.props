@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Single version source for all projects. Update this on every release (see scripts/Build-All-Windows.ps1). -->
+    <Version>1.0.5</Version>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <FileVersion>$(Version).0</FileVersion>
+    <!-- Suppress the +git-hash suffix so About dialogs show a clean version string. -->
+    <InformationalVersion>$(Version)</InformationalVersion>
+  </PropertyGroup>
+</Project>
