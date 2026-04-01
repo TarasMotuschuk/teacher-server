@@ -16,6 +16,8 @@ public sealed class AgentOptions
 
     public string VisibleBannerText { get; set; } = "Teacher monitoring enabled";
 
+    public string UpdateManifestUrl { get; set; } = string.Empty;
+
     public UiLanguage Language { get; set; } = UiLanguageExtensions.GetDefault();
 
     public bool BrowserLockEnabled { get; set; }

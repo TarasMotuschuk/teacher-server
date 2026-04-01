@@ -27,6 +27,7 @@ internal static class TeacherClientText
     public static string TerminateSelected => IsUk ? "Завершити вибране" : "Terminate Selected";
     public static string FilesMenu => IsUk ? "Файли" : "Files";
     public static string GroupCommandsMenu => IsUk ? "Групові команди" : "Group Commands";
+    public static string UpdateCommandsMenu => IsUk ? "Оновлення" : "Updates";
     public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
     public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
@@ -66,6 +67,7 @@ internal static class TeacherClientText
     public static string Machine => IsUk ? "Машина" : "Machine";
     public static string User => IsUk ? "Користувач" : "User";
     public static string Notes => IsUk ? "Нотатки" : "Notes";
+    public static string UpdateStatus => IsUk ? "Оновлення" : "Update";
     public static string LastSeenUtc => IsUk ? "Останній сигнал UTC" : "Last Seen UTC";
     public static string Visible => IsUk ? "Видимий" : "Visible";
     public static string StartedUtc => IsUk ? "Запущено UTC" : "Started UTC";
@@ -107,6 +109,8 @@ internal static class TeacherClientText
     public static string ManageFrequentPrograms => IsUk ? "Керувати списком частих програм" : "Manage frequent programs";
     public static string RunCommandOnSelectedStudents => IsUk ? "Виконати команду на вибраних ПК" : "Run command on selected PCs";
     public static string RunCommandOnAllOnlineStudents => IsUk ? "Виконати команду на всіх онлайн ПК" : "Run command on all online PCs";
+    public static string UpdateSelectedStudents => IsUk ? "Оновити вибрані ПК" : "Update selected PCs";
+    public static string UpdateAllOnlineStudents => IsUk ? "Оновити всі онлайн ПК" : "Update all online PCs";
     public static string AddProgram => IsUk ? "Додати" : "Add";
     public static string RemoveProgram => IsUk ? "Видалити" : "Remove";
     public static string InsertSelected => IsUk ? "Вставити вибране" : "Insert selected";
@@ -311,6 +315,58 @@ internal static class TeacherClientText
     public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";
     public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ручний агент {name}?" : $"Remove manual agent {name}?";
     public static string SettingsSaved => IsUk ? "Налаштування збережено." : "Settings saved.";
+    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення агента" : "Check Agent Update";
+    public static string StartAgentUpdate => IsUk ? "Оновити вибраний агент" : "Update Selected Agent";
+    public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн-агент." : "The agent must be online to update.";
+    public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення агента" : "Failed to check for agent updates";
+    public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення агента" : "Failed to start agent update";
+    public static string AgentUpToDate(string machine, string version) => IsUk ? $"{machine}: актуальна версія {version}" : $"{machine}: already on version {version}";
+    public static string AgentUpdateAvailable(string machine, string version) => IsUk ? $"{machine}: доступне оновлення {version}" : $"{machine}: update {version} is available";
+    public static string AgentUpdateStarted(string machine, string version) => IsUk ? $"{machine}: запущено оновлення до {version}" : $"{machine}: started update to {version}";
+    public static string AgentUpdateState(string machine, string state, string? message) => IsUk
+        ? $"{machine}: стан оновлення {state}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" ({message})")}"
+        : $"{machine}: update state {state}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" ({message})")}";
+    public static string BulkAgentUpdatePrompt(int count, bool selectedOnly) => IsUk
+        ? $"Запустити оновлення на {(selectedOnly ? "вибраних" : "всіх онлайн")} учнівських ПК ({count})?"
+        : $"Start the update on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
+    public static string BulkAgentUpdateProgress(string machine, int index, int total) => IsUk
+        ? $"Оновлення агента: {machine} ({index}/{total})"
+        : $"Updating agent: {machine} ({index}/{total})";
+    public static string BulkAgentUpdateCompleted(int succeeded) => IsUk
+        ? $"Оновлення запущено на {succeeded} учн. ПК"
+        : $"Started updates on {succeeded} student PCs";
+    public static string BulkAgentUpdateCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Оновлення запущено: успішно {succeeded}, з помилками {failures}"
+        : $"Started updates: {succeeded} succeeded, {failures} failed";
+    public static string UpdateStateBadge(AgentUpdateStatusDto? status)
+    {
+        if (status is null)
+        {
+            return string.Empty;
+        }
+
+        var stateText = status.State switch
+        {
+            AgentUpdateStateKind.Checking => IsUk ? "Перевірка" : "Checking",
+            AgentUpdateStateKind.UpToDate => IsUk ? "Актуально" : "Up to date",
+            AgentUpdateStateKind.Available => IsUk ? "Доступно" : "Available",
+            AgentUpdateStateKind.Downloading => IsUk ? "Завантаження" : "Downloading",
+            AgentUpdateStateKind.Installing => IsUk ? "Встановлення" : "Installing",
+            AgentUpdateStateKind.Succeeded => IsUk ? "Оновлено" : "Updated",
+            AgentUpdateStateKind.Failed => IsUk ? "Помилка" : "Failed",
+            AgentUpdateStateKind.RolledBack => IsUk ? "Відкат" : "Rolled back",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(stateText))
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(status.AvailableVersion)
+            ? stateText
+            : $"{stateText} {status.AvailableVersion}";
+    }
     public static string TerminateProcessPrompt(string name, int id) => IsUk ? $"Завершити процес {name} ({id})?" : $"Terminate process {name} ({id})?";
     public static string FormatProcessTerminated(string name) => IsUk ? $"Процес {name} завершено" : $"Process {name} terminated";
     public static string FormatLoadedProcesses(int count) => IsUk ? $"Завантажено процесів: {count}" : $"Loaded {count} processes";

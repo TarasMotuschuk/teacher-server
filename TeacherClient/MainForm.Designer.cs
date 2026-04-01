@@ -112,6 +112,10 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, settingsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, refreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, connectSelectedAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.CheckForAgentUpdate, null, checkSelectedAgentUpdateButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.StartAgentUpdate, null, startSelectedAgentUpdateButton_Click);
+        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, addManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, editManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, removeManualAgentButton_Click);
@@ -147,6 +151,10 @@ partial class MainForm
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
+        var updateMenuItem = new ToolStripMenuItem(TeacherClientText.UpdateCommandsMenu);
+        updateMenuItem.DropDownItems.Add(TeacherClientText.UpdateSelectedStudents, null, updateSelectedStudentsMenuItem_Click);
+        updateMenuItem.DropDownItems.Add(TeacherClientText.UpdateAllOnlineStudents, null, updateAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(updateMenuItem);
         var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
         var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
         powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);
@@ -274,6 +282,7 @@ partial class MainForm
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Port, DataPropertyName = "Port", Width = 80, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC", DataPropertyName = "MacAddressesDisplay", Width = 220, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Notes, DataPropertyName = "Notes", Width = 200, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.UpdateStatus, DataPropertyName = "UpdateStatusBadge", Width = 140, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Version.TrimEnd(':'), DataPropertyName = "Version", Width = 110, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190, ReadOnly = true });
 
@@ -351,6 +360,8 @@ partial class MainForm
         var agentsToolStrip = CreateTabToolStrip();
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, ToolbarIconKind.Refresh, refreshAgentsButton_Click));
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, ToolbarIconKind.Link, connectSelectedAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.CheckForAgentUpdate, ToolbarIconKind.Refresh, checkSelectedAgentUpdateButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartAgentUpdate, ToolbarIconKind.Settings, startSelectedAgentUpdateButton_Click));
         agentsToolStrip.Items.Add(new ToolStripSeparator());
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, ToolbarIconKind.Add, addManualAgentButton_Click));
         agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, ToolbarIconKind.Edit, editManualAgentButton_Click));

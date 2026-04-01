@@ -19,6 +19,8 @@ public static class StudentAgentHostExtensions
         services.AddSingleton<ServerInfoService>();
         services.AddSingleton<NetworkIdentityService>();
         services.AddSingleton<RegistryService>();
+        services.AddHttpClient(nameof(AgentUpdateService));
+        services.AddSingleton<AgentUpdateService>();
         services.AddHostedService<AgentDiscoveryService>();
 
         if (includeBackgroundPolicies)
@@ -262,6 +264,36 @@ public static class StudentAgentHostExtensions
                 using var reader = new StreamReader(stream, Encoding.Unicode, detectEncodingFromByteOrderMarks: true);
                 var content = await reader.ReadToEndAsync(cancellationToken);
                 return Results.Ok(service.ImportRegFile(content));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/update/status", ([FromServices] AgentUpdateService service) =>
+        {
+            return Results.Ok(service.GetStatus());
+        });
+
+        app.MapGet("/api/update/check", async ([FromServices] AgentUpdateService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await service.CheckForUpdatesAsync(cancellationToken));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/update/start", async ([FromBody] StartAgentUpdateRequest? request, [FromServices] AgentUpdateService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var status = await service.StartUpdateAsync(request ?? new StartAgentUpdateRequest(), cancellationToken);
+                return Results.Accepted("/api/update/status", status);
             }
             catch (Exception ex)
             {

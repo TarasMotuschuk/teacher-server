@@ -1,0 +1,75 @@
+name: Release Student Agent
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-student-agent:
+    name: Build student-agent update bundle
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read version from Directory.Build.props
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content "Directory.Build.props"
+          $version = $props.Project.PropertyGroup.Version
+          if (-not $version) {
+            throw "Version was not found in Directory.Build.props"
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish student-agent bundle
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\StudentAgent.Service\Publish-ServiceBundle.ps1 -Configuration Release -Runtime win-x64 -OutputDirectory .\artifacts\student-agent-bundle
+
+      - name: Create update ZIP
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          $bundleDir = Join-Path $PWD "artifacts\student-agent-bundle"
+          $releaseDir = Join-Path $PWD "artifacts\release"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+
+          $zipName = "student-agent-update-$version.zip"
+          $zipPath = Join-Path $releaseDir $zipName
+          if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force
+          }
+
+          Compress-Archive -Path (Join-Path $bundleDir '*') -DestinationPath $zipPath
+
+          $sha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path (Join-Path $releaseDir "student-agent-update-$version.sha256.txt") -Value $sha256 -NoNewline
+
+          $manifest = @{
+            version = $version
+            url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$zipName"
+            sha256 = $sha256
+          } | ConvertTo-Json
+
+          Set-Content -Path (Join-Path $releaseDir "student-agent-version.json") -Value $manifest
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/release/student-agent-update-*.zip
+            artifacts/release/student-agent-update-*.sha256.txt
+            artifacts/release/student-agent-version.json

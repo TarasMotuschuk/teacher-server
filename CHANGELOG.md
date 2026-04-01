@@ -6,6 +6,19 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- Phase 1 student-agent update pipeline: `StudentAgent.Updater`, update status/check/start endpoints, and manual teacher-side update commands for a selected online agent
+- Phase 2 teacher-side bulk update actions: start agent updates on selected student PCs or all online student PCs from both teacher clients
+- `StudentAgent.Service` can now read a JSON update manifest, download a ZIP payload, verify SHA-256 when provided, and launch the updater against the installed service directory
+- `Publish-ServiceBundle.ps1` now publishes `StudentAgent.Updater` beside the service and UIHost binaries so installed student bundles are update-ready
+- Preferred teacher-hosted update delivery in both teacher clients: the teacher workstation now caches the student update ZIP once and serves it to student agents over the local network, with fallback to the configured remote manifest when needed
+- Per-agent update status polling in both teacher clients, including update badges for `Available`, `Downloading`, `Installing`, `Updated`, `Failed`, and `Rolled back`
+
+### Changed
+
+- Student-agent updater now writes persisted update status snapshots so post-restart success and rollback states are visible to teacher workstations
+
 ## [1.0.6] - 2026-04-01
 
 ### Added

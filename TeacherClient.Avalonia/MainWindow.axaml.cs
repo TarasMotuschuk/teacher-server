@@ -19,6 +19,8 @@ public partial class MainWindow : Window
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
     private readonly FrequentProgramStore _frequentProgramStore = new();
+    private readonly TeacherHostedUpdatePackageServer _updatePackageServer =
+        new(Path.Combine(Path.GetTempPath(), "TeacherServer", "UpdateCache"));
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -27,6 +29,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<RegistryValueDto> _registryValues = [];
     private readonly DispatcherTimer _agentRefreshTimer = new();
     private readonly DispatcherTimer _connectionMonitorTimer = new();
+    private readonly DispatcherTimer _updateStatusTimer = new();
     private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
@@ -65,17 +68,22 @@ public partial class MainWindow : Window
         _agentRefreshTimer.Tick += async (_, _) => await LoadAgentsAsync();
         _connectionMonitorTimer.Interval = TimeSpan.FromSeconds(10);
         _connectionMonitorTimer.Tick += async (_, _) => await MonitorConnectionAsync();
+        _updateStatusTimer.Interval = TimeSpan.FromSeconds(5);
+        _updateStatusTimer.Tick += async (_, _) => await PollAgentUpdateStatusesAsync();
 
         Opened += async (_, _) =>
         {
             await LoadAgentsAsync();
             _agentRefreshTimer.Start();
             _connectionMonitorTimer.Start();
+            _updateStatusTimer.Start();
         };
         Closing += (_, _) =>
         {
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
+            _updateStatusTimer.Stop();
+            _updatePackageServer.Dispose();
         };
     }
 
@@ -133,6 +141,16 @@ public partial class MainWindow : Window
     private async void ConnectSelectedAgentButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await ConnectSelectedAgentAsync();
+    }
+
+    private async void CheckSelectedAgentUpdateMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await CheckSelectedAgentUpdateAsync();
+    }
+
+    private async void StartSelectedAgentUpdateMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await StartSelectedAgentUpdateAsync();
     }
 
     private async void AddManualAgentButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -338,6 +356,85 @@ public partial class MainWindow : Window
         await ConnectToServerAsync($"http://{agent.RespondingAddress}:{agent.Port}", agent, agent.Source);
     }
 
+    private async Task CheckSelectedAgentUpdateAsync()
+    {
+        if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentFirst);
+            return;
+        }
+
+        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(CrossPlatformText.AgentUpdateRequiresOnlineAgent);
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            var update = await client.CheckForUpdatesAsync();
+            if (update is null)
+            {
+                SetStatus($"{CrossPlatformText.AgentUpdateCheckFailed}: empty response");
+                return;
+            }
+
+            SetStatus(update.UpdateAvailable
+                ? CrossPlatformText.AgentUpdateAvailable(agent.MachineName, update.AvailableVersion ?? "?")
+                : CrossPlatformText.AgentUpToDate(agent.MachineName, update.CurrentVersion));
+            ReplaceAgentRow(ApplyUpdateStatus(agent, new AgentUpdateStatusDto(
+                update.UpdateAvailable ? AgentUpdateStateKind.Available : AgentUpdateStateKind.UpToDate,
+                update.CurrentVersion,
+                update.AvailableVersion,
+                update.UpdateAvailable,
+                DateTime.UtcNow,
+                update.Message)));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.AgentUpdateCheckFailed}: {ex.Message}");
+        }
+    }
+
+    private async Task StartSelectedAgentUpdateAsync()
+    {
+        if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentFirst);
+            return;
+        }
+
+        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        {
+            SetStatus(CrossPlatformText.AgentUpdateRequiresOnlineAgent);
+            return;
+        }
+
+        try
+        {
+            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            var prepared = await PreparePreferredUpdateRequestAsync(agent, client);
+            if (prepared.SkipStart)
+            {
+                SetStatus(CrossPlatformText.AgentUpToDate(agent.MachineName, prepared.Version ?? agent.Version));
+                return;
+            }
+
+            var request = prepared.Request;
+            var status = await client.StartAgentUpdateAsync(request);
+            if (status is not null)
+            {
+                ReplaceAgentRow(ApplyUpdateStatus(agent, status));
+            }
+            SetStatus(CrossPlatformText.AgentUpdateStarted(agent.MachineName, status?.AvailableVersion ?? "?"));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.AgentUpdateStartFailed}: {ex.Message}");
+        }
+    }
+
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
     {
         var client = new TeacherApiClient(serverUrl, _clientSettings.SharedSecret);
@@ -486,12 +583,17 @@ public partial class MainWindow : Window
                     var info = await reachabilityClient.GetServerInfoAsync();
                     if (info is not null)
                     {
+                        var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
                         updatedAgents.Add(agent with
                         {
                             Status = CrossPlatformText.Online,
                             CurrentUser = info.CurrentUser,
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
-                            InputLockEnabled = info.IsInputLockEnabled
+                            InputLockEnabled = info.IsInputLockEnabled,
+                            UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                            Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
+                                ? updateStatus.AvailableVersion ?? info.AgentVersion
+                                : info.AgentVersion
                         });
                         continue;
                     }
@@ -510,12 +612,17 @@ public partial class MainWindow : Window
                 try
                 {
                     var info = await reachabilityClient.GetServerInfoAsync();
+                    var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
                     updatedAgents.Add(agent with
                     {
                         Status = CrossPlatformText.Online,
                         CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
-                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled
+                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
+                        UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                        Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
+                            ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
+                            : info?.AgentVersion ?? agent.Version
                     });
                     continue;
                 }
@@ -1158,6 +1265,33 @@ public partial class MainWindow : Window
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
+    private async void UpdateSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: true);
+    }
+
+    private async void UpdateAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: false);
+    }
+
     private async void RefreshFrequentProgramsMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await RefreshFrequentProgramsAsync();
@@ -1742,6 +1876,63 @@ public partial class MainWindow : Window
         }, CrossPlatformText.BulkPowerActionError(action));
     }
 
+    private async Task StartAgentUpdateOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.BulkAgentUpdatePrompt(targetAgents.Count, selectedOnly)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var prepared = await PreparePreferredUpdateRequestAsync(agent, client);
+                    if (prepared.SkipStart)
+                    {
+                        succeeded++;
+                        continue;
+                    }
+
+                    var request = prepared.Request;
+                    var status = await client.StartAgentUpdateAsync(request);
+                    if (status is not null)
+                    {
+                        ReplaceAgentRow(ApplyUpdateStatus(agent, status));
+                    }
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.BulkAgentUpdateCompleted(succeeded)
+                : CrossPlatformText.BulkAgentUpdateCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.AgentUpdateStartFailed);
+    }
+
     private async Task EnsureStudentWorkFolderOnAvailableAgentsAsync(bool reportSummary, IReadOnlyList<DiscoveredAgentRow>? overrideTargets = null)
     {
         var studentWorkPath = GetConfiguredStudentWorkPath();
@@ -1987,6 +2178,102 @@ public partial class MainWindow : Window
         ApplyAgentFilters();
     }
 
+    private async Task<(StartAgentUpdateRequest Request, bool SkipStart, string? Version)> PreparePreferredUpdateRequestAsync(DiscoveredAgentRow agent, TeacherApiClient client, CancellationToken cancellationToken = default)
+    {
+        UpdateInfoDto? update = null;
+        try
+        {
+            update = await client.CheckForUpdatesAsync(cancellationToken);
+        }
+        catch
+        {
+            return (new StartAgentUpdateRequest(), false, null);
+        }
+
+        if (update is null)
+        {
+            return (new StartAgentUpdateRequest(), false, null);
+        }
+
+        if (!update.UpdateAvailable || string.IsNullOrWhiteSpace(update.AvailableVersion) || string.IsNullOrWhiteSpace(update.PackageUrl))
+        {
+            ReplaceAgentRow(ApplyUpdateStatus(agent, new AgentUpdateStatusDto(
+                AgentUpdateStateKind.UpToDate,
+                update.CurrentVersion,
+                update.AvailableVersion,
+                false,
+                DateTime.UtcNow,
+                update.Message)));
+            return (new StartAgentUpdateRequest(CheckForUpdatesFirst: false), true, update.CurrentVersion);
+        }
+
+        try
+        {
+            var hostedPackage = await _updatePackageServer.PreparePackageAsync(
+                update.AvailableVersion,
+                update.PackageUrl,
+                update.PackageSha256,
+                agent.RespondingAddress,
+                cancellationToken);
+
+            return (
+                new StartAgentUpdateRequest(
+                    CheckForUpdatesFirst: false,
+                    PreferredSource: new PreferredUpdateSourceDto(
+                        hostedPackage.Version,
+                        hostedPackage.HostedPackageUrl,
+                        hostedPackage.PackageSha256),
+                    FallbackToConfiguredManifest: true),
+                false,
+                update.AvailableVersion);
+        }
+        catch
+        {
+            return (new StartAgentUpdateRequest(), false, update.AvailableVersion);
+        }
+    }
+
+    private async Task PollAgentUpdateStatusesAsync()
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !x.IsManual || !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .ToList();
+
+        foreach (var agent in targetAgents)
+        {
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                var status = await client.GetUpdateStatusAsync();
+                if (status is null)
+                {
+                    continue;
+                }
+
+                ReplaceAgentRow(ApplyUpdateStatus(agent, status));
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static DiscoveredAgentRow ApplyUpdateStatus(DiscoveredAgentRow agent, AgentUpdateStatusDto status)
+    {
+        var targetVersion = status.State switch
+        {
+            AgentUpdateStateKind.Succeeded => status.AvailableVersion ?? agent.Version,
+            _ => agent.Version
+        };
+
+        return agent with
+        {
+            Version = targetVersion,
+            UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(status)
+        };
+    }
+
     private static IEnumerable<DiscoveredAgentRow> MergeAgents(
         IEnumerable<DiscoveredAgentRow> manualRows,
         IEnumerable<DiscoveredAgentRow> discoveredRows)
@@ -2224,6 +2511,7 @@ public partial class MainWindow : Window
         int Port,
         string MacAddressesDisplay,
         string Notes,
+        string UpdateStatusBadge,
         string Version,
         DateTime LastSeenUtc,
         bool IsManual)
@@ -2245,6 +2533,7 @@ public partial class MainWindow : Window
                 dto.Port,
                 string.Join(", ", dto.MacAddresses),
                 string.Empty,
+                string.Empty,
                 dto.Version,
                 dto.LastSeenUtc,
                 false);
@@ -2263,6 +2552,7 @@ public partial class MainWindow : Window
                 entry.Port,
                 entry.MacAddress,
                 entry.Notes,
+                string.Empty,
                 CrossPlatformText.ManualVersion,
                 DateTime.MinValue,
                 true);
@@ -2277,6 +2567,8 @@ public partial class MainWindow : Window
         SettingsMenuItem.Header = CrossPlatformText.Settings;
         RefreshAgentsMenuItem.Header = CrossPlatformText.RefreshAgents;
         ConnectSelectedMenuItem.Header = CrossPlatformText.ConnectSelectedAgent;
+        CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
+        StartAgentUpdateMenuItem.Header = CrossPlatformText.StartAgentUpdate;
         AddManualMenuItem.Header = CrossPlatformText.AddManualAgent;
         EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
@@ -2285,6 +2577,9 @@ public partial class MainWindow : Window
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
+        UpdateCommandsMenuItem.Header = CrossPlatformText.UpdateCommandsMenu;
+        UpdateSelectedMenuItem.Header = CrossPlatformText.UpdateSelectedStudents;
+        UpdateAllMenuItem.Header = CrossPlatformText.UpdateAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
@@ -2359,7 +2654,7 @@ public partial class MainWindow : Window
         ExportRegistryButton.Content = CrossPlatformText.ExportRegFile;
         ImportRegistryButton.Content = CrossPlatformText.ImportRegFile;
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
-        if (AgentsGrid.Columns.Count >= 13)
+        if (AgentsGrid.Columns.Count >= 14)
         {
             AgentsGrid.Columns[0].Header = CrossPlatformText.BrowserLock;
             AgentsGrid.Columns[1].Header = CrossPlatformText.InputLock;
@@ -2372,8 +2667,9 @@ public partial class MainWindow : Window
             AgentsGrid.Columns[8].Header = CrossPlatformText.Port;
             AgentsGrid.Columns[9].Header = "MAC";
             AgentsGrid.Columns[10].Header = CrossPlatformText.Notes;
-            AgentsGrid.Columns[11].Header = CrossPlatformText.Version;
-            AgentsGrid.Columns[12].Header = CrossPlatformText.LastSeenUtc;
+            AgentsGrid.Columns[11].Header = CrossPlatformText.UpdateStatus;
+            AgentsGrid.Columns[12].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[13].Header = CrossPlatformText.LastSeenUtc;
         }
 
         if (ProcessesGrid.Columns.Count >= 6)
