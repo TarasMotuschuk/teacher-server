@@ -14,6 +14,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - `RegistryService` on the agent side supports all five root hives (HKLM, HKCU, HKCR, HKU, HKCC) with formatted value display and full write support
 - `Directory.Build.props` as single source of truth for the assembly version; all projects pick up the version automatically at build time
 - Agent now reports its version via `GET /api/info` (`AgentVersion` field in `ServerInfoDto`); both teacher clients display the connected agent version in the status bar
+- MSI now declaratively creates and sets `BUILTIN\Users` Modify-equivalent permissions on `%ProgramData%\TeacherServer\StudentAgent` via `util:PermissionEx`; permissions are applied on install, reinstall, upgrade, and repair — no longer relying solely on runtime code
 
 ## [1.0.5] - 2026-03-31
 

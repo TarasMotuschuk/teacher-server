@@ -1,6 +1,7 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
-     xmlns:firewall="http://wixtoolset.org/schemas/v4/wxs/firewall">
+     xmlns:firewall="http://wixtoolset.org/schemas/v4/wxs/firewall"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
       Name="Teacher Server"
       Manufacturer="Taras Motuschuk"
@@ -23,6 +24,33 @@
       </Directory>
     </StandardDirectory>
 
+    <!--
+      ProgramData\TeacherServer\StudentAgent — data directory for the student agent.
+      Permissions are set here (install / reinstall / repair) so the agent can write
+      its settings and logs even when running as the interactive user via UIHost.
+      No RemoveFolder: we intentionally keep the data directory across upgrades and uninstall.
+    -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="ProgramDataTeacherServer" Name="TeacherServer">
+        <Directory Id="ProgramDataStudentAgent" Name="StudentAgent" />
+      </Directory>
+    </StandardDirectory>
+
+    <Component Id="StudentAgentDataDirComponent" Directory="ProgramDataStudentAgent" Guid="*">
+      <CreateFolder>
+        <!--
+          Grant BUILTIN\Users Modify equivalent rights (Read + Write + Execute + Delete)
+          with full inheritance so that both the service (LocalSystem) and the interactive
+          UIHost session can create / read / write / delete files and subdirectories.
+        -->
+        <util:PermissionEx User="Users"
+                           GenericRead="yes"
+                           GenericWrite="yes"
+                           GenericExecute="yes"
+                           Delete="yes" />
+      </CreateFolder>
+    </Component>
+
     <StandardDirectory Id="DesktopFolder" />
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -41,6 +69,7 @@
     <Feature Id="StudentFeature" Title="Student workstation tools" Description="Install the privileged student service and session UI host." Level="1" AllowAdvertise="no">
       <ComponentRef Id="StudentServiceMainComponent" />
       <ComponentRef Id="StudentUiHostMainComponent" />
+      <ComponentRef Id="StudentAgentDataDirComponent" />
       <ComponentGroupRef Id="StudentPayloadGroup" />
     </Feature>
 
