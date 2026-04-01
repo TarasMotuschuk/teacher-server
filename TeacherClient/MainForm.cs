@@ -147,6 +147,11 @@ public partial class MainForm : Form
     private async void registryTreeView_AfterSelect(object? sender, TreeViewEventArgs e)
     {
         if (e.Node?.Tag is not string path) return;
+        await LoadRegistryValuesAsync(path);
+    }
+
+    private async Task LoadRegistryValuesAsync(string path)
+    {
         try
         {
             var client = CreateClient();
@@ -213,7 +218,7 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(TeacherClientText.ValueCreated);
-            _ = registryTreeView_AfterSelect(null, new TreeViewEventArgs(registryTreeView.SelectedNode));
+            await LoadRegistryValuesAsync(path);
         }
         catch (Exception ex)
         {
@@ -229,13 +234,13 @@ public partial class MainForm : Form
             return;
         }
 
-        using var dialog = new InputDialog(TeacherClientText.KeyName);
+        using var dialog = new InputDialog(TeacherClientText.NewKey, TeacherClientText.KeyName);
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
         try
         {
             var client = CreateClient();
-            await client.CreateRegistryKeyAsync(path, dialog.InputValue);
+            await client.CreateRegistryKeyAsync(path, dialog.Value);
             SetStatus(TeacherClientText.KeyCreated);
             _ = LoadRegistrySubKeysAsync(registryTreeView.SelectedNode);
         }
@@ -271,7 +276,7 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(TeacherClientText.ValueUpdated);
-            _ = registryTreeView_AfterSelect(null, new TreeViewEventArgs(registryTreeView.SelectedNode));
+            await LoadRegistryValuesAsync(path);
         }
         catch (Exception ex)
         {
@@ -307,7 +312,7 @@ public partial class MainForm : Form
             var client = CreateClient();
             await client.DeleteRegistryValueAsync(path, value.Name);
             SetStatus(TeacherClientText.ValueDeleted);
-            _ = registryTreeView_AfterSelect(null, new TreeViewEventArgs(registryTreeView.SelectedNode));
+            await LoadRegistryValuesAsync(path);
         }
         catch (Exception ex)
         {
