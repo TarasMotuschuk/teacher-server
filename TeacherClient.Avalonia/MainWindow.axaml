@@ -279,8 +279,15 @@
 
       <TabItem x:Name="RegistryTabItem" Header="Registry">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,12" Spacing="8">
             <Button x:Name="RefreshRegistryButton" Width="110" Content="Refresh" Click="RefreshRegistryButton_OnClick" />
+            <Separator />
+            <Button x:Name="NewValueButton" Width="110" Content="New Value" Click="NewValueButton_OnClick" />
+            <Button x:Name="NewKeyButton" Width="110" Content="New Key" Click="NewKeyButton_OnClick" />
+            <Separator />
+            <Button x:Name="EditValueButton" Width="110" Content="Edit Value" Click="EditValueButton_OnClick" />
+            <Button x:Name="DeleteValueButton" Width="110" Content="Delete Value" Click="DeleteValueButton_OnClick" />
+            <Button x:Name="DeleteKeyButton" Width="110" Content="Delete Key" Click="DeleteKeyButton_OnClick" />
           </StackPanel>
 
           <Grid Grid.Row="1" ColumnDefinitions="340,*">

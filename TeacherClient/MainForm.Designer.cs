@@ -599,6 +599,13 @@ partial class MainForm
 
         var registryToolStrip = CreateTabToolStrip();
         registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, ToolbarIconKind.Refresh, refreshRegistryButton_Click));
+        registryToolStrip.Items.Add(new ToolStripSeparator());
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewValue, ToolbarIconKind.Add, newRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewKey, ToolbarIconKind.Add, newRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(new ToolStripSeparator());
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, ToolbarIconKind.Edit, editRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, ToolbarIconKind.Delete, deleteRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, ToolbarIconKind.Delete, deleteRegistryKeyButton_Click));
 
         var registrySplit = new SplitContainer
         {
@@ -606,7 +613,7 @@ partial class MainForm
             Orientation = Orientation.Vertical,
             SplitterDistance = 340,
             Panel1MinSize = 200,
-            Panel2MinSize = 200
+            Panel2MinSize = 100
         };
         registrySplit.Panel1.Controls.Add(registryTreeView);
         registrySplit.Panel2.Controls.Add(registryValuesGrid);

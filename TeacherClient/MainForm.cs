@@ -197,6 +197,150 @@ public partial class MainForm : Form
         }
     }
 
+    private async void newRegistryValueButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new RegistryEditDialog();
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
+            SetStatus(TeacherClientText.ValueCreated);
+            _ = registryTreeView_AfterSelect(null, new TreeViewEventArgs(registryTreeView.SelectedNode));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void newRegistryKeyButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new InputDialog(TeacherClientText.KeyName);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.CreateRegistryKeyAsync(path, dialog.InputValue);
+            SetStatus(TeacherClientText.KeyCreated);
+            _ = LoadRegistrySubKeysAsync(registryTreeView.SelectedNode);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void editRegistryValueButton_Click(object? sender, EventArgs e)
+    {
+        if (registryValuesGrid.SelectedRows.Count == 0)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectValueFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            return;
+        }
+
+        if (registryValuesGrid.SelectedRows[0].DataBoundItem is not RegistryValueDto value)
+        {
+            return;
+        }
+
+        using var dialog = new RegistryEditDialog(value.Name, value.TypeDisplay, value.DataDisplay);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
+            SetStatus(TeacherClientText.ValueUpdated);
+            _ = registryTreeView_AfterSelect(null, new TreeViewEventArgs(registryTreeView.SelectedNode));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void deleteRegistryValueButton_Click(object? sender, EventArgs e)
+    {
+        if (registryValuesGrid.SelectedRows.Count == 0)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectValueFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            return;
+        }
+
+        if (registryValuesGrid.SelectedRows[0].DataBoundItem is not RegistryValueDto value)
+        {
+            return;
+        }
+
+        if (MessageBox.Show(this, TeacherClientText.ConfirmDeleteValue, TeacherClientText.Confirmation, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.DeleteRegistryValueAsync(path, value.Name);
+            SetStatus(TeacherClientText.ValueDeleted);
+            _ = registryTreeView_AfterSelect(null, new TreeViewEventArgs(registryTreeView.SelectedNode));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void deleteRegistryKeyButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (MessageBox.Show(this, TeacherClientText.ConfirmDeleteKey, TeacherClientText.Confirmation, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.DeleteRegistryKeyAsync(path);
+            SetStatus(TeacherClientText.KeyDeleted);
+            InitializeRegistryTree();
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
     private async void refreshAgentsButton_Click(object? sender, EventArgs e) => await LoadDiscoveredAgentsAsync();
 
     private async void connectSelectedAgentButton_Click(object? sender, EventArgs e)

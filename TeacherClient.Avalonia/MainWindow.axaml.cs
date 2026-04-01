@@ -590,6 +590,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task LoadRegistryValuesAsync(RegistryNode node)
+    {
+        try
+        {
+            var client = CreateClient();
+            var values = await client.GetRegistryValuesAsync(node.Path);
+            ReplaceItems(_registryValues, values);
+            SetStatus(CrossPlatformText.LoadedRegistryValues(values.Count));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryLoadError}: {ex.Message}");
+        }
+    }
+
     private async Task LoadRegistrySubKeysAsync(RegistryNode node)
     {
         node.IsLoaded = true;
@@ -616,6 +631,145 @@ public partial class MainWindow : Window
         foreach (var hive in hives)
             _registryRoots.Add(new RegistryNode(hive, hive, hasChildren: true));
     }
+
+    private async Task HandleNewValueAsync()
+    {
+        if (RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            return;
+        }
+
+        var dialog = new Dialogs.RegistryEditDialog();
+        var result = await dialog.ShowDialog<bool?>(this);
+        if (result != true) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.SetRegistryValueAsync(node.Path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
+            SetStatus(CrossPlatformText.ValueCreated);
+            if (RegistryTreeView.SelectedItem is RegistryNode selectedNode)
+                await LoadRegistrySubKeysAsync(selectedNode);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private void NewValueButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleNewValueAsync();
+
+    private async Task HandleNewKeyAsync()
+    {
+        if (RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            return;
+        }
+
+        var result = await Dialogs.TextInputDialog.ShowAsync(this, CrossPlatformText.NewKey, CrossPlatformText.KeyName);
+        if (string.IsNullOrEmpty(result)) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.CreateRegistryKeyAsync(node.Path, result);
+            SetStatus(CrossPlatformText.KeyCreated);
+            await LoadRegistrySubKeysAsync(node);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private void NewKeyButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleNewKeyAsync();
+
+    private async Task HandleEditValueAsync()
+    {
+        if (RegistryValuesGrid.SelectedItem is not RegistryValueDto value ||
+            RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            return;
+        }
+
+        var dialog = new Dialogs.RegistryEditDialog(value.Name, value.TypeDisplay, value.DataDisplay);
+        var result = await dialog.ShowDialog<bool?>(this);
+        if (result != true) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.SetRegistryValueAsync(node.Path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
+            SetStatus(CrossPlatformText.ValueUpdated);
+            await LoadRegistryValuesAsync(node);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private void EditValueButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleEditValueAsync();
+
+    private async Task HandleDeleteValueAsync()
+    {
+        if (RegistryValuesGrid.SelectedItem is not RegistryValueDto value ||
+            RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.Confirmation, CrossPlatformText.ConfirmDeleteValue))
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.DeleteRegistryValueAsync(node.Path, value.Name);
+            SetStatus(CrossPlatformText.ValueDeleted);
+            await LoadRegistryValuesAsync(node);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private void DeleteValueButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleDeleteValueAsync();
+
+    private async Task HandleDeleteKeyAsync()
+    {
+        if (RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.Confirmation, CrossPlatformText.ConfirmDeleteKey))
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.DeleteRegistryKeyAsync(node.Path);
+            SetStatus(CrossPlatformText.KeyDeleted);
+            InitializeRegistryTree();
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private void DeleteKeyButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => _ = HandleDeleteKeyAsync();
 
     private async void ProcessesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {

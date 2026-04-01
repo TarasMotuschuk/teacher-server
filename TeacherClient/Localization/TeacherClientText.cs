@@ -328,6 +328,27 @@ internal static class TeacherClientText
     public static string RegistryValueData => IsUk ? "Дані" : "Data";
     public static string RegistryLoadError => IsUk ? "Помилка завантаження реєстру" : "Registry load error";
     public static string FormatLoadedRegistryValues(int count) => IsUk ? $"Значень у ключі: {count}" : $"Values in key: {count}";
+    public static string NewValue => IsUk ? "Нове значення" : "New Value";
+    public static string NewKey => IsUk ? "Новий ключ" : "New Key";
+    public static string EditValue => IsUk ? "Редагувати значення" : "Edit Value";
+    public static string DeleteValue => IsUk ? "Видалити значення" : "Delete Value";
+    public static string DeleteKey => IsUk ? "Видалити ключ" : "Delete Key";
+    public static string ValueName => IsUk ? "Назва значення" : "Value name";
+    public static string ValueType => IsUk ? "Тип значення" : "Value type";
+    public static string ValueData => IsUk ? "Дані значення" : "Value data";
+    public static string KeyName => IsUk ? "Назва ключа" : "Key name";
+    public static string ConfirmDeleteValue => IsUk ? "Видалити це значення?" : "Delete this value?";
+    public static string ConfirmDeleteKey => IsUk ? "Видалити цей ключ і всі його подключі?" : "Delete this key and all its subkeys?";
+    public static string ValueCreated => IsUk ? "Значення створено" : "Value created";
+    public static string ValueUpdated => IsUk ? "Значення оновлено" : "Value updated";
+    public static string ValueDeleted => IsUk ? "Значення видалено" : "Value deleted";
+    public static string KeyCreated => IsUk ? "Ключ створено" : "Key created";
+    public static string KeyDeleted => IsUk ? "Ключ видалено" : "Key deleted";
+    public static string RegistryError => IsUk ? "Помилка операції з реєстром" : "Registry operation error";
+    public static string Confirmation => IsUk ? "Підтвердження" : "Confirmation";
+    public static string SelectKeyFirst => IsUk ? "Спочатку виберіть ключ" : "Select a key first";
+    public static string SelectValueFirst => IsUk ? "Спочатку виберіть значення" : "Select a value first";
+    public static string Required => IsUk ? "обов'язково" : "required";
 
     private static string GetPowerActionVerb(PowerActionKind action) => action switch
     {
