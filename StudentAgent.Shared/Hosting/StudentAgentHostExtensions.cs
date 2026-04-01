@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using StudentAgent.Auth;
 using StudentAgent.Services;
@@ -224,6 +225,50 @@ public static class StudentAgentHostExtensions
             }
         });
 
+        app.MapGet("/api/registry/export", (string? path, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                var normalizedPath = path ?? string.Empty;
+                var content = service.ExportKey(normalizedPath);
+                return Results.File(
+                    Encoding.Unicode.GetBytes(content),
+                    "application/x-ms-regedit",
+                    GetRegistryExportFileName(normalizedPath));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/registry/import", async (HttpRequest request, [FromServices] RegistryService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                if (!request.HasFormContentType)
+                {
+                    return Results.BadRequest(new { error = "multipart/form-data is required." });
+                }
+
+                var form = await request.ReadFormAsync(cancellationToken);
+                var file = form.Files["file"];
+                if (file is null || file.Length == 0)
+                {
+                    return Results.BadRequest(new { error = "Registry file is missing." });
+                }
+
+                using var stream = file.OpenReadStream();
+                using var reader = new StreamReader(stream, Encoding.Unicode, detectEncodingFromByteOrderMarks: true);
+                var content = await reader.ReadToEndAsync(cancellationToken);
+                return Results.Ok(service.ImportRegFile(content));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         app.MapGet("/api/files/roots", ([FromServices] FileService service) => Results.Ok(service.GetRoots()));
 
         app.MapGet("/api/files/list", (string? path, [FromServices] FileService service) =>
@@ -323,5 +368,15 @@ public static class StudentAgentHostExtensions
             await service.SaveFileAsync(destinationDirectory, file.FileName, source, cancellationToken);
             return Results.NoContent();
         });
+    }
+
+    private static string GetRegistryExportFileName(string path)
+    {
+        var rawName = string.IsNullOrWhiteSpace(path)
+            ? "registry"
+            : path.Replace('\\', '_');
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var sanitized = new string(rawName.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
+        return $"{sanitized}.reg";
     }
 }

@@ -160,6 +160,8 @@ internal static class CrossPlatformText
     public static string EditValue => IsUk ? "Редагувати значення" : "Edit Value";
     public static string DeleteValue => IsUk ? "Видалити значення" : "Delete Value";
     public static string DeleteKey => IsUk ? "Видалити ключ" : "Delete Key";
+    public static string ExportRegFile => IsUk ? "Експортувати .reg" : "Export .reg";
+    public static string ImportRegFile => IsUk ? "Імпортувати .reg" : "Import .reg";
     public static string ValueName => IsUk ? "Назва значення" : "Value name";
     public static string ValueType => IsUk ? "Тип значення" : "Value type";
     public static string ValueData => IsUk ? "Дані значення" : "Value data";
@@ -172,6 +174,10 @@ internal static class CrossPlatformText
     public static string KeyCreated => IsUk ? "Ключ створено" : "Key created";
     public static string KeyDeleted => IsUk ? "Ключ видалено" : "Key deleted";
     public static string RegistryError => IsUk ? "Помилка операції з реєстром" : "Registry operation error";
+    public static string RegistryExportError => IsUk ? "Помилка експорту реєстру" : "Registry export error";
+    public static string RegistryImportError => IsUk ? "Помилка імпорту реєстру" : "Registry import error";
+    public static string ExportedRegistryKey(string path) => IsUk ? $"Експортовано ключ реєстру {path}" : $"Exported registry key {path}";
+    public static string ImportedRegistryFile(int keys, int values) => IsUk ? $"Імпортовано .reg: ключів {keys}, значень {values}" : $"Imported .reg file: {keys} keys, {values} values";
     public static string Confirmation => IsUk ? "Підтвердження" : "Confirmation";
     public static string SelectKeyFirst => IsUk ? "Спочатку виберіть ключ" : "Select a key first";
     public static string SelectValueFirst => IsUk ? "Спочатку виберіть значення" : "Select a value first";

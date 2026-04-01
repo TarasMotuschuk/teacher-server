@@ -13,3 +13,5 @@ public sealed record DeleteRegistryValueRequest(string Path, string Name);
 public sealed record CreateRegistryKeyRequest(string ParentPath, string KeyName);
 
 public sealed record DeleteRegistryKeyRequest(string Path);
+
+public sealed record ImportRegistryFileResult(int KeysProcessed, int ValuesProcessed);

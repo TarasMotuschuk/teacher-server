@@ -10,11 +10,18 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - Remote registry viewer tab in both TeacherClient (WinForms) and TeacherClient.Avalonia: browse the full registry tree of a connected student machine with lazy-loaded subkeys and a value list showing Name, Type, and Data columns
 - Registry editing support: create, edit, and delete registry values (REG_SZ, REG_DWORD, REG_QWORD, REG_EXPAND_SZ, REG_MULTI_SZ, REG_BINARY) and create/delete registry keys in both teacher clients
+- Registry `.reg` export and import support in both teacher clients for the selected remote key
 - `GET /api/registry/keys`, `GET /api/registry/values`, `POST /api/registry/values`, `DELETE /api/registry/values`, `POST /api/registry/keys`, `DELETE /api/registry/keys` endpoints on StudentAgent.Service
+- `GET /api/registry/export` and `POST /api/registry/import` endpoints on StudentAgent.Service
 - `RegistryService` on the agent side supports all five root hives (HKLM, HKCU, HKCR, HKU, HKCC) with formatted value display and full write support
 - `Directory.Build.props` as single source of truth for the assembly version; all projects pick up the version automatically at build time
 - Agent now reports its version via `GET /api/info` (`AgentVersion` field in `ServerInfoDto`); both teacher clients display the connected agent version in the status bar
 - MSI now declaratively creates and sets `BUILTIN\Users` Modify-equivalent permissions on `%ProgramData%\TeacherServer\StudentAgent` via `util:PermissionEx`; permissions are applied on install, reinstall, upgrade, and repair — no longer relying solely on runtime code
+
+### Fixed
+
+- Avalonia registry tree now renders reliably with visible text on the light registry panel
+- Both teacher clients now edit registry values from raw registry data instead of formatted display text, preventing corrupted writes for binary, DWORD, QWORD, multi-string, and expandable-string values
 
 ## [1.0.5] - 2026-03-31
 
@@ -159,4 +166,3 @@ The format is based on Keep a Changelog, and this project currently starts with 
 - Auto-discovery is now UDP-based and intended for local network environments.
 - Authorization is still based on a shared secret plus a local password for protected tray actions.
 - File operations are still not restricted to a sandbox directory.
-
