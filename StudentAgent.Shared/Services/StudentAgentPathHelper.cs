@@ -1,3 +1,6 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
+
 namespace StudentAgent.Services;
 
 internal static class StudentAgentPathHelper
@@ -9,6 +12,7 @@ internal static class StudentAgentPathHelper
         {
             var root = Path.Combine(commonAppData, "TeacherServer", "StudentAgent");
             EnsureDirectoryExists(root);
+            TryGrantUsersModifyAccess(root);
             return root;
         }
 
@@ -33,6 +37,48 @@ internal static class StudentAgentPathHelper
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);
+        }
+    }
+
+    private static void TryGrantUsersModifyAccess(string root)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            var directoryInfo = new DirectoryInfo(root);
+            var security = directoryInfo.GetAccessControl();
+            var usersSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+
+            var hasRule = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .OfType<FileSystemAccessRule>()
+                .Any(rule =>
+                    rule.IdentityReference == usersSid &&
+                    rule.AccessControlType == AccessControlType.Allow &&
+                    rule.FileSystemRights.HasFlag(FileSystemRights.Modify));
+
+            if (hasRule)
+            {
+                return;
+            }
+
+            var rule = new FileSystemAccessRule(
+                usersSid,
+                FileSystemRights.Modify | FileSystemRights.Synchronize,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow);
+
+            security.AddAccessRule(rule);
+            directoryInfo.SetAccessControl(security);
+        }
+        catch
+        {
+            // If we cannot change ACLs in the current context, callers can still use the directory
+            // when permissions are already sufficient.
         }
     }
 }

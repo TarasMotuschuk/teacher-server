@@ -28,7 +28,7 @@
       ProgramData\TeacherServer\StudentAgent — data directory for the student agent.
       Permissions are set here (install / reinstall / repair) so the agent can write
       its settings and logs even when running as the interactive user via UIHost.
-      No RemoveFolder: we intentionally keep the data directory across upgrades and uninstall.
+      RemoveFolder removes the directory (and its contents) on uninstall.
     -->
     <StandardDirectory Id="CommonAppDataFolder">
       <Directory Id="ProgramDataTeacherServer" Name="TeacherServer">
@@ -49,6 +49,9 @@
                            GenericExecute="yes"
                            Delete="yes" />
       </CreateFolder>
+      <RemoveFolder Id="RemoveProgramDataStudentAgent" On="uninstall" />
+      <RemoveFolder Id="RemoveProgramDataTeacherServer" Directory="ProgramDataTeacherServer" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="Software\MTD\TeacherServer" Name="StudentAgentDataDir" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <StandardDirectory Id="DesktopFolder" />
