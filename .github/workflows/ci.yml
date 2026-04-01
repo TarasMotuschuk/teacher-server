@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  # ─────────────────────────────────────────────
+  # Windows: build all Windows projects + MSI
+  # ─────────────────────────────────────────────
+  build-windows:
+    name: Windows — build & MSI
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build Teacher.Common
+        run: dotnet build Teacher.Common/Teacher.Common.csproj -c Release --nologo
+
+      - name: Build TeacherClient (WinForms)
+        run: dotnet build TeacherClient/TeacherClient.csproj -c Release --nologo
+
+      - name: Build TeacherClient.Avalonia
+        run: dotnet build TeacherClient.Avalonia/TeacherClient.Avalonia.csproj -c Release --nologo
+
+      - name: Build StudentAgent.Service
+        run: dotnet build StudentAgent.Service/StudentAgent.Service.csproj -c Release --nologo
+
+      - name: Build StudentAgent.UIHost
+        run: dotnet build StudentAgent.UIHost/StudentAgent.UIHost.csproj -c Release --nologo
+
+      - name: Build MSI
+        run: powershell -ExecutionPolicy Bypass -File TeacherServer.Setup\Build-Msi.ps1 -Configuration Release
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: TeacherServer-MSI
+          path: TeacherServer.Setup/dist/*.msi
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────
+  # macOS: build Avalonia client + .pkg installer
+  # ─────────────────────────────────────────────
+  build-macos:
+    name: macOS — Avalonia .pkg
+    runs-on: macos-14   # ARM64 (M1) — matches osx-arm64 publish target
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read version from Directory.Build.props
+        id: version
+        run: |
+          VERSION=$(grep -oE '<Version>[0-9]+\.[0-9]+\.[0-9]+</Version>' Directory.Build.props \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build Avalonia .pkg
+        env:
+          CONFIGURATION: Release
+          RUNTIME: osx-arm64
+          VERSION: ${{ steps.version.outputs.value }}
+        run: bash TeacherClient.Avalonia.Setup/Build-MacInstaller.sh
+
+      - name: Upload .pkg
+        uses: actions/upload-artifact@v4
+        with:
+          name: TeacherClassroomClient-macOS
+          path: TeacherClient.Avalonia.Setup/dist/*.pkg
+          if-no-files-found: error

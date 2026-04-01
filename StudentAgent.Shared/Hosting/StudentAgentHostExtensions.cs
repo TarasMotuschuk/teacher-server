@@ -17,6 +17,7 @@ public static class StudentAgentHostExtensions
         services.AddSingleton<FileService>();
         services.AddSingleton<ServerInfoService>();
         services.AddSingleton<NetworkIdentityService>();
+        services.AddSingleton<RegistryService>();
         services.AddHostedService<AgentDiscoveryService>();
 
         if (includeBackgroundPolicies)
@@ -127,6 +128,94 @@ public static class StudentAgentHostExtensions
 
                 agentLog.LogWarning(logMessage);
                 service.ExecutePowerAction(request.Action);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/registry/keys", (string? path, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetSubKeys(path ?? string.Empty));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/registry/values", (string? path, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetValues(path ?? string.Empty));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/registry/values/edit", (string? path, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetValuesForEdit(path ?? string.Empty));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/registry/values", ([FromBody] SetRegistryValueRequest request, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                service.SetValue(request.Path, request.Name, request.Type, request.Data);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapDelete("/api/registry/values", ([FromBody] DeleteRegistryValueRequest request, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                service.DeleteValue(request.Path, request.Name);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/registry/keys", ([FromBody] CreateRegistryKeyRequest request, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                service.CreateSubKey(request.ParentPath, request.KeyName);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapDelete("/api/registry/keys", ([FromBody] DeleteRegistryKeyRequest request, [FromServices] RegistryService service) =>
+        {
+            try
+            {
+                service.DeleteSubKey(request.Path);
                 return Results.NoContent();
             }
             catch (Exception ex)

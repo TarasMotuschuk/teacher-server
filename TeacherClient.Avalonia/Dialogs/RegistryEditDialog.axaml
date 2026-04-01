@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.RegistryEditDialog"
+        Width="600"
+        Height="450"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Title="Edit Registry Value">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16" ColumnDefinitions="120,*">
+
+    <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Value name:" />
+    <TextBox x:Name="NameTextBox" Grid.Row="0" Grid.Column="1" Margin="12,0,0,0" />
+
+    <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,12,0,0" Text="Value type:" />
+    <ComboBox x:Name="TypeComboBox" Grid.Row="1" Grid.Column="1" Margin="12,12,0,0" />
+
+    <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Top" Margin="0,12,0,0" Text="Value data:" />
+    <TextBox x:Name="DataTextBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+             Margin="0,24,0,0" AcceptsReturn="True" TextWrapping="Wrap" />
+
+    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,16,0,0">
+      <Button x:Name="CancelButton" Width="90" Content="Cancel" Click="CancelButton_OnClick" />
+      <Button x:Name="OkButton" Width="90" Content="OK" Click="OkButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>

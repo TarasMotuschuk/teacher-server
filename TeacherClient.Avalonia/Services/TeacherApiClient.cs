@@ -70,6 +70,54 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<IReadOnlyList<RegistryKeyDto>> GetRegistrySubKeysAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var requestUri = string.IsNullOrEmpty(path)
+            ? "api/registry/keys"
+            : $"api/registry/keys?path={Uri.EscapeDataString(path)}";
+        return await _httpClient.GetFromJsonAsync<List<RegistryKeyDto>>(requestUri, cancellationToken) ?? [];
+    }
+
+    public async Task<IReadOnlyList<RegistryValueDto>> GetRegistryValuesAsync(string path, CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<RegistryValueDto>>(
+            $"api/registry/values?path={Uri.EscapeDataString(path)}", cancellationToken) ?? [];
+
+    public async Task<IReadOnlyList<RegistryValueEditDto>> GetRegistryValuesForEditAsync(string path, CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<RegistryValueEditDto>>(
+            $"api/registry/values/edit?path={Uri.EscapeDataString(path)}", cancellationToken) ?? [];
+
+    public async Task SetRegistryValueAsync(string path, string name, string type, string data, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/registry/values", new SetRegistryValueRequest(path, name, type, data), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task DeleteRegistryValueAsync(string path, string name, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "api/registry/values")
+        {
+            Content = JsonContent.Create(new DeleteRegistryValueRequest(path, name))
+        };
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task CreateRegistryKeyAsync(string parentPath, string keyName, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/registry/keys", new CreateRegistryKeyRequest(parentPath, keyName), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task DeleteRegistryKeyAsync(string path, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "api/registry/keys")
+        {
+            Content = JsonContent.Create(new DeleteRegistryKeyRequest(path))
+        };
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
 

@@ -28,6 +28,7 @@
     <Compile Include="..\StudentAgent.Shared\Services\FileService.cs" Link="Shared\Services\FileService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\NetworkIdentityService.cs" Link="Shared\Services\NetworkIdentityService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\ProcessService.cs" Link="Shared\Services\ProcessService.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\RegistryService.cs" Link="Shared\Services\RegistryService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\ServerInfoService.cs" Link="Shared\Services\ServerInfoService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\StudentAgentPathHelper.cs" Link="Shared\Services\StudentAgentPathHelper.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\Localization\StudentAgentText.cs" Link="Shared\Localization\StudentAgentText.cs" />

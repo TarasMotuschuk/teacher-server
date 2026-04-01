@@ -13,6 +13,9 @@ partial class MainForm
     private TabPage agentsTabPage = null!;
     private TabPage processesTabPage = null!;
     private TabPage filesTabPage = null!;
+    private TabPage registryTabPage = null!;
+    private TreeView registryTreeView = null!;
+    private DataGridView registryValuesGrid = null!;
     private Button settingsButton = null!;
     private Label statusLabel = null!;
     private DataGridView processesGrid = null!;
@@ -62,6 +65,9 @@ partial class MainForm
         agentsTabPage = new TabPage();
         processesTabPage = new TabPage();
         filesTabPage = new TabPage();
+        registryTabPage = new TabPage();
+        registryTreeView = new TreeView();
+        registryValuesGrid = new DataGridView();
         settingsButton = new Button();
         statusLabel = new Label();
         processesGrid = new DataGridView();
@@ -237,6 +243,7 @@ partial class MainForm
         mainTabControl.TabPages.Add(agentsTabPage);
         mainTabControl.TabPages.Add(processesTabPage);
         mainTabControl.TabPages.Add(filesTabPage);
+        mainTabControl.TabPages.Add(registryTabPage);
 
         agentsTabPage.Text = TeacherClientText.AgentsTab;
         agentsTabPage.BackColor = Color.FromArgb(236, 239, 243);
@@ -244,6 +251,8 @@ partial class MainForm
         processesTabPage.BackColor = Color.FromArgb(236, 239, 243);
         filesTabPage.Text = TeacherClientText.FilesTab;
         filesTabPage.BackColor = Color.FromArgb(236, 239, 243);
+        registryTabPage.Text = TeacherClientText.RegistryTab;
+        registryTabPage.BackColor = Color.FromArgb(236, 239, 243);
 
         ConfigureGrid(agentsGrid);
         ConfigureGrid(processesGrid);
@@ -564,6 +573,54 @@ partial class MainForm
         filesLayout.Controls.Add(filesToolStrip, 0, 0);
         filesLayout.Controls.Add(filesPanelsLayout, 0, 1);
         filesTabPage.Controls.Add(filesLayout);
+
+        ConfigureGrid(registryValuesGrid);
+        registryValuesGrid.Dock = DockStyle.Fill;
+        registryValuesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Name, DataPropertyName = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 35F, MinimumWidth = 180 });
+        registryValuesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.RegistryValueType, DataPropertyName = "TypeDisplay", Width = 140 });
+        registryValuesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.RegistryValueData, DataPropertyName = "DataDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 65F, MinimumWidth = 260 });
+
+        registryTreeView.Dock = DockStyle.Fill;
+        registryTreeView.BackColor = Color.White;
+        registryTreeView.BorderStyle = BorderStyle.None;
+        registryTreeView.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
+        registryTreeView.BeforeExpand += registryTreeView_BeforeExpand;
+        registryTreeView.AfterSelect += registryTreeView_AfterSelect;
+
+        var registryLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(12),
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        registryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
+        registryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        var registryToolStrip = CreateTabToolStrip();
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, ToolbarIconKind.Refresh, refreshRegistryButton_Click));
+        registryToolStrip.Items.Add(new ToolStripSeparator());
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewValue, ToolbarIconKind.Add, newRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewKey, ToolbarIconKind.Add, newRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(new ToolStripSeparator());
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, ToolbarIconKind.Edit, editRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, ToolbarIconKind.Remove, deleteRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, ToolbarIconKind.Remove, deleteRegistryKeyButton_Click));
+
+        var registrySplit = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Vertical,
+            SplitterDistance = 340,
+            Panel1MinSize = 200,
+            Panel2MinSize = 100
+        };
+        registrySplit.Panel1.Controls.Add(registryTreeView);
+        registrySplit.Panel2.Controls.Add(registryValuesGrid);
+
+        registryLayout.Controls.Add(registryToolStrip, 0, 0);
+        registryLayout.Controls.Add(registrySplit, 0, 1);
+        registryTabPage.Controls.Add(registryLayout);
 
         Controls.Add(mainTabControl);
         Controls.Add(topPanel);

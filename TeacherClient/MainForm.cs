@@ -25,6 +25,7 @@ public partial class MainForm : Form
     private BindingList<ProcessInfoDto> _processes = new();
     private BindingList<FileSystemEntryDto> _localEntries = new();
     private BindingList<FileSystemEntryDto> _remoteEntries = new();
+    private BindingList<RegistryValueDto> _registryValues = new();
     private readonly HashSet<string> _preparedStudentWorkFolders = new(StringComparer.OrdinalIgnoreCase);
     private bool _suppressBrowserLockEvents;
     private bool _suppressDriveSelectionEvents;
@@ -47,6 +48,9 @@ public partial class MainForm : Form
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
         remoteFilesGrid.DataSource = _remoteEntries;
+        registryValuesGrid.AutoGenerateColumns = false;
+        registryValuesGrid.DataSource = _registryValues;
+        InitializeRegistryTree();
         _manualAgents = _manualAgentStore.Load().ToList();
         _frequentPrograms = _frequentProgramStore.Load().ToList();
         groupFilterComboBox.Items.Add(TeacherClientText.AllGroups);
@@ -129,6 +133,218 @@ public partial class MainForm : Form
     }
 
     private async void refreshProcessesButton_Click(object sender, EventArgs e) => await LoadProcessesAsync();
+
+    private void refreshRegistryButton_Click(object? sender, EventArgs e) => InitializeRegistryTree();
+
+    private void registryTreeView_BeforeExpand(object? sender, TreeViewCancelEventArgs e)
+    {
+        if (e.Node?.Nodes.Count == 1 && e.Node.Nodes[0].Tag is string dummyTag && dummyTag == "dummy")
+        {
+            _ = LoadRegistrySubKeysAsync(e.Node);
+        }
+    }
+
+    private async void registryTreeView_AfterSelect(object? sender, TreeViewEventArgs e)
+    {
+        if (e.Node?.Tag is not string path) return;
+        await LoadRegistryValuesAsync(path);
+    }
+
+    private async Task LoadRegistryValuesAsync(string path)
+    {
+        try
+        {
+            var client = CreateClient();
+            var values = await client.GetRegistryValuesAsync(path);
+            _registryValues = new BindingList<RegistryValueDto>(values.ToList());
+            registryValuesGrid.DataSource = _registryValues;
+            SetStatus(TeacherClientText.FormatLoadedRegistryValues(values.Count));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryLoadError}: {ex.Message}");
+        }
+    }
+
+    private async Task LoadRegistrySubKeysAsync(TreeNode node)
+    {
+        if (node.Tag is not string path) return;
+        try
+        {
+            var client = CreateClient();
+            var subKeys = await client.GetRegistrySubKeysAsync(path);
+            node.Nodes.Clear();
+            foreach (var key in subKeys)
+            {
+                var childNode = new TreeNode(key.Name) { Tag = key.Path };
+                if (key.HasChildren)
+                    childNode.Nodes.Add(new TreeNode("...") { Tag = "dummy" });
+                node.Nodes.Add(childNode);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryLoadError}: {ex.Message}");
+            node.Nodes.Clear();
+        }
+    }
+
+    private void InitializeRegistryTree()
+    {
+        registryTreeView.Nodes.Clear();
+        _registryValues.Clear();
+        string[] hives = ["HKEY_LOCAL_MACHINE", "HKEY_CURRENT_USER", "HKEY_CLASSES_ROOT", "HKEY_USERS", "HKEY_CURRENT_CONFIG"];
+        foreach (var hive in hives)
+        {
+            var node = new TreeNode(hive) { Tag = hive };
+            node.Nodes.Add(new TreeNode("...") { Tag = "dummy" });
+            registryTreeView.Nodes.Add(node);
+        }
+    }
+
+    private async void newRegistryValueButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new RegistryEditDialog();
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
+            SetStatus(TeacherClientText.ValueCreated);
+            await LoadRegistryValuesAsync(path);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void newRegistryKeyButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new InputDialog(TeacherClientText.NewKey, TeacherClientText.KeyName);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.CreateRegistryKeyAsync(path, dialog.Value);
+            SetStatus(TeacherClientText.KeyCreated);
+            _ = LoadRegistrySubKeysAsync(registryTreeView.SelectedNode);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void editRegistryValueButton_Click(object? sender, EventArgs e)
+    {
+        if (registryValuesGrid.SelectedRows.Count == 0)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectValueFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            return;
+        }
+
+        if (registryValuesGrid.SelectedRows[0].DataBoundItem is not RegistryValueDto value)
+        {
+            return;
+        }
+
+        using var dialog = new RegistryEditDialog(value.Name, value.TypeDisplay, value.DataDisplay);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var client = CreateClient();
+            await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
+            SetStatus(TeacherClientText.ValueUpdated);
+            await LoadRegistryValuesAsync(path);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void deleteRegistryValueButton_Click(object? sender, EventArgs e)
+    {
+        if (registryValuesGrid.SelectedRows.Count == 0)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectValueFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            return;
+        }
+
+        if (registryValuesGrid.SelectedRows[0].DataBoundItem is not RegistryValueDto value)
+        {
+            return;
+        }
+
+        if (MessageBox.Show(this, TeacherClientText.ConfirmDeleteValue, TeacherClientText.Confirmation, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.DeleteRegistryValueAsync(path, value.Name);
+            SetStatus(TeacherClientText.ValueDeleted);
+            await LoadRegistryValuesAsync(path);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
+
+    private async void deleteRegistryKeyButton_Click(object? sender, EventArgs e)
+    {
+        if (registryTreeView.SelectedNode?.Tag is not string path)
+        {
+            MessageBox.Show(this, TeacherClientText.SelectKeyFirst, TeacherClientText.Validation, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (MessageBox.Show(this, TeacherClientText.ConfirmDeleteKey, TeacherClientText.Confirmation, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var client = CreateClient();
+            await client.DeleteRegistryKeyAsync(path);
+            SetStatus(TeacherClientText.KeyDeleted);
+            InitializeRegistryTree();
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RegistryError}: {ex.Message}");
+        }
+    }
 
     private async void refreshAgentsButton_Click(object? sender, EventArgs e) => await LoadDiscoveredAgentsAsync();
 
@@ -1602,7 +1818,7 @@ public partial class MainForm : Form
 
             _lastConnectedAgentId = agent?.AgentId;
             _lastConnectedServerUrl = serverUrl;
-            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser));
+            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser, info.AgentVersion));
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);

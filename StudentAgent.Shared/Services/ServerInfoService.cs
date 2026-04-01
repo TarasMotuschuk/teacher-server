@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Teacher.Common.Contracts;
 
@@ -6,6 +7,8 @@ namespace StudentAgent.Services;
 public sealed class ServerInfoService
 {
     private readonly AgentSettingsStore _settingsStore;
+    private static readonly string _agentVersion =
+        Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.0.0";
 
     public ServerInfoService(AgentSettingsStore settingsStore)
     {
@@ -25,6 +28,7 @@ public sealed class ServerInfoService
             DateTime.UtcNow,
             true,
             _settingsStore.Current.BrowserLockEnabled,
-            _settingsStore.Current.InputLockEnabled);
+            _settingsStore.Current.InputLockEnabled,
+            _agentVersion);
     }
 }

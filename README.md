@@ -36,6 +36,8 @@ Available endpoints:
 - `POST /api/files/upload`: upload file with `multipart/form-data`.
 - `POST /api/commands/run`: execute a command script on the student machine.
 - `GET /api/commands/frequent-programs/public-desktop`: collect `.lnk` shortcuts from the public desktop for teacher-side frequent program lists.
+- `GET /api/registry/keys`: list registry subkeys at a given path; empty path returns the five root hives.
+- `GET /api/registry/values`: list registry values at a given path with formatted type and data display.
 
 ### TeacherClient
 
@@ -69,7 +71,8 @@ Available endpoints:
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - a splash screen shown during teacher client startup;
 - remote directory creation;
-- local and remote deletion with confirmation dialogs.
+- local and remote deletion with confirmation dialogs;
+- a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 
 ### TeacherClient.Avalonia
 
@@ -103,7 +106,8 @@ Available endpoints:
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - a splash screen shown during teacher client startup;
 - delete local and remote entries;
-- create remote folders.
+- create remote folders;
+- a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 
 ### Teacher.Common
 
