@@ -1,9 +1,12 @@
 using System.IO.Compression;
+using System.Text.Json;
 using System.ServiceProcess;
+using Teacher.Common.Contracts;
 
 var options = ParseArgs(args);
 var logPath = Path.Combine(options.BackupDirectory, $"updater-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
 Directory.CreateDirectory(options.BackupDirectory);
+WriteStatus(options, AgentUpdateStateKind.Installing, "Updater started.", rollbackPerformed: false);
 
 try
 {
@@ -26,24 +29,38 @@ try
     }
 
     CopyDirectory(options.InstallDirectory, backupDirectory, skipPredicate: static path => Path.GetFileName(path).Equals("appsettings.json", StringComparison.OrdinalIgnoreCase));
-    CopyDirectory(
-        stagingDirectory,
-        options.InstallDirectory,
-        skipPredicate: static path =>
-        {
-            var fileName = Path.GetFileName(path);
-            return fileName.Equals("appsettings.json", StringComparison.OrdinalIgnoreCase)
-                || fileName.StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase);
-        });
+    try
+    {
+        CopyDirectory(
+            stagingDirectory,
+            options.InstallDirectory,
+            skipPredicate: static path =>
+            {
+                var fileName = Path.GetFileName(path);
+                return fileName.Equals("appsettings.json", StringComparison.OrdinalIgnoreCase)
+                    || fileName.StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase);
+            });
 
-    StartService(options.ServiceName, logPath);
-    Directory.Delete(stagingDirectory, recursive: true);
-    Log(logPath, $"Update to {options.TargetVersion} completed successfully.");
-    return 0;
+        StartService(options.ServiceName, logPath);
+        Directory.Delete(stagingDirectory, recursive: true);
+        Log(logPath, $"Update to {options.TargetVersion} completed successfully.");
+        WriteStatus(options, AgentUpdateStateKind.Succeeded, $"Updated to {options.TargetVersion}.", rollbackPerformed: false);
+        return 0;
+    }
+    catch (Exception installEx)
+    {
+        Log(logPath, $"Update install failed. Starting rollback: {installEx}");
+        WriteStatus(options, AgentUpdateStateKind.Failed, $"Install failed: {installEx.Message}", rollbackPerformed: false);
+        RestoreBackup(backupDirectory, options.InstallDirectory, logPath);
+        StartService(options.ServiceName, logPath);
+        WriteStatus(options, AgentUpdateStateKind.RolledBack, $"Rolled back after failed update to {options.TargetVersion}.", rollbackPerformed: true);
+        return 1;
+    }
 }
 catch (Exception ex)
 {
     Log(logPath, $"Update failed: {ex}");
+    WriteStatus(options, AgentUpdateStateKind.Failed, ex.Message, rollbackPerformed: false);
     try
     {
         StartService(options.ServiceName, logPath);
@@ -108,6 +125,20 @@ static void CopyDirectory(string sourceDirectory, string destinationDirectory, F
     }
 }
 
+static void RestoreBackup(string backupDirectory, string installDirectory, string logPath)
+{
+    if (!Directory.Exists(backupDirectory))
+    {
+        throw new InvalidOperationException($"Rollback backup was not found at '{backupDirectory}'.");
+    }
+
+    Log(logPath, $"Restoring backup from '{backupDirectory}'.");
+    CopyDirectory(
+        backupDirectory,
+        installDirectory,
+        skipPredicate: static path => Path.GetFileName(path).StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase));
+}
+
 static void Log(string logPath, string message)
 {
     File.AppendAllText(logPath, $"[{DateTime.UtcNow:O}] {message}{Environment.NewLine}");
@@ -134,9 +165,34 @@ static string GetRequired(IReadOnlyDictionary<string, string> values, string key
         ? value
         : throw new InvalidOperationException($"Missing required argument {key}.");
 
+static void WriteStatus(UpdaterOptions options, AgentUpdateStateKind state, string message, bool rollbackPerformed)
+{
+    Directory.CreateDirectory(Path.GetDirectoryName(options.StatusPath)!);
+    var payload = new UpdaterStatusFile(
+        state,
+        options.TargetVersion,
+        message,
+        rollbackPerformed,
+        DateTime.UtcNow);
+    File.WriteAllText(options.StatusPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions
+    {
+        WriteIndented = true
+    }));
+}
+
 internal sealed record UpdaterOptions(
     string ServiceName,
     string ZipPath,
     string InstallDirectory,
     string BackupDirectory,
-    string TargetVersion);
+    string TargetVersion)
+{
+    public string StatusPath => Path.Combine(Path.GetDirectoryName(BackupDirectory)!, "update-status.json");
+}
+
+internal sealed record UpdaterStatusFile(
+    AgentUpdateStateKind State,
+    string TargetVersion,
+    string Message,
+    bool RollbackPerformed,
+    DateTime UpdatedAtUtc);

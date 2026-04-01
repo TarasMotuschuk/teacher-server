@@ -55,6 +55,7 @@ internal static class CrossPlatformText
     public static string Machine => IsUk ? "Машина" : "Machine";
     public static string User => IsUk ? "Користувач" : "User";
     public static string Notes => IsUk ? "Нотатки" : "Notes";
+    public static string UpdateStatus => IsUk ? "Оновлення" : "Update";
     public static string Version => IsUk ? "Версія" : "Version";
     public static string LastSeenUtc => IsUk ? "Останній сигнал UTC" : "Last Seen UTC";
     public static string Refresh => IsUk ? "Оновити" : "Refresh";
@@ -176,6 +177,35 @@ internal static class CrossPlatformText
     public static string BulkAgentUpdateCompletedWithFailures(int succeeded, int failures) => IsUk
         ? $"Оновлення запущено: успішно {succeeded}, з помилками {failures}"
         : $"Started updates: {succeeded} succeeded, {failures} failed";
+    public static string UpdateStateBadge(AgentUpdateStatusDto? status)
+    {
+        if (status is null)
+        {
+            return string.Empty;
+        }
+
+        var stateText = status.State switch
+        {
+            AgentUpdateStateKind.Checking => IsUk ? "Перевірка" : "Checking",
+            AgentUpdateStateKind.UpToDate => IsUk ? "Актуально" : "Up to date",
+            AgentUpdateStateKind.Available => IsUk ? "Доступно" : "Available",
+            AgentUpdateStateKind.Downloading => IsUk ? "Завантаження" : "Downloading",
+            AgentUpdateStateKind.Installing => IsUk ? "Встановлення" : "Installing",
+            AgentUpdateStateKind.Succeeded => IsUk ? "Оновлено" : "Updated",
+            AgentUpdateStateKind.Failed => IsUk ? "Помилка" : "Failed",
+            AgentUpdateStateKind.RolledBack => IsUk ? "Відкат" : "Rolled back",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(stateText))
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(status.AvailableVersion)
+            ? stateText
+            : $"{stateText} {status.AvailableVersion}";
+    }
     public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
     public static string RegistryValueType => IsUk ? "Тип" : "Type";
     public static string RegistryValueData => IsUk ? "Дані" : "Data";

@@ -292,7 +292,7 @@ public static class StudentAgentHostExtensions
         {
             try
             {
-                var status = await service.StartUpdateAsync(request?.CheckForUpdatesFirst ?? true, cancellationToken);
+                var status = await service.StartUpdateAsync(request ?? new StartAgentUpdateRequest(), cancellationToken);
                 return Results.Accepted("/api/update/status", status);
             }
             catch (Exception ex)

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Teacher.Common.Contracts;
@@ -16,6 +17,7 @@ public sealed class AgentUpdateService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AgentLogService _logService;
     private readonly string _manifestUrl;
+    private readonly string _statusPath;
     private readonly string _currentVersion;
     private AgentUpdateStatusDto _status;
     private Task? _runningTask;
@@ -25,6 +27,7 @@ public sealed class AgentUpdateService
         _httpClientFactory = httpClientFactory;
         _logService = logService;
         _manifestUrl = options.Value.UpdateManifestUrl?.Trim() ?? string.Empty;
+        _statusPath = StudentAgentPathHelper.GetUpdateStatusPath();
         _currentVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.0.0";
         _status = new AgentUpdateStatusDto(
             AgentUpdateStateKind.Idle,
@@ -32,20 +35,23 @@ public sealed class AgentUpdateService
             null,
             false,
             null,
-            string.IsNullOrWhiteSpace(_manifestUrl) ? "Update manifest URL is not configured." : null);
+            string.IsNullOrWhiteSpace(_manifestUrl) ? "Update manifest URL is not configured." : null,
+            false,
+            null);
     }
 
     public AgentUpdateStatusDto GetStatus()
     {
         lock (_sync)
         {
+            _status = MergePersistedStatus(_status);
             return _status with { };
         }
     }
 
     public async Task<UpdateInfoDto> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
-        UpdateState(AgentUpdateStateKind.Checking, null, false, "Checking for updates...", DateTime.UtcNow);
+        UpdateState(AgentUpdateStateKind.Checking, null, false, "Checking for updates...", DateTime.UtcNow, false, null);
 
         try
         {
@@ -60,7 +66,9 @@ public sealed class AgentUpdateService
                 manifest.Version,
                 updateAvailable,
                 message,
-                DateTime.UtcNow);
+                DateTime.UtcNow,
+                false,
+                null);
 
             return new UpdateInfoDto(
                 _currentVersion,
@@ -72,12 +80,12 @@ public sealed class AgentUpdateService
         }
         catch (Exception ex)
         {
-            UpdateState(AgentUpdateStateKind.Failed, null, false, ex.Message, DateTime.UtcNow);
+            UpdateState(AgentUpdateStateKind.Failed, null, false, ex.Message, DateTime.UtcNow, false, null);
             throw;
         }
     }
 
-    public Task<AgentUpdateStatusDto> StartUpdateAsync(bool checkForUpdatesFirst, CancellationToken cancellationToken = default)
+    public Task<AgentUpdateStatusDto> StartUpdateAsync(StartAgentUpdateRequest request, CancellationToken cancellationToken = default)
     {
         lock (_sync)
         {
@@ -86,30 +94,58 @@ public sealed class AgentUpdateService
                 return Task.FromResult(_status with { });
             }
 
-            _runningTask = RunUpdateAsync(checkForUpdatesFirst, cancellationToken);
+            _runningTask = RunUpdateAsync(request, cancellationToken);
             return Task.FromResult(_status with { });
         }
     }
 
-    private async Task RunUpdateAsync(bool checkForUpdatesFirst, CancellationToken cancellationToken)
+    private async Task RunUpdateAsync(StartAgentUpdateRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            var updateInfo = checkForUpdatesFirst
-                ? await CheckForUpdatesAsync(cancellationToken)
+            var updateInfo = request.PreferredSource is not null
+                ? BuildPreferredUpdateInfo(request.PreferredSource)
                 : await CheckForUpdatesAsync(cancellationToken);
+
+            if (request.PreferredSource is not null)
+            {
+                UpdateState(
+                    AgentUpdateStateKind.Available,
+                    updateInfo.AvailableVersion,
+                    updateInfo.UpdateAvailable,
+                    "Using teacher-hosted update package.",
+                    DateTime.UtcNow,
+                    rollbackPerformed: false,
+                    lastUpdatedUtc: null);
+            }
 
             if (!updateInfo.UpdateAvailable || string.IsNullOrWhiteSpace(updateInfo.PackageUrl))
             {
-                UpdateState(AgentUpdateStateKind.UpToDate, updateInfo.AvailableVersion, false, updateInfo.Message, DateTime.UtcNow);
+                UpdateState(AgentUpdateStateKind.UpToDate, updateInfo.AvailableVersion, false, updateInfo.Message, DateTime.UtcNow, false, null);
                 return;
             }
 
-            UpdateState(AgentUpdateStateKind.Downloading, updateInfo.AvailableVersion, true, "Downloading update package...", DateTime.UtcNow);
+            UpdateState(AgentUpdateStateKind.Downloading, updateInfo.AvailableVersion, true, "Downloading update package...", DateTime.UtcNow, false, null);
             Directory.CreateDirectory(StudentAgentPathHelper.GetUpdatesDirectory());
             var packageFileName = $"student-agent-{updateInfo.AvailableVersion}.zip";
             var packagePath = Path.Combine(StudentAgentPathHelper.GetUpdatesDirectory(), packageFileName);
-            await DownloadPackageAsync(updateInfo.PackageUrl, packagePath, cancellationToken);
+            try
+            {
+                await DownloadPackageAsync(updateInfo.PackageUrl, packagePath, cancellationToken);
+            }
+            catch (Exception preferredEx) when (request.PreferredSource is not null && request.FallbackToConfiguredManifest)
+            {
+                _logService.LogWarning($"Teacher-hosted update source failed, falling back to configured manifest: {preferredEx.Message}");
+                updateInfo = await CheckForUpdatesAsync(cancellationToken);
+                if (!updateInfo.UpdateAvailable || string.IsNullOrWhiteSpace(updateInfo.PackageUrl))
+                {
+                    UpdateState(AgentUpdateStateKind.UpToDate, updateInfo.AvailableVersion, false, updateInfo.Message, DateTime.UtcNow, false, null);
+                    return;
+                }
+
+                UpdateState(AgentUpdateStateKind.Downloading, updateInfo.AvailableVersion, true, "Teacher-hosted source failed. Downloading from fallback manifest...", DateTime.UtcNow, false, null);
+                await DownloadPackageAsync(updateInfo.PackageUrl, packagePath, cancellationToken);
+            }
 
             if (!string.IsNullOrWhiteSpace(updateInfo.PackageSha256))
             {
@@ -122,15 +158,27 @@ public sealed class AgentUpdateService
                 throw new InvalidOperationException($"Updater binary was not found at '{updaterPath}'.");
             }
 
-            UpdateState(AgentUpdateStateKind.Installing, updateInfo.AvailableVersion, true, "Launching updater...", DateTime.UtcNow);
+            UpdateState(AgentUpdateStateKind.Installing, updateInfo.AvailableVersion, true, "Launching updater...", DateTime.UtcNow, false, null);
             LaunchUpdater(updaterPath, packagePath, updateInfo.AvailableVersion!);
             _logService.LogInfo($"Launching StudentAgent updater for version {updateInfo.AvailableVersion}.");
         }
         catch (Exception ex)
         {
             _logService.LogError($"Agent update failed: {ex}");
-            UpdateState(AgentUpdateStateKind.Failed, _status.AvailableVersion, _status.UpdateAvailable, ex.Message, DateTime.UtcNow);
+            UpdateState(AgentUpdateStateKind.Failed, _status.AvailableVersion, _status.UpdateAvailable, ex.Message, DateTime.UtcNow, false, DateTime.UtcNow);
         }
+    }
+
+    private UpdateInfoDto BuildPreferredUpdateInfo(PreferredUpdateSourceDto preferredSource)
+    {
+        var updateAvailable = IsVersionGreater(preferredSource.Version, _currentVersion);
+        return new UpdateInfoDto(
+            _currentVersion,
+            preferredSource.Version,
+            updateAvailable,
+            preferredSource.PackageUrl,
+            preferredSource.PackageSha256,
+            updateAvailable ? $"Teacher-hosted update {preferredSource.Version} is available." : "Agent is up to date.");
     }
 
     private async Task<AgentUpdateManifest> LoadManifestAsync(CancellationToken cancellationToken)
@@ -213,7 +261,9 @@ public sealed class AgentUpdateService
         string? availableVersion,
         bool updateAvailable,
         string? message,
-        DateTime? lastCheckedUtc)
+        DateTime? lastCheckedUtc,
+        bool rollbackPerformed,
+        DateTime? lastUpdatedUtc)
     {
         lock (_sync)
         {
@@ -223,7 +273,40 @@ public sealed class AgentUpdateService
                 availableVersion,
                 updateAvailable,
                 lastCheckedUtc ?? _status.LastCheckedUtc,
-                message);
+                message,
+                rollbackPerformed,
+                lastUpdatedUtc ?? _status.LastUpdatedUtc);
+        }
+    }
+
+    private AgentUpdateStatusDto MergePersistedStatus(AgentUpdateStatusDto current)
+    {
+        if (!File.Exists(_statusPath))
+        {
+            return current;
+        }
+
+        try
+        {
+            var persisted = JsonSerializer.Deserialize<PersistedUpdateStatus>(File.ReadAllText(_statusPath));
+            if (persisted is null)
+            {
+                return current;
+            }
+
+            return current with
+            {
+                State = persisted.State,
+                AvailableVersion = persisted.TargetVersion,
+                UpdateAvailable = persisted.State is AgentUpdateStateKind.Available or AgentUpdateStateKind.Downloading or AgentUpdateStateKind.Installing,
+                Message = persisted.Message,
+                RollbackPerformed = persisted.RollbackPerformed,
+                LastUpdatedUtc = persisted.UpdatedAtUtc
+            };
+        }
+        catch
+        {
+            return current;
         }
     }
 
@@ -234,4 +317,11 @@ public sealed class AgentUpdateService
         [property: JsonPropertyName("version")] string Version,
         [property: JsonPropertyName("url")] string Url,
         [property: JsonPropertyName("sha256")] string? Sha256);
+
+    private sealed record PersistedUpdateStatus(
+        AgentUpdateStateKind State,
+        string TargetVersion,
+        string Message,
+        bool RollbackPerformed,
+        DateTime UpdatedAtUtc);
 }

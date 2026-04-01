@@ -15,8 +15,11 @@ public partial class MainForm : Form
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
     private readonly FrequentProgramStore _frequentProgramStore = new();
+    private readonly TeacherHostedUpdatePackageServer _updatePackageServer =
+        new(Path.Combine(Path.GetTempPath(), "TeacherServer", "UpdateCache"));
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
+    private readonly System.Windows.Forms.Timer _updateStatusTimer = new();
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<FrequentProgramEntry> _frequentPrograms = [];
@@ -64,16 +67,21 @@ public partial class MainForm : Form
         _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync(showBusyCursor: false);
         _connectionMonitorTimer.Interval = 10000;
         _connectionMonitorTimer.Tick += async (_, _) => await MonitorConnectionAsync();
+        _updateStatusTimer.Interval = 5000;
+        _updateStatusTimer.Tick += async (_, _) => await PollAgentUpdateStatusesAsync();
         Shown += async (_, _) =>
         {
             await LoadDiscoveredAgentsAsync();
             _agentRefreshTimer.Start();
             _connectionMonitorTimer.Start();
+            _updateStatusTimer.Start();
         };
         FormClosing += (_, _) =>
         {
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
+            _updateStatusTimer.Stop();
+            _updatePackageServer.Dispose();
         };
     }
 
@@ -1526,6 +1534,13 @@ public partial class MainForm : Form
             SetStatus(update.UpdateAvailable
                 ? TeacherClientText.AgentUpdateAvailable(agent.MachineName, update.AvailableVersion ?? "?")
                 : TeacherClientText.AgentUpToDate(agent.MachineName, update.CurrentVersion));
+            ReplaceAgentRow(ApplyUpdateStatus(agent, new AgentUpdateStatusDto(
+                update.UpdateAvailable ? AgentUpdateStateKind.Available : AgentUpdateStateKind.UpToDate,
+                update.CurrentVersion,
+                update.AvailableVersion,
+                update.UpdateAvailable,
+                DateTime.UtcNow,
+                update.Message)));
         }
         catch (Exception ex)
         {
@@ -1550,7 +1565,19 @@ public partial class MainForm : Form
         try
         {
             var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-            var status = await client.StartAgentUpdateAsync();
+            var prepared = await PreparePreferredUpdateRequestAsync(agent, client);
+            if (prepared.SkipStart)
+            {
+                SetStatus(TeacherClientText.AgentUpToDate(agent.MachineName, prepared.Version ?? agent.Version));
+                return;
+            }
+
+            var request = prepared.Request;
+            var status = await client.StartAgentUpdateAsync(request);
+            if (status is not null)
+            {
+                ReplaceAgentRow(ApplyUpdateStatus(agent, status));
+            }
             SetStatus(TeacherClientText.AgentUpdateStarted(agent.MachineName, status?.AvailableVersion ?? "?"));
         }
         catch (Exception ex)
@@ -1749,7 +1776,19 @@ public partial class MainForm : Form
             {
                 SetStatus(TeacherClientText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                await client.StartAgentUpdateAsync();
+                var prepared = await PreparePreferredUpdateRequestAsync(agent, client);
+                if (prepared.SkipStart)
+                {
+                    succeeded++;
+                    continue;
+                }
+
+                var request = prepared.Request;
+                var status = await client.StartAgentUpdateAsync(request);
+                if (status is not null)
+                {
+                    ReplaceAgentRow(ApplyUpdateStatus(agent, status));
+                }
                 succeeded++;
             }
             catch (Exception ex)
@@ -2128,6 +2167,102 @@ public partial class MainForm : Form
         ApplyAgentFilters();
     }
 
+    private async Task<(StartAgentUpdateRequest Request, bool SkipStart, string? Version)> PreparePreferredUpdateRequestAsync(DiscoveredAgentRow agent, TeacherApiClient client, CancellationToken cancellationToken = default)
+    {
+        UpdateInfoDto? update = null;
+        try
+        {
+            update = await client.CheckForUpdatesAsync(cancellationToken);
+        }
+        catch
+        {
+            return (new StartAgentUpdateRequest(), false, null);
+        }
+
+        if (update is null)
+        {
+            return (new StartAgentUpdateRequest(), false, null);
+        }
+
+        if (!update.UpdateAvailable || string.IsNullOrWhiteSpace(update.AvailableVersion) || string.IsNullOrWhiteSpace(update.PackageUrl))
+        {
+            ReplaceAgentRow(ApplyUpdateStatus(agent, new AgentUpdateStatusDto(
+                AgentUpdateStateKind.UpToDate,
+                update.CurrentVersion,
+                update.AvailableVersion,
+                false,
+                DateTime.UtcNow,
+                update.Message)));
+            return (new StartAgentUpdateRequest(CheckForUpdatesFirst: false), true, update.CurrentVersion);
+        }
+
+        try
+        {
+            var hostedPackage = await _updatePackageServer.PreparePackageAsync(
+                update.AvailableVersion,
+                update.PackageUrl,
+                update.PackageSha256,
+                agent.RespondingAddress,
+                cancellationToken);
+
+            return (
+                new StartAgentUpdateRequest(
+                    CheckForUpdatesFirst: false,
+                    PreferredSource: new PreferredUpdateSourceDto(
+                        hostedPackage.Version,
+                        hostedPackage.HostedPackageUrl,
+                        hostedPackage.PackageSha256),
+                    FallbackToConfiguredManifest: true),
+                false,
+                update.AvailableVersion);
+        }
+        catch
+        {
+            return (new StartAgentUpdateRequest(), false, update.AvailableVersion);
+        }
+    }
+
+    private async Task PollAgentUpdateStatusesAsync()
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !x.IsManual || !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .ToList();
+
+        foreach (var agent in targetAgents)
+        {
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                var status = await client.GetUpdateStatusAsync();
+                if (status is null)
+                {
+                    continue;
+                }
+
+                ReplaceAgentRow(ApplyUpdateStatus(agent, status));
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static DiscoveredAgentRow ApplyUpdateStatus(DiscoveredAgentRow agent, AgentUpdateStatusDto status)
+    {
+        var targetVersion = status.State switch
+        {
+            AgentUpdateStateKind.Succeeded => status.AvailableVersion ?? agent.Version,
+            _ => agent.Version
+        };
+
+        return agent with
+        {
+            Version = targetVersion,
+            UpdateStatusBadge = TeacherClientText.UpdateStateBadge(status)
+        };
+    }
+
     private void agentFilters_Changed(object? sender, EventArgs e)
     {
         ApplyAgentFilters();
@@ -2203,12 +2338,17 @@ public partial class MainForm : Form
                     var info = await reachabilityClient.GetServerInfoAsync();
                     if (info is not null)
                     {
+                        var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
                         updatedAgents.Add(agent with
                         {
                             Status = TeacherClientText.Online,
                             CurrentUser = info.CurrentUser,
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
-                            InputLockEnabled = info.IsInputLockEnabled
+                            InputLockEnabled = info.IsInputLockEnabled,
+                            UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                            Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
+                                ? updateStatus.AvailableVersion ?? info.AgentVersion
+                                : info.AgentVersion
                         });
                         continue;
                     }
@@ -2227,12 +2367,17 @@ public partial class MainForm : Form
                 try
                 {
                     var info = await reachabilityClient.GetServerInfoAsync();
+                    var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
                     updatedAgents.Add(agent with
                     {
                         Status = TeacherClientText.Online,
                         CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
-                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled
+                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
+                        UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                        Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
+                            ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
+                            : info?.AgentVersion ?? agent.Version
                     });
                     continue;
                 }
@@ -2335,6 +2480,7 @@ public partial class MainForm : Form
         int Port,
         string MacAddressesDisplay,
         string Notes,
+        string UpdateStatusBadge,
         string Version,
         DateTime LastSeenUtc,
         bool IsManual)
@@ -2356,6 +2502,7 @@ public partial class MainForm : Form
                 dto.Port,
                 string.Join(", ", dto.MacAddresses),
                 string.Empty,
+                string.Empty,
                 dto.Version,
                 dto.LastSeenUtc,
                 false);
@@ -2374,6 +2521,7 @@ public partial class MainForm : Form
                 entry.Port,
                 entry.MacAddress,
                 entry.Notes,
+                string.Empty,
                 TeacherClientText.ManualVersion,
                 DateTime.MinValue,
                 true);

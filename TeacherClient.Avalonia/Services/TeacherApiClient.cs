@@ -147,8 +147,11 @@ public sealed class TeacherApiClient
         => _httpClient.GetFromJsonAsync<UpdateInfoDto>("api/update/check", cancellationToken);
 
     public async Task<AgentUpdateStatusDto?> StartAgentUpdateAsync(bool checkForUpdatesFirst = true, CancellationToken cancellationToken = default)
+        => await StartAgentUpdateAsync(new StartAgentUpdateRequest(checkForUpdatesFirst), cancellationToken);
+
+    public async Task<AgentUpdateStatusDto?> StartAgentUpdateAsync(StartAgentUpdateRequest request, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/update/start", new StartAgentUpdateRequest(checkForUpdatesFirst), cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync("api/update/start", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<AgentUpdateStatusDto>(cancellationToken);
     }

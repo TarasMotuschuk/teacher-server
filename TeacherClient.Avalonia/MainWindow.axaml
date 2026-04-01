@@ -183,6 +183,7 @@
               <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="90" IsReadOnly="True" />
               <DataGridTextColumn Header="MACs" Binding="{Binding MacAddressesDisplay}" Width="220" IsReadOnly="True" />
               <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="180" IsReadOnly="True" />
+              <DataGridTextColumn Header="Update" Binding="{Binding UpdateStatusBadge}" Width="150" IsReadOnly="True" />
               <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="110" IsReadOnly="True" />
               <DataGridTextColumn Header="Last Seen UTC" Binding="{Binding LastSeenDisplay}" Width="190" IsReadOnly="True" />
             </DataGrid.Columns>

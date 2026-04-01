@@ -41,6 +41,9 @@ internal static class StudentAgentPathHelper
     public static string GetUpdateBackupDirectory()
         => Path.Combine(GetUpdatesDirectory(), "backup");
 
+    public static string GetUpdateStatusPath()
+        => Path.Combine(GetUpdatesDirectory(), "update-status.json");
+
     private static void EnsureDirectoryExists(string path)
     {
         if (!Directory.Exists(path))
