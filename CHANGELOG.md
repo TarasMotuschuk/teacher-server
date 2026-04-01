@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-04-01
+
 ### Added
 
 - Phase 1 student-agent update pipeline: `StudentAgent.Updater`, update status/check/start endpoints, and manual teacher-side update commands for a selected online agent
