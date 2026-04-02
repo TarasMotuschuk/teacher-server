@@ -1,6 +1,6 @@
-# Teacher Server
+# ClassCommander
 
-`Teacher Server` is a .NET 8 classroom administration solution for a transparent, teacher-controlled environment. It includes:
+`ClassCommander` is a .NET 8 classroom administration solution for a transparent, teacher-controlled environment. It includes:
 
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
@@ -9,6 +9,8 @@
 - `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup`: macOS packaging project that builds a `.app` bundle and a `.pkg` installer.
 - `Teacher.Common`: shared DTOs and request contracts.
+
+User-facing branding is now `ClassCommander`. Technical repository names such as `TeacherServer`, `TeacherClient`, and `TeacherClient.Avalonia` remain unchanged for compatibility with the existing solution structure, scripts, paths, and persisted settings.
 
 The current implementation focuses on visible and explicitly authorized administration tasks such as viewing processes and managing files. It does not include stealth monitoring, persistence tricks, hidden startup, or covert control flows.
 
@@ -221,7 +223,7 @@ Build-Msi.cmd
    - generate WiX payload fragments;
    - build an MSI into [TeacherServer.Setup/dist](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherServer.Setup/dist).
 
-5. Run the generated `.msi` on Windows and choose the desired feature during setup:
+5. Run the generated `.msi` on Windows. The installer is branded as `ClassCommander`, and then choose the desired feature during setup:
    - `Teacher workstation tools`
    - `Student workstation tools`
 
@@ -246,9 +248,9 @@ When a teacher starts an update from either teacher client, the preferred path i
 
 For GitHub-based releases, this repository can publish a student-agent update bundle on tag push. The auto-update manifest is emitted as `student-agent-version.json` in the GitHub Release assets and points to the matching `student-agent-update-<version>.zip`.
 
-### Start TeacherClient
+### Start ClassCommander on Windows
 
-1. Launch `TeacherClient`.
+1. Launch `ClassCommander` (`TeacherClient.exe`).
 2. Use the `Agents` tab to auto-discover agents or define manual entries.
 3. Optionally assign manual agents to a `Group` such as a classroom, lab row, or lesson cohort.
 4. Filter the list by search text, `Status`, or `Group`.
@@ -270,7 +272,7 @@ For GitHub-based releases, this repository can publish a student-agent update bu
 20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
 21. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
-### Start TeacherClient.Avalonia on macOS
+### Start ClassCommander on macOS
 
 1. Install the .NET 8 SDK on the Mac.
 2. Restore packages:
@@ -301,7 +303,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
 18. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
 
-### Build macOS installer for TeacherClient.Avalonia
+### Build macOS installer for ClassCommander
 
 1. Open Terminal on macOS.
 2. Run:
@@ -313,12 +315,12 @@ bash ./Build-MacInstaller.sh
 
 3. The setup project will:
    - publish a self-contained Avalonia build for `osx-arm64`;
-   - assemble `Teacher Classroom Client.app`;
+   - assemble `ClassCommander.app`;
    - build a macOS installer package.
 
 4. The outputs are:
-   - app bundle: [TeacherClient.Avalonia.Setup/artifacts/Teacher Classroom Client.app](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/artifacts/Teacher%20Classroom%20Client.app)
-   - installer: [TeacherClient.Avalonia.Setup/dist/TeacherClassroomClient-macos.pkg](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/dist/TeacherClassroomClient-macos.pkg)
+   - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)
+   - installer: [TeacherClient.Avalonia.Setup/dist/ClassCommander-macos.pkg](/Users/taras/Projects/OWN-GITHUB/teacher-server/TeacherClient.Avalonia.Setup/dist/ClassCommander-macos.pkg)
 
 5. Install the app by opening the generated `.pkg`.
 

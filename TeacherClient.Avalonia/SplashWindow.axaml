@@ -1,46 +1,20 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.SplashWindow"
-        Width="860"
-        Height="460"
-        MinWidth="860"
-        MinHeight="460"
+        Width="960"
+        Height="540"
+        MinWidth="960"
+        MinHeight="540"
         SystemDecorations="None"
         CanResize="False"
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="CenterScreen"
-        Background="#0F172A">
-  <Grid>
-    <Border Width="12" HorizontalAlignment="Left" Background="#3B82F6" />
-    <Canvas>
-      <Ellipse Width="170" Height="170" Fill="#2563EB" Opacity="0.65" Canvas.Right="104" Canvas.Top="34" />
-      <Ellipse Width="92" Height="92" Fill="#2563EB" Opacity="0.65" Canvas.Right="30" Canvas.Top="154" />
-    </Canvas>
-    <Grid Margin="44,34,44,38" RowDefinitions="1.1*,1*,0.8*">
-      <TextBlock x:Name="TitleTextBlock"
-                 Grid.Row="0"
-                 FontSize="28"
-                 MaxWidth="720"
-                 FontWeight="Bold"
-                 Foreground="White"
-                 VerticalAlignment="Bottom"
-                 TextWrapping="Wrap"
-                 Text="Teacher Classroom Client" />
-      <TextBlock x:Name="SubtitleTextBlock"
-                 Grid.Row="1"
-                 FontSize="17"
-                 MaxWidth="700"
-                 Foreground="#BFDBFE"
-                 Margin="0,16,0,0"
-                 VerticalAlignment="Top"
-                 TextWrapping="Wrap"
-                 Text="Preparing the teacher workspace..." />
-      <ProgressBar IsIndeterminate="True"
-                   Grid.Row="2"
-                   Height="18"
-                   Margin="0,36,0,0"
-                   VerticalAlignment="Top" />
-    </Grid>
-  </Grid>
+        Background="#0B1220">
+  <Border CornerRadius="14"
+          ClipToBounds="True"
+          Background="#0B1220">
+    <Image Source="avares://TeacherClient.Avalonia/Assets/ClassCommander-splash.png"
+           Stretch="UniformToFill" />
+  </Border>
 </Window>

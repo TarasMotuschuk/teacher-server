@@ -6,6 +6,20 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-04-02
+
+### Changed
+
+- Rebranded the user-facing product name from `Teacher Server` / `Teacher Classroom Client` to `ClassCommander` while keeping the existing technical project, solution, and path names unchanged for compatibility
+- WinForms and Avalonia splash screens now display the new `ClassCommander` branded splash image instead of the previous generated startup layout
+- WinForms, Avalonia, macOS packaging, and Windows installer assets now use the new `ClassCommander` application icon
+
+### Fixed
+
+- macOS downloads from student PCs now correctly strip Windows path segments and save using only the file name
+- StudentAgent installer/publish dependency versions are aligned so the Windows service no longer fails to start because of mixed `System.Diagnostics.EventLog` / `ServiceController` runtime assemblies
+- Avalonia file toolbar layout is more compact and no longer consumes as much vertical space on the `Files` tab
+
 ## [1.0.7] - 2026-04-01
 
 ### Added

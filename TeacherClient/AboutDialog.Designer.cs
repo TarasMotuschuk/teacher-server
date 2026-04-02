@@ -36,7 +36,7 @@ partial class AboutDialog
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-        Text = "About TeacherClient";
+        Text = "About ClassCommander";
         Width = 920;
         Height = 560;
         StartPosition = FormStartPosition.CenterParent;
@@ -62,12 +62,12 @@ partial class AboutDialog
         titleLabel.Dock = DockStyle.Fill;
         titleLabel.AutoSize = false;
         titleLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold, GraphicsUnit.Point);
-        titleLabel.Text = "Teacher Classroom Client";
+        titleLabel.Text = "ClassCommander";
         titleLabel.TextAlign = ContentAlignment.MiddleLeft;
         titleLabel.Margin = new Padding(0, 0, 0, 6);
 
         descriptionLabel.Dock = DockStyle.Fill;
-        descriptionLabel.Text = "TeacherClient is the Windows desktop control panel for connecting to StudentAgent, viewing processes, and managing files in a transparent classroom environment.";
+        descriptionLabel.Text = "ClassCommander is the Windows desktop control panel for connecting to StudentAgent, viewing processes, and managing files in a transparent classroom environment.";
         descriptionLabel.TextAlign = ContentAlignment.TopLeft;
         descriptionLabel.Margin = new Padding(0, 4, 0, 8);
 

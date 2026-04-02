@@ -6,8 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>..\Branding\ClassCommander-icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\Branding\ClassCommander-splash.png" Link="Assets\ClassCommander-splash.png" />
+    <EmbeddedResource Include="..\Branding\ClassCommander-icon.ico" Link="Assets\ClassCommander-icon.ico" />
   </ItemGroup>
 </Project>

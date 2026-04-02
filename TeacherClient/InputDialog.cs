@@ -9,6 +9,7 @@ public partial class InputDialog : Form
     public InputDialog()
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
         Text = TeacherClientText.InputTitle;
         promptLabel.Text = TeacherClientText.Prompt;
         okButton.Text = TeacherClientText.Ok;

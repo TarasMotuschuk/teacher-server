@@ -9,6 +9,7 @@ public partial class AboutDialog : Form
     public AboutDialog()
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
         Text = TeacherClientText.AboutTitle;
         titleLabel.Text = TeacherClientText.MainTitle;
         descriptionLabel.Text = TeacherClientText.AboutDescription;

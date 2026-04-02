@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Teacher.Common;
@@ -2610,11 +2611,11 @@ public partial class MainWindow : Window
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;
         RegistryTabItem.Header = CrossPlatformText.RegistryTab;
-        RefreshAgentsButton.Content = CrossPlatformText.RefreshAgents;
-        ConnectSelectedAgentButton.Content = CrossPlatformText.ConnectSelectedAgent;
-        AddManualAgentButton.Content = CrossPlatformText.AddManualAgent;
-        EditManualAgentButton.Content = CrossPlatformText.EditManualAgent;
-        RemoveManualAgentButton.Content = CrossPlatformText.RemoveManualAgent;
+        ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(ConnectSelectedAgentButton, CrossPlatformText.ConnectSelectedAgent, ToolbarGlyphKind.Link);
+        ApplyTabButtonContent(AddManualAgentButton, CrossPlatformText.AddManualAgent, ToolbarGlyphKind.Add);
+        ApplyTabButtonContent(EditManualAgentButton, CrossPlatformText.EditManualAgent, ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(RemoveManualAgentButton, CrossPlatformText.RemoveManualAgent, ToolbarGlyphKind.Remove);
         AgentSearchTextBox.Watermark = CrossPlatformText.SearchAgents;
         GroupFilterComboBox.ItemsSource = _allAgents.Count == 0
             ? new[] { CrossPlatformText.AllGroups }
@@ -2630,29 +2631,29 @@ public partial class MainWindow : Window
         StatusFilterComboBox.SelectedItem = new[] { CrossPlatformText.All, CrossPlatformText.Online, CrossPlatformText.Offline, CrossPlatformText.Unknown }
             .FirstOrDefault(x => string.Equals(x, selectedStatus, StringComparison.OrdinalIgnoreCase)) ?? CrossPlatformText.All;
         AutoReconnectCheckBox.Content = CrossPlatformText.AutoReconnect;
-        RefreshProcessesButton.Content = CrossPlatformText.Refresh;
-        KillProcessButton.Content = CrossPlatformText.TerminateSelected;
-        RefreshFilesButton.Content = CrossPlatformText.RefreshBoth;
-        UploadButton.Content = CrossPlatformText.UploadArrow;
-        SendToSelectedStudentsButton.Content = CrossPlatformText.SendToSelectedStudents;
-        SendToAllOnlineStudentsButton.Content = CrossPlatformText.SendToAllOnlineStudents;
-        DownloadButton.Content = CrossPlatformText.DownloadArrow;
-        OpenRemoteButton.Content = CrossPlatformText.OpenRemote;
-        DeleteLocalButton.Content = CrossPlatformText.DeleteLocal;
-        DeleteRemoteButton.Content = CrossPlatformText.DeleteRemote;
-        NewRemoteFolderButton.Content = CrossPlatformText.NewRemoteFolder;
+        ApplyTabButtonContent(RefreshProcessesButton, CrossPlatformText.Refresh, ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(KillProcessButton, CrossPlatformText.TerminateSelected, ToolbarGlyphKind.Stop);
+        ApplyTabButtonContent(RefreshFilesButton, CrossPlatformText.RefreshBoth, ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(UploadButton, CrossPlatformText.UploadArrow, ToolbarGlyphKind.Upload);
+        ApplyTabButtonContent(SendToSelectedStudentsButton, CrossPlatformText.SendToSelectedStudents, ToolbarGlyphKind.UploadGroup);
+        ApplyTabButtonContent(SendToAllOnlineStudentsButton, CrossPlatformText.SendToAllOnlineStudents, ToolbarGlyphKind.Broadcast);
+        ApplyTabButtonContent(DownloadButton, CrossPlatformText.DownloadArrow, ToolbarGlyphKind.Download);
+        ApplyTabButtonContent(OpenRemoteButton, CrossPlatformText.OpenRemote, ToolbarGlyphKind.OpenRemote);
+        ApplyTabButtonContent(DeleteLocalButton, CrossPlatformText.DeleteLocal, ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(DeleteRemoteButton, CrossPlatformText.DeleteRemote, ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(NewRemoteFolderButton, CrossPlatformText.NewRemoteFolder, ToolbarGlyphKind.NewFolder);
         TeacherPcTextBlock.Text = CrossPlatformText.TeacherPc;
         StudentPcTextBlock.Text = CrossPlatformText.StudentPc;
         UpLocalButton.Content = CrossPlatformText.Up;
         UpRemoteButton.Content = CrossPlatformText.Up;
-        RefreshRegistryButton.Content = CrossPlatformText.Refresh;
-        NewValueButton.Content = CrossPlatformText.NewValue;
-        NewKeyButton.Content = CrossPlatformText.NewKey;
-        EditValueButton.Content = CrossPlatformText.EditValue;
-        DeleteValueButton.Content = CrossPlatformText.DeleteValue;
-        DeleteKeyButton.Content = CrossPlatformText.DeleteKey;
-        ExportRegistryButton.Content = CrossPlatformText.ExportRegFile;
-        ImportRegistryButton.Content = CrossPlatformText.ImportRegFile;
+        ApplyTabButtonContent(RefreshRegistryButton, CrossPlatformText.Refresh, ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(NewValueButton, CrossPlatformText.NewValue, ToolbarGlyphKind.Add);
+        ApplyTabButtonContent(NewKeyButton, CrossPlatformText.NewKey, ToolbarGlyphKind.Add);
+        ApplyTabButtonContent(EditValueButton, CrossPlatformText.EditValue, ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(DeleteValueButton, CrossPlatformText.DeleteValue, ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(DeleteKeyButton, CrossPlatformText.DeleteKey, ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(ExportRegistryButton, CrossPlatformText.ExportRegFile, ToolbarGlyphKind.Download);
+        ApplyTabButtonContent(ImportRegistryButton, CrossPlatformText.ImportRegFile, ToolbarGlyphKind.Upload);
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
         if (AgentsGrid.Columns.Count >= 14)
         {
@@ -2712,6 +2713,100 @@ public partial class MainWindow : Window
         {
             StatusTextBlock.Text = CrossPlatformText.StatusReady;
         }
+    }
+
+    private static void ApplyTabButtonContent(Button button, string text, ToolbarGlyphKind glyphKind)
+    {
+        button.Content = BuildTabButtonContent(text, glyphKind);
+    }
+
+    private static Control BuildTabButtonContent(string text, ToolbarGlyphKind glyphKind)
+    {
+        var contentGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,8,*"),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+        };
+
+        var icon = new PathIcon
+        {
+            Width = 16,
+            Height = 16,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            Foreground = GetGlyphBrush(glyphKind),
+            Data = Geometry.Parse(GetGlyphPath(glyphKind))
+        };
+        Grid.SetColumn(icon, 0);
+
+        var textBlock = new TextBlock
+        {
+            Text = text,
+            FontSize = 10,
+            Foreground = Brushes.White,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            MaxWidth = 116
+        };
+        Grid.SetColumn(textBlock, 2);
+
+        contentGrid.Children.Add(icon);
+        contentGrid.Children.Add(textBlock);
+        return contentGrid;
+    }
+
+    private static IBrush GetGlyphBrush(ToolbarGlyphKind glyphKind)
+        => new SolidColorBrush(glyphKind switch
+        {
+            ToolbarGlyphKind.Settings => Color.Parse("#4F46E5"),
+            ToolbarGlyphKind.Refresh => Color.Parse("#0891B2"),
+            ToolbarGlyphKind.Link => Color.Parse("#16A34A"),
+            ToolbarGlyphKind.Add => Color.Parse("#22C55E"),
+            ToolbarGlyphKind.Edit => Color.Parse("#F59E0B"),
+            ToolbarGlyphKind.Remove => Color.Parse("#DC2626"),
+            ToolbarGlyphKind.Stop => Color.Parse("#BE185D"),
+            ToolbarGlyphKind.Upload => Color.Parse("#0284C7"),
+            ToolbarGlyphKind.UploadGroup => Color.Parse("#2563EB"),
+            ToolbarGlyphKind.Download => Color.Parse("#0E7490"),
+            ToolbarGlyphKind.OpenRemote => Color.Parse("#2563EB"),
+            ToolbarGlyphKind.Broadcast => Color.Parse("#7C3AED"),
+            ToolbarGlyphKind.NewFolder => Color.Parse("#CA8A04"),
+            _ => Color.Parse("#0F172A")
+        });
+
+    private static string GetGlyphPath(ToolbarGlyphKind glyphKind)
+        => glyphKind switch
+        {
+            ToolbarGlyphKind.Settings => "M19.14,12.94C19.18,12.64 19.2,12.32 19.2,12C19.2,11.68 19.18,11.36 19.14,11.06L21.19,9.47C21.37,9.33 21.42,9.07 21.3,8.86L19.3,5.4C19.18,5.18 18.92,5.1 18.69,5.18L16.27,6.15C15.77,5.76 15.23,5.43 14.63,5.18L14.27,2.6C14.24,2.36 14.03,2.18 13.79,2.18H10.21C9.97,2.18 9.76,2.36 9.73,2.6L9.37,5.18C8.77,5.43 8.23,5.76 7.73,6.15L5.31,5.18C5.08,5.1 4.82,5.18 4.7,5.4L2.7,8.86C2.58,9.07 2.63,9.33 2.81,9.47L4.86,11.06C4.82,11.36 4.8,11.69 4.8,12C4.8,12.31 4.82,12.64 4.86,12.94L2.81,14.53C2.63,14.67 2.58,14.93 2.7,15.14L4.7,18.6C4.82,18.82 5.08,18.9 5.31,18.82L7.73,17.85C8.23,18.24 8.77,18.57 9.37,18.82L9.73,21.4C9.76,21.64 9.97,21.82 10.21,21.82H13.79C14.03,21.82 14.24,21.64 14.27,21.4L14.63,18.82C15.23,18.57 15.77,18.24 16.27,17.85L18.69,18.82C18.92,18.9 19.18,18.82 19.3,18.6L21.3,15.14C21.42,14.93 21.37,14.67 21.19,14.53L19.14,12.94ZM12,15.6C10.01,15.6 8.4,13.99 8.4,12C8.4,10.01 10.01,8.4 12,8.4C13.99,8.4 15.6,10.01 15.6,12C15.6,13.99 13.99,15.6 12,15.6Z",
+            ToolbarGlyphKind.Refresh => "M12,4V1L8,5L12,9V6C15.31,6 18,8.69 18,12C18,15.31 15.31,18 12,18C9.16,18 6.78,16.03 6.14,13.38H4.08C4.77,17.14 8.06,20 12,20C16.42,20 20,16.42 20,12C20,7.58 16.42,4 12,4Z",
+            ToolbarGlyphKind.Link => "M10.59,13.41L9.17,12L13.41,7.76L14.83,9.17M17.66,6.34C16.88,5.56 15.61,5.56 14.83,6.34L13.41,7.76L16.24,10.59L17.66,9.17C18.44,8.39 18.44,7.12 17.66,6.34M6.34,17.66C7.12,18.44 8.39,18.44 9.17,17.66L10.59,16.24L7.76,13.41L6.34,14.83C5.56,15.61 5.56,16.88 6.34,17.66M14.83,10.59L13.41,12L12,10.59L10.59,12L12,13.41L10.59,14.83C9.81,15.61 8.54,15.61 7.76,14.83C6.98,14.05 6.98,12.78 7.76,12L9.17,10.59L7.76,9.17L6.34,10.59C4.78,12.15 4.78,14.68 6.34,16.24C7.9,17.8 10.43,17.8 11.99,16.24L13.41,14.83L14.83,16.24L16.24,14.83L14.83,13.41L16.24,12C17.8,10.44 17.8,7.91 16.24,6.34C14.68,4.78 12.15,4.78 10.59,6.34L9.17,7.76L10.59,9.17L12,7.76C12.78,6.98 14.05,6.98 14.83,7.76C15.61,8.54 15.61,9.81 14.83,10.59Z",
+            ToolbarGlyphKind.Add => "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z",
+            ToolbarGlyphKind.Edit => "M14.06,9.02L14.98,9.94L5.92,19H5V18.08M17.66,3C17.41,3 17.16,3.1 16.97,3.29L15.13,5.13L18.87,8.87L20.71,7.03C21.1,6.64 21.1,6 20.71,5.61L18.39,3.29C18.2,3.1 17.95,3 17.66,3Z",
+            ToolbarGlyphKind.Remove => "M19,13H5V11H19V13Z",
+            ToolbarGlyphKind.Stop => "M6,6H18V18H6V6Z",
+            ToolbarGlyphKind.Upload => "M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z",
+            ToolbarGlyphKind.UploadGroup => "M16,16V14C16,12.9 13.33,12 11,12S6,12.9 6,14V16H16M11,11A3,3 0 0,0 14,8A3,3 0 0,0 11,5A3,3 0 0,0 8,8A3,3 0 0,0 11,11M18,11V8H21V6H18V3H16V6H13V8H16V11H18Z",
+            ToolbarGlyphKind.Download => "M5,20H19V18H5M9,4V10H5L12,17L19,10H15V4H9Z",
+            ToolbarGlyphKind.OpenRemote => "M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M5,5H12V7H5V19H17V12H19V19C19,20.1 18.1,21 17,21H5C3.9,21 3,20.1 3,19V7C3,5.9 3.9,5 5,5Z",
+            ToolbarGlyphKind.Broadcast => "M3,10V14H7L12,19V5L7,10H3M16.5,12C16.5,10.23 15.73,8.63 14.5,7.5L13.08,8.92C13.95,9.69 14.5,10.79 14.5,12C14.5,13.21 13.95,14.31 13.08,15.08L14.5,16.5C15.73,15.37 16.5,13.77 16.5,12M14.5,3.97L13.09,5.38C15.47,7 17,9.83 17,13C17,16.17 15.47,19 13.09,20.62L14.5,22.03C17.3,20.04 19,16.73 19,13C19,9.27 17.3,5.96 14.5,3.97Z",
+            ToolbarGlyphKind.NewFolder => "M10,4L12,6H20C21.1,6 22,6.9 22,8V10H20V8H4V18H11V20H4C2.9,20 2,19.1 2,18V6C2,4.9 2.9,4 4,4H10M19,12V15H22V17H19V20H17V17H14V15H17V12H19Z",
+            _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z"
+        };
+
+    private enum ToolbarGlyphKind
+    {
+        Settings,
+        Refresh,
+        Link,
+        Add,
+        Edit,
+        Remove,
+        Stop,
+        Upload,
+        UploadGroup,
+        Download,
+        OpenRemote,
+        Broadcast,
+        NewFolder
     }
 }
 

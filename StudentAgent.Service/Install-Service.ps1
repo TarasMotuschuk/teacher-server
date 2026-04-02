@@ -4,7 +4,7 @@ param(
 )
 
 $serviceName = "StudentAgentService"
-$displayName = "StudentAgent Service"
+$displayName = "ClassCommander Student Agent"
 
 if (-not (Test-Path $BinaryPath)) {
     throw "Service binary not found at '$BinaryPath'. Publish StudentAgent.Service first."
@@ -24,7 +24,7 @@ New-Service `
     -DisplayName $displayName `
     -BinaryPathName ('"{0}"' -f $BinaryPath) `
     -StartupType Automatic `
-    -Description "Privileged StudentAgent runtime host for classroom control."
+    -Description "Privileged StudentAgent runtime host for ClassCommander classroom control."
 
 sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/5000/restart/5000 | Out-Null
 

@@ -14,27 +14,27 @@ internal static class CrossPlatformText
 
     public static bool IsUk => CurrentLanguage == UiLanguage.Ukrainian;
 
-    public static string MainTitle => IsUk ? "Клієнт викладача (Avalonia)" : "Teacher Classroom Client (Avalonia)";
-    public static string ConnectionMenu => IsUk ? "_Підключення" : "_Connection";
-    public static string Settings => IsUk ? "_Налаштування" : "_Settings";
-    public static string RefreshAgents => IsUk ? "_Оновити агентів" : "_Refresh Agents";
-    public static string ConnectSelectedAgent => IsUk ? "Підключити _вибраний агент" : "Connect _Selected Agent";
-    public static string AddManualAgent => IsUk ? "_Додати вручну" : "_Add Manual Agent";
-    public static string EditManualAgent => IsUk ? "_Редагувати вручну" : "_Edit Manual Agent";
-    public static string RemoveManualAgent => IsUk ? "_Видалити вручну" : "_Remove Manual Agent";
-    public static string Help => IsUk ? "_Довідка" : "_Help";
-    public static string GroupCommands => IsUk ? "_Групові команди" : "_Group Commands";
+    public static string MainTitle => "ClassCommander";
+    public static string ConnectionMenu => IsUk ? "Підключення" : "Connection";
+    public static string Settings => IsUk ? "Налаштування" : "Settings";
+    public static string RefreshAgents => IsUk ? "Оновити агентів" : "Refresh Agents";
+    public static string ConnectSelectedAgent => IsUk ? "Підключити вибраний агент" : "Connect Selected Agent";
+    public static string AddManualAgent => IsUk ? "Додати вручну" : "Add Manual Agent";
+    public static string EditManualAgent => IsUk ? "Редагувати вручну" : "Edit Manual Agent";
+    public static string RemoveManualAgent => IsUk ? "Видалити вручну" : "Remove Manual Agent";
+    public static string Help => IsUk ? "Довідка" : "Help";
+    public static string GroupCommands => IsUk ? "Групові команди" : "Group Commands";
     public static string GroupCommandsTitle => IsUk ? "Групові команди" : "Group Commands";
-    public static string UpdateCommandsMenu => IsUk ? "_Оновлення" : "_Updates";
-    public static string BrowserCommandsMenu => IsUk ? "_Браузер" : "_Browser";
-    public static string InputCommandsMenu => IsUk ? "_Клавіатура і миша" : "_Keyboard and Mouse";
-    public static string CommandsMenu => IsUk ? "_Команди" : "_Commands";
-    public static string PowerCommandsMenu => IsUk ? "_Живлення" : "_Power";
-    public static string SelectedStudentsMenu => IsUk ? "_Вибрані ПК" : "_Selected PCs";
-    public static string AllOnlineStudentsMenu => IsUk ? "_Всі онлайн ПК" : "_All Online PCs";
-    public static string StudentWorkMenu => IsUk ? "_Роботи учнів" : "_Student Work";
-    public static string FrequentProgramsMenu => IsUk ? "_Часті програми" : "_Frequent Programs";
-    public static string About => IsUk ? "_Про програму" : "_About";
+    public static string UpdateCommandsMenu => IsUk ? "Оновлення" : "Updates";
+    public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
+    public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
+    public static string CommandsMenu => IsUk ? "Команди" : "Commands";
+    public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
+    public static string SelectedStudentsMenu => IsUk ? "Вибрані ПК" : "Selected PCs";
+    public static string AllOnlineStudentsMenu => IsUk ? "Всі онлайн ПК" : "All Online PCs";
+    public static string StudentWorkMenu => IsUk ? "Роботи учнів" : "Student Work";
+    public static string FrequentProgramsMenu => IsUk ? "Часті програми" : "Frequent Programs";
+    public static string About => IsUk ? "Про програму" : "About";
     public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці агентів і підключіться." : "Ready. Use the Agents tab to select a student machine, then connect.";
     public static string Agents => IsUk ? "Агенти" : "Agents";
     public static string Processes => IsUk ? "Процеси" : "Processes";
@@ -71,7 +71,7 @@ internal static class CrossPlatformText
     public static string SendToAllOnlineStudents => IsUk ? "Надіслати всім онлайн учням" : "Send to all online students";
     public static string ClearDestinationFolderOnSelectedStudents => IsUk ? "Очистити папку призначення на вибраних учнях" : "Clear destination folder on selected students";
     public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
-    public static string DestinationFolderMenu => IsUk ? "_Папка призначення" : "_Destination Folder";
+    public static string DestinationFolderMenu => IsUk ? "Папка призначення" : "Destination Folder";
     public static string LockBrowsersOnAllOnlineStudents => IsUk ? "Заблокувати браузер на всіх онлайн учнівських ПК" : "Lock browser on all online student PCs";
     public static string LockInputOnAllOnlineStudents => IsUk ? "Заблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Lock keyboard and mouse on all online student PCs";
     public static string UnlockInputOnAllOnlineStudents => IsUk ? "Розблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Unlock keyboard and mouse on all online student PCs";
@@ -89,7 +89,7 @@ internal static class CrossPlatformText
     public static string Attributes => IsUk ? "Атрибути" : "Attributes";
     public static string Size => IsUk ? "Розмір" : "Size";
     public static string ModifiedUtc => IsUk ? "Змінено UTC" : "Modified UTC";
-    public static string SettingsWindowTitle => IsUk ? "Налаштування клієнта викладача" : "Teacher Client Settings";
+    public static string SettingsWindowTitle => IsUk ? "Налаштування ClassCommander" : "ClassCommander Settings";
     public static string SharedSecret => IsUk ? "Спільний секрет" : "Shared secret";
     public static string BulkCopyDestinationPath => IsUk ? "Папка призначення на учнях" : "Student destination folder";
     public static string StudentWorkRootPath => IsUk ? "Базовий шлях робіт на учнях" : "Student work base path";
@@ -129,8 +129,8 @@ internal static class CrossPlatformText
     public static string Port => IsUk ? "Порт" : "Port";
     public static string MacAddress => IsUk ? "MAC адреса" : "MAC address";
     public static string PromptInput => IsUk ? "Ввід" : "Input";
-    public static string AboutWindowTitle => IsUk ? "Про TeacherClient.Avalonia" : "About TeacherClient.Avalonia";
-    public static string AboutDescription => IsUk ? "TeacherClient.Avalonia — це кросплатформний клієнт для підключення до StudentAgent, перегляду процесів і файлових операцій з macOS, Linux або Windows." : "TeacherClient.Avalonia is the cross-platform desktop client for connecting to StudentAgent, browsing processes, and performing classroom file operations from macOS, Linux, or Windows.";
+    public static string AboutWindowTitle => IsUk ? "Про ClassCommander" : "About ClassCommander";
+    public static string AboutDescription => IsUk ? "ClassCommander — це кросплатформний клієнт для підключення до StudentAgent, перегляду процесів і файлових операцій з macOS, Linux або Windows." : "ClassCommander is the cross-platform desktop client for connecting to StudentAgent, browsing processes, and performing classroom file operations from macOS, Linux, or Windows.";
     public static string Copyright => "© 2026 Taras Motuschuk. All rights reserved. Email: mtomekt@gmail.com";
     public static string MachineSummary(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
     public static string NoAgentsAvailable => IsUk ? "Немає доступних агентів." : "No agents available.";
@@ -337,8 +337,8 @@ internal static class CrossPlatformText
         => IsUk
             ? $"{GetPowerActionNoun(action)} на {agent} ({agentIndex}/{agentCount})"
             : $"{GetPowerActionNoun(action)} on {agent} ({agentIndex}/{agentCount})";
-    public static string SplashTitle => IsUk ? "Клієнт викладача" : "Teacher Classroom Client";
-    public static string SplashSubtitle => IsUk ? "Підготовка робочого середовища викладача..." : "Preparing the teacher workspace...";
+    public static string SplashTitle => "ClassCommander";
+    public static string SplashSubtitle => IsUk ? "Підготовка ClassCommander..." : "Preparing ClassCommander...";
     public static string ClearDestinationFolderNotConfigured => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string StudentWorkFolderNotConfigured => IsUk ? "У налаштуваннях задайте базовий шлях і назву папки робіт." : "Set the student work base path and work folder name in settings first.";
     public static string PreparingWorkCollection => IsUk ? "Підготовка збору робіт..." : "Preparing work collection...";

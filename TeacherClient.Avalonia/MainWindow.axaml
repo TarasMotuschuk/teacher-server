@@ -9,7 +9,7 @@
         MinWidth="1100"
         MinHeight="720"
         Background="#2B2B2B"
-        Title="Teacher Classroom Client (Avalonia)">
+        Title="ClassCommander">
   <Design.DataContext>
     <x:Null />
   </Design.DataContext>
@@ -34,6 +34,27 @@
       <Setter Property="Foreground" Value="#0F172A" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.tabAction">
+      <Setter Property="Padding" Value="5,2" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="MinWidth" Value="126" />
+      <Setter Property="MaxWidth" Value="200" />
+      <Setter Property="Background" Value="#4A4A4A" />
+      <Setter Property="Foreground" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#686868" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.tabAction:pointerover">
+      <Setter Property="Background" Value="#5A5A5A" />
+      <Setter Property="BorderBrush" Value="#848484" />
+    </Style>
+    <Style Selector="Button.tabAction:pressed">
+      <Setter Property="Background" Value="#414141" />
+      <Setter Property="BorderBrush" Value="#979797" />
     </Style>
   </Window.Styles>
 
@@ -117,25 +138,32 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="2" Margin="0,16,0,16">
+    <TabControl x:Name="MainTabControl" Grid.Row="2" Margin="0,16,0,16">
       <TabItem x:Name="AgentsTabItem" Header="Agents">
-        <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
-          <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,160,120,Auto" Margin="0,0,0,12">
-            <Button x:Name="RefreshAgentsButton" Grid.Column="0" Width="120" Margin="0,0,12,0" Content="Refresh Agents" Click="RefreshAgentsButton_OnClick" />
-            <Button x:Name="ConnectSelectedAgentButton" Grid.Column="1" Width="140" Margin="0,0,12,0" Content="Connect Selected" Click="ConnectSelectedAgentButton_OnClick" />
-            <Button x:Name="AddManualAgentButton" Grid.Column="2" Width="110" Margin="0,0,12,0" Content="Add Manual" Click="AddManualAgentButton_OnClick" />
-            <Button x:Name="EditManualAgentButton" Grid.Column="3" Width="110" Margin="0,0,12,0" Content="Edit Manual" Click="EditManualAgentButton_OnClick" />
-            <Button x:Name="RemoveManualAgentButton" Grid.Column="4" Width="130" Margin="0,0,12,0" HorizontalAlignment="Left" Content="Remove Manual" Click="RemoveManualAgentButton_OnClick" />
+        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="RefreshAgentsButton" Classes="tabAction" Width="142" Margin="0,0,5,5" Click="RefreshAgentsButton_OnClick" />
+            <Button x:Name="ConnectSelectedAgentButton" Classes="tabAction" Width="176" Margin="0,0,5,5" Click="ConnectSelectedAgentButton_OnClick" />
+            <Button x:Name="AddManualAgentButton" Classes="tabAction" Width="148" Margin="0,0,5,5" Click="AddManualAgentButton_OnClick" />
+            <Button x:Name="EditManualAgentButton" Classes="tabAction" Width="148" Margin="0,0,5,5" Click="EditManualAgentButton_OnClick" />
+            <Button x:Name="RemoveManualAgentButton" Classes="tabAction" Width="172" Margin="0,0,5,5" Click="RemoveManualAgentButton_OnClick" />
+          </WrapPanel>
+
+          <Grid Grid.Row="1" ColumnDefinitions="*,240,150,Auto" Margin="0,0,0,12">
+            <TextBlock Grid.Column="0"
+                       VerticalAlignment="Center"
+                       Foreground="#A7ADB4"
+                       Text=" " />
             <TextBox x:Name="AgentSearchTextBox"
-                     Grid.Column="5"
+                     Grid.Column="1"
                      Margin="0,0,12,0"
                      Watermark="Search agents"
                      TextChanged="AgentSearchTextBox_OnTextChanged" />
             <ComboBox x:Name="GroupFilterComboBox"
-                      Grid.Column="6"
+                      Grid.Column="2"
                       Margin="0,0,12,0"
                       SelectionChanged="AgentFilterComboBox_OnSelectionChanged" />
-            <StackPanel Grid.Column="7" Orientation="Horizontal" Spacing="10">
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10">
               <ComboBox x:Name="StatusFilterComboBox" Width="110" SelectionChanged="AgentFilterComboBox_OnSelectionChanged" />
               <CheckBox x:Name="AutoReconnectCheckBox"
                         VerticalAlignment="Center"
@@ -145,7 +173,7 @@
           </Grid>
 
           <DataGrid x:Name="AgentsGrid"
-                    Grid.Row="1"
+                    Grid.Row="2"
                     AutoGenerateColumns="False"
                     CanUserReorderColumns="False"
                     IsReadOnly="False"
@@ -193,10 +221,10 @@
 
       <TabItem x:Name="ProcessesTabItem" Header="Processes">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-            <Button x:Name="RefreshProcessesButton" Width="110" Margin="0,0,10,0" Content="Refresh" Click="RefreshProcessesButton_OnClick" />
-            <Button x:Name="KillProcessButton" Width="180" Content="Terminate Selected" Click="KillProcessButton_OnClick" />
-          </StackPanel>
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <Button x:Name="RefreshProcessesButton" Classes="tabAction" Width="138" Margin="0,0,12,10" Click="RefreshProcessesButton_OnClick" />
+            <Button x:Name="KillProcessButton" Classes="tabAction" Width="212" Margin="0,0,12,10" Click="KillProcessButton_OnClick" />
+          </WrapPanel>
 
           <DataGrid x:Name="ProcessesGrid"
                     Grid.Row="1"
@@ -219,16 +247,16 @@
 
       <TabItem x:Name="FilesTabItem" Header="Files">
         <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
-          <WrapPanel Orientation="Horizontal" ItemHeight="36" ItemWidth="150" Margin="0,0,0,12">
-            <Button x:Name="RefreshFilesButton" Margin="0,0,10,10" Content="Refresh Both" Click="RefreshFilesButton_OnClick" />
-            <Button x:Name="UploadButton" Margin="0,0,10,10" Content="Upload -&gt;" Click="UploadButton_OnClick" />
-            <Button x:Name="SendToSelectedStudentsButton" Margin="0,0,10,10" Content="Send to selected students" Click="SendToSelectedStudentsButton_OnClick" />
-            <Button x:Name="SendToAllOnlineStudentsButton" Margin="0,0,10,10" Content="Send to all online students" Click="SendToAllOnlineStudentsButton_OnClick" />
-            <Button x:Name="DownloadButton" Margin="0,0,10,10" Content="&lt;- Download" Click="DownloadButton_OnClick" />
-            <Button x:Name="OpenRemoteButton" Margin="0,0,10,10" Content="Open on Student PC" Click="OpenRemoteButton_OnClick" />
-            <Button x:Name="DeleteLocalButton" Margin="0,0,10,10" Content="Delete Local" Click="DeleteLocalButton_OnClick" />
-            <Button x:Name="DeleteRemoteButton" Margin="0,0,10,10" Content="Delete Remote" Click="DeleteRemoteButton_OnClick" />
-            <Button x:Name="NewRemoteFolderButton" Margin="0,0,10,10" Content="New Remote Folder" Click="NewRemoteFolderButton_OnClick" />
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="RefreshFilesButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="RefreshFilesButton_OnClick" />
+            <Button x:Name="UploadButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="UploadButton_OnClick" />
+            <Button x:Name="DownloadButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="DownloadButton_OnClick" />
+            <Button x:Name="SendToSelectedStudentsButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="SendToSelectedStudentsButton_OnClick" />
+            <Button x:Name="SendToAllOnlineStudentsButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="SendToAllOnlineStudentsButton_OnClick" />
+            <Button x:Name="OpenRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="OpenRemoteButton_OnClick" />
+            <Button x:Name="NewRemoteFolderButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="NewRemoteFolderButton_OnClick" />
+            <Button x:Name="DeleteLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="DeleteLocalButton_OnClick" />
+            <Button x:Name="DeleteRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="DeleteRemoteButton_OnClick" />
           </WrapPanel>
 
           <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
@@ -288,19 +316,16 @@
 
       <TabItem x:Name="RegistryTabItem" Header="Registry">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,12" Spacing="8">
-            <Button x:Name="RefreshRegistryButton" Width="110" Content="Refresh" Click="RefreshRegistryButton_OnClick" />
-            <Separator />
-            <Button x:Name="NewValueButton" Width="110" Content="New Value" Click="NewValueButton_OnClick" />
-            <Button x:Name="NewKeyButton" Width="110" Content="New Key" Click="NewKeyButton_OnClick" />
-            <Separator />
-            <Button x:Name="EditValueButton" Width="110" Content="Edit Value" Click="EditValueButton_OnClick" />
-            <Button x:Name="DeleteValueButton" Width="110" Content="Delete Value" Click="DeleteValueButton_OnClick" />
-            <Button x:Name="DeleteKeyButton" Width="110" Content="Delete Key" Click="DeleteKeyButton_OnClick" />
-            <Separator />
-            <Button x:Name="ExportRegistryButton" Width="120" Content="Export .reg" Click="ExportRegistryButton_OnClick" />
-            <Button x:Name="ImportRegistryButton" Width="120" Content="Import .reg" Click="ImportRegistryButton_OnClick" />
-          </StackPanel>
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <Button x:Name="RefreshRegistryButton" Classes="tabAction" Width="138" Margin="0,0,12,10" Click="RefreshRegistryButton_OnClick" />
+            <Button x:Name="NewValueButton" Classes="tabAction" Width="144" Margin="0,0,12,10" Click="NewValueButton_OnClick" />
+            <Button x:Name="NewKeyButton" Classes="tabAction" Width="132" Margin="0,0,12,10" Click="NewKeyButton_OnClick" />
+            <Button x:Name="EditValueButton" Classes="tabAction" Width="138" Margin="0,0,12,10" Click="EditValueButton_OnClick" />
+            <Button x:Name="DeleteValueButton" Classes="tabAction" Width="150" Margin="0,0,12,10" Click="DeleteValueButton_OnClick" />
+            <Button x:Name="DeleteKeyButton" Classes="tabAction" Width="138" Margin="0,0,12,10" Click="DeleteKeyButton_OnClick" />
+            <Button x:Name="ExportRegistryButton" Classes="tabAction" Width="158" Margin="0,0,12,10" Click="ExportRegistryButton_OnClick" />
+            <Button x:Name="ImportRegistryButton" Classes="tabAction" Width="158" Margin="0,0,12,10" Click="ImportRegistryButton_OnClick" />
+          </WrapPanel>
 
           <Grid Grid.Row="1" ColumnDefinitions="340,*">
             <TreeView x:Name="RegistryTreeView"
@@ -334,10 +359,11 @@
     </TabControl>
 
     <Border Grid.Row="3"
-            Padding="12"
+            Padding="8"
             CornerRadius="10"
-            Background="#EEF2F6">
+            Background="#36404A">
       <TextBlock x:Name="FooterTextBlock" TextWrapping="Wrap"
+                 Foreground="#D4D9DF"
                  Text="Avalonia client is cross-platform and now includes the same agent discovery flow as the Windows client, including manual agent groups, status filters, and auto-reconnect against the existing StudentAgent HTTP endpoint." />
     </Border>
   </Grid>

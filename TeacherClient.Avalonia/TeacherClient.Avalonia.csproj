@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationIcon>..\Branding\ClassCommander-icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,5 +17,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="..\Branding\ClassCommander-splash.png" Link="Assets/ClassCommander-splash.png" />
+    <AvaloniaResource Include="..\Branding\ClassCommander-icon-cropped.png" Link="Assets/ClassCommander-icon-cropped.png" />
   </ItemGroup>
 </Project>
