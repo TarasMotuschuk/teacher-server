@@ -41,6 +41,7 @@ public partial class MainForm : Form
         _clientSettings = _clientSettingsStore.Load();
         TeacherClientText.SetLanguage(_clientSettings.Language);
         InitializeComponent();
+        Icon = AppIconLoader.Load();
         processesGrid.AutoGenerateColumns = false;
         localFilesGrid.AutoGenerateColumns = false;
         remoteFilesGrid.AutoGenerateColumns = false;

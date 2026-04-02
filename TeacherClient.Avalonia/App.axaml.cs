@@ -21,6 +21,7 @@ public partial class App : Application
             var settings = new ClientSettingsStore().Load();
             CrossPlatformText.SetLanguage(settings.Language);
             var splash = new SplashWindow();
+            splash.Icon = AppIconLoader.Load();
             desktop.MainWindow = splash;
             ShowMainWindowAfterSplashAsync(desktop, splash);
         }
@@ -34,6 +35,7 @@ public partial class App : Application
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             var mainWindow = new MainWindow();
+            mainWindow.Icon = AppIconLoader.Load();
             desktop.MainWindow = mainWindow;
             mainWindow.Show();
             splash.Close();

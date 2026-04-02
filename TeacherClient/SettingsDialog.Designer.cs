@@ -50,7 +50,7 @@ partial class SettingsDialog
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-        Text = "Teacher Client Settings";
+        Text = "ClassCommander Settings";
         Width = 760;
         Height = 560;
         StartPosition = FormStartPosition.CenterParent;

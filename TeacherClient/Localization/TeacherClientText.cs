@@ -14,7 +14,7 @@ internal static class TeacherClientText
 
     public static bool IsUk => CurrentLanguage == UiLanguage.Ukrainian;
 
-    public static string MainTitle => IsUk ? "Клієнт викладача" : "Teacher Classroom Client";
+    public static string MainTitle => "ClassCommander";
     public static string ConnectionMenu => IsUk ? "Підключення" : "Connection";
     public static string Settings => IsUk ? "Налаштування" : "Settings";
     public static string RefreshAgents => IsUk ? "Оновити агентів" : "Refresh Agents";
@@ -80,7 +80,7 @@ internal static class TeacherClientText
     public static string Size => IsUk ? "Розмір" : "Size";
     public static string DirectoryShort => IsUk ? "Кат." : "Dir";
     public static string ModifiedUtc => IsUk ? "Змінено UTC" : "Modified UTC";
-    public static string SettingsDialogTitle => IsUk ? "Налаштування клієнта викладача" : "Teacher Client Settings";
+    public static string SettingsDialogTitle => IsUk ? "Налаштування ClassCommander" : "ClassCommander Settings";
     public static string SharedSecret => IsUk ? "Спільний секрет" : "Shared secret";
     public static string BulkCopyDestinationPath => IsUk ? "Папка призначення на учнях" : "Student destination folder";
     public static string StudentWorkRootPath => IsUk ? "Базовий шлях робіт на учнях" : "Student work base path";
@@ -89,8 +89,8 @@ internal static class TeacherClientText
     public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності агентів і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work.";
     public static string Save => IsUk ? "Зберегти" : "Save";
     public static string Cancel => IsUk ? "Скасувати" : "Cancel";
-    public static string AboutTitle => IsUk ? "Про TeacherClient" : "About TeacherClient";
-    public static string AboutDescription => IsUk ? "TeacherClient — це Windows-клієнт для підключення до StudentAgent, перегляду процесів і керування файлами у прозорому навчальному середовищі." : "TeacherClient is the Windows desktop control panel for connecting to StudentAgent, viewing processes, and managing files in a transparent classroom environment.";
+    public static string AboutTitle => IsUk ? "Про ClassCommander" : "About ClassCommander";
+    public static string AboutDescription => IsUk ? "ClassCommander — це Windows-клієнт для підключення до StudentAgent, перегляду процесів і керування файлами у прозорому навчальному середовищі." : "ClassCommander is the Windows desktop control panel for connecting to StudentAgent, viewing processes, and managing files in a transparent classroom environment.";
     public static string Version => IsUk ? "Версія:" : "Version:";
     public static string Close => IsUk ? "Закрити" : "Close";
     public static string InputTitle => IsUk ? "Ввід" : "Input";
@@ -272,8 +272,8 @@ internal static class TeacherClientText
         => IsUk
             ? $"{GetPowerActionNoun(action)} на {agent} ({agentIndex}/{agentCount})"
             : $"{GetPowerActionNoun(action)} on {agent} ({agentIndex}/{agentCount})";
-    public static string SplashTitle => IsUk ? "Клієнт викладача" : "Teacher Classroom Client";
-    public static string SplashSubtitle => IsUk ? "Підготовка робочого середовища викладача..." : "Preparing the teacher workspace...";
+    public static string SplashTitle => "ClassCommander";
+    public static string SplashSubtitle => IsUk ? "Підготовка ClassCommander..." : "Preparing ClassCommander...";
     public static string ClearDestinationFolderNotConfigured => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string StudentWorkFolderNotConfigured => IsUk ? "У налаштуваннях задайте базовий шлях і назву папки робіт." : "Set the student work base path and work folder name in settings first.";
     public static string PreparingWorkCollection => IsUk ? "Підготовка збору робіт..." : "Preparing work collection...";

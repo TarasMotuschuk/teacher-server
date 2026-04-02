@@ -3,7 +3,7 @@
      xmlns:firewall="http://wixtoolset.org/schemas/v4/wxs/firewall"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
-      Name="Teacher Server"
+      Name="ClassCommander"
       Manufacturer="Taras Motuschuk"
       Version="1.0.5"
       UpgradeCode="9D624377-0AA5-4E8A-970A-5640C752EA0A"
@@ -11,9 +11,11 @@
       InstallerVersion="500"
       Language="1033">
 
-    <SummaryInformation Description="Teacher Server classroom tools installer." />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Teacher Server is already installed." />
+    <SummaryInformation Description="ClassCommander classroom tools installer." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of ClassCommander is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    <Icon Id="ClassCommanderProductIcon" SourceFile="..\Branding\ClassCommander-icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ClassCommanderProductIcon" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="COMPANYFOLDER" Name="MTD">
@@ -82,19 +84,19 @@
 
     <Component Id="TeacherDesktopShortcutComponent" Directory="DesktopFolder" Guid="*">
       <Shortcut Id="TeacherDesktopShortcut"
-                Name="Teacher Client"
+                Name="ClassCommander"
                 Target="[TEACHERDIR]TeacherClient.exe"
                 WorkingDirectory="TEACHERDIR"
-                Description="Teacher classroom administration client." />
+                Description="ClassCommander classroom administration client." />
       <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <Component Id="TeacherStartMenuShortcutComponent" Directory="TeacherProgramMenuAppFolder" Guid="*">
       <Shortcut Id="TeacherStartMenuShortcut"
-                Name="Teacher Client"
+                Name="ClassCommander"
                 Target="[TEACHERDIR]TeacherClient.exe"
                 WorkingDirectory="TEACHERDIR"
-                Description="Teacher classroom administration client." />
+                Description="ClassCommander classroom administration client." />
       <RemoveFolder Id="RemoveTeacherProgramMenuAppFolder" On="uninstall" />
       <RemoveFolder Id="RemoveTeacherProgramMenuFolder" Directory="TeacherProgramMenuFolder" On="uninstall" />
       <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
@@ -103,15 +105,15 @@
     <Component Id="StudentServiceMainComponent" Directory="STUDENTDIR" Guid="*">
       <File Id="StudentAgentServiceExe" Source="$(var.StudentPayloadDir)\StudentAgent.Service.exe" KeyPath="yes" />
       <firewall:FirewallException Id="StudentAgentServiceFirewallRule"
-                                  Name="Teacher Server StudentAgent Service"
+                                  Name="ClassCommander StudentAgent Service"
                                   Description="Allows the StudentAgent service to accept classroom control connections."
                                   Program="[#StudentAgentServiceExe]"
                                   Profile="all"
                                   Scope="any" />
       <ServiceInstall Id="StudentAgentServiceInstaller"
                       Name="StudentAgentService"
-                      DisplayName="StudentAgent Service"
-                      Description="Privileged StudentAgent runtime host for classroom control."
+                      DisplayName="ClassCommander Student Agent"
+                      Description="Privileged StudentAgent runtime host for ClassCommander classroom control."
                       Type="ownProcess"
                       Start="auto"
                       ErrorControl="normal"
@@ -132,8 +134,6 @@
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
-
-
 
 
 

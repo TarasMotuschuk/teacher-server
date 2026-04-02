@@ -8,8 +8,9 @@ public partial class AboutWindow : Window
     public AboutWindow()
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
         Title = CrossPlatformText.AboutWindowTitle;
-        TitleTextBlock.Text = "TeacherClient.Avalonia";
+        TitleTextBlock.Text = "ClassCommander";
         DescriptionTextBlock.Text = CrossPlatformText.AboutDescription;
         VersionTextBlock.Text = $"{CrossPlatformText.Version}: {GetType().Assembly.GetName().Version}";
         CopyrightTextBlock.Text = CrossPlatformText.Copyright;

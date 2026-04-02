@@ -10,6 +10,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
     }
 
     public SettingsWindow(ClientSettings settings)

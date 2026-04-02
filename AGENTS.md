@@ -25,6 +25,12 @@ This repository contains a Windows-oriented classroom administration solution bu
 - Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
 - Treat security improvements as welcome defaults: TLS, stronger auth, audit logging, and path restrictions are in scope. Covert control capabilities are not.
 
+## Branding
+
+- User-facing product branding is `ClassCommander`.
+- Internal repository, project, directory, namespace, and persisted path names such as `TeacherServer`, `TeacherClient`, and `TeacherClient.Avalonia` should remain unchanged unless the task explicitly calls for a technical rename/migration.
+- When updating UI, installer copy, splash screens, About dialogs, or documentation, prefer `ClassCommander` for the visible product name.
+
 ## Code style
 
 - Follow the existing C# style with file-scoped namespaces, records for DTOs, and concise minimal API handlers.

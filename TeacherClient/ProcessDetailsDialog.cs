@@ -10,6 +10,7 @@ public partial class ProcessDetailsDialog : Form
     public ProcessDetailsDialog(ProcessDetailsDto details)
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
         Text = TeacherClientText.ProcessDetailsTitle;
         detailsTextBox.Text = BuildText(details);
     }

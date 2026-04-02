@@ -190,30 +190,10 @@ partial class MainForm
         mainMenuStrip.Items.Add(groupCommandsMenuItem);
         mainMenuStrip.Items.Add(helpMenuItem);
 
-        var quickActionsToolStrip = new ToolStrip
-        {
-            Dock = DockStyle.Top,
-            GripStyle = ToolStripGripStyle.Hidden,
-            AutoSize = false,
-            Height = 64,
-            Padding = new Padding(12, 8, 12, 8),
-            BackColor = Color.WhiteSmoke,
-            RenderMode = ToolStripRenderMode.System,
-            ShowItemToolTips = true,
-            ImageScalingSize = new Size(28, 28)
-        };
-
-        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Settings, ToolbarIconKind.Settings, settingsButton_Click));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, ToolbarIconKind.Refresh, refreshAgentsButton_Click));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, ToolbarIconKind.Link, connectSelectedAgentButton_Click));
-        quickActionsToolStrip.Items.Add(new ToolStripSeparator());
-        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ProcessesMenu, ToolbarIconKind.Processes, refreshProcessesButton_Click));
-        quickActionsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.FilesMenu, ToolbarIconKind.Folder, refreshFilesButton_Click));
-
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 92,
+            Height = 78,
             Padding = new Padding(16, 12, 16, 10),
             BackColor = Color.White
         };
@@ -638,7 +618,6 @@ partial class MainForm
 
         Controls.Add(mainTabControl);
         Controls.Add(topPanel);
-        Controls.Add(quickActionsToolStrip);
         Controls.Add(mainMenuStrip);
         ResumeLayout(false);
         PerformLayout();
@@ -706,107 +685,122 @@ partial class MainForm
             _ => Color.FromArgb(71, 85, 105)
         };
 
-        using var pen = new Pen(accent, 2.8F)
+        using var outlinePen = new Pen(Color.FromArgb(130, accent), 1.1F);
+        using var pen = new Pen(accent, 2.2F)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round
         };
 
-        using var fillBrush = new SolidBrush(Color.FromArgb(32, accent));
+        using var fillBrush = new SolidBrush(Color.FromArgb(24, accent));
         using var accentBrush = new SolidBrush(accent);
+        using var canvasPath = CreateRoundedRectPath(new RectangleF(2.5F, 2.5F, 23F, 23F), 6F);
 
-        graphics.FillEllipse(fillBrush, 1, 1, 26, 26);
+        graphics.FillPath(fillBrush, canvasPath);
+        graphics.DrawPath(outlinePen, canvasPath);
 
         switch (iconKind)
         {
             case ToolbarIconKind.Settings:
-                graphics.DrawEllipse(pen, 8, 8, 12, 12);
-                graphics.FillEllipse(accentBrush, 12, 12, 4, 4);
-                graphics.DrawLine(pen, 14, 4, 14, 8);
-                graphics.DrawLine(pen, 14, 20, 14, 24);
-                graphics.DrawLine(pen, 4, 14, 8, 14);
-                graphics.DrawLine(pen, 20, 14, 24, 14);
+                graphics.DrawEllipse(pen, 8.5F, 8.5F, 11F, 11F);
+                graphics.FillEllipse(accentBrush, 12.2F, 12.2F, 3.6F, 3.6F);
+                graphics.DrawLine(pen, 14, 5.5F, 14, 8);
+                graphics.DrawLine(pen, 14, 20, 14, 22.5F);
+                graphics.DrawLine(pen, 5.5F, 14, 8, 14);
+                graphics.DrawLine(pen, 20, 14, 22.5F, 14);
                 break;
             case ToolbarIconKind.Refresh:
-                graphics.DrawArc(pen, 6, 6, 16, 16, 35, 250);
-                graphics.DrawLine(pen, 19, 6, 23, 6);
-                graphics.DrawLine(pen, 23, 6, 23, 10);
+                graphics.DrawArc(pen, 6.2F, 6.2F, 15.6F, 15.6F, 28, 255);
+                graphics.DrawLine(pen, 18.7F, 6.1F, 22.1F, 6.1F);
+                graphics.DrawLine(pen, 22.1F, 6.1F, 22.1F, 9.5F);
                 break;
             case ToolbarIconKind.Link:
-                graphics.DrawArc(pen, 4, 9, 10, 8, 300, 220);
-                graphics.DrawArc(pen, 14, 9, 10, 8, 120, 220);
-                graphics.DrawLine(pen, 10, 14, 18, 14);
+                graphics.DrawArc(pen, 5F, 9F, 8.5F, 7F, 300, 220);
+                graphics.DrawArc(pen, 14.5F, 9F, 8.5F, 7F, 120, 220);
+                graphics.DrawLine(pen, 10.5F, 14, 17.5F, 14);
                 break;
             case ToolbarIconKind.Add:
-                graphics.DrawLine(pen, 14, 6, 14, 22);
-                graphics.DrawLine(pen, 6, 14, 22, 14);
+                graphics.DrawLine(pen, 14, 7, 14, 21);
+                graphics.DrawLine(pen, 7, 14, 21, 14);
                 break;
             case ToolbarIconKind.Edit:
-                graphics.DrawLine(pen, 7, 20, 18, 9);
-                graphics.DrawLine(pen, 17, 8, 21, 12);
-                graphics.DrawLine(pen, 7, 20, 6, 23);
+                graphics.DrawLine(pen, 8, 19.5F, 17.5F, 10F);
+                graphics.DrawLine(pen, 16.9F, 9.4F, 20.2F, 12.7F);
+                graphics.DrawLine(pen, 8, 19.5F, 7, 22);
                 break;
             case ToolbarIconKind.Remove:
-                graphics.DrawLine(pen, 8, 8, 20, 20);
-                graphics.DrawLine(pen, 20, 8, 8, 20);
+                graphics.DrawLine(pen, 9, 9, 19, 19);
+                graphics.DrawLine(pen, 19, 9, 9, 19);
                 break;
             case ToolbarIconKind.Processes:
-                graphics.DrawRectangle(pen, 5, 8, 5, 12);
-                graphics.DrawRectangle(pen, 12, 10, 5, 10);
-                graphics.DrawRectangle(pen, 19, 6, 4, 14);
+                graphics.DrawRectangle(pen, 6, 9, 4, 10);
+                graphics.DrawRectangle(pen, 12, 11, 4, 8);
+                graphics.DrawRectangle(pen, 18, 7, 4, 12);
                 break;
             case ToolbarIconKind.Stop:
-                graphics.FillRectangle(accentBrush, 7, 7, 14, 14);
+                graphics.FillRectangle(accentBrush, 8, 8, 12, 12);
                 break;
             case ToolbarIconKind.Folder:
-                graphics.DrawRectangle(pen, 5, 10, 18, 11);
-                graphics.DrawLine(pen, 5, 10, 9, 6);
-                graphics.DrawLine(pen, 9, 6, 15, 6);
-                graphics.DrawLine(pen, 15, 6, 17, 10);
+                graphics.DrawRectangle(pen, 5.5F, 10.5F, 17F, 9.5F);
+                graphics.DrawLine(pen, 5.5F, 10.5F, 9.2F, 7.2F);
+                graphics.DrawLine(pen, 9.2F, 7.2F, 14.2F, 7.2F);
+                graphics.DrawLine(pen, 14.2F, 7.2F, 16.2F, 10.5F);
                 break;
             case ToolbarIconKind.Upload:
-                graphics.DrawLine(pen, 14, 22, 14, 6);
-                graphics.DrawLine(pen, 10, 10, 14, 6);
-                graphics.DrawLine(pen, 18, 10, 14, 6);
-                graphics.DrawLine(pen, 7, 22, 21, 22);
+                graphics.DrawLine(pen, 14, 20.5F, 14, 8);
+                graphics.DrawLine(pen, 10.4F, 11.6F, 14, 8);
+                graphics.DrawLine(pen, 17.6F, 11.6F, 14, 8);
+                graphics.DrawLine(pen, 8, 21, 20, 21);
                 break;
             case ToolbarIconKind.UploadGroup:
-                graphics.DrawLine(pen, 10, 18, 10, 7);
-                graphics.DrawLine(pen, 7, 10, 10, 7);
-                graphics.DrawLine(pen, 13, 10, 10, 7);
-                graphics.DrawEllipse(pen, 4, 18, 5, 5);
-                graphics.DrawEllipse(pen, 12, 18, 5, 5);
-                graphics.DrawEllipse(pen, 20, 18, 5, 5);
+                graphics.DrawLine(pen, 10, 17, 10, 8);
+                graphics.DrawLine(pen, 7.5F, 10.8F, 10, 8);
+                graphics.DrawLine(pen, 12.5F, 10.8F, 10, 8);
+                graphics.DrawEllipse(pen, 4.8F, 17.5F, 4.2F, 4.2F);
+                graphics.DrawEllipse(pen, 11.9F, 17.5F, 4.2F, 4.2F);
+                graphics.DrawEllipse(pen, 19F, 17.5F, 4.2F, 4.2F);
                 break;
             case ToolbarIconKind.Download:
-                graphics.DrawLine(pen, 14, 6, 14, 22);
-                graphics.DrawLine(pen, 10, 18, 14, 22);
-                graphics.DrawLine(pen, 18, 18, 14, 22);
-                graphics.DrawLine(pen, 7, 6, 21, 6);
+                graphics.DrawLine(pen, 14, 8, 14, 20.5F);
+                graphics.DrawLine(pen, 10.4F, 16.9F, 14, 20.5F);
+                graphics.DrawLine(pen, 17.6F, 16.9F, 14, 20.5F);
+                graphics.DrawLine(pen, 8, 7, 20, 7);
                 break;
             case ToolbarIconKind.OpenRemote:
-                graphics.DrawRectangle(pen, 5, 7, 10, 14);
-                graphics.DrawLine(pen, 12, 14, 22, 14);
-                graphics.DrawLine(pen, 18, 10, 22, 14);
-                graphics.DrawLine(pen, 18, 18, 22, 14);
+                graphics.DrawRectangle(pen, 6, 7.5F, 8.5F, 12F);
+                graphics.DrawLine(pen, 12.5F, 13.5F, 21, 13.5F);
+                graphics.DrawLine(pen, 17.5F, 10, 21, 13.5F);
+                graphics.DrawLine(pen, 17.5F, 17, 21, 13.5F);
                 break;
             case ToolbarIconKind.Broadcast:
-                graphics.FillEllipse(accentBrush, 12, 12, 4, 4);
-                graphics.DrawArc(pen, 8, 8, 12, 12, 315, 90);
-                graphics.DrawArc(pen, 5, 5, 18, 18, 315, 90);
-                graphics.DrawArc(pen, 2, 2, 24, 24, 315, 90);
+                graphics.FillEllipse(accentBrush, 12.2F, 12.2F, 3.6F, 3.6F);
+                graphics.DrawArc(pen, 8.5F, 8.5F, 11F, 11F, 315, 90);
+                graphics.DrawArc(pen, 5.5F, 5.5F, 17F, 17F, 315, 90);
+                graphics.DrawArc(pen, 3F, 3F, 22F, 22F, 315, 90);
                 break;
             case ToolbarIconKind.NewFolder:
-                graphics.DrawRectangle(pen, 4, 11, 14, 10);
-                graphics.DrawLine(pen, 4, 11, 8, 7);
-                graphics.DrawLine(pen, 8, 7, 13, 7);
-                graphics.DrawLine(pen, 13, 7, 15, 11);
-                graphics.DrawLine(pen, 21, 9, 21, 21);
-                graphics.DrawLine(pen, 15, 15, 27, 15);
+                graphics.DrawRectangle(pen, 4.5F, 11, 12.5F, 8.5F);
+                graphics.DrawLine(pen, 4.5F, 11, 7.8F, 8);
+                graphics.DrawLine(pen, 7.8F, 8, 12.3F, 8);
+                graphics.DrawLine(pen, 12.3F, 8, 14.2F, 11);
+                graphics.DrawLine(pen, 21, 10.2F, 21, 19.8F);
+                graphics.DrawLine(pen, 16.2F, 15, 25.8F, 15);
                 break;
         }
 
         return bitmap;
+    }
+
+    private static GraphicsPath CreateRoundedRectPath(RectangleF bounds, float radius)
+    {
+        var diameter = radius * 2;
+        var path = new GraphicsPath();
+        path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     private enum ToolbarIconKind

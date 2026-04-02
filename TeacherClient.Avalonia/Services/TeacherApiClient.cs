@@ -230,7 +230,7 @@ public sealed class TeacherApiClient
 
     public async Task DownloadRemoteFileAsync(string remotePath, string localDirectory, CancellationToken cancellationToken = default)
     {
-        var fileName = Path.GetFileName(remotePath);
+        var fileName = RemoteWindowsPath.GetFileName(remotePath);
         var destinationPath = Path.Combine(localDirectory, fileName);
         await using var source = await _httpClient.GetStreamAsync($"api/files/download?fullPath={Uri.EscapeDataString(remotePath)}", cancellationToken);
         await using var destination = File.Create(destinationPath);

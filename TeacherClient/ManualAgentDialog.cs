@@ -10,6 +10,7 @@ public partial class ManualAgentDialog : Form
     public ManualAgentDialog()
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
         ApplyLocalization();
     }
 

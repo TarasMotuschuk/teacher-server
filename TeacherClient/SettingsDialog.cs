@@ -11,6 +11,7 @@ public partial class SettingsDialog : Form
     public SettingsDialog()
     {
         InitializeComponent();
+        Icon = AppIconLoader.Load();
     }
 
     public SettingsDialog(ClientSettings settings)

@@ -5,7 +5,7 @@
         Height="500"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
-        Title="Teacher Client Settings">
+        Title="ClassCommander Settings">
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="200,*" Margin="18">
     <TextBlock x:Name="SharedSecretLabel"
                Grid.Row="0"

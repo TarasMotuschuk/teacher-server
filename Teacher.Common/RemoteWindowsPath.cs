@@ -80,6 +80,22 @@ public static class RemoteWindowsPath
         return !string.IsNullOrWhiteSpace(parent) && !string.IsNullOrWhiteSpace(name);
     }
 
+    public static string GetFileName(string path)
+    {
+        var normalized = Normalize(path);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.Empty;
+        }
+
+        if (TryGetParentAndName(normalized, out _, out var name))
+        {
+            return name;
+        }
+
+        return normalized;
+    }
+
     public static bool IsDriveRoot(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
