@@ -1,5 +1,7 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Teacher.Common;
 using Teacher.Common.Contracts;
 
@@ -7,6 +9,13 @@ namespace TeacherClient.Services;
 
 public sealed class TeacherApiClient
 {
+    public sealed record TransferProgress(long BytesTransferred, long? TotalBytes)
+    {
+        public bool HasTotal => TotalBytes.HasValue && TotalBytes.Value > 0;
+        public double ProgressRatio => HasTotal ? (double)BytesTransferred / TotalBytes!.Value : 0d;
+        public int Percent => HasTotal ? (int)Math.Clamp(Math.Round(ProgressRatio * 100d), 0, 100) : 0;
+    }
+
     private readonly HttpClient _httpClient;
 
     public TeacherApiClient(string baseAddress, string sharedSecret)
@@ -136,7 +145,7 @@ public sealed class TeacherApiClient
         content.Add(fileContent, "file", Path.GetFileName(filePath));
 
         using var response = await _httpClient.PostAsync("api/registry/import", content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessWithServerErrorAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<ImportRegistryFileResult>(cancellationToken);
     }
 
@@ -158,6 +167,15 @@ public sealed class TeacherApiClient
 
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
+
+    public Task<DriveSpaceDto?> GetRemoteDriveSpaceAsync(string? path, CancellationToken cancellationToken = default)
+    {
+        var requestUri = string.IsNullOrWhiteSpace(path)
+            ? "api/files/space"
+            : $"api/files/space?path={Uri.EscapeDataString(path)}";
+
+        return _httpClient.GetFromJsonAsync<DriveSpaceDto>(requestUri, cancellationToken);
+    }
 
     public async Task<DirectoryListingDto?> GetRemoteDirectoryAsync(string? path, CancellationToken cancellationToken = default)
     {
@@ -182,6 +200,12 @@ public sealed class TeacherApiClient
     public async Task CreateRemoteDirectoryAsync(string parentPath, string name, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/files/directories", new CreateDirectoryRequest(parentPath, name), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task RenameRemoteEntryAsync(string fullPath, string newName, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/files/rename", new RenameEntryRequest(fullPath, newName), cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
@@ -228,20 +252,34 @@ public sealed class TeacherApiClient
         await CreateRemoteDirectoryAsync(parentPath, directoryName, cancellationToken);
     }
 
-    public async Task DownloadRemoteFileAsync(string remotePath, string localDirectory, CancellationToken cancellationToken = default)
+    public async Task DownloadRemoteFileAsync(
+        string remotePath,
+        string localDirectory,
+        IProgress<TransferProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var fileName = RemoteWindowsPath.GetFileName(remotePath);
         var destinationPath = Path.Combine(localDirectory, fileName);
-        await using var source = await _httpClient.GetStreamAsync($"api/files/download?fullPath={Uri.EscapeDataString(remotePath)}", cancellationToken);
+        using var response = await _httpClient.GetAsync(
+            $"api/files/download?fullPath={Uri.EscapeDataString(remotePath)}",
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
         await using var destination = File.Create(destinationPath);
-        await source.CopyToAsync(destination, cancellationToken);
+        await CopyStreamWithProgressAsync(source, destination, totalBytes, progress, cancellationToken);
     }
 
-    public async Task UploadFileAsync(string localPath, string remoteDirectory, CancellationToken cancellationToken = default)
+    public async Task UploadFileAsync(
+        string localPath,
+        string remoteDirectory,
+        IProgress<TransferProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         await using var stream = File.OpenRead(localPath);
         using var content = new MultipartFormDataContent();
-        using var fileContent = new StreamContent(stream);
+        using var fileContent = new ProgressStreamContent(stream, progress);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         content.Add(fileContent, "file", Path.GetFileName(localPath));
         content.Add(new StringContent(remoteDirectory), "destinationDirectory");
@@ -252,4 +290,117 @@ public sealed class TeacherApiClient
 
     private static string AppendTrailingSlash(string baseAddress)
         => baseAddress.EndsWith("/", StringComparison.Ordinal) ? baseAddress : $"{baseAddress}/";
+
+    private static async Task EnsureSuccessWithServerErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var errorText = await TryReadServerErrorAsync(response, cancellationToken);
+        throw new HttpRequestException(
+            string.IsNullOrWhiteSpace(errorText)
+                ? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase})."
+                : errorText,
+            inner: null,
+            response.StatusCode);
+    }
+
+    private static async Task<string?> TryReadServerErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                return null;
+            }
+
+            using var document = JsonDocument.Parse(payload);
+            if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("error", out var errorElement) &&
+                errorElement.ValueKind == JsonValueKind.String)
+            {
+                return errorElement.GetString();
+            }
+
+            return payload;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task CopyStreamWithProgressAsync(
+        Stream source,
+        Stream destination,
+        long? totalBytes,
+        IProgress<TransferProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var buffer = new byte[81920];
+        long transferred = 0;
+        progress?.Report(new TransferProgress(0, totalBytes));
+
+        while (true)
+        {
+            var read = await source.ReadAsync(buffer, cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            transferred += read;
+            progress?.Report(new TransferProgress(transferred, totalBytes));
+        }
+    }
+
+    private sealed class ProgressStreamContent : HttpContent
+    {
+        private readonly Stream _source;
+        private readonly IProgress<TransferProgress>? _progress;
+        private readonly long? _length;
+
+        public ProgressStreamContent(Stream source, IProgress<TransferProgress>? progress)
+        {
+            _source = source;
+            _progress = progress;
+            _length = source.CanSeek ? source.Length : null;
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            if (_length.HasValue)
+            {
+                length = _length.Value;
+                return true;
+            }
+
+            length = 0;
+            return false;
+        }
+
+        protected override async Task SerializeToStreamAsync(Stream targetStream, TransportContext? context)
+        {
+            var buffer = new byte[81920];
+            long transferred = 0;
+            _progress?.Report(new TransferProgress(0, _length));
+
+            while (true)
+            {
+                var read = await _source.ReadAsync(buffer);
+                if (read == 0)
+                {
+                    break;
+                }
+
+                await targetStream.WriteAsync(buffer.AsMemory(0, read));
+                transferred += read;
+                _progress?.Report(new TransferProgress(transferred, _length));
+            }
+        }
+    }
 }

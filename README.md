@@ -34,6 +34,7 @@ Available endpoints:
 - `GET /api/files/list`: list directory contents.
 - `DELETE /api/files`: delete file or directory.
 - `POST /api/files/directories`: create directory.
+- `POST /api/files/rename`: rename file or directory within the current parent folder.
 - `GET /api/files/download`: download file.
 - `POST /api/files/upload`: upload file with `multipart/form-data`.
 - `POST /api/commands/run`: execute a command script on the student machine.
@@ -66,7 +67,10 @@ Available endpoints:
 - dual-pane local/remote file browsing;
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
+- local file opening through the operating system's associated app, including double-click support for local files;
 - file upload and download;
+- local and remote file/folder rename actions from the `Files` tab;
+- live transfer progress in the status area during single-file uploads/downloads and bulk file distribution or work collection;
 - remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;

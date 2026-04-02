@@ -253,7 +253,10 @@
             <Button x:Name="DownloadButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="DownloadButton_OnClick" />
             <Button x:Name="SendToSelectedStudentsButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="SendToSelectedStudentsButton_OnClick" />
             <Button x:Name="SendToAllOnlineStudentsButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="SendToAllOnlineStudentsButton_OnClick" />
+            <Button x:Name="OpenLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="OpenLocalButton_OnClick" />
             <Button x:Name="OpenRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="OpenRemoteButton_OnClick" />
+            <Button x:Name="RenameLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="RenameLocalButton_OnClick" />
+            <Button x:Name="RenameRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="RenameRemoteButton_OnClick" />
             <Button x:Name="NewRemoteFolderButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="NewRemoteFolderButton_OnClick" />
             <Button x:Name="DeleteLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="DeleteLocalButton_OnClick" />
             <Button x:Name="DeleteRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="DeleteRemoteButton_OnClick" />
@@ -262,19 +265,21 @@
           <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
             <StackPanel Grid.Column="0" Margin="0,0,8,0" Spacing="8">
               <TextBlock x:Name="TeacherPcTextBlock" FontWeight="Bold" Text="Teacher PC" />
-              <Grid ColumnDefinitions="140,70,*">
+              <Grid ColumnDefinitions="140,88,*,180">
                 <ComboBox x:Name="LocalDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="LocalDriveComboBox_OnSelectionChanged" />
                 <Button x:Name="UpLocalButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
                 <TextBox x:Name="LocalPathTextBox" Grid.Column="2" IsReadOnly="True" />
+                <TextBlock x:Name="LocalDriveSpaceTextBlock" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" TextAlignment="Right" Foreground="#A7ADB4" Text="Free: unknown" />
               </Grid>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="8">
               <TextBlock x:Name="StudentPcTextBlock" FontWeight="Bold" Text="Student PC" />
-              <Grid ColumnDefinitions="140,70,*">
+              <Grid ColumnDefinitions="140,88,*,180">
                 <ComboBox x:Name="RemoteDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="RemoteDriveComboBox_OnSelectionChanged" />
                 <Button x:Name="UpRemoteButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
                 <TextBox x:Name="RemotePathTextBox" Grid.Column="2" IsReadOnly="True" />
+                <TextBlock x:Name="RemoteDriveSpaceTextBlock" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" TextAlignment="Right" Foreground="#A7ADB4" Text="Free: unknown" />
               </Grid>
             </StackPanel>
           </Grid>
