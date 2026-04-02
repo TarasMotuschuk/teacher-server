@@ -6,6 +6,18 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-04-03
+
+### Changed
+
+- Teacher-side student-agent updates are now an explicit two-step flow in both teacher clients: first check and prepare the update in a dedicated progress window, then separately start deployment to selected or all online student PCs
+- Update preparation progress in WinForms and Avalonia now uses a cleaner progress bar with compact transfer details instead of flooding the log with per-chunk download messages
+
+### Added
+
+- New teacher-side update preparation windows in WinForms and Avalonia with visible progress, download status, and direct error messages for manifest/download failures
+- Manual offline preparation guidance in the update preparation window, including the local folder path where a teacher can place `student-agent-version.json` and a ZIP package by hand
+
 ## [1.0.9] - 2026-04-02
 
 ### Added

@@ -51,6 +51,38 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
             localZipPath);
     }
 
+    public async Task<HostedUpdatePackage> PrepareLocalPackageAsync(
+        string version,
+        string localZipPath,
+        string? expectedSha256,
+        string agentAddress,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureStarted();
+        Directory.CreateDirectory(_rootDirectory);
+
+        var versionDirectory = Path.Combine(_rootDirectory, version);
+        Directory.CreateDirectory(versionDirectory);
+        var cachedZipPath = Path.Combine(versionDirectory, "student-agent-update.zip");
+
+        if (!string.Equals(Path.GetFullPath(localZipPath), Path.GetFullPath(cachedZipPath), StringComparison.OrdinalIgnoreCase))
+        {
+            File.Copy(localZipPath, cachedZipPath, overwrite: true);
+        }
+
+        if (!string.IsNullOrWhiteSpace(expectedSha256))
+        {
+            ValidateSha256(cachedZipPath, expectedSha256);
+        }
+
+        return new HostedUpdatePackage(
+            version,
+            BuildPackageUrlForAgent(agentAddress, version),
+            expectedSha256,
+            cachedZipPath);
+    }
+
     private void EnsureStarted()
     {
         lock (_sync)

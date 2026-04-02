@@ -85,7 +85,7 @@ Available endpoints:
 - local and remote deletion with confirmation dialogs;
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
-- manual `Check Agent Update` and `Update Selected Agent` actions for a selected online student PC.
+- teacher-side `Check for Updates...` preparation flow with a dedicated progress window, explicit error messages, and a separate `Download update` step before any student PCs are updated.
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery: the teacher workstation caches the update bundle once and serves it over the LAN, with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for `Available`, `Downloading`, `Installing`, `Updated`, `Failed`, and `Rolled back` states.
@@ -125,7 +125,7 @@ Available endpoints:
 - create remote folders;
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
-- manual `Check Agent Update` and `Update Selected Agent` actions for a selected online student PC.
+- teacher-side `Check for Updates...` preparation flow with a dedicated progress window, explicit error messages, and a separate `Download update` step before any student PCs are updated.
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for in-progress and rollback states.
@@ -248,7 +248,14 @@ Example configuration:
 
 `UpdateManifestUrl` is optional. When configured, `StudentAgent.Service` can check a release manifest, download a ZIP update payload, verify its SHA-256 checksum when present, and hand off installation to `StudentAgent.Updater`.
 
-When a teacher starts an update from either teacher client, the preferred path is now teacher-hosted delivery: the teacher workstation downloads and caches the ZIP once, serves it to student agents over the local network, and the student agent falls back to `UpdateManifestUrl` only if the teacher-hosted source cannot be used.
+The teacher update flow is now explicit:
+
+1. Open `Check for Updates...` in either teacher client.
+2. Run `Check updates` to validate the manifest source and see any GitHub/network errors directly in the progress window.
+3. Run `Download update` to cache the ZIP on the teacher workstation.
+4. Only after that, run `Update selected PCs` or `Update all online PCs`.
+
+The teacher workstation serves the prepared ZIP to student agents over the local network. If the teacher workstation has no internet access, you can manually place `student-agent-version.json` plus the matching `student-agent-update-<version>.zip` into the teacher-side manual update folder shown in the preparation window.
 
 For GitHub-based releases, this repository can publish a student-agent update bundle on tag push. The auto-update manifest is emitted as `student-agent-version.json` in the GitHub Release assets and points to the matching `student-agent-update-<version>.zip`.
 

@@ -21,8 +21,8 @@ public partial class MainWindow : Window
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
     private readonly FrequentProgramStore _frequentProgramStore = new();
-    private readonly TeacherHostedUpdatePackageServer _updatePackageServer =
-        new(Path.Combine(Path.GetTempPath(), "TeacherServer", "UpdateCache"));
+    private readonly TeacherUpdatePreparationService _updatePreparationService =
+        new(GetUpdatePreparationRootDirectory());
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -87,8 +87,18 @@ public partial class MainWindow : Window
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
-            _updatePackageServer.Dispose();
+            _updatePreparationService.Dispose();
         };
+    }
+
+    private static string GetUpdatePreparationRootDirectory()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var baseDirectory = string.IsNullOrWhiteSpace(localAppData)
+            ? Path.Combine(AppContext.BaseDirectory, "data", "updates")
+            : Path.Combine(localAppData, "TeacherServer", "TeacherClient.Avalonia", "updates");
+        Directory.CreateDirectory(baseDirectory);
+        return baseDirectory;
     }
 
     private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
@@ -362,43 +372,8 @@ public partial class MainWindow : Window
 
     private async Task CheckSelectedAgentUpdateAsync()
     {
-        if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
-        {
-            SetStatus(CrossPlatformText.ChooseAgentFirst);
-            return;
-        }
-
-        if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
-        {
-            SetStatus(CrossPlatformText.AgentUpdateRequiresOnlineAgent);
-            return;
-        }
-
-        try
-        {
-            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-            var update = await client.CheckForUpdatesAsync();
-            if (update is null)
-            {
-                SetStatus($"{CrossPlatformText.AgentUpdateCheckFailed}: empty response");
-                return;
-            }
-
-            SetStatus(update.UpdateAvailable
-                ? CrossPlatformText.AgentUpdateAvailable(agent.MachineName, update.AvailableVersion ?? "?")
-                : CrossPlatformText.AgentUpToDate(agent.MachineName, update.CurrentVersion));
-            ReplaceAgentRow(ApplyUpdateStatus(agent, new AgentUpdateStatusDto(
-                update.UpdateAvailable ? AgentUpdateStateKind.Available : AgentUpdateStateKind.UpToDate,
-                update.CurrentVersion,
-                update.AvailableVersion,
-                update.UpdateAvailable,
-                DateTime.UtcNow,
-                update.Message)));
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"{CrossPlatformText.AgentUpdateCheckFailed}: {ex.Message}");
-        }
+        var dialog = new UpdatePreparationWindow(_updatePreparationService);
+        await dialog.ShowDialog(this);
     }
 
     private async Task StartSelectedAgentUpdateAsync()
@@ -418,14 +393,12 @@ public partial class MainWindow : Window
         try
         {
             var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-            var prepared = await PreparePreferredUpdateRequestAsync(agent, client);
-            if (prepared.SkipStart)
+            var request = await CreatePreparedUpdateRequestAsync(agent, client);
+            if (request is null)
             {
-                SetStatus(CrossPlatformText.AgentUpToDate(agent.MachineName, prepared.Version ?? agent.Version));
+                SetStatus(CrossPlatformText.UpdatePreparationMissing);
                 return;
             }
-
-            var request = prepared.Request;
             var status = await client.StartAgentUpdateAsync(request);
             if (status is not null)
             {
@@ -2019,14 +1992,11 @@ public partial class MainWindow : Window
                 {
                     SetStatus(CrossPlatformText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
                     var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                    var prepared = await PreparePreferredUpdateRequestAsync(agent, client);
-                    if (prepared.SkipStart)
+                    var request = await CreatePreparedUpdateRequestAsync(agent, client);
+                    if (request is null)
                     {
-                        succeeded++;
-                        continue;
+                        throw new InvalidOperationException(CrossPlatformText.UpdatePreparationMissing);
                     }
-
-                    var request = prepared.Request;
                     var status = await client.StartAgentUpdateAsync(request);
                     if (status is not null)
                     {
@@ -2323,59 +2293,19 @@ public partial class MainWindow : Window
         ApplyAgentFilters();
     }
 
-    private async Task<(StartAgentUpdateRequest Request, bool SkipStart, string? Version)> PreparePreferredUpdateRequestAsync(DiscoveredAgentRow agent, TeacherApiClient client, CancellationToken cancellationToken = default)
+    private async Task<StartAgentUpdateRequest?> CreatePreparedUpdateRequestAsync(DiscoveredAgentRow agent, TeacherApiClient client, CancellationToken cancellationToken = default)
     {
-        UpdateInfoDto? update = null;
-        try
+        var prepared = _updatePreparationService.GetPreparedUpdate();
+        if (prepared is null)
         {
-            update = await client.CheckForUpdatesAsync(cancellationToken);
-        }
-        catch
-        {
-            return (new StartAgentUpdateRequest(), false, null);
+            return null;
         }
 
-        if (update is null)
-        {
-            return (new StartAgentUpdateRequest(), false, null);
-        }
-
-        if (!update.UpdateAvailable || string.IsNullOrWhiteSpace(update.AvailableVersion) || string.IsNullOrWhiteSpace(update.PackageUrl))
-        {
-            ReplaceAgentRow(ApplyUpdateStatus(agent, new AgentUpdateStatusDto(
-                AgentUpdateStateKind.UpToDate,
-                update.CurrentVersion,
-                update.AvailableVersion,
-                false,
-                DateTime.UtcNow,
-                update.Message)));
-            return (new StartAgentUpdateRequest(CheckForUpdatesFirst: false), true, update.CurrentVersion);
-        }
-
-        try
-        {
-            var hostedPackage = await _updatePackageServer.PreparePackageAsync(
-                update.AvailableVersion,
-                update.PackageUrl,
-                update.PackageSha256,
-                agent.RespondingAddress,
-                cancellationToken);
-
-            return (
-                new StartAgentUpdateRequest(
-                    CheckForUpdatesFirst: false,
-                    PreferredSource: new PreferredUpdateSourceDto(
-                        hostedPackage.Version,
-                        hostedPackage.HostedPackageUrl,
-                        hostedPackage.PackageSha256),
-                    FallbackToConfiguredManifest: true),
-                false,
-                update.AvailableVersion);
-        }
-        catch
-        {
-            return (new StartAgentUpdateRequest(), false, update.AvailableVersion);
-        }
+        var preferredSource = await _updatePreparationService.BuildPreferredSourceForAgentAsync(agent.RespondingAddress, prepared, cancellationToken);
+        return new StartAgentUpdateRequest(
+            CheckForUpdatesFirst: false,
+            PreferredSource: preferredSource,
+            FallbackToConfiguredManifest: false);
     }
 
     private async Task PollAgentUpdateStatusesAsync()
