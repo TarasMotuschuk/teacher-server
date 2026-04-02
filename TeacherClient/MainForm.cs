@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using Teacher.Common;
 using Teacher.Common.Contracts;
 using TeacherClient.Models;
@@ -35,6 +36,7 @@ public partial class MainForm : Form
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
+    private string? _lastConnectedMachineName;
 
     public MainForm()
     {
@@ -63,6 +65,7 @@ public partial class MainForm : Form
         statusFilterComboBox.SelectedIndex = 0;
         autoReconnectCheckBox.Checked = true;
         PopulateLocalRoots();
+        _ = LoadLocalDirectoryAsync(localPathTextBox.Text);
 
         _agentRefreshTimer.Interval = 15000;
         _agentRefreshTimer.Tick += async (_, _) => await LoadDiscoveredAgentsAsync(showBusyCursor: false);
@@ -645,7 +648,7 @@ public partial class MainForm : Form
 
             SetStatus(_allAgents.Count == 0
                 ? TeacherClientText.NoAgentsAvailable
-                : TeacherClientText.FormatAvailableAgents(_allAgents.Count, discoveredAgents.Count, _manualAgents.Count));
+                : BuildAgentAvailabilityStatus(discoveredAgents.Count, _manualAgents.Count));
         }
         catch (Exception ex)
         {
@@ -984,11 +987,13 @@ public partial class MainForm : Form
 
             localPathTextBox.Text = info.FullName;
             SelectRoot(localDriveComboBox, info.FullName);
+            UpdateLocalDriveSpace(info.FullName);
             _localEntries = new BindingList<FileSystemEntryDto>(entries);
             localFilesGrid.DataSource = _localEntries;
         }
         catch (Exception ex)
         {
+            localDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
             SetStatus($"{TeacherClientText.LocalBrowseError}: {ex.Message}");
         }
 
@@ -1011,13 +1016,61 @@ public partial class MainForm : Form
 
             remotePathTextBox.Text = listing.CurrentPath;
             SelectRoot(remoteDriveComboBox, listing.CurrentPath);
+            await UpdateRemoteDriveSpaceAsync(client, listing.CurrentPath);
             _remoteParentPath = listing.ParentPath;
             _remoteEntries = new BindingList<FileSystemEntryDto>(listing.Entries.ToList());
             remoteFilesGrid.DataSource = _remoteEntries;
         }
         catch (Exception ex)
         {
+            remoteDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
             SetStatus($"{TeacherClientText.RemoteBrowseError}: {ex.Message}");
+        }
+    }
+
+    private void UpdateLocalDriveSpace(string? path)
+    {
+        try
+        {
+            var resolvedPath = string.IsNullOrWhiteSpace(path)
+                ? (localDriveComboBox.SelectedItem?.ToString() ?? Directory.GetLogicalDrives().FirstOrDefault())
+                : path;
+            if (string.IsNullOrWhiteSpace(resolvedPath))
+            {
+                localDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
+                return;
+            }
+
+            var root = Path.GetPathRoot(resolvedPath);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                localDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
+                return;
+            }
+
+            var drive = new DriveInfo(root);
+            localDriveSpaceLabel.Text = drive.IsReady
+                ? TeacherClientText.DriveFreeSpace(FormatByteSize(drive.AvailableFreeSpace), FormatByteSize(drive.TotalSize))
+                : TeacherClientText.DriveFreeSpaceUnknown;
+        }
+        catch
+        {
+            localDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
+        }
+    }
+
+    private async Task UpdateRemoteDriveSpaceAsync(TeacherApiClient client, string? path)
+    {
+        try
+        {
+            var space = await client.GetRemoteDriveSpaceAsync(path);
+            remoteDriveSpaceLabel.Text = space is null
+                ? TeacherClientText.DriveFreeSpaceUnknown
+                : TeacherClientText.DriveFreeSpace(FormatByteSize(space.AvailableBytes), FormatByteSize(space.TotalBytes));
+        }
+        catch
+        {
+            remoteDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
         }
     }
 
@@ -1153,22 +1206,34 @@ public partial class MainForm : Form
 
     private async void localFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
     {
-        if (e.RowIndex < 0 || localFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry || !entry.IsDirectory)
+        if (e.RowIndex < 0 || localFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry)
         {
             return;
         }
 
-        await LoadLocalDirectoryAsync(entry.FullPath);
+        if (entry.IsDirectory)
+        {
+            await LoadLocalDirectoryAsync(entry.FullPath);
+            return;
+        }
+
+        OpenLocalEntry(entry);
     }
 
     private async void remoteFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
     {
-        if (e.RowIndex < 0 || remoteFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry || !entry.IsDirectory)
+        if (e.RowIndex < 0 || remoteFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry)
         {
             return;
         }
 
-        await LoadRemoteDirectoryAsync(entry.FullPath);
+        if (entry.IsDirectory)
+        {
+            await LoadRemoteDirectoryAsync(entry.FullPath);
+            return;
+        }
+
+        openRemoteButton_Click(sender, EventArgs.Empty);
     }
 
     private async void upLocalButton_Click(object sender, EventArgs e)
@@ -1230,7 +1295,9 @@ public partial class MainForm : Form
         {
             using var cursorScope = new CursorScope(this);
             var client = CreateClient();
-            await client.UploadFileAsync(entry.FullPath, remotePathTextBox.Text);
+            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+                SetStatus(BuildTransferStatus(TeacherClientText.Upload, entry.Name, value)));
+            await client.UploadFileAsync(entry.FullPath, remotePathTextBox.Text, progress);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
             SetStatus(TeacherClientText.FormatUploaded(entry.Name));
         }
@@ -1369,7 +1436,9 @@ public partial class MainForm : Form
         {
             using var cursorScope = new CursorScope(this);
             var client = CreateClient();
-            await client.DownloadRemoteFileAsync(entry.FullPath, localPathTextBox.Text);
+            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+                SetStatus(BuildTransferStatus(TeacherClientText.Download, entry.Name, value)));
+            await client.DownloadRemoteFileAsync(entry.FullPath, localPathTextBox.Text, progress);
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
             SetStatus(TeacherClientText.FormatDownloaded(entry.Name));
         }
@@ -1397,6 +1466,72 @@ public partial class MainForm : Form
         catch (Exception ex)
         {
             SetStatus($"{TeacherClientText.OpenRemoteError}: {ex.Message}");
+        }
+    }
+
+    private void openLocalButton_Click(object? sender, EventArgs e)
+    {
+        if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(TeacherClientText.ChooseLocalEntryFirst);
+            return;
+        }
+
+        OpenLocalEntry(entry);
+    }
+
+    private async void renameLocalButton_Click(object? sender, EventArgs e)
+    {
+        if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(TeacherClientText.ChooseLocalEntryFirst);
+            return;
+        }
+
+        using var dialog = new InputDialog(TeacherClientText.RenameLocalEntryTitle, TeacherClientText.EntryName, entry.Name);
+        if (dialog.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(dialog.Value))
+        {
+            return;
+        }
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            RenameLocalEntry(entry, dialog.Value);
+            await LoadLocalDirectoryAsync(localPathTextBox.Text);
+            SetStatus(TeacherClientText.FormatRenamedLocal(entry.Name, dialog.Value.Trim()));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.LocalRenameError}: {ex.Message}");
+        }
+    }
+
+    private async void renameRemoteButton_Click(object? sender, EventArgs e)
+    {
+        if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(TeacherClientText.ChooseRemoteEntryFirst);
+            return;
+        }
+
+        using var dialog = new InputDialog(TeacherClientText.RenameRemoteEntryTitle, TeacherClientText.EntryName, entry.Name);
+        if (dialog.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(dialog.Value))
+        {
+            return;
+        }
+
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            var client = CreateClient();
+            await client.RenameRemoteEntryAsync(entry.FullPath, dialog.Value.Trim());
+            await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+            SetStatus(TeacherClientText.FormatRenamedRemote(entry.Name, dialog.Value.Trim()));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.RemoteRenameError}: {ex.Message}");
         }
     }
 
@@ -1489,6 +1624,74 @@ public partial class MainForm : Form
         {
             SetStatus($"{TeacherClientText.CreateFolderError}: {ex.Message}");
         }
+    }
+
+    private void OpenLocalEntry(FileSystemEntryDto entry)
+    {
+        try
+        {
+            using var cursorScope = new CursorScope(this);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = entry.FullPath,
+                UseShellExecute = true
+            });
+            SetStatus(TeacherClientText.FormatOpenedLocal(entry.Name));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.OpenLocalError}: {ex.Message}");
+        }
+    }
+
+    private static void RenameLocalEntry(FileSystemEntryDto entry, string newName)
+    {
+        var safeName = ValidateLocalEntryName(newName);
+        var parentDirectory = Path.GetDirectoryName(entry.FullPath);
+        if (string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            throw new InvalidOperationException("Cannot rename a root path.");
+        }
+
+        var destinationPath = Path.Combine(parentDirectory, safeName);
+        if (string.Equals(entry.FullPath, destinationPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (Directory.Exists(destinationPath) || File.Exists(destinationPath))
+        {
+            throw new IOException($"An entry with the name '{safeName}' already exists.");
+        }
+
+        if (entry.IsDirectory)
+        {
+            Directory.Move(entry.FullPath, destinationPath);
+            return;
+        }
+
+        File.Move(entry.FullPath, destinationPath);
+    }
+
+    private static string ValidateLocalEntryName(string name)
+    {
+        var trimmed = name.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            throw new InvalidOperationException("Entry name is required.");
+        }
+
+        if (!string.Equals(trimmed, Path.GetFileName(trimmed), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Only a file or folder name is allowed.");
+        }
+
+        if (trimmed.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new InvalidOperationException("The file or folder name contains invalid characters.");
+        }
+
+        return trimmed;
     }
 
     private void aboutMenuItem_Click(object? sender, EventArgs e)
@@ -1907,7 +2110,7 @@ public partial class MainForm : Form
                 var machineFolder = Path.Combine(localDestinationRoot, SanitizeLocalFolderName(agent.MachineName));
                 var localWorkFolder = Path.Combine(machineFolder, _clientSettings.StudentWorkFolderName);
                 Directory.CreateDirectory(localWorkFolder);
-                await DownloadRemoteDirectoryContentsAsync(client, studentWorkPath, localWorkFolder);
+                await DownloadRemoteDirectoryContentsAsync(client, studentWorkPath, localWorkFolder, SetStatus, agent.MachineName);
                 succeeded++;
             }
             catch (Exception ex)
@@ -1930,7 +2133,13 @@ public partial class MainForm : Form
             MessageBoxIcon.Warning);
     }
 
-    private static async Task DownloadRemoteDirectoryContentsAsync(TeacherApiClient client, string remoteDirectoryPath, string localDestinationDirectory, CancellationToken cancellationToken = default)
+    private static async Task DownloadRemoteDirectoryContentsAsync(
+        TeacherApiClient client,
+        string remoteDirectoryPath,
+        string localDestinationDirectory,
+        Action<string>? reportStatus = null,
+        string? agentName = null,
+        CancellationToken cancellationToken = default)
     {
         var listing = await client.GetRemoteDirectoryAsync(remoteDirectoryPath, cancellationToken)
                       ?? throw new InvalidOperationException("Remote listing failed.");
@@ -1941,11 +2150,19 @@ public partial class MainForm : Form
             if (entry.IsDirectory)
             {
                 var childDirectory = Path.Combine(localDestinationDirectory, entry.Name);
-                await DownloadRemoteDirectoryContentsAsync(client, entry.FullPath, childDirectory, cancellationToken);
+                await DownloadRemoteDirectoryContentsAsync(client, entry.FullPath, childDirectory, reportStatus, agentName, cancellationToken);
             }
             else
             {
-                await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, cancellationToken);
+                var progress = reportStatus is null
+                    ? null
+                    : new Progress<TeacherApiClient.TransferProgress>(value =>
+                        reportStatus(BuildBulkTransferStatus(
+                            TeacherClientText.Download,
+                            agentName ?? string.Empty,
+                            entry.Name,
+                            value)));
+                await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, progress, cancellationToken);
             }
         }
     }
@@ -2029,6 +2246,60 @@ public partial class MainForm : Form
         return string.IsNullOrWhiteSpace(sanitized) ? "StudentMachine" : sanitized;
     }
 
+    private static string BuildTransferStatus(string operation, string fileName, TeacherApiClient.TransferProgress progress)
+    {
+        var transferred = FormatByteSize(progress.BytesTransferred);
+        if (!progress.HasTotal)
+        {
+            return $"{operation}: {fileName} ({transferred})";
+        }
+
+        return $"{operation}: {fileName} ({progress.Percent}% · {transferred} / {FormatByteSize(progress.TotalBytes!.Value)})";
+    }
+
+    private static string BuildBulkTransferStatus(
+        string operation,
+        string agentName,
+        string fileName,
+        TeacherApiClient.TransferProgress progress,
+        int? agentIndex = null,
+        int? agentCount = null,
+        int? fileIndex = null,
+        int? fileCount = null)
+    {
+        var prefix = string.IsNullOrWhiteSpace(agentName)
+            ? operation
+            : $"{operation}: {agentName}";
+        var scope = agentIndex.HasValue && agentCount.HasValue && fileIndex.HasValue && fileCount.HasValue
+            ? $" ({agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
+            : string.Empty;
+        var transferred = FormatByteSize(progress.BytesTransferred);
+
+        if (!progress.HasTotal)
+        {
+            return $"{prefix}{scope} {fileName} ({transferred})";
+        }
+
+        return $"{prefix}{scope} {fileName} ({progress.Percent}% · {transferred} / {FormatByteSize(progress.TotalBytes!.Value)})";
+    }
+
+    private static string FormatByteSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double value = bytes;
+        var unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return unitIndex == 0
+            ? $"{value:0} {units[unitIndex]}"
+            : $"{value:0.##} {units[unitIndex]}";
+    }
+
     private static async Task CopyEntryToAgentAsync(
         TeacherApiClient client,
         DiscoveredAgentRow agent,
@@ -2054,7 +2325,17 @@ public partial class MainForm : Form
                 agentCount,
                 fileIndex + 1,
                 plan.Files.Count));
-            await client.UploadFileAsync(file.LocalPath, file.RemoteDirectory, cancellationToken);
+            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+                reportStatus(BuildBulkTransferStatus(
+                    TeacherClientText.Upload,
+                    agent.MachineName,
+                    file.DisplayPath,
+                    value,
+                    agentIndex,
+                    agentCount,
+                    fileIndex + 1,
+                    plan.Files.Count)));
+            await client.UploadFileAsync(file.LocalPath, file.RemoteDirectory, progress, cancellationToken);
         }
     }
 
@@ -2075,7 +2356,8 @@ public partial class MainForm : Form
 
             _lastConnectedAgentId = agent?.AgentId;
             _lastConnectedServerUrl = serverUrl;
-            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser, info.AgentVersion));
+            _lastConnectedMachineName = info.MachineName;
+            SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
@@ -2343,7 +2625,7 @@ public partial class MainForm : Form
                         updatedAgents.Add(agent with
                         {
                             Status = TeacherClientText.Online,
-                            CurrentUser = info.CurrentUser,
+                            CurrentUser = NormalizeUserDisplay(info.CurrentUser, info.MachineName),
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
@@ -2372,7 +2654,7 @@ public partial class MainForm : Form
                     updatedAgents.Add(agent with
                     {
                         Status = TeacherClientText.Online,
-                        CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
+                        CurrentUser = info is null ? agent.CurrentUser : NormalizeUserDisplay(info.CurrentUser, info.MachineName),
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
@@ -2498,7 +2780,7 @@ public partial class MainForm : Form
                 TeacherClientText.Online,
                 string.Empty,
                 dto.MachineName,
-                dto.CurrentUser,
+                NormalizeUserDisplay(dto.CurrentUser, dto.MachineName),
                 dto.RespondingAddress,
                 dto.Port,
                 string.Join(", ", dto.MacAddresses),
@@ -2527,6 +2809,30 @@ public partial class MainForm : Form
                 DateTime.MinValue,
                 true);
         }
+    }
+
+    private string BuildAgentAvailabilityStatus(int discoveredCount, int manualCount)
+    {
+        return string.IsNullOrWhiteSpace(_lastConnectedMachineName)
+            ? TeacherClientText.FormatAvailableAgents(_allAgents.Count, discoveredCount, manualCount)
+            : TeacherClientText.FormatAvailableAgentsWithConnected(_allAgents.Count, discoveredCount, manualCount, _lastConnectedMachineName);
+    }
+
+    private static string NormalizeUserDisplay(string? currentUser, string machineName)
+    {
+        if (string.IsNullOrWhiteSpace(currentUser))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = currentUser.Trim();
+        var accountName = trimmed.Contains('\\', StringComparison.Ordinal)
+            ? trimmed[(trimmed.LastIndexOf('\\') + 1)..]
+            : trimmed;
+
+        return string.Equals(accountName, $"{machineName}$", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : trimmed;
     }
 
     private sealed class CursorScope : IDisposable

@@ -27,6 +27,8 @@ partial class MainForm
     private ComboBox remoteDriveComboBox = null!;
     private TextBox localPathTextBox = null!;
     private TextBox remotePathTextBox = null!;
+    private Label localDriveSpaceLabel = null!;
+    private Label remoteDriveSpaceLabel = null!;
     private Button refreshFilesButton = null!;
     private Button uploadButton = null!;
     private Button downloadButton = null!;
@@ -79,6 +81,8 @@ partial class MainForm
         remoteDriveComboBox = new ComboBox();
         localPathTextBox = new TextBox();
         remotePathTextBox = new TextBox();
+        localDriveSpaceLabel = new Label();
+        remoteDriveSpaceLabel = new Label();
         refreshFilesButton = new Button();
         uploadButton = new Button();
         downloadButton = new Button();
@@ -130,7 +134,10 @@ partial class MainForm
         filesMenuItem.DropDownItems.Add(TeacherClientText.SendToSelectedStudents, null, sendToSelectedStudentsButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.SendToAllOnlineStudents, null, sendToAllOnlineStudentsButton_Click);
         filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, downloadButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenLocal, null, openLocalButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.OpenRemote, null, openRemoteButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameLocal, null, renameLocalButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameRemote, null, renameRemoteButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, deleteLocalButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, deleteRemoteButton_Click);
         filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
@@ -321,9 +328,9 @@ partial class MainForm
         deleteRemoteButton.Click += deleteRemoteButton_Click;
         newRemoteFolderButton.Text = TeacherClientText.NewRemoteFolder;
         newRemoteFolderButton.Click += newRemoteFolderButton_Click;
-        upLocalButton.Text = TeacherClientText.Up;
+        upLocalButton.Text = TeacherClientText.UpWithArrow;
         upLocalButton.Click += upLocalButton_Click;
-        upRemoteButton.Text = TeacherClientText.Up;
+        upRemoteButton.Text = TeacherClientText.UpWithArrow;
         upRemoteButton.Click += upRemoteButton_Click;
 
         var agentsLayout = new TableLayoutPanel
@@ -438,7 +445,10 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, ToolbarIconKind.UploadGroup, sendToSelectedStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, ToolbarIconKind.Broadcast, sendToAllOnlineStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, ToolbarIconKind.Download, downloadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, ToolbarIconKind.OpenRemote, openLocalButton_Click, showText: true));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, ToolbarIconKind.OpenRemote, openRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, ToolbarIconKind.Edit, renameLocalButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, ToolbarIconKind.Edit, renameRemoteButton_Click, showText: true));
         filesToolStrip.Items.Add(new ToolStripSeparator());
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, ToolbarIconKind.Remove, deleteLocalButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, ToolbarIconKind.Remove, deleteRemoteButton_Click));
@@ -476,12 +486,13 @@ partial class MainForm
         var localPathLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 3,
+            ColumnCount = 4,
             RowCount = 1
         };
         localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
-        localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76F));
+        localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92F));
         localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        localPathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
 
         localDriveComboBox.Dock = DockStyle.Fill;
         localDriveComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -498,9 +509,16 @@ partial class MainForm
         localPathTextBox.ReadOnly = true;
         localPathTextBox.Margin = new Padding(0, 2, 0, 2);
 
+        localDriveSpaceLabel.Dock = DockStyle.Fill;
+        localDriveSpaceLabel.TextAlign = ContentAlignment.MiddleRight;
+        localDriveSpaceLabel.ForeColor = Color.FromArgb(76, 86, 103);
+        localDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
+        localDriveSpaceLabel.Margin = new Padding(10, 0, 0, 0);
+
         localPathLayout.Controls.Add(localDriveComboBox, 0, 0);
         localPathLayout.Controls.Add(upLocalButton, 1, 0);
         localPathLayout.Controls.Add(localPathTextBox, 2, 0);
+        localPathLayout.Controls.Add(localDriveSpaceLabel, 3, 0);
 
         localPanelLayout.Controls.Add(localLabel, 0, 0);
         localPanelLayout.Controls.Add(localPathLayout, 0, 1);
@@ -528,12 +546,13 @@ partial class MainForm
         var remotePathLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 3,
+            ColumnCount = 4,
             RowCount = 1
         };
         remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
-        remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76F));
+        remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92F));
         remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        remotePathLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170F));
 
         remoteDriveComboBox.Dock = DockStyle.Fill;
         remoteDriveComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -550,9 +569,16 @@ partial class MainForm
         remotePathTextBox.ReadOnly = true;
         remotePathTextBox.Margin = new Padding(0, 2, 0, 2);
 
+        remoteDriveSpaceLabel.Dock = DockStyle.Fill;
+        remoteDriveSpaceLabel.TextAlign = ContentAlignment.MiddleRight;
+        remoteDriveSpaceLabel.ForeColor = Color.FromArgb(76, 86, 103);
+        remoteDriveSpaceLabel.Text = TeacherClientText.DriveFreeSpaceUnknown;
+        remoteDriveSpaceLabel.Margin = new Padding(10, 0, 0, 0);
+
         remotePathLayout.Controls.Add(remoteDriveComboBox, 0, 0);
         remotePathLayout.Controls.Add(upRemoteButton, 1, 0);
         remotePathLayout.Controls.Add(remotePathTextBox, 2, 0);
+        remotePathLayout.Controls.Add(remoteDriveSpaceLabel, 3, 0);
 
         remotePanelLayout.Controls.Add(remoteLabel, 0, 0);
         remotePanelLayout.Controls.Add(remotePathLayout, 0, 1);

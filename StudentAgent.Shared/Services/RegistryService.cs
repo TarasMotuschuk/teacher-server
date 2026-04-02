@@ -171,6 +171,7 @@ public sealed class RegistryService
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         if (string.IsNullOrWhiteSpace(regContent)) throw new InvalidOperationException("Registry file is empty.");
 
+        regContent = SanitizeRegContent(regContent);
         var logicalLines = CombineMultilineEntries(regContent);
         var currentPath = string.Empty;
         var keysProcessed = 0;
@@ -517,6 +518,7 @@ public sealed class RegistryService
 
     private void ApplyImportValue(string path, string line)
     {
+        line = SanitizeRegLine(line);
         var separatorIndex = line.IndexOf('=');
         if (separatorIndex < 0)
         {
@@ -657,5 +659,25 @@ public sealed class RegistryService
             bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
         }
         return bytes;
+    }
+
+    private static string SanitizeRegContent(string content)
+        => content
+            .TrimStart('\uFEFF')
+            .Replace("\0", string.Empty, StringComparison.Ordinal);
+
+    private static string SanitizeRegLine(string line)
+    {
+        var sanitized = line.Replace("\0", string.Empty, StringComparison.Ordinal).Trim();
+        if (sanitized.Length >= 2 && sanitized[0] == '"' && sanitized[^1] != '"')
+        {
+            var lastQuoteIndex = sanitized.LastIndexOf('"');
+            if (lastQuoteIndex > 0)
+            {
+                return sanitized[..(lastQuoteIndex + 1)];
+            }
+        }
+
+        return sanitized;
     }
 }

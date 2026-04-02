@@ -39,7 +39,10 @@ internal static class TeacherClientText
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
     public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
     public static string Download => IsUk ? "Скачати з агента" : "Download";
+    public static string OpenLocal => IsUk ? "Відкрити локально" : "Open Local";
     public static string OpenRemote => IsUk ? "Відкрити на учнівському ПК" : "Open on Student PC";
+    public static string RenameLocal => IsUk ? "Перейменувати локально" : "Rename Local";
+    public static string RenameRemote => IsUk ? "Перейменувати віддалено" : "Rename Remote";
     public static string DeleteLocal => IsUk ? "Видалити локально" : "Delete Local";
     public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
     public static string NewRemoteFolder => IsUk ? "Нова віддалена папка" : "New Remote Folder";
@@ -63,6 +66,9 @@ internal static class TeacherClientText
     public static string TeacherPc => IsUk ? "ПК викладача" : "Teacher PC";
     public static string StudentPc => IsUk ? "ПК студента" : "Student PC";
     public static string Up => IsUk ? "Вгору" : "Up";
+    public static string UpWithArrow => IsUk ? "↑ Вгору" : "↑ Up";
+    public static string DriveFreeSpace(string free, string total) => IsUk ? $"Вільно: {free} / {total}" : $"Free: {free} / {total}";
+    public static string DriveFreeSpaceUnknown => IsUk ? "Вільно: невідомо" : "Free: unknown";
     public static string Source => IsUk ? "Джерело" : "Source";
     public static string Machine => IsUk ? "Машина" : "Machine";
     public static string User => IsUk ? "Користувач" : "User";
@@ -163,14 +169,19 @@ internal static class TeacherClientText
     public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн-агентів." : "Keyboard and mouse lock can only be changed for online agents.";
     public static string DistributionDestinationPathRequired => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
     public static string ChooseRemoteFileToDownload => IsUk ? "Виберіть віддалений файл для скачування." : "Choose a remote file to download.";
+    public static string OpenLocalError => IsUk ? "Помилка локального відкриття" : "Local open error";
     public static string OpenRemoteError => IsUk ? "Помилка віддаленого відкриття" : "Remote open error";
+    public static string FormatOpenedLocal(string name) => IsUk ? $"Відкрито локально: {name}" : $"Opened locally: {name}";
     public static string FormatOpenedRemote(string name) => IsUk ? $"Відкрито на учнівському ПК: {name}" : $"Opened on student PC: {name}";
     public static string ChooseLocalEntryFirst => IsUk ? "Спочатку виберіть локальний елемент." : "Choose a local entry first.";
     public static string ChooseRemoteEntryFirst => IsUk ? "Спочатку виберіть віддалений елемент." : "Choose a remote entry first.";
+    public static string RenameLocalEntryTitle => IsUk ? "Перейменувати локальний елемент" : "Rename Local Entry";
+    public static string RenameRemoteEntryTitle => IsUk ? "Перейменувати віддалений елемент" : "Rename Remote Entry";
     public static string DeleteLocalEntryTitle => IsUk ? "Видалити локальний елемент" : "Delete Local Entry";
     public static string DeleteRemoteEntryTitle => IsUk ? "Видалити віддалений елемент" : "Delete Remote Entry";
     public static string CreateRemoteFolderTitle => IsUk ? "Створити віддалену папку" : "Create remote folder";
     public static string FolderName => IsUk ? "Назва папки:" : "Folder name:";
+    public static string EntryName => IsUk ? "Назва елемента:" : "Entry name:";
     public static string NewFolderDefaultName => IsUk ? "НоваПапка" : "NewFolder";
     public static string AutoSource => IsUk ? "Авто" : "Auto";
     public static string ManualSource => IsUk ? "Вручну" : "Manual";
@@ -371,11 +382,19 @@ internal static class TeacherClientText
     public static string FormatProcessTerminated(string name) => IsUk ? $"Процес {name} завершено" : $"Process {name} terminated";
     public static string FormatLoadedProcesses(int count) => IsUk ? $"Завантажено процесів: {count}" : $"Loaded {count} processes";
     public static string FormatAvailableAgents(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
+    public static string FormatAvailableAgentsWithConnected(int total, int discovered, int manual, string machine)
+        => IsUk
+            ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
+            : $"Available agents: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
     public static string FormatUploaded(string name) => IsUk ? $"Завантажено {name}" : $"Uploaded {name}";
     public static string FormatDownloaded(string name) => IsUk ? $"Скачано {name}" : $"Downloaded {name}";
     public static string FormatDeletedLocal(string name) => IsUk ? $"Локальний елемент {name} видалено" : $"Deleted local entry {name}";
     public static string FormatDeletedRemote(string name) => IsUk ? $"Віддалений елемент {name} видалено" : $"Deleted remote entry {name}";
+    public static string FormatRenamedLocal(string oldName, string newName) => IsUk ? $"Локальний елемент {oldName} перейменовано на {newName}" : $"Renamed local entry {oldName} to {newName}";
+    public static string FormatRenamedRemote(string oldName, string newName) => IsUk ? $"Віддалений елемент {oldName} перейменовано на {newName}" : $"Renamed remote entry {oldName} to {newName}";
     public static string FormatCreatedRemoteFolder(string name) => IsUk ? $"Створено віддалену папку {name}" : $"Created remote folder {name}";
+    public static string LocalRenameError => IsUk ? "Помилка локального перейменування" : "Local rename error";
+    public static string RemoteRenameError => IsUk ? "Помилка віддаленого перейменування" : "Remote rename error";
     public static string DeleteLocalEntryPrompt(string name) => IsUk ? $"Видалити локальний елемент {name}?" : $"Delete local entry {name}?";
     public static string DeleteRemoteEntryPrompt(string name) => IsUk ? $"Видалити віддалений елемент {name}?" : $"Delete remote entry {name}?";
     public static string FormatConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";

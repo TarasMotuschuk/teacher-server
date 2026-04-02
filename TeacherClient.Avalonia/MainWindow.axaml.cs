@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -40,6 +41,7 @@ public partial class MainWindow : Window
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
+    private string? _lastConnectedMachineName;
 
     public MainWindow()
     {
@@ -58,6 +60,7 @@ public partial class MainWindow : Window
         _manualAgents = _manualAgentStore.Load().ToList();
         _frequentPrograms = _frequentProgramStore.Load().ToList();
         PopulateLocalRoots();
+        _ = LoadLocalDirectoryAsync(LocalPathTextBox.Text);
 
         GroupFilterComboBox.ItemsSource = new[] { CrossPlatformText.AllGroups };
         GroupFilterComboBox.SelectedIndex = 0;
@@ -240,7 +243,7 @@ public partial class MainWindow : Window
 
             SetStatus(_allAgents.Count == 0
                 ? CrossPlatformText.NoAgentsAvailable
-                : CrossPlatformText.MachineSummary(_allAgents.Count, discoveredAgents.Count, _manualAgents.Count));
+                : BuildAgentAvailabilityStatus(discoveredAgents.Count, _manualAgents.Count));
         }, CrossPlatformText.DiscoveryError);
     }
 
@@ -448,7 +451,8 @@ public partial class MainWindow : Window
 
         _lastConnectedAgentId = agent?.AgentId;
         _lastConnectedServerUrl = serverUrl;
-        SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, info.CurrentUser, info.AgentVersion));
+        _lastConnectedMachineName = info.MachineName;
+        SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
@@ -588,7 +592,7 @@ public partial class MainWindow : Window
                         updatedAgents.Add(agent with
                         {
                             Status = CrossPlatformText.Online,
-                            CurrentUser = info.CurrentUser,
+                            CurrentUser = NormalizeUserDisplay(info.CurrentUser, info.MachineName),
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
@@ -617,7 +621,7 @@ public partial class MainWindow : Window
                     updatedAgents.Add(agent with
                     {
                         Status = CrossPlatformText.Online,
-                        CurrentUser = info?.CurrentUser ?? agent.CurrentUser,
+                        CurrentUser = info is null ? agent.CurrentUser : NormalizeUserDisplay(info.CurrentUser, info.MachineName),
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
@@ -1098,6 +1102,7 @@ public partial class MainWindow : Window
 
             LocalPathTextBox.Text = info.FullName;
             SelectRoot(LocalDriveComboBox, info.FullName);
+            UpdateLocalDriveSpace(info.FullName);
             ReplaceItems(_localEntries, entries);
             return Task.CompletedTask;
         }, CrossPlatformText.LocalBrowseError);
@@ -1118,9 +1123,56 @@ public partial class MainWindow : Window
 
             RemotePathTextBox.Text = listing.CurrentPath;
             SelectRoot(RemoteDriveComboBox, listing.CurrentPath);
+            await UpdateRemoteDriveSpaceAsync(client, listing.CurrentPath);
             _remoteParentPath = listing.ParentPath;
             ReplaceItems(_remoteEntries, listing.Entries);
         }, CrossPlatformText.RemoteBrowseError);
+    }
+
+    private void UpdateLocalDriveSpace(string? path)
+    {
+        try
+        {
+            var resolvedPath = string.IsNullOrWhiteSpace(path)
+                ? (LocalDriveComboBox.SelectedItem as string ?? Path.GetPathRoot(GetDefaultLocalPath()))
+                : path;
+            if (string.IsNullOrWhiteSpace(resolvedPath))
+            {
+                LocalDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
+                return;
+            }
+
+            var root = Path.GetPathRoot(resolvedPath);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                LocalDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
+                return;
+            }
+
+            var drive = new DriveInfo(root);
+            LocalDriveSpaceTextBlock.Text = drive.IsReady
+                ? CrossPlatformText.DriveFreeSpace(FormatByteSize(drive.AvailableFreeSpace), FormatByteSize(drive.TotalSize))
+                : CrossPlatformText.DriveFreeSpaceUnknown;
+        }
+        catch
+        {
+            LocalDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
+        }
+    }
+
+    private async Task UpdateRemoteDriveSpaceAsync(TeacherApiClient client, string? path)
+    {
+        try
+        {
+            var space = await client.GetRemoteDriveSpaceAsync(path);
+            RemoteDriveSpaceTextBlock.Text = space is null
+                ? CrossPlatformText.DriveFreeSpaceUnknown
+                : CrossPlatformText.DriveFreeSpace(FormatByteSize(space.AvailableBytes), FormatByteSize(space.TotalBytes));
+        }
+        catch
+        {
+            RemoteDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
+        }
     }
 
     private async void UploadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -1134,7 +1186,9 @@ public partial class MainWindow : Window
         await RunBusyAsync(async () =>
         {
             var client = CreateClient();
-            await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty);
+            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+                SetStatus(BuildTransferStatus(CrossPlatformText.UploadArrow, entry.Name, value)));
+            await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty, progress);
             await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
             SetStatus(CrossPlatformText.Uploaded(entry.Name));
         }, CrossPlatformText.UploadError);
@@ -1457,7 +1511,9 @@ public partial class MainWindow : Window
         await RunBusyAsync(async () =>
         {
             var client = CreateClient();
-            await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath());
+            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+                SetStatus(BuildTransferStatus(CrossPlatformText.DownloadArrow, entry.Name, value)));
+            await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath(), progress);
             await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
             SetStatus(CrossPlatformText.Downloaded(entry.Name));
         }, CrossPlatformText.DownloadError);
@@ -1477,6 +1533,62 @@ public partial class MainWindow : Window
             await client.OpenRemoteEntryAsync(entry.FullPath);
             SetStatus(CrossPlatformText.OpenedRemote(entry.Name));
         }, CrossPlatformText.OpenRemoteError);
+    }
+
+    private void OpenLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
+            return;
+        }
+
+        OpenLocalEntry(entry);
+    }
+
+    private async void RenameLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
+            return;
+        }
+
+        var newName = await TextInputDialog.ShowAsync(this, CrossPlatformText.RenameLocalEntryTitle, CrossPlatformText.EntryName, entry.Name);
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            RenameLocalEntry(entry, newName);
+            await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
+            SetStatus(CrossPlatformText.RenamedLocalEntry(entry.Name, newName.Trim()));
+        }, CrossPlatformText.LocalRenameError);
+    }
+
+    private async void RenameRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        {
+            SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
+            return;
+        }
+
+        var newName = await TextInputDialog.ShowAsync(this, CrossPlatformText.RenameRemoteEntryTitle, CrossPlatformText.EntryName, entry.Name);
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            var client = CreateClient();
+            await client.RenameRemoteEntryAsync(entry.FullPath, newName.Trim());
+            await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+            SetStatus(CrossPlatformText.RenamedRemoteEntry(entry.Name, newName.Trim()));
+        }, CrossPlatformText.RemoteRenameError);
     }
 
     private async void DeleteLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -1597,10 +1709,18 @@ public partial class MainWindow : Window
 
     private async void LocalFilesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (LocalFilesGrid.SelectedItem is FileSystemEntryDto entry && entry.IsDirectory)
+        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        {
+            return;
+        }
+
+        if (entry.IsDirectory)
         {
             await LoadLocalDirectoryAsync(entry.FullPath);
+            return;
         }
+
+        OpenLocalEntry(entry);
     }
 
     private async void RemoteFilesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -2083,7 +2203,7 @@ public partial class MainWindow : Window
                     var machineFolder = Path.Combine(localDestinationRoot, SanitizeLocalFolderName(agent.MachineName));
                     var localWorkFolder = Path.Combine(machineFolder, _clientSettings.StudentWorkFolderName);
                     Directory.CreateDirectory(localWorkFolder);
-                    await DownloadRemoteDirectoryContentsAsync(client, studentWorkPath, localWorkFolder);
+                    await DownloadRemoteDirectoryContentsAsync(client, studentWorkPath, localWorkFolder, SetStatus, agent.MachineName);
                     succeeded++;
                 }
                 catch (Exception ex)
@@ -2131,11 +2251,27 @@ public partial class MainWindow : Window
                 agentCount,
                 fileIndex + 1,
                 plan.Files.Count));
-            await client.UploadFileAsync(file.LocalPath, file.RemoteDirectory, cancellationToken);
+            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+                reportStatus(BuildBulkTransferStatus(
+                    CrossPlatformText.UploadArrow,
+                    agent.MachineName,
+                    file.DisplayPath,
+                    value,
+                    agentIndex,
+                    agentCount,
+                    fileIndex + 1,
+                    plan.Files.Count)));
+            await client.UploadFileAsync(file.LocalPath, file.RemoteDirectory, progress, cancellationToken);
         }
     }
 
-    private static async Task DownloadRemoteDirectoryContentsAsync(TeacherApiClient client, string remoteDirectoryPath, string localDestinationDirectory, CancellationToken cancellationToken = default)
+    private static async Task DownloadRemoteDirectoryContentsAsync(
+        TeacherApiClient client,
+        string remoteDirectoryPath,
+        string localDestinationDirectory,
+        Action<string>? reportStatus = null,
+        string? agentName = null,
+        CancellationToken cancellationToken = default)
     {
         var listing = await client.GetRemoteDirectoryAsync(remoteDirectoryPath, cancellationToken)
                       ?? throw new InvalidOperationException("Remote listing failed.");
@@ -2146,11 +2282,19 @@ public partial class MainWindow : Window
             if (entry.IsDirectory)
             {
                 var childDirectory = Path.Combine(localDestinationDirectory, entry.Name);
-                await DownloadRemoteDirectoryContentsAsync(client, entry.FullPath, childDirectory, cancellationToken);
+                await DownloadRemoteDirectoryContentsAsync(client, entry.FullPath, childDirectory, reportStatus, agentName, cancellationToken);
             }
             else
             {
-                await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, cancellationToken);
+                var progress = reportStatus is null
+                    ? null
+                    : new Progress<TeacherApiClient.TransferProgress>(value =>
+                        reportStatus(BuildBulkTransferStatus(
+                            CrossPlatformText.DownloadArrow,
+                            agentName ?? string.Empty,
+                            entry.Name,
+                            value)));
+                await client.DownloadRemoteFileAsync(entry.FullPath, localDestinationDirectory, progress, cancellationToken);
             }
         }
     }
@@ -2501,6 +2645,60 @@ public partial class MainWindow : Window
         return string.IsNullOrWhiteSpace(sanitized) ? "StudentMachine" : sanitized;
     }
 
+    private static string BuildTransferStatus(string operation, string fileName, TeacherApiClient.TransferProgress progress)
+    {
+        var transferred = FormatByteSize(progress.BytesTransferred);
+        if (!progress.HasTotal)
+        {
+            return $"{operation} {fileName} ({transferred})";
+        }
+
+        return $"{operation} {fileName} ({progress.Percent}% · {transferred} / {FormatByteSize(progress.TotalBytes!.Value)})";
+    }
+
+    private static string BuildBulkTransferStatus(
+        string operation,
+        string agentName,
+        string fileName,
+        TeacherApiClient.TransferProgress progress,
+        int? agentIndex = null,
+        int? agentCount = null,
+        int? fileIndex = null,
+        int? fileCount = null)
+    {
+        var prefix = string.IsNullOrWhiteSpace(agentName)
+            ? operation
+            : $"{operation} {agentName}";
+        var scope = agentIndex.HasValue && agentCount.HasValue && fileIndex.HasValue && fileCount.HasValue
+            ? $" ({agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
+            : string.Empty;
+        var transferred = FormatByteSize(progress.BytesTransferred);
+
+        if (!progress.HasTotal)
+        {
+            return $"{prefix}{scope} {fileName} ({transferred})";
+        }
+
+        return $"{prefix}{scope} {fileName} ({progress.Percent}% · {transferred} / {FormatByteSize(progress.TotalBytes!.Value)})";
+    }
+
+    private static string FormatByteSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double value = bytes;
+        var unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return unitIndex == 0
+            ? $"{value:0} {units[unitIndex]}"
+            : $"{value:0.##} {units[unitIndex]}";
+    }
+
     private sealed record DiscoveredAgentRow(
         string AgentId,
         string Source,
@@ -2529,7 +2727,7 @@ public partial class MainWindow : Window
                 CrossPlatformText.Online,
                 string.Empty,
                 dto.MachineName,
-                dto.CurrentUser,
+                NormalizeUserDisplay(dto.CurrentUser, dto.MachineName),
                 dto.RespondingAddress,
                 dto.Port,
                 string.Join(", ", dto.MacAddresses),
@@ -2558,6 +2756,30 @@ public partial class MainWindow : Window
                 DateTime.MinValue,
                 true);
         }
+    }
+
+    private string BuildAgentAvailabilityStatus(int discoveredCount, int manualCount)
+    {
+        return string.IsNullOrWhiteSpace(_lastConnectedMachineName)
+            ? CrossPlatformText.MachineSummary(_allAgents.Count, discoveredCount, manualCount)
+            : CrossPlatformText.MachineSummaryWithConnected(_allAgents.Count, discoveredCount, manualCount, _lastConnectedMachineName);
+    }
+
+    private static string NormalizeUserDisplay(string? currentUser, string machineName)
+    {
+        if (string.IsNullOrWhiteSpace(currentUser))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = currentUser.Trim();
+        var accountName = trimmed.Contains('\\', StringComparison.Ordinal)
+            ? trimmed[(trimmed.LastIndexOf('\\') + 1)..]
+            : trimmed;
+
+        return string.Equals(accountName, $"{machineName}$", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : trimmed;
     }
 
     private void ApplyLocalization()
@@ -2638,14 +2860,26 @@ public partial class MainWindow : Window
         ApplyTabButtonContent(SendToSelectedStudentsButton, CrossPlatformText.SendToSelectedStudents, ToolbarGlyphKind.UploadGroup);
         ApplyTabButtonContent(SendToAllOnlineStudentsButton, CrossPlatformText.SendToAllOnlineStudents, ToolbarGlyphKind.Broadcast);
         ApplyTabButtonContent(DownloadButton, CrossPlatformText.DownloadArrow, ToolbarGlyphKind.Download);
+        ApplyTabButtonContent(OpenLocalButton, CrossPlatformText.OpenLocal, ToolbarGlyphKind.OpenRemote);
         ApplyTabButtonContent(OpenRemoteButton, CrossPlatformText.OpenRemote, ToolbarGlyphKind.OpenRemote);
+        ApplyTabButtonContent(RenameLocalButton, CrossPlatformText.RenameLocal, ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(RenameRemoteButton, CrossPlatformText.RenameRemote, ToolbarGlyphKind.Edit);
         ApplyTabButtonContent(DeleteLocalButton, CrossPlatformText.DeleteLocal, ToolbarGlyphKind.Remove);
         ApplyTabButtonContent(DeleteRemoteButton, CrossPlatformText.DeleteRemote, ToolbarGlyphKind.Remove);
         ApplyTabButtonContent(NewRemoteFolderButton, CrossPlatformText.NewRemoteFolder, ToolbarGlyphKind.NewFolder);
         TeacherPcTextBlock.Text = CrossPlatformText.TeacherPc;
         StudentPcTextBlock.Text = CrossPlatformText.StudentPc;
-        UpLocalButton.Content = CrossPlatformText.Up;
-        UpRemoteButton.Content = CrossPlatformText.Up;
+        UpLocalButton.Content = CrossPlatformText.UpWithArrow;
+        UpRemoteButton.Content = CrossPlatformText.UpWithArrow;
+        if (string.IsNullOrWhiteSpace(LocalDriveSpaceTextBlock.Text) || LocalDriveSpaceTextBlock.Text == "Free: unknown")
+        {
+            LocalDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
+        }
+
+        if (string.IsNullOrWhiteSpace(RemoteDriveSpaceTextBlock.Text) || RemoteDriveSpaceTextBlock.Text == "Free: unknown")
+        {
+            RemoteDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
+        }
         ApplyTabButtonContent(RefreshRegistryButton, CrossPlatformText.Refresh, ToolbarGlyphKind.Refresh);
         ApplyTabButtonContent(NewValueButton, CrossPlatformText.NewValue, ToolbarGlyphKind.Add);
         ApplyTabButtonContent(NewKeyButton, CrossPlatformText.NewKey, ToolbarGlyphKind.Add);
@@ -2791,6 +3025,73 @@ public partial class MainWindow : Window
             ToolbarGlyphKind.NewFolder => "M10,4L12,6H20C21.1,6 22,6.9 22,8V10H20V8H4V18H11V20H4C2.9,20 2,19.1 2,18V6C2,4.9 2.9,4 4,4H10M19,12V15H22V17H19V20H17V17H14V15H17V12H19Z",
             _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z"
         };
+
+    private void OpenLocalEntry(FileSystemEntryDto entry)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = entry.FullPath,
+                UseShellExecute = true
+            });
+            SetStatus(CrossPlatformText.OpenedLocal(entry.Name));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.OpenLocalError}: {ex.Message}");
+        }
+    }
+
+    private static void RenameLocalEntry(FileSystemEntryDto entry, string newName)
+    {
+        var safeName = ValidateLocalEntryName(newName);
+        var parentDirectory = Path.GetDirectoryName(entry.FullPath);
+        if (string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            throw new InvalidOperationException("Cannot rename a root path.");
+        }
+
+        var destinationPath = Path.Combine(parentDirectory, safeName);
+        if (string.Equals(entry.FullPath, destinationPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (Directory.Exists(destinationPath) || File.Exists(destinationPath))
+        {
+            throw new IOException($"An entry with the name '{safeName}' already exists.");
+        }
+
+        if (entry.IsDirectory)
+        {
+            Directory.Move(entry.FullPath, destinationPath);
+            return;
+        }
+
+        File.Move(entry.FullPath, destinationPath);
+    }
+
+    private static string ValidateLocalEntryName(string name)
+    {
+        var trimmed = name.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            throw new InvalidOperationException("Entry name is required.");
+        }
+
+        if (!string.Equals(trimmed, Path.GetFileName(trimmed), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Only a file or folder name is allowed.");
+        }
+
+        if (trimmed.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new InvalidOperationException("The file or folder name contains invalid characters.");
+        }
+
+        return trimmed;
+    }
 
     private enum ToolbarGlyphKind
     {

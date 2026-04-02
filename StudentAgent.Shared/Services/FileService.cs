@@ -28,6 +28,28 @@ public sealed class FileService
         return Directory.GetLogicalDrives();
     }
 
+    public DriveSpaceDto GetDriveSpace(string? path)
+    {
+        var resolvedPath = ResolveDirectory(path);
+        var root = Path.GetPathRoot(resolvedPath);
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            throw new InvalidOperationException("Could not resolve the drive root.");
+        }
+
+        var drive = new DriveInfo(root);
+        if (!drive.IsReady)
+        {
+            throw new IOException($"Drive '{root}' is not ready.");
+        }
+
+        return new DriveSpaceDto(
+            drive.RootDirectory.FullName,
+            drive.TotalSize,
+            drive.TotalFreeSpace,
+            drive.AvailableFreeSpace);
+    }
+
     public void DeleteEntry(string fullPath)
     {
         if (Directory.Exists(fullPath))
@@ -52,6 +74,42 @@ public sealed class FileService
             : name.Trim();
 
         Directory.CreateDirectory(Path.Combine(ResolveDirectory(parentPath), safeName));
+    }
+
+    public void RenameEntry(string fullPath, string newName)
+    {
+        var sourcePath = Path.GetFullPath(fullPath);
+        var safeName = ValidateEntryName(newName);
+        var parentDirectory = Path.GetDirectoryName(sourcePath);
+        if (string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            throw new InvalidOperationException("Cannot rename a root path.");
+        }
+
+        var destinationPath = Path.Combine(parentDirectory, safeName);
+        if (string.Equals(sourcePath, destinationPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (Directory.Exists(destinationPath) || File.Exists(destinationPath))
+        {
+            throw new IOException($"An entry with the name '{safeName}' already exists.");
+        }
+
+        if (Directory.Exists(sourcePath))
+        {
+            Directory.Move(sourcePath, destinationPath);
+            return;
+        }
+
+        if (File.Exists(sourcePath))
+        {
+            File.Move(sourcePath, destinationPath);
+            return;
+        }
+
+        throw new FileNotFoundException("Entry not found.", sourcePath);
     }
 
     public void ClearDirectoryContents(string fullPath)
@@ -134,6 +192,27 @@ public sealed class FileService
         }
 
         return Path.GetFullPath(path);
+    }
+
+    private static string ValidateEntryName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Entry name is required.", nameof(name));
+        }
+
+        var trimmed = name.Trim();
+        if (!string.Equals(trimmed, Path.GetFileName(trimmed), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Only a file or folder name is allowed.");
+        }
+
+        if (trimmed.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new InvalidOperationException("The file or folder name contains invalid characters.");
+        }
+
+        return trimmed;
     }
 
     private static FileSystemEntryDto MapEntry(FileSystemInfo info)

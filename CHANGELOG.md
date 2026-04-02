@@ -6,6 +6,23 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-04-02
+
+### Added
+
+- Local file entries in both teacher clients can now be opened with the operating system's associated application directly from the `Files` tab
+- Local and remote file/folder rename actions are now available in both teacher clients
+- `POST /api/files/rename` endpoint on StudentAgent.Service for remote file and folder renaming
+- File upload, download, distribution, and work-collection flows in both teacher clients now show live transfer progress in the status area
+- StudentAgent.Service now exposes drive free-space information so both teacher clients can display remaining space for the currently selected student drive
+
+### Fixed
+
+- Registry `.reg` import now tolerates UTF-16 files without BOM and strips embedded NUL characters more safely
+- Registry import errors now surface the actual agent-side message in both teacher clients instead of a generic `400 Bad Request`
+- Agent tables in both teacher clients now avoid showing the machine-account form like `PCNAME$` as the connected user, and status summaries now include the currently connected machine name
+- The `Files` tab in both teacher clients now shows an `↑ Вгору` navigation label and current free disk space in the drive/path row for both local and remote panels
+
 ## [1.0.8] - 2026-04-02
 
 ### Changed

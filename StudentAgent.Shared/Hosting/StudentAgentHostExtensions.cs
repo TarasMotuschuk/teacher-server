@@ -261,8 +261,7 @@ public static class StudentAgentHostExtensions
                 }
 
                 using var stream = file.OpenReadStream();
-                using var reader = new StreamReader(stream, Encoding.Unicode, detectEncodingFromByteOrderMarks: true);
-                var content = await reader.ReadToEndAsync(cancellationToken);
+                var content = await ReadRegistryTextAsync(stream, cancellationToken);
                 return Results.Ok(service.ImportRegFile(content));
             }
             catch (Exception ex)
@@ -303,6 +302,18 @@ public static class StudentAgentHostExtensions
 
         app.MapGet("/api/files/roots", ([FromServices] FileService service) => Results.Ok(service.GetRoots()));
 
+        app.MapGet("/api/files/space", (string? path, [FromServices] FileService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetDriveSpace(path));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         app.MapGet("/api/files/list", (string? path, [FromServices] FileService service) =>
         {
             try
@@ -333,6 +344,19 @@ public static class StudentAgentHostExtensions
             try
             {
                 service.CreateDirectory(request.ParentPath, request.Name);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/files/rename", ([FromBody] RenameEntryRequest request, [FromServices] FileService service) =>
+        {
+            try
+            {
+                service.RenameEntry(request.FullPath, request.NewName);
                 return Results.NoContent();
             }
             catch (Exception ex)
@@ -410,5 +434,76 @@ public static class StudentAgentHostExtensions
         var invalidChars = Path.GetInvalidFileNameChars();
         var sanitized = new string(rawName.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
         return $"{sanitized}.reg";
+    }
+
+    private static async Task<string> ReadRegistryTextAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
+        if (bytes.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        if (HasPrefix(bytes, 0xFF, 0xFE))
+        {
+            return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
+        }
+
+        if (HasPrefix(bytes, 0xFE, 0xFF))
+        {
+            return Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2);
+        }
+
+        if (HasPrefix(bytes, 0xEF, 0xBB, 0xBF))
+        {
+            return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
+        }
+
+        if (LooksLikeUtf16Le(bytes))
+        {
+            return Encoding.Unicode.GetString(bytes);
+        }
+
+        return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static bool HasPrefix(byte[] bytes, params byte[] prefix)
+    {
+        if (bytes.Length < prefix.Length)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < prefix.Length; index++)
+        {
+            if (bytes[index] != prefix[index])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool LooksLikeUtf16Le(byte[] bytes)
+    {
+        if (bytes.Length < 4)
+        {
+            return false;
+        }
+
+        var pairsToInspect = Math.Min(bytes.Length / 2, 128);
+        var zeroHighBytes = 0;
+        for (var pairIndex = 0; pairIndex < pairsToInspect; pairIndex++)
+        {
+            if (bytes[pairIndex * 2 + 1] == 0)
+            {
+                zeroHighBytes++;
+            }
+        }
+
+        return zeroHighBytes >= pairsToInspect * 3 / 4;
     }
 }

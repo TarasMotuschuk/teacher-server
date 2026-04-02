@@ -45,9 +45,17 @@ public sealed record DirectoryListingDto(
     string? ParentPath,
     IReadOnlyList<FileSystemEntryDto> Entries);
 
+public sealed record DriveSpaceDto(
+    string RootPath,
+    long TotalBytes,
+    long FreeBytes,
+    long AvailableBytes);
+
 public sealed record DeleteEntryRequest(string FullPath);
 
 public sealed record CreateDirectoryRequest(string ParentPath, string Name);
+
+public sealed record RenameEntryRequest(string FullPath, string NewName);
 
 public sealed record ClearDirectoryRequest(string FullPath);
 
