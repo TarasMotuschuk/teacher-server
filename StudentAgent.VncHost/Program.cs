@@ -127,7 +127,10 @@ internal sealed class DesktopCaptureFramebufferSource : IVncFramebufferSource
                 try
                 {
                     var buffer = _framebuffer.GetBuffer();
-                    Marshal.Copy(bitmapData.Scan0, buffer, 0, buffer.Length);
+                    lock (_framebuffer.SyncRoot)
+                    {
+                        Marshal.Copy(bitmapData.Scan0, buffer, 0, buffer.Length);
+                    }
                 }
                 finally
                 {

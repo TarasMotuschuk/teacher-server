@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Teacher.Common;
 using Teacher.Common.Vnc;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Services;
@@ -301,7 +302,10 @@ public partial class MainWindow
         try
         {
             var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-            await client.StartVncAsync(viewOnly, agent.VncPort > 0 ? agent.VncPort : null, null);
+            await client.StartVncAsync(
+                viewOnly,
+                agent.VncPort > 0 ? agent.VncPort : null,
+                VncPasswordHelper.Derive(_clientSettings.SharedSecret));
             SetStatus(viewOnly
                 ? CrossPlatformText.RemoteManagementRunning(agent.MachineName)
                 : CrossPlatformText.RemoteManagementControl(agent.MachineName));

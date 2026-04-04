@@ -65,11 +65,21 @@ public sealed class AgentSettingsStore
         lock (_sync)
         {
             ReloadFromDiskIfChanged();
-            _current.SharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
+            var previousSharedSecret = _current.SharedSecret;
+            var nextSharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
+            var shouldRefreshDerivedVncPassword = string.IsNullOrWhiteSpace(_current.VncPassword)
+                || string.Equals(_current.VncPassword, VncPasswordHelper.Derive(previousSharedSecret), StringComparison.Ordinal);
+
+            _current.SharedSecret = nextSharedSecret;
             _current.Language = language;
             if (!string.IsNullOrWhiteSpace(password))
             {
                 _current.AdminPasswordHash = HashPassword(password.Trim());
+            }
+
+            if (shouldRefreshDerivedVncPassword)
+            {
+                _current.VncPassword = VncPasswordHelper.Derive(_current.SharedSecret);
             }
 
             Save(_current);
@@ -134,6 +144,10 @@ public sealed class AgentSettingsStore
             if (!string.IsNullOrWhiteSpace(password))
             {
                 _current.VncPassword = password.Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(_current.VncPassword))
+            {
+                _current.VncPassword = VncPasswordHelper.Derive(_current.SharedSecret);
             }
 
             Save(_current);
@@ -242,7 +256,7 @@ public sealed class AgentSettingsStore
         value.VncPort = value.VncPort <= 0 ? Math.Max(1, defaults.VncPort) : Math.Max(1, value.VncPort);
         value.VncViewOnly = value.VncViewOnly;
         value.VncPassword = string.IsNullOrWhiteSpace(value.VncPassword)
-            ? (string.IsNullOrWhiteSpace(defaults.VncPassword) ? VncPasswordHelper.Derive(defaults.SharedSecret) : defaults.VncPassword)
+            ? (string.IsNullOrWhiteSpace(defaults.VncPassword) ? VncPasswordHelper.Derive(value.SharedSecret) : defaults.VncPassword)
             : value.VncPassword.Trim();
         return value;
     }

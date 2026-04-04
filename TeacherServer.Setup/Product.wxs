@@ -74,6 +74,7 @@
     <Feature Id="StudentFeature" Title="Student workstation tools" Description="Install the privileged student service and session UI host." Level="1" AllowAdvertise="no">
       <ComponentRef Id="StudentServiceMainComponent" />
       <ComponentRef Id="StudentUiHostMainComponent" />
+      <ComponentRef Id="StudentVncHostMainComponent" />
       <ComponentRef Id="StudentAgentDataDirComponent" />
       <ComponentGroupRef Id="StudentPayloadGroup" />
     </Feature>
@@ -130,10 +131,19 @@
       <File Id="StudentAgentUiHostExe" Source="$(var.StudentPayloadDir)\StudentAgent.UIHost.exe" KeyPath="yes" />
     </Component>
 
+    <Component Id="StudentVncHostMainComponent" Directory="STUDENTDIR" Guid="*">
+      <File Id="StudentAgentVncHostExe" Source="$(var.StudentPayloadDir)\StudentAgent.VncHost.exe" KeyPath="yes" />
+      <firewall:FirewallException Id="StudentAgentVncHostFirewallRule"
+                                  Name="ClassCommander StudentAgent VNC Host"
+                                  Description="Allows the student VNC host to accept remote management connections."
+                                  Program="[#StudentAgentVncHostExe]"
+                                  Profile="all"
+                                  Scope="any" />
+    </Component>
+
     <ui:WixUI Id="WixUI_FeatureTree" />
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
-
 
 

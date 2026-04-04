@@ -3,6 +3,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using Teacher.Common;
 using Teacher.Common.Vnc;
 using TeacherClient.Localization;
 using TeacherClient.Services;
@@ -355,7 +356,10 @@ public partial class MainForm
         {
             using var cursorScope = new CursorScope(this);
             var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-            await client.StartVncAsync(viewOnly, agent.VncPort > 0 ? agent.VncPort : null, null);
+            await client.StartVncAsync(
+                viewOnly,
+                agent.VncPort > 0 ? agent.VncPort : null,
+                VncPasswordHelper.Derive(_clientSettings.SharedSecret));
             SetStatus(viewOnly
                 ? TeacherClientText.RemoteManagementRunning(agent.MachineName)
                 : TeacherClientText.RemoteManagementControl(agent.MachineName));
