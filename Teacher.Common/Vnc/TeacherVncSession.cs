@@ -27,7 +27,6 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
 
     public bool IsConnected => _client?.IsConnected ?? false;
 
-    public event EventHandler<VncFrameCapture>? FrameUpdated;
     public event EventHandler<string>? StatusChanged;
     public event EventHandler? Connected;
     public event EventHandler? Closed;
@@ -43,7 +42,6 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
 
         var client = new VncClient();
         client.MaxUpdateRate = 10;
-        client.FramebufferChanged += ClientOnFramebufferChanged;
         client.ConnectionFailed += ClientOnConnectionFailed;
         client.Connected += ClientOnConnected;
         client.Closed += ClientOnClosed;
@@ -172,28 +170,11 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             return;
         }
 
-        client.FramebufferChanged -= ClientOnFramebufferChanged;
         client.ConnectionFailed -= ClientOnConnectionFailed;
         client.Connected -= ClientOnConnected;
         client.Closed -= ClientOnClosed;
         client.Close();
         client.Dispose();
-    }
-
-    private async void ClientOnFramebufferChanged(object? sender, FramebufferChangedEventArgs e)
-    {
-        try
-        {
-            var frame = await CaptureFrameAsync();
-            if (frame is not null)
-            {
-                FrameUpdated?.Invoke(this, frame);
-            }
-        }
-        catch (Exception ex)
-        {
-            StatusChanged?.Invoke(this, $"Framebuffer capture failed: {ex.Message}");
-        }
     }
 
     private void ClientOnConnectionFailed(object? sender, EventArgs e)
