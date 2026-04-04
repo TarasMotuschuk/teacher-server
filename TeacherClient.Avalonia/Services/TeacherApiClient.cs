@@ -174,6 +174,21 @@ public sealed class TeacherApiClient
         return await response.Content.ReadFromJsonAsync<AgentUpdateStatusDto>(cancellationToken);
     }
 
+    public Task<VncStateDto?> GetVncStatusAsync(CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<VncStateDto>("api/vnc/status", cancellationToken);
+
+    public async Task StartVncAsync(bool viewOnly = true, int? port = null, string? password = null, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/vnc/start", new StartVncRequest(port, viewOnly, password), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task StopVncAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/vnc/stop", new StopVncRequest(), cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyList<string>> GetRootsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<string>>("api/files/roots", cancellationToken) ?? [];
 

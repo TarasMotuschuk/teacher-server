@@ -1,13 +1,16 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Teacher.Common;
 using Teacher.Common.Localization;
 using Teacher.Common.Contracts;
+using Teacher.Common.Vnc;
 using TeacherClient.CrossPlatform.Dialogs;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
@@ -31,6 +34,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<FileSystemEntryDto> _remoteEntries = [];
     private readonly ObservableCollection<RegistryNode> _registryRoots = [];
     private readonly ObservableCollection<RegistryValueDto> _registryValues = [];
+    private readonly ObservableCollection<RemoteManagementTileViewModel> _remoteManagementTiles = [];
     private readonly DispatcherTimer _agentRefreshTimer = new();
     private readonly DispatcherTimer _connectionMonitorTimer = new();
     private readonly DispatcherTimer _updateStatusTimer = new();
@@ -40,10 +44,12 @@ public partial class MainWindow : Window
     private List<FrequentProgramEntry> _frequentPrograms = [];
     private List<DiscoveredAgentRow> _allAgents = [];
     private bool _suppressDriveSelection;
+    private bool _isClosing;
     private string? _remoteParentPath;
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
+    private string? _remoteManagementSelectedAgentId;
 
     public MainWindow()
     {
@@ -56,7 +62,9 @@ public partial class MainWindow : Window
         AgentsGrid.ItemsSource = _agents;
         RegistryTreeView.ItemsSource = _registryRoots;
         RegistryValuesGrid.ItemsSource = _registryValues;
+        RemoteManagementListBox.ItemsSource = _remoteManagementTiles;
         RegistryTreeView.AddHandler(TreeViewItem.ExpandedEvent, RegistryTreeView_NodeExpanded);
+        RemoteManagementListBox.SelectionChanged += RemoteManagementListBox_OnSelectionChanged;
         InitializeRegistryTree();
         LocalPathTextBox.Text = GetDefaultLocalPath();
         _manualAgents = _manualAgentStore.Load().ToList();
@@ -86,9 +94,11 @@ public partial class MainWindow : Window
         };
         Closing += (_, _) =>
         {
+            _isClosing = true;
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+            DisposeRemoteManagementTiles();
             _updatePreparationService.Dispose();
             _clientUpdateService.Dispose();
         };
@@ -315,6 +325,7 @@ public partial class MainWindow : Window
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
+            await RefreshRemoteManagementTilesAsync();
             await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false);
 
             SetStatus(_allAgents.Count == 0
@@ -826,6 +837,7 @@ public partial class MainWindow : Window
                     if (info is not null)
                     {
                         var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
+                        var vncStatus = await reachabilityClient.GetVncStatusAsync();
                         updatedAgents.Add(agent with
                         {
                             Status = CrossPlatformText.Online,
@@ -833,6 +845,11 @@ public partial class MainWindow : Window
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                            VncEnabled = vncStatus?.Enabled ?? false,
+                            VncRunning = vncStatus?.Running ?? false,
+                            VncViewOnly = vncStatus?.ViewOnly ?? true,
+                            VncPort = vncStatus?.Port ?? 0,
+                            VncStatusMessage = vncStatus?.Message ?? string.Empty,
                             Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                                 ? updateStatus.AvailableVersion ?? info.AgentVersion
                                 : info.AgentVersion
@@ -855,6 +872,7 @@ public partial class MainWindow : Window
                 {
                     var info = await reachabilityClient.GetServerInfoAsync();
                     var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
+                    var vncStatus = await reachabilityClient.GetVncStatusAsync();
                     updatedAgents.Add(agent with
                     {
                         Status = CrossPlatformText.Online,
@@ -862,6 +880,11 @@ public partial class MainWindow : Window
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                        VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
+                        VncRunning = vncStatus?.Running ?? agent.VncRunning,
+                        VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
+                        VncPort = vncStatus?.Port ?? agent.VncPort,
+                        VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
                         Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                             ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
                             : info?.AgentVersion ?? agent.Version
@@ -2921,6 +2944,11 @@ public partial class MainWindow : Window
         string Notes,
         string UpdateStatusBadge,
         string Version,
+        bool VncEnabled,
+        bool VncRunning,
+        bool VncViewOnly,
+        int VncPort,
+        string VncStatusMessage,
         DateTime LastSeenUtc,
         bool IsManual)
     {
@@ -2943,6 +2971,11 @@ public partial class MainWindow : Window
                 string.Empty,
                 string.Empty,
                 dto.Version,
+                false,
+                false,
+                true,
+                0,
+                string.Empty,
                 dto.LastSeenUtc,
                 false);
         }
@@ -2962,6 +2995,11 @@ public partial class MainWindow : Window
                 entry.Notes,
                 string.Empty,
                 CrossPlatformText.ManualVersion,
+                false,
+                false,
+                true,
+                0,
+                string.Empty,
                 DateTime.MinValue,
                 true);
         }
@@ -3053,6 +3091,15 @@ public partial class MainWindow : Window
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;
         RegistryTabItem.Header = CrossPlatformText.RegistryTab;
+        RemoteManagementTabItem.Header = CrossPlatformText.RemoteManagementTab;
+        RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
+            ? CrossPlatformText.RemoteManagementNoScreens
+            : CrossPlatformText.RemoteManagementHint;
+        RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
+        StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
+        StartVncControlButton.Content = CrossPlatformText.StartVncControl;
+        StopVncButton.Content = CrossPlatformText.StopVnc;
+        OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
         ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, "Toolbar/agents/pc-refresh-list.png", ToolbarGlyphKind.Refresh);
         ApplyTabButtonContent(ConnectSelectedAgentButton, CrossPlatformText.ConnectSelectedAgent, "Toolbar/agents/connect.png", ToolbarGlyphKind.Link);
         ApplyTabButtonContent(AddManualAgentButton, CrossPlatformText.AddManualAgent, "Toolbar/agents/add-manual.png", ToolbarGlyphKind.Add);
@@ -3161,6 +3208,15 @@ public partial class MainWindow : Window
             RegistryValuesGrid.Columns[1].Header = CrossPlatformText.RegistryValueType;
             RegistryValuesGrid.Columns[2].Header = CrossPlatformText.RegistryValueData;
         }
+
+        RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
+        StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
+        StartVncControlButton.Content = CrossPlatformText.StartVncControl;
+        StopVncButton.Content = CrossPlatformText.StopVnc;
+        OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
+        RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
+            ? CrossPlatformText.RemoteManagementNoScreens
+            : CrossPlatformText.RemoteManagementHint;
 
         if (StatusTextBlock.Text == "Ready. Use the Agents tab to select a student machine, then connect." ||
             StatusTextBlock.Text == "Готово. Виберіть машину на вкладці агентів і підключіться.")

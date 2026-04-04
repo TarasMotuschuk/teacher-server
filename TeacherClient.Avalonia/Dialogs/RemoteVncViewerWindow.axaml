@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.RemoteVncViewerWindow"
+        Width="1280"
+        Height="800"
+        WindowStartupLocation="CenterOwner"
+        Title="VNC Viewer"
+        Background="Black">
+  <Grid RowDefinitions="*,Auto">
+    <Image x:Name="ScreenImage"
+           Grid.Row="0"
+           Stretch="Uniform"
+           HorizontalAlignment="Stretch"
+           VerticalAlignment="Stretch" />
+
+    <Border Grid.Row="1"
+            Background="#1F2937"
+            Padding="12,8">
+      <TextBlock x:Name="StatusTextBlock"
+                 Foreground="#F8FAFC"
+                 TextWrapping="Wrap" />
+    </Border>
+  </Grid>
+</Window>

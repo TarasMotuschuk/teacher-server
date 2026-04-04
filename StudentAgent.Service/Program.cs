@@ -18,7 +18,9 @@ try
     builder.Services.AddSingleton<RemoteCommandService>();
     builder.Services.AddSingleton<PublicDesktopShortcutService>();
     builder.Services.AddSingleton<DesktopIconLayoutService>();
+    builder.Services.AddSingleton<VncHostService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
+    builder.Services.AddHostedService<VncHostLauncherService>();
 
     var app = builder.Build();
     var settingsStore = app.Services.GetRequiredService<AgentSettingsStore>();
@@ -96,6 +98,51 @@ try
         try
         {
             return Results.Ok(service.ApplyLayout(request));
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapGet("/api/vnc/status", ([FromServices] AgentSettingsStore store, [FromServices] VncHostService vncHostService) =>
+    {
+        var current = store.Current;
+        var sessionId = SessionProcessLauncher.GetActiveSessionId();
+        var running = sessionId >= 0 && vncHostService.IsRunningInSession(sessionId);
+        return Results.Ok(new VncStateDto(
+            current.VncEnabled,
+            running,
+            current.VncPort,
+            current.VncViewOnly,
+            running ? "VNC host is running." : "VNC host is not running."));
+    });
+    app.MapPost("/api/vnc/start", ([FromBody] StartVncRequest request, [FromServices] AgentSettingsStore store, [FromServices] VncHostService vncHostService) =>
+    {
+        try
+        {
+            store.UpdateVncSettings(true, request.Port, request.ViewOnly, request.Password);
+            vncHostService.StopAll();
+            var sessionId = SessionProcessLauncher.GetActiveSessionId();
+            if (sessionId >= 0)
+            {
+                vncHostService.StartForSession(sessionId);
+            }
+
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapPost("/api/vnc/stop", ([FromServices] AgentSettingsStore store, [FromServices] VncHostService vncHostService) =>
+    {
+        try
+        {
+            store.UpdateVncSettings(false);
+            vncHostService.StopAll();
+
+            return Results.NoContent();
         }
         catch (Exception ex)
         {
