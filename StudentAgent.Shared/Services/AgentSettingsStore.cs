@@ -77,6 +77,19 @@ public sealed class AgentSettingsStore
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public void UpdatePolicySettings(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds)
+    {
+        lock (_sync)
+        {
+            ReloadFromDiskIfChanged();
+            _current.DesktopIconAutoRestoreMinutes = Math.Max(1, desktopIconAutoRestoreMinutes);
+            _current.BrowserLockCheckIntervalSeconds = Math.Max(5, browserLockCheckIntervalSeconds);
+            Save(_current);
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void UpdateBrowserLock(bool enabled)
     {
         lock (_sync)
@@ -159,7 +172,9 @@ public sealed class AgentSettingsStore
             VisibleBannerText = defaults.VisibleBannerText,
             Language = UiLanguageExtensions.GetDefault(),
             BrowserLockEnabled = defaults.BrowserLockEnabled,
-            InputLockEnabled = defaults.InputLockEnabled
+            InputLockEnabled = defaults.InputLockEnabled,
+            BrowserLockCheckIntervalSeconds = defaults.BrowserLockCheckIntervalSeconds,
+            DesktopIconAutoRestoreMinutes = defaults.DesktopIconAutoRestoreMinutes
         }, defaults);
     }
 
@@ -183,6 +198,12 @@ public sealed class AgentSettingsStore
         value.Language = value.Language.Normalize();
         value.BrowserLockEnabled = value.BrowserLockEnabled;
         value.InputLockEnabled = value.InputLockEnabled;
+        value.BrowserLockCheckIntervalSeconds = value.BrowserLockCheckIntervalSeconds <= 0
+            ? Math.Max(5, defaults.BrowserLockCheckIntervalSeconds)
+            : Math.Max(5, value.BrowserLockCheckIntervalSeconds);
+        value.DesktopIconAutoRestoreMinutes = value.DesktopIconAutoRestoreMinutes <= 0
+            ? Math.Max(1, defaults.DesktopIconAutoRestoreMinutes)
+            : value.DesktopIconAutoRestoreMinutes;
         return value;
     }
 
@@ -197,7 +218,9 @@ public sealed class AgentSettingsStore
             VisibleBannerText = settings.VisibleBannerText,
             Language = settings.Language,
             BrowserLockEnabled = settings.BrowserLockEnabled,
-            InputLockEnabled = settings.InputLockEnabled
+            InputLockEnabled = settings.InputLockEnabled,
+            BrowserLockCheckIntervalSeconds = settings.BrowserLockCheckIntervalSeconds,
+            DesktopIconAutoRestoreMinutes = settings.DesktopIconAutoRestoreMinutes
         };
     }
 
@@ -210,7 +233,9 @@ public sealed class AgentSettingsStore
             && string.Equals(left.VisibleBannerText, right.VisibleBannerText, StringComparison.Ordinal)
             && left.Language == right.Language
             && left.BrowserLockEnabled == right.BrowserLockEnabled
-            && left.InputLockEnabled == right.InputLockEnabled;
+            && left.InputLockEnabled == right.InputLockEnabled
+            && left.BrowserLockCheckIntervalSeconds == right.BrowserLockCheckIntervalSeconds
+            && left.DesktopIconAutoRestoreMinutes == right.DesktopIconAutoRestoreMinutes;
     }
 
     private static string HashPassword(string password)

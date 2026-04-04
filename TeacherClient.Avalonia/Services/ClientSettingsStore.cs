@@ -71,7 +71,22 @@ public sealed class ClientSettingsStore
         var studentWorkFolderName = string.IsNullOrWhiteSpace(settings?.StudentWorkFolderName)
             ? ClientSettings.Default.StudentWorkFolderName
             : settings.StudentWorkFolderName.Trim();
+        var configuredDesktopIconAutoRestoreMinutes = settings?.DesktopIconAutoRestoreMinutes;
+        var desktopIconAutoRestoreMinutes = configuredDesktopIconAutoRestoreMinutes <= 0
+            ? ClientSettings.Default.DesktopIconAutoRestoreMinutes
+            : configuredDesktopIconAutoRestoreMinutes.GetValueOrDefault();
+        var configuredBrowserLockCheckIntervalSeconds = settings?.BrowserLockCheckIntervalSeconds;
+        var browserLockCheckIntervalSeconds = configuredBrowserLockCheckIntervalSeconds <= 0
+            ? ClientSettings.Default.BrowserLockCheckIntervalSeconds
+            : Math.Max(5, configuredBrowserLockCheckIntervalSeconds.GetValueOrDefault());
 
-        return new ClientSettings(sharedSecret, language, bulkCopyDestinationPath, studentWorkRootPath, studentWorkFolderName);
+        return new ClientSettings(
+            sharedSecret,
+            language,
+            bulkCopyDestinationPath,
+            studentWorkRootPath,
+            studentWorkFolderName,
+            Math.Max(1, desktopIconAutoRestoreMinutes),
+            browserLockCheckIntervalSeconds);
     }
 }

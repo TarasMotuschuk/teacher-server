@@ -73,6 +73,15 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ApplyStudentPolicySettingsAsync(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/policy-settings",
+            new StudentPolicySettingsRequest(desktopIconAutoRestoreMinutes, browserLockCheckIntervalSeconds),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task ExecutePowerActionAsync(PowerActionKind action, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/power", new PowerActionRequest(action), cancellationToken);
@@ -235,6 +244,44 @@ public sealed class TeacherApiClient
 
     public async Task<IReadOnlyList<FrequentProgramShortcutDto>> GetPublicDesktopShortcutsAsync(CancellationToken cancellationToken = default)
         => await _httpClient.GetFromJsonAsync<List<FrequentProgramShortcutDto>>("api/commands/frequent-programs/public-desktop", cancellationToken) ?? [];
+
+    public async Task<IReadOnlyList<DesktopIconLayoutSummaryDto>> GetDesktopIconLayoutsAsync(CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<DesktopIconLayoutSummaryDto>>("api/desktop-icons/layouts", cancellationToken) ?? [];
+
+    public Task<DesktopIconLayoutSnapshotDto?> GetDesktopIconLayoutAsync(string? layoutName = null, CancellationToken cancellationToken = default)
+    {
+        var requestUri = string.IsNullOrWhiteSpace(layoutName)
+            ? "api/desktop-icons/layout"
+            : $"api/desktop-icons/layout?name={Uri.EscapeDataString(layoutName)}";
+
+        return _httpClient.GetFromJsonAsync<DesktopIconLayoutSnapshotDto>(requestUri, cancellationToken);
+    }
+
+    public async Task<DesktopIconLayoutOperationResultDto?> SaveDesktopIconLayoutAsync(string? layoutName = null, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/desktop-icons/save", new SaveDesktopIconLayoutRequest(layoutName), cancellationToken);
+        await EnsureSuccessWithServerErrorAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<DesktopIconLayoutOperationResultDto>(cancellationToken);
+    }
+
+    public async Task<DesktopIconLayoutOperationResultDto?> RestoreDesktopIconLayoutAsync(string? layoutName = null, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/desktop-icons/restore", new RestoreDesktopIconLayoutRequest(layoutName), cancellationToken);
+        await EnsureSuccessWithServerErrorAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<DesktopIconLayoutOperationResultDto>(cancellationToken);
+    }
+
+    public async Task<DesktopIconLayoutOperationResultDto?> ApplyDesktopIconLayoutAsync(
+        DesktopIconLayoutSnapshotDto layout,
+        string? targetLayoutName = null,
+        bool restoreAfterApply = true,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ApplyDesktopIconLayoutRequest(layout, targetLayoutName, restoreAfterApply);
+        var response = await _httpClient.PostAsJsonAsync("api/desktop-icons/apply", request, cancellationToken);
+        await EnsureSuccessWithServerErrorAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<DesktopIconLayoutOperationResultDto>(cancellationToken);
+    }
 
     public async Task EnsureRemoteDirectoryPathAsync(string fullPath, CancellationToken cancellationToken = default)
     {

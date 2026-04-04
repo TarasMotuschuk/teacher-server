@@ -1,11 +1,14 @@
 using System.Diagnostics;
 using System.Management;
+using System.Runtime.InteropServices;
 using Teacher.Common.Contracts;
 
 namespace StudentAgent.Services;
 
 public sealed class ProcessService
 {
+    private const int WtsCurrentServerHandle = 0;
+
     private static readonly HashSet<string> BrowserProcessNames =
     [
         "arc",
@@ -110,11 +113,16 @@ public sealed class ProcessService
             throw new PlatformNotSupportedException("Power actions are only supported on Windows student agents.");
         }
 
+        if (action == PowerActionKind.LogOff)
+        {
+            ExecuteLogOff();
+            return;
+        }
+
         var arguments = action switch
         {
             PowerActionKind.Shutdown => "/s /t 0 /f",
             PowerActionKind.Restart => "/r /t 0 /f",
-            PowerActionKind.LogOff => "/l /f",
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported power action.")
         };
 
@@ -132,6 +140,27 @@ public sealed class ProcessService
 
         process.Start();
     }
+
+    private static void ExecuteLogOff()
+    {
+        var sessionId = WTSGetActiveConsoleSessionId();
+        if (sessionId == uint.MaxValue)
+        {
+            throw new InvalidOperationException("No active user session was found for log off.");
+        }
+
+        if (!WTSLogoffSession(nint.Zero, sessionId, false))
+        {
+            throw new InvalidOperationException($"Windows log off failed with error {Marshal.GetLastWin32Error()}.");
+        }
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern uint WTSGetActiveConsoleSessionId();
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool WTSLogoffSession(nint hServer, uint sessionId, [MarshalAs(UnmanagedType.Bool)] bool wait);
 
     private static ProcessInfoDto MapProcess(Process process)
     {

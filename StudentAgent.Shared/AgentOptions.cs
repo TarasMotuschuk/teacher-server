@@ -23,4 +23,8 @@ public sealed class AgentOptions
     public bool BrowserLockEnabled { get; set; }
 
     public bool InputLockEnabled { get; set; }
+
+    public int BrowserLockCheckIntervalSeconds { get; set; } = 60;
+
+    public int DesktopIconAutoRestoreMinutes { get; set; } = 30;
 }

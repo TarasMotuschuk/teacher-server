@@ -35,6 +35,15 @@ internal static class StudentAgentPathHelper
     public static string GetUpdatesDirectory()
         => Path.Combine(GetRootDirectory(), "updates");
 
+    public static string GetDesktopLayoutsDirectory()
+        => Path.Combine(GetRootDirectory(), "desktop-layouts");
+
+    public static string GetDesktopLayoutResultsDirectory()
+        => Path.Combine(GetDesktopLayoutsDirectory(), "results");
+
+    public static string GetDesktopLayoutFilePath(string layoutName)
+        => Path.Combine(GetDesktopLayoutsDirectory(), $"{SanitizeLayoutName(layoutName)}.json");
+
     public static string GetUpdateStagingDirectory()
         => Path.Combine(GetUpdatesDirectory(), "staging");
 
@@ -43,6 +52,20 @@ internal static class StudentAgentPathHelper
 
     public static string GetUpdateStatusPath()
         => Path.Combine(GetUpdatesDirectory(), "update-status.json");
+
+    public static string SanitizeLayoutName(string? layoutName)
+    {
+        var normalized = string.IsNullOrWhiteSpace(layoutName)
+            ? "default"
+            : layoutName.Trim();
+
+        foreach (var invalidCharacter in Path.GetInvalidFileNameChars())
+        {
+            normalized = normalized.Replace(invalidCharacter, '_');
+        }
+
+        return string.IsNullOrWhiteSpace(normalized) ? "default" : normalized;
+    }
 
     private static void EnsureDirectoryExists(string path)
     {

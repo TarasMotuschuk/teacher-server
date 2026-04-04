@@ -22,13 +22,12 @@ public sealed class BrowserLockEnforcementService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
-
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await timer.WaitForNextTickAsync(stoppingToken);
+                var interval = TimeSpan.FromSeconds(Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds));
+                await Task.Delay(interval, stoppingToken);
             }
             catch (OperationCanceledException)
             {

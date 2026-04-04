@@ -17,6 +17,7 @@ try
     builder.Services.AddSingleton<RemoteShellOpenService>();
     builder.Services.AddSingleton<RemoteCommandService>();
     builder.Services.AddSingleton<PublicDesktopShortcutService>();
+    builder.Services.AddSingleton<DesktopIconLayoutService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
 
     var app = builder.Build();
@@ -52,6 +53,54 @@ try
     app.MapGet("/api/commands/frequent-programs/public-desktop", ([FromServices] PublicDesktopShortcutService service) =>
     {
         return Results.Ok(service.GetPublicDesktopShortcuts());
+    });
+    app.MapGet("/api/desktop-icons/layouts", ([FromServices] DesktopIconLayoutService service) =>
+    {
+        return Results.Ok(service.GetLayouts());
+    });
+    app.MapGet("/api/desktop-icons/layout", (string? name, [FromServices] DesktopIconLayoutService service) =>
+    {
+        try
+        {
+            return Results.Ok(service.GetLayout(name));
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapPost("/api/desktop-icons/save", ([FromBody] SaveDesktopIconLayoutRequest request, [FromServices] DesktopIconLayoutService service) =>
+    {
+        try
+        {
+            return Results.Ok(service.SaveLayout(request.LayoutName));
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapPost("/api/desktop-icons/restore", ([FromBody] RestoreDesktopIconLayoutRequest request, [FromServices] DesktopIconLayoutService service) =>
+    {
+        try
+        {
+            return Results.Ok(service.RestoreLayout(request.LayoutName));
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapPost("/api/desktop-icons/apply", ([FromBody] ApplyDesktopIconLayoutRequest request, [FromServices] DesktopIconLayoutService service) =>
+    {
+        try
+        {
+            return Results.Ok(service.ApplyLayout(request));
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
     });
     app.Lifetime.ApplicationStarted.Register(() =>
     {

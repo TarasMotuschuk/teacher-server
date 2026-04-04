@@ -117,6 +117,11 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, refreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, connectSelectedAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        var desktopIconsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
+        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.SaveDesktopIconLayout, null, saveDesktopIconLayoutMenuItem_Click);
+        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayout, null, restoreDesktopIconLayoutMenuItem_Click);
+        connectionMenuItem.DropDownItems.Add(desktopIconsMenuItem);
+        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, addManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, editManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, removeManualAgentButton_Click);
@@ -155,6 +160,13 @@ partial class MainForm
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
+        var desktopIconsCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnSelectedStudents, null, restoreDesktopIconsOnSelectedStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnAllOnlineStudents, null, restoreDesktopIconsOnAllOnlineStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToSelectedStudents, null, applyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents, null, applyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click);
+        groupCommandsMenuItem.DropDownItems.Add(desktopIconsCommandsMenuItem);
         var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
         var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
         powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);

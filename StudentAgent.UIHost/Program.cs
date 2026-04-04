@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StudentAgent;
 using StudentAgent.Services;
+using StudentAgent.UIHost.DesktopIcons;
 using StudentAgent.UIHost;
 using StudentAgent.UI.Localization;
 
@@ -28,6 +29,12 @@ try
     var processService = serviceProvider.GetRequiredService<ProcessService>();
 
     StudentAgentText.SetLanguage(settingsStore.Current.Language);
+
+    if (DesktopIconLayoutCommandRunner.TryExecute(args, logService, out var commandResult, out _))
+    {
+        Environment.ExitCode = commandResult.Succeeded ? 0 : 1;
+        return;
+    }
 
     Application.ThreadException += (_, exceptionArgs) =>
     {

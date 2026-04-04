@@ -65,6 +65,11 @@
           <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
           <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
           <Separator />
+          <MenuItem x:Name="DesktopIconsMenuItem" Header="_Desktop Icons">
+            <MenuItem x:Name="SaveDesktopIconLayoutMenuItem" Header="Save desktop icon layout" Click="SaveDesktopIconLayoutMenuItem_OnClick" />
+            <MenuItem x:Name="RestoreDesktopIconLayoutMenuItem" Header="Restore desktop icon layout" Click="RestoreDesktopIconLayoutMenuItem_OnClick" />
+          </MenuItem>
+          <Separator />
           <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
         <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
@@ -84,6 +89,13 @@
         <MenuItem x:Name="CommandsMenuItem" Header="_Commands">
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />
+        </MenuItem>
+        <MenuItem x:Name="DesktopIconsCommandsMenuItem" Header="_Desktop Icons">
+          <MenuItem x:Name="RestoreDesktopIconsSelectedMenuItem" Header="Restore icons on selected PCs" Click="RestoreDesktopIconsSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="RestoreDesktopIconsAllMenuItem" Header="Restore icons on all online PCs" Click="RestoreDesktopIconsAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="ApplyCurrentDesktopIconsSelectedMenuItem" Header="Send current PC layout to selected PCs" Click="ApplyCurrentDesktopIconsSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ApplyCurrentDesktopIconsAllMenuItem" Header="Send current PC layout to all online PCs" Click="ApplyCurrentDesktopIconsAllMenuItem_OnClick" />
         </MenuItem>
         <MenuItem x:Name="PowerCommandsMenuItem" Header="_Power">
           <MenuItem x:Name="SelectedPowerMenuItem" Header="_Selected PCs">

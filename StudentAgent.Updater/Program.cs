@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json;
 using System.ServiceProcess;
+using System.Diagnostics;
 using Teacher.Common.Contracts;
 
 var options = ParseArgs(args);
@@ -12,6 +13,7 @@ try
 {
     Log(logPath, $"Preparing update to {options.TargetVersion}.");
     StopService(options.ServiceName, logPath);
+    StopUiHostProcesses(options.InstallDirectory, logPath);
 
     var stagingDirectory = Path.Combine(Path.GetTempPath(), $"StudentAgentUpdate-{Guid.NewGuid():N}");
     if (Directory.Exists(stagingDirectory))
@@ -121,8 +123,42 @@ static void CopyDirectory(string sourceDirectory, string destinationDirectory, F
         var relativePath = Path.GetRelativePath(sourceDirectory, file);
         var destinationPath = Path.Combine(destinationDirectory, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-        File.Copy(file, destinationPath, overwrite: true);
+        CopyFileWithRetries(file, destinationPath);
     }
+}
+
+static void CopyFileWithRetries(string sourcePath, string destinationPath)
+{
+    const int maxAttempts = 8;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        try
+        {
+            if (File.Exists(destinationPath))
+            {
+                File.SetAttributes(destinationPath, FileAttributes.Normal);
+            }
+
+            File.Copy(sourcePath, destinationPath, overwrite: true);
+            return;
+        }
+        catch (IOException) when (attempt < maxAttempts)
+        {
+            Thread.Sleep(750);
+        }
+        catch (UnauthorizedAccessException) when (attempt < maxAttempts)
+        {
+            Thread.Sleep(750);
+        }
+    }
+
+    if (File.Exists(destinationPath))
+    {
+        File.SetAttributes(destinationPath, FileAttributes.Normal);
+    }
+
+    File.Copy(sourcePath, destinationPath, overwrite: true);
 }
 
 static void RestoreBackup(string backupDirectory, string installDirectory, string logPath)
@@ -133,10 +169,58 @@ static void RestoreBackup(string backupDirectory, string installDirectory, strin
     }
 
     Log(logPath, $"Restoring backup from '{backupDirectory}'.");
+    StopUiHostProcesses(installDirectory, logPath);
     CopyDirectory(
         backupDirectory,
         installDirectory,
         skipPredicate: static path => Path.GetFileName(path).StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase));
+}
+
+static void StopUiHostProcesses(string installDirectory, string logPath)
+{
+    var normalizedInstallDirectory = Path.GetFullPath(installDirectory)
+        .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+    foreach (var process in Process.GetProcessesByName("StudentAgent.UIHost"))
+    {
+        using (process)
+        {
+            try
+            {
+                if (process.HasExited)
+                {
+                    continue;
+                }
+
+                string? processPath;
+                try
+                {
+                    processPath = process.MainModule?.FileName;
+                }
+                catch
+                {
+                    processPath = null;
+                }
+
+                if (!string.IsNullOrWhiteSpace(processPath))
+                {
+                    var normalizedProcessPath = Path.GetFullPath(processPath);
+                    if (!normalizedProcessPath.StartsWith(normalizedInstallDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+
+                Log(logPath, $"Stopping StudentAgent.UIHost process {process.Id}.");
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit((int)TimeSpan.FromSeconds(30).TotalMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                Log(logPath, $"Failed to stop StudentAgent.UIHost process {process.Id}: {ex}");
+            }
+        }
+    }
 }
 
 static void Log(string logPath, string message)

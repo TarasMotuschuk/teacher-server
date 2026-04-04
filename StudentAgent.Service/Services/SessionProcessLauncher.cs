@@ -16,6 +16,12 @@ internal static class SessionProcessLauncher
         => StartProcessInSession(applicationPath, arguments, sessionId, hideWindow: false);
 
     public static void StartProcessInSession(string applicationPath, string arguments, int sessionId, bool hideWindow)
+        => _ = StartProcessInSessionInternal(applicationPath, arguments, sessionId, hideWindow, waitForExit: false, timeout: null);
+
+    public static int StartProcessInSessionAndWait(string applicationPath, string arguments, int sessionId, bool hideWindow, TimeSpan timeout)
+        => StartProcessInSessionInternal(applicationPath, arguments, sessionId, hideWindow, waitForExit: true, timeout);
+
+    private static int StartProcessInSessionInternal(string applicationPath, string arguments, int sessionId, bool hideWindow, bool waitForExit, TimeSpan? timeout)
     {
         if (!WTSQueryUserToken(sessionId, out var impersonationToken))
         {
@@ -72,8 +78,35 @@ internal static class SessionProcessLauncher
                         throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessAsUser failed.");
                     }
 
-                    CloseHandle(processInformation.hThread);
-                    CloseHandle(processInformation.hProcess);
+                    try
+                    {
+                        if (!waitForExit)
+                        {
+                            return 0;
+                        }
+
+                        var waitMilliseconds = timeout is null
+                            ? Timeout.Infinite
+                            : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
+
+                        var waitResult = WaitForSingleObject(processInformation.hProcess, waitMilliseconds);
+                        if (waitResult == WAIT_TIMEOUT)
+                        {
+                            throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
+                        }
+
+                        if (!GetExitCodeProcess(processInformation.hProcess, out var exitCode))
+                        {
+                            throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed.");
+                        }
+
+                        return unchecked((int)exitCode);
+                    }
+                    finally
+                    {
+                        CloseHandle(processInformation.hThread);
+                        CloseHandle(processInformation.hProcess);
+                    }
                 }
                 finally
                 {
@@ -217,4 +250,12 @@ internal static class SessionProcessLauncher
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint WaitForSingleObject(IntPtr handle, int milliseconds);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
+
+    private const uint WAIT_TIMEOUT = 0x00000102;
 }

@@ -39,6 +39,11 @@ Available endpoints:
 - `POST /api/files/upload`: upload file with `multipart/form-data`.
 - `POST /api/commands/run`: execute a command script on the student machine.
 - `GET /api/commands/frequent-programs/public-desktop`: collect `.lnk` shortcuts from the public desktop for teacher-side frequent program lists.
+- `GET /api/desktop-icons/layouts`: list saved desktop icon layouts on the student machine.
+- `GET /api/desktop-icons/layout`: read a specific saved desktop icon layout snapshot from the student machine.
+- `POST /api/desktop-icons/save`: capture the current desktop icon positions from the active Windows session and save them as a named layout.
+- `POST /api/desktop-icons/restore`: restore a previously saved desktop icon layout in the active Windows session.
+- `POST /api/desktop-icons/apply`: store a provided desktop icon layout on the student machine and optionally restore it immediately.
 - `GET /api/registry/keys`: list registry subkeys at a given path; empty path returns the five root hives.
 - `GET /api/registry/values`: list registry values at a given path with formatted type and data display.
 - `GET /api/registry/export`: export the selected registry key subtree as a `.reg` file.
@@ -79,7 +84,10 @@ Available endpoints:
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
+- desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
+- group desktop icon actions for restoring layouts on selected or all online student PCs, and for sending the current connected PC's icon layout to other student PCs;
 - a splash screen shown during teacher client startup;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs;
@@ -90,6 +98,8 @@ Available endpoints:
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery: the teacher workstation caches the update bundle once and serves it over the LAN, with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for `Available`, `Downloading`, `Installing`, `Updated`, `Failed`, and `Rolled back` states.
+
+On the student machine, desktop icon auto-restore now runs from `StudentAgent.UIHost` on a timer using the locally saved default layout, mirroring the earlier `DesktopIconSaver` behavior. Browser-lock polling now also uses a configurable teacher-managed interval. A teacher can trigger restore manually, push the current connected PC's layout to other student PCs, and centrally change both timer values from the teacher-side settings window.
 
 ### TeacherClient.Avalonia
 
@@ -120,7 +130,10 @@ Available endpoints:
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
+- desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
+- group desktop icon actions for restoring layouts on selected or all online student PCs, and for sending the current connected PC's icon layout to other student PCs;
 - a splash screen shown during teacher client startup;
 - delete local and remote entries;
 - create remote folders;

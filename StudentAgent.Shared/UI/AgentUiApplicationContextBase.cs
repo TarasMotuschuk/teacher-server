@@ -55,9 +55,11 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
         ApplyLocalization();
 
+        _settingsStore.SettingsChanged += SettingsStore_OnSettingsChanged;
+
         _browserLockTimer = new System.Windows.Forms.Timer
         {
-            Interval = (int)TimeSpan.FromMinutes(1).TotalMilliseconds
+            Interval = checked((int)TimeSpan.FromSeconds(Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds)).TotalMilliseconds)
         };
         _browserLockTimer.Tick += async (_, _) => await EvaluateBrowserLockAsync();
         _browserLockTimer.Start();
@@ -79,6 +81,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         _browserLockTimer.Stop();
         _browserLockTimer.Dispose();
+        _settingsStore.SettingsChanged -= SettingsStore_OnSettingsChanged;
         _inputLockRefreshTimer.Stop();
         _inputLockRefreshTimer.Dispose();
         CloseInputLockForms();
@@ -150,6 +153,13 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         using var form = new AboutForm();
         form.ShowDialog();
+    }
+
+    private void SettingsStore_OnSettingsChanged(object? sender, EventArgs e)
+    {
+        var seconds = Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds);
+        _browserLockTimer.Interval = checked((int)TimeSpan.FromSeconds(seconds).TotalMilliseconds);
+        ApplyLocalization();
     }
 
     private void ApplyLocalization()

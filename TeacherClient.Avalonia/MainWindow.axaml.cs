@@ -158,6 +158,7 @@ public partial class MainWindow : Window
 
         _preparedStudentWorkFolders.Clear();
         await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
+        await ApplyStudentPolicySettingsToOnlineAgentsAsync(reportSummary: true);
     }
 
     private async void RefreshAgentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -168,6 +169,58 @@ public partial class MainWindow : Window
     private async void ConnectSelectedAgentButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await ConnectSelectedAgentAsync();
+    }
+
+    private async void SaveDesktopIconLayoutMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await SaveDesktopIconLayoutAsync();
+    }
+
+    private async void RestoreDesktopIconLayoutMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await RestoreDesktopIconLayoutAsync();
+    }
+
+    private async void RestoreDesktopIconsSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await RestoreDesktopIconsOnAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents));
+    }
+
+    private async void RestoreDesktopIconsAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        await RestoreDesktopIconsOnAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents));
+    }
+
+    private async void ApplyCurrentDesktopIconsSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ApplyCurrentDesktopLayoutToAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents));
+    }
+
+    private async void ApplyCurrentDesktopIconsAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        await ApplyCurrentDesktopLayoutToAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents));
     }
 
     private async void CheckSelectedAgentUpdateMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -389,6 +442,20 @@ public partial class MainWindow : Window
         await dialog.ShowDialog(this);
     }
 
+    private async Task SaveDesktopIconLayoutAsync()
+    {
+        await RunDesktopIconLayoutActionAsync(
+            save: true,
+            execute: client => client.SaveDesktopIconLayoutAsync());
+    }
+
+    private async Task RestoreDesktopIconLayoutAsync()
+    {
+        await RunDesktopIconLayoutActionAsync(
+            save: false,
+            execute: client => client.RestoreDesktopIconLayoutAsync());
+    }
+
     private async Task StartSelectedAgentUpdateAsync()
     {
         if (AgentsGrid.SelectedItem is not DiscoveredAgentRow agent)
@@ -425,6 +492,134 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task RunDesktopIconLayoutActionAsync(
+        bool save,
+        Func<TeacherApiClient, Task<DesktopIconLayoutOperationResultDto?>> execute)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            SetStatus(CrossPlatformText.ConnectFromAgentsTabFirst);
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            var client = CreateClient();
+            var result = await execute(client);
+            var machineName = _lastConnectedMachineName ?? "PC";
+            var iconCount = result?.IconCount ?? 0;
+            SetStatus(save
+                ? CrossPlatformText.DesktopIconLayoutSaved(machineName, iconCount)
+                : CrossPlatformText.DesktopIconLayoutRestored(machineName, iconCount));
+        }, CrossPlatformText.DesktopIconLayoutError);
+    }
+
+    private async Task RestoreDesktopIconsOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                try
+                {
+                    SetStatus(CrossPlatformText.DesktopIconLayoutBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.RestoreDesktopIconLayoutAsync();
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }, CrossPlatformText.DesktopIconLayoutError);
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.DesktopIconLayoutBulkCompleted(succeeded)
+            : CrossPlatformText.DesktopIconLayoutBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.DesktopIconLayoutError,
+                string.Join(Environment.NewLine, failures));
+        }
+    }
+
+    private async Task ApplyCurrentDesktopLayoutToAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            SetStatus(CrossPlatformText.ConnectFromAgentsTabFirst);
+            return;
+        }
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        DesktopIconLayoutSnapshotDto sourceLayout;
+        try
+        {
+            var sourceClient = CreateClient();
+            await sourceClient.SaveDesktopIconLayoutAsync();
+            sourceLayout = await sourceClient.GetDesktopIconLayoutAsync()
+                ?? throw new InvalidOperationException("Desktop icon layout snapshot is unavailable.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{CrossPlatformText.DesktopIconLayoutError}: {ex.Message}");
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                try
+                {
+                    SetStatus(CrossPlatformText.DesktopIconLayoutApplyBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.ApplyDesktopIconLayoutAsync(sourceLayout, restoreAfterApply: true);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }, CrossPlatformText.DesktopIconLayoutError);
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.DesktopIconLayoutAppliedBulkCompleted(succeeded)
+            : CrossPlatformText.DesktopIconLayoutAppliedBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.DesktopIconLayoutError,
+                string.Join(Environment.NewLine, failures));
+        }
+    }
+
     private async Task ConnectToServerAsync(string serverUrl, DiscoveredAgentRow? agent, string sourceLabel)
     {
         var client = new TeacherApiClient(serverUrl, _clientSettings.SharedSecret);
@@ -438,6 +633,14 @@ public partial class MainWindow : Window
         _lastConnectedAgentId = agent?.AgentId;
         _lastConnectedServerUrl = serverUrl;
         _lastConnectedMachineName = info.MachineName;
+        try
+        {
+            await ApplyStudentPolicySettingsToAgentAsync(client);
+        }
+        catch
+        {
+            // Best-effort policy sync on connect should not block regular teacher connection flow.
+        }
         SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
@@ -488,6 +691,54 @@ public partial class MainWindow : Window
             SetStatus($"{CrossPlatformText.InputLockToggleFailed}: {ex.Message}");
             ApplyAgentFilters();
         }
+    }
+
+    private async Task ApplyStudentPolicySettingsToAgentAsync(TeacherApiClient client, CancellationToken cancellationToken = default)
+    {
+        await client.ApplyStudentPolicySettingsAsync(
+            _clientSettings.DesktopIconAutoRestoreMinutes,
+            _clientSettings.BrowserLockCheckIntervalSeconds,
+            cancellationToken);
+    }
+
+    private async Task ApplyStudentPolicySettingsToOnlineAgentsAsync(bool reportSummary)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .Distinct()
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failed = 0;
+
+        foreach (var agent in targetAgents)
+        {
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await ApplyStudentPolicySettingsToAgentAsync(client);
+                succeeded++;
+            }
+            catch
+            {
+                failed++;
+            }
+        }
+
+        if (!reportSummary)
+        {
+            return;
+        }
+
+        SetStatus(failed == 0
+            ? CrossPlatformText.StudentPolicySettingsApplied(succeeded)
+            : CrossPlatformText.StudentPolicySettingsAppliedWithFailures(succeeded, failed));
     }
 
     private string GetCurrentServerUrlOrThrow()
@@ -2301,6 +2552,15 @@ public partial class MainWindow : Window
             .ToList() ?? [];
     }
 
+    private List<DiscoveredAgentRow> FilterOutCurrentConnectedAgent(IEnumerable<DiscoveredAgentRow> agents)
+    {
+        return agents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.IsNullOrWhiteSpace(_lastConnectedAgentId)
+                || !string.Equals(x.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
     private void ReplaceAgentRow(DiscoveredAgentRow updated)
     {
         var index = _allAgents.FindIndex(x => string.Equals(x.AgentId, updated.AgentId, StringComparison.OrdinalIgnoreCase));
@@ -2739,6 +2999,9 @@ public partial class MainWindow : Window
         SettingsMenuItem.Header = CrossPlatformText.Settings;
         RefreshAgentsMenuItem.Header = CrossPlatformText.RefreshAgents;
         ConnectSelectedMenuItem.Header = CrossPlatformText.ConnectSelectedAgent;
+        DesktopIconsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
+        SaveDesktopIconLayoutMenuItem.Header = CrossPlatformText.SaveDesktopIconLayout;
+        RestoreDesktopIconLayoutMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayout;
         CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
         StartAgentUpdateMenuItem.Header = CrossPlatformText.StartAgentUpdate;
         AddManualMenuItem.Header = CrossPlatformText.AddManualAgent;
@@ -2749,6 +3012,11 @@ public partial class MainWindow : Window
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
+        DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
+        RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
+        RestoreDesktopIconsAllMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnAllOnlineStudents;
+        ApplyCurrentDesktopIconsSelectedMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToSelectedStudents;
+        ApplyCurrentDesktopIconsAllMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;

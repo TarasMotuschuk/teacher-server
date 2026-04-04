@@ -6,6 +6,24 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- Desktop icon layout integration from the student desktop session: the student service now exposes save/restore endpoints that capture the current Windows desktop icon arrangement and restore it later through `StudentAgent.UIHost`
+- Teacher clients now offer `Save desktop icon layout` and `Restore desktop icon layout` actions for the current connected student PC
+- Teacher clients now offer group desktop-icon actions to restore layouts on selected or all online student PCs
+- Teacher clients can now capture the current connected student PC's icon layout and apply that layout to other student PCs
+- Teacher-side settings now include desktop icon auto-restore and browser-lock check intervals, and those policy values are pushed to all online student PCs after saving
+
+### Changed
+
+- `StudentAgent.UIHost` now performs mandatory silent desktop-icon auto-restore on a timer using the locally saved default layout, matching the old `DesktopIconSaver` model
+- Browser-lock enforcement timers on the student side now use the centrally managed teacher-side interval instead of a hardcoded one-minute check
+
+### Fixed
+
+- Student-agent updater now stops the session `StudentAgent.UIHost` and retries locked file copies so updates no longer fail just because `Accessibility.dll` or another UI-hosted file is still in use
+- Group and single `Log Off` commands now target the active Windows student session correctly instead of relying on the service-session `shutdown.exe /l` path
+
 ## [1.0.11] - 2026-04-04
 
 ### Added
