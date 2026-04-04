@@ -10,6 +10,8 @@ public partial class AboutDialog : Form
     {
         InitializeComponent();
         Icon = AppIconLoader.Load();
+        BackgroundImage = BrandingResourceLoader.LoadBitmap(@"Backgrounds/teacher-about.png");
+        BackgroundImageLayout = ImageLayout.Stretch;
         Text = TeacherClientText.AboutTitle;
         titleLabel.Text = TeacherClientText.MainTitle;
         descriptionLabel.Text = TeacherClientText.AboutDescription;

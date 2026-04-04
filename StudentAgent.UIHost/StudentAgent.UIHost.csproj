@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWindowsForms>true</UseWindowsForms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon>..\Branding\ClassCommander-icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
@@ -27,6 +28,7 @@
     <Compile Include="..\StudentAgent.Shared\UI\AgentUiApplicationContextBase.cs" Link="Shared\UI\AgentUiApplicationContextBase.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\AboutForm.cs" Link="Shared\UI\AboutForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\AboutForm.Designer.cs" Link="Shared\UI\AboutForm.Designer.cs" />
+    <Compile Include="..\StudentAgent.Shared\UI\BrandingResourceLoader.cs" Link="Shared\UI\BrandingResourceLoader.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\BrowserLockWarningForm.cs" Link="Shared\UI\BrowserLockWarningForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\InputLockForm.cs" Link="Shared\UI\InputLockForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\LogsForm.cs" Link="Shared\UI\LogsForm.cs" />
@@ -40,5 +42,9 @@
     <Content Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\Branding\**\*.png" Link="Assets\Branding\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\Branding\**\*.ico" Link="Assets\Branding\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@
   <Border CornerRadius="14"
           ClipToBounds="True"
           Background="#0B1220">
-    <Image Source="avares://TeacherClient.Avalonia/Assets/ClassCommander-splash.png"
+    <Image Source="avares://TeacherClient.Avalonia/Assets/Branding/ClassCommander-splash.png"
            Stretch="UniformToFill" />
   </Border>
 </Window>

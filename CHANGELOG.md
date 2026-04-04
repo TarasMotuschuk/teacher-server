@@ -6,6 +6,20 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-04-04
+
+### Added
+
+- Teacher-client update flow in both WinForms and Avalonia: check for the latest installer, download the matching MSI or PKG for the current platform, and open it via the system installer
+- Unified tag-based GitHub release workflow that publishes student-agent update assets together with the Windows MSI, macOS PKG, and a dedicated `classcommander-client-version.json` manifest for teacher-client updates
+- Centralized `Branding/` graphics map with a dedicated `GRAPHICS_MAP.md` that documents the shared app icon, splash, toolbar icon, and background asset paths
+
+### Changed
+
+- Update-related actions in both teacher clients are now grouped more clearly under program update flows, and the main `Agents` tab is now presented as `Учнівські ПК` / `Student PCs`
+- WinForms, Avalonia, student tray UI, MSI, and macOS packaging now read core branding assets from the shared `Branding/` structure instead of scattered per-project locations
+- Teacher and student About windows, student lock forms, and both teacher-client splash screens now use the centralized branding graphics layout
+
 ## [1.0.10] - 2026-04-03
 
 ### Changed

@@ -1,0 +1,200 @@
+name: Release All
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-student-agent:
+    name: Build student-agent update bundle
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read version from Directory.Build.props
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content "Directory.Build.props"
+          $version = $props.Project.PropertyGroup.Version
+          if (-not $version) {
+            throw "Version was not found in Directory.Build.props"
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish student-agent bundle
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\StudentAgent.Service\Publish-ServiceBundle.ps1 -Configuration Release -Runtime win-x64 -OutputDirectory .\artifacts\student-agent-bundle
+
+      - name: Create update ZIP
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          $bundleDir = Join-Path $PWD "artifacts\student-agent-bundle"
+          $releaseDir = Join-Path $PWD "artifacts\release"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+
+          $zipName = "student-agent-update-$version.zip"
+          $zipPath = Join-Path $releaseDir $zipName
+          if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force
+          }
+
+          Compress-Archive -Path (Join-Path $bundleDir '*') -DestinationPath $zipPath
+
+          $sha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path (Join-Path $releaseDir "student-agent-update-$version.sha256.txt") -Value $sha256 -NoNewline
+
+          $manifest = @{
+            version = $version
+            url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$zipName"
+            sha256 = $sha256
+          } | ConvertTo-Json
+
+          Set-Content -Path (Join-Path $releaseDir "student-agent-version.json") -Value $manifest
+
+      - name: Upload student-agent assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-agent-release
+          path: artifacts/release/*
+          if-no-files-found: error
+
+  build-windows-installer:
+    name: Build Windows MSI
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\TeacherServer.Setup\Build-Msi.ps1 -Configuration Release
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: TeacherServer.Setup/dist/*.msi
+          if-no-files-found: error
+
+  build-macos-installer:
+    name: Build macOS PKG
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read version from Directory.Build.props
+        id: version
+        run: |
+          VERSION=$(grep -oE '<Version>[0-9]+\.[0-9]+\.[0-9]+</Version>' Directory.Build.props \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build Avalonia .pkg
+        env:
+          CONFIGURATION: Release
+          RUNTIME: osx-arm64
+          VERSION: ${{ steps.version.outputs.value }}
+        run: bash TeacherClient.Avalonia.Setup/Build-MacInstaller.sh
+
+      - name: Upload PKG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-pkg
+          path: TeacherClient.Avalonia.Setup/dist/*.pkg
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub release assets
+    runs-on: ubuntu-latest
+    needs:
+      - build-student-agent
+      - build-windows-installer
+      - build-macos-installer
+
+    steps:
+      - name: Download student-agent assets
+        uses: actions/download-artifact@v4
+        with:
+          name: student-agent-release
+          path: artifacts/student-agent
+
+      - name: Download MSI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msi
+          path: artifacts/windows-msi
+
+      - name: Download PKG artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-pkg
+          path: artifacts/macos-pkg
+
+      - name: Create client update manifest
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          MSI_FILE=$(find artifacts/windows-msi -name '*.msi' -print -quit)
+          PKG_FILE=$(find artifacts/macos-pkg -name '*.pkg' -print -quit)
+
+          if [ -z "$MSI_FILE" ] || [ -z "$PKG_FILE" ]; then
+            echo "Missing MSI or PKG asset."
+            exit 1
+          fi
+
+          MSI_NAME=$(basename "$MSI_FILE")
+          PKG_NAME=$(basename "$PKG_FILE")
+          MSI_SHA=$(sha256sum "$MSI_FILE" | cut -d' ' -f1)
+          PKG_SHA=$(sha256sum "$PKG_FILE" | cut -d' ' -f1)
+
+          cat > artifacts/classcommander-client-version.json <<EOF
+          {
+            "version": "$VERSION",
+            "windowsMsiUrl": "https://github.com/$REPOSITORY/releases/download/$TAG_NAME/$MSI_NAME",
+            "windowsMsiSha256": "$MSI_SHA",
+            "macPkgUrl": "https://github.com/$REPOSITORY/releases/download/$TAG_NAME/$PKG_NAME",
+            "macPkgSha256": "$PKG_SHA"
+          }
+          EOF
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/student-agent/student-agent-update-*.zip
+            artifacts/student-agent/student-agent-update-*.sha256.txt
+            artifacts/student-agent/student-agent-version.json
+            artifacts/windows-msi/*.msi
+            artifacts/macos-pkg/*.pkg
+            artifacts/classcommander-client-version.json

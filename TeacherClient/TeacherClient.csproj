@@ -12,7 +12,7 @@
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\Branding\ClassCommander-splash.png" Link="Assets\ClassCommander-splash.png" />
-    <EmbeddedResource Include="..\Branding\ClassCommander-icon.ico" Link="Assets\ClassCommander-icon.ico" />
+    <EmbeddedResource Include="..\Branding\**\*.png" Link="Assets\Branding\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\Branding\**\*.ico" Link="Assets\Branding\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

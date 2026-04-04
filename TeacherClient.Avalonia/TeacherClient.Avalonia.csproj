@@ -19,7 +19,6 @@
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaResource Include="..\Branding\ClassCommander-splash.png" Link="Assets/ClassCommander-splash.png" />
-    <AvaloniaResource Include="..\Branding\ClassCommander-icon-cropped.png" Link="Assets/ClassCommander-icon-cropped.png" />
+    <AvaloniaResource Include="..\Branding\**\*.png" Link="Assets/Branding/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

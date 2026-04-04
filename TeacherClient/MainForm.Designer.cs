@@ -117,9 +117,6 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, refreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, connectSelectedAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.CheckForAgentUpdate, null, checkSelectedAgentUpdateButton_Click);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.StartAgentUpdate, null, startSelectedAgentUpdateButton_Click);
-        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, addManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, editManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, removeManualAgentButton_Click);
@@ -158,10 +155,6 @@ partial class MainForm
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
-        var updateMenuItem = new ToolStripMenuItem(TeacherClientText.UpdateCommandsMenu);
-        updateMenuItem.DropDownItems.Add(TeacherClientText.UpdateSelectedStudents, null, updateSelectedStudentsMenuItem_Click);
-        updateMenuItem.DropDownItems.Add(TeacherClientText.UpdateAllOnlineStudents, null, updateAllOnlineStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(updateMenuItem);
         var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
         var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
         powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);
@@ -186,6 +179,15 @@ partial class MainForm
         groupCommandsMenuItem.DropDownItems.Add(studentWorkMenuItem);
 
         var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
+        var programUpdatesMenuItem = new ToolStripMenuItem(TeacherClientText.ProgramUpdatesMenu);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.CheckForAgentUpdate, null, checkSelectedAgentUpdateButton_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.StartAgentUpdate, null, startSelectedAgentUpdateButton_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.UpdateSelectedStudents, null, updateSelectedStudentsMenuItem_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.UpdateAllOnlineStudents, null, updateAllOnlineStudentsMenuItem_Click);
+        programUpdatesMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.CheckForClientUpdate, null, checkClientUpdateMenuItem_Click);
+        helpMenuItem.DropDownItems.Add(programUpdatesMenuItem);
+        helpMenuItem.DropDownItems.Add(new ToolStripSeparator());
         helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, aboutMenuItem_Click);
 
         mainMenuStrip.Dock = DockStyle.Top;
@@ -345,14 +347,11 @@ partial class MainForm
         agentsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var agentsToolStrip = CreateTabToolStrip();
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, ToolbarIconKind.Refresh, refreshAgentsButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, ToolbarIconKind.Link, connectSelectedAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.CheckForAgentUpdate, ToolbarIconKind.Refresh, checkSelectedAgentUpdateButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartAgentUpdate, ToolbarIconKind.Settings, startSelectedAgentUpdateButton_Click));
-        agentsToolStrip.Items.Add(new ToolStripSeparator());
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, ToolbarIconKind.Add, addManualAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, ToolbarIconKind.Edit, editManualAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RemoveManualAgent, ToolbarIconKind.Remove, removeManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, @"Toolbar/agents/pc-refresh-list.png", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, @"Toolbar/agents/add-manual.png", ToolbarIconKind.Add, addManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, @"Toolbar/agents/edit-manual.png", ToolbarIconKind.Edit, editManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RemoveManualAgent, @"Toolbar/agents/delete-manual.png", ToolbarIconKind.Remove, removeManualAgentButton_Click));
 
         var agentsFilterLayout = new TableLayoutPanel
         {
@@ -421,8 +420,8 @@ partial class MainForm
         processesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var processesToolStrip = CreateTabToolStrip();
-        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, ToolbarIconKind.Refresh, refreshProcessesButton_Click));
-        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.TerminateSelected, ToolbarIconKind.Stop, killProcessButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, @"Toolbar/processes/refresh.png", ToolbarIconKind.Refresh, refreshProcessesButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.TerminateSelected, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, killProcessButton_Click));
 
         processesLayout.Controls.Add(processesToolStrip, 0, 0);
         processesLayout.Controls.Add(processesGrid, 0, 1);
@@ -439,20 +438,20 @@ partial class MainForm
         filesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var filesToolStrip = CreateTabToolStrip();
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshBoth, ToolbarIconKind.Refresh, refreshFilesButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshBoth, @"Toolbar/files/refresh-both.png", ToolbarIconKind.Refresh, refreshFilesButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Upload, ToolbarIconKind.Upload, uploadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, ToolbarIconKind.UploadGroup, sendToSelectedStudentsButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, ToolbarIconKind.Broadcast, sendToAllOnlineStudentsButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, ToolbarIconKind.Download, downloadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, ToolbarIconKind.OpenRemote, openLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, ToolbarIconKind.OpenRemote, openRemoteButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, ToolbarIconKind.Edit, renameLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, ToolbarIconKind.Edit, renameRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Upload, @"Toolbar/files/upload.png", ToolbarIconKind.Upload, uploadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, @"Toolbar/files/upload-group.png", ToolbarIconKind.UploadGroup, sendToSelectedStudentsButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, @"Toolbar/files/broadcast.png", ToolbarIconKind.Broadcast, sendToAllOnlineStudentsButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, @"Toolbar/files/download.png", ToolbarIconKind.Download, downloadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, openLocalButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, openRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, renameLocalButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, renameRemoteButton_Click, showText: true));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, ToolbarIconKind.Remove, deleteLocalButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, ToolbarIconKind.Remove, deleteRemoteButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewRemoteFolder, ToolbarIconKind.NewFolder, newRemoteFolderButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, @"Toolbar/files/delete-local.png", ToolbarIconKind.Remove, deleteLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, @"Toolbar/files/delete-remote.png", ToolbarIconKind.Remove, deleteRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewRemoteFolder, @"Toolbar/files/new-folder.png", ToolbarIconKind.NewFolder, newRemoteFolderButton_Click));
 
         var filesPanelsLayout = new TableLayoutPanel
         {
@@ -615,17 +614,17 @@ partial class MainForm
         registryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var registryToolStrip = CreateTabToolStrip();
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, ToolbarIconKind.Refresh, refreshRegistryButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, refreshRegistryButton_Click));
         registryToolStrip.Items.Add(new ToolStripSeparator());
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewValue, ToolbarIconKind.Add, newRegistryValueButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewKey, ToolbarIconKind.Add, newRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewValue, @"Toolbar/registry/new-value.png", ToolbarIconKind.Add, newRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewKey, @"Toolbar/registry/new-key.png", ToolbarIconKind.Add, newRegistryKeyButton_Click));
         registryToolStrip.Items.Add(new ToolStripSeparator());
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, ToolbarIconKind.Edit, editRegistryValueButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, ToolbarIconKind.Remove, deleteRegistryValueButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, ToolbarIconKind.Remove, deleteRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, @"Toolbar/registry/edit-value.png", ToolbarIconKind.Edit, editRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, @"Toolbar/registry/delete-value.png", ToolbarIconKind.Remove, deleteRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, @"Toolbar/registry/delete-key.png", ToolbarIconKind.Remove, deleteRegistryKeyButton_Click));
         registryToolStrip.Items.Add(new ToolStripSeparator());
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ExportRegFile, ToolbarIconKind.Download, exportRegistryKeyButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ImportRegFile, ToolbarIconKind.Upload, importRegistryFileButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ExportRegFile, @"Toolbar/registry/export-reg.png", ToolbarIconKind.Download, exportRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ImportRegFile, @"Toolbar/registry/import-reg.png", ToolbarIconKind.Upload, importRegistryFileButton_Click));
 
         var registrySplit = new SplitContainer
         {
@@ -665,7 +664,7 @@ partial class MainForm
         };
     }
 
-    private static ToolStripButton CreateToolbarButton(string toolTipText, ToolbarIconKind iconKind, EventHandler onClick, bool showText = false)
+    private static ToolStripButton CreateToolbarButton(string toolTipText, string assetPath, ToolbarIconKind iconKind, EventHandler onClick, bool showText = false)
     {
         var button = new ToolStripButton
         {
@@ -673,7 +672,7 @@ partial class MainForm
             AutoSize = false,
             Width = showText ? 170 : 46,
             Height = 46,
-            Image = CreateToolbarIcon(iconKind),
+            Image = BrandingResourceLoader.LoadBitmap(assetPath) ?? CreateToolbarIcon(iconKind),
             Text = showText ? toolTipText : string.Empty,
             ToolTipText = toolTipText,
             Margin = new Padding(2),

@@ -13,6 +13,8 @@ public sealed class BrowserLockWarningForm : Form
 
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.FromArgb(255, 248, 225);
+        BackgroundImage = BrandingResourceLoader.LoadBitmap(@"Backgrounds/browser-lock.png");
+        BackgroundImageLayout = ImageLayout.Stretch;
         Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -28,6 +30,7 @@ public sealed class BrowserLockWarningForm : Form
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(210, 255, 248, 225),
             ColumnCount = 1,
             RowCount = 2
         };
@@ -39,6 +42,7 @@ public sealed class BrowserLockWarningForm : Form
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             Font = new Font("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Point),
+            BackColor = Color.Transparent,
             Text = message
         };
 
@@ -47,6 +51,8 @@ public sealed class BrowserLockWarningForm : Form
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point)
+            ,
+            BackColor = Color.Transparent
         };
 
         layout.Controls.Add(_messageLabel, 0, 0);

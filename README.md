@@ -86,6 +86,7 @@ Available endpoints:
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
 - teacher-side `Check for Updates...` preparation flow with a dedicated progress window, explicit error messages, and a separate `Download update` step before any student PCs are updated.
+- teacher-side `Check for Client Updates...` flow that downloads the matching Windows MSI or macOS PKG for the teacher workstation and opens it with the system installer.
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery: the teacher workstation caches the update bundle once and serves it over the LAN, with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for `Available`, `Downloading`, `Installing`, `Updated`, `Failed`, and `Rolled back` states.
@@ -126,6 +127,7 @@ Available endpoints:
 - a read-only remote registry viewer with a lazy-loaded key tree and a value list showing name, type, and data for the selected key.
 - export of the selected remote registry key subtree to a `.reg` file and import of `.reg` files back to the connected student machine.
 - teacher-side `Check for Updates...` preparation flow with a dedicated progress window, explicit error messages, and a separate `Download update` step before any student PCs are updated.
+- teacher-side `Check for Client Updates...` flow that downloads the matching Windows MSI or macOS PKG for the teacher workstation and opens it with the system installer.
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for in-progress and rollback states.
@@ -258,6 +260,23 @@ The teacher update flow is now explicit:
 The teacher workstation serves the prepared ZIP to student agents over the local network. If the teacher workstation has no internet access, you can manually place `student-agent-version.json` plus the matching `student-agent-update-<version>.zip` into the teacher-side manual update folder shown in the preparation window.
 
 For GitHub-based releases, this repository can publish a student-agent update bundle on tag push. The auto-update manifest is emitted as `student-agent-version.json` in the GitHub Release assets and points to the matching `student-agent-update-<version>.zip`.
+
+Teacher workstations can also check for a newer client installer directly from GitHub Release assets:
+
+1. Open `Help -> Check for Client Updates...`.
+2. Run `Check updates` to validate that a matching installer asset exists for the current platform.
+3. Run `Download installer` to cache the MSI or PKG locally.
+4. Run `Install update` to open the downloaded installer with the operating system.
+
+The client update manifest is emitted as `classcommander-client-version.json` in GitHub Release assets and points to the release MSI and PKG files for the current version.
+
+Tag-based GitHub releases now publish all major install/update assets together:
+
+- `student-agent-update-<version>.zip`
+- `student-agent-version.json`
+- Windows `.msi`
+- macOS `.pkg`
+- `classcommander-client-version.json`
 
 ### Start ClassCommander on Windows
 

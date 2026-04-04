@@ -11,6 +11,8 @@ public sealed class InputLockForm : Form
     {
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.FromArgb(15, 23, 42);
+        BackgroundImage = BrandingResourceLoader.LoadBitmap(@"Backgrounds/input-lock.png");
+        BackgroundImageLayout = ImageLayout.Stretch;
         ForeColor = Color.White;
         Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
         FormBorderStyle = FormBorderStyle.None;
@@ -27,7 +29,7 @@ public sealed class InputLockForm : Form
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.Transparent,
+            BackColor = Color.FromArgb(170, 15, 23, 42),
             ColumnCount = 1,
             RowCount = 3,
             Padding = new Padding(48)
@@ -43,6 +45,7 @@ public sealed class InputLockForm : Form
             Text = StudentAgentText.InputLockTitle,
             Font = new Font("Segoe UI", 28F, FontStyle.Bold, GraphicsUnit.Point),
             ForeColor = Color.White,
+            BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 0, 24)
         };
 
@@ -54,6 +57,7 @@ public sealed class InputLockForm : Form
             Text = $"{StudentAgentText.InputLockMessage}{Environment.NewLine}{Environment.NewLine}{StudentAgentText.InputLockFooter}",
             Font = new Font("Segoe UI", 17F, FontStyle.Regular, GraphicsUnit.Point),
             ForeColor = Color.White,
+            BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleCenter
         };
 

@@ -18,6 +18,8 @@ public partial class MainForm : Form
     private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly TeacherUpdatePreparationService _updatePreparationService =
         new(GetUpdatePreparationRootDirectory());
+    private readonly TeacherClientUpdateService _clientUpdateService =
+        new(GetClientUpdateRootDirectory(), Application.ProductVersion);
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
     private readonly System.Windows.Forms.Timer _updateStatusTimer = new();
@@ -86,6 +88,7 @@ public partial class MainForm : Form
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
             _updatePreparationService.Dispose();
+            _clientUpdateService.Dispose();
         };
     }
 
@@ -95,6 +98,16 @@ public partial class MainForm : Form
         var baseDirectory = string.IsNullOrWhiteSpace(localAppData)
             ? Path.Combine(AppContext.BaseDirectory, "data", "updates")
             : Path.Combine(localAppData, "TeacherServer", "TeacherClient", "updates");
+        Directory.CreateDirectory(baseDirectory);
+        return baseDirectory;
+    }
+
+    private static string GetClientUpdateRootDirectory()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var baseDirectory = string.IsNullOrWhiteSpace(localAppData)
+            ? Path.Combine(AppContext.BaseDirectory, "data", "client-updates")
+            : Path.Combine(localAppData, "TeacherServer", "TeacherClient", "client-updates");
         Directory.CreateDirectory(baseDirectory);
         return baseDirectory;
     }
@@ -1707,6 +1720,12 @@ public partial class MainForm : Form
     private void aboutMenuItem_Click(object? sender, EventArgs e)
     {
         using var dialog = new AboutDialog();
+        dialog.ShowDialog(this);
+    }
+
+    private void checkClientUpdateMenuItem_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new ClientUpdateDialog(_clientUpdateService);
         dialog.ShowDialog(this);
     }
 

@@ -1,9 +1,7 @@
 name: Release Student Agent
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -59,7 +57,7 @@ jobs:
 
           $manifest = @{
             version = $version
-            url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$zipName"
+            url = "https://github.com/${{ github.repository }}/releases/latest/download/$zipName"
             sha256 = $sha256
           } | ConvertTo-Json
 
