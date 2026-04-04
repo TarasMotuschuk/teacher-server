@@ -23,4 +23,12 @@ public sealed class AgentRuntimeSettings
     public int BrowserLockCheckIntervalSeconds { get; set; } = 60;
 
     public int DesktopIconAutoRestoreMinutes { get; set; } = 30;
+
+    public bool VncEnabled { get; set; }
+
+    public int VncPort { get; set; } = 5901;
+
+    public bool VncViewOnly { get; set; } = true;
+
+    public string VncPassword { get; set; } = string.Empty;
 }

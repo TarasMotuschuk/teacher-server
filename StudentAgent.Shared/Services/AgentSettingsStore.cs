@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Teacher.Common;
 using Teacher.Common.Localization;
 
 namespace StudentAgent.Services;
@@ -114,6 +115,33 @@ public sealed class AgentSettingsStore
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public void UpdateVncSettings(bool enabled, int? port = null, bool? viewOnly = null, string? password = null)
+    {
+        lock (_sync)
+        {
+            ReloadFromDiskIfChanged();
+            _current.VncEnabled = enabled;
+            if (port is not null)
+            {
+                _current.VncPort = Math.Max(1, port.GetValueOrDefault());
+            }
+
+            if (viewOnly is not null)
+            {
+                _current.VncViewOnly = viewOnly.GetValueOrDefault();
+            }
+
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                _current.VncPassword = password.Trim();
+            }
+
+            Save(_current);
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private bool ReloadFromDiskIfChanged()
     {
         if (!File.Exists(_settingsPath))
@@ -174,7 +202,13 @@ public sealed class AgentSettingsStore
             BrowserLockEnabled = defaults.BrowserLockEnabled,
             InputLockEnabled = defaults.InputLockEnabled,
             BrowserLockCheckIntervalSeconds = defaults.BrowserLockCheckIntervalSeconds,
-            DesktopIconAutoRestoreMinutes = defaults.DesktopIconAutoRestoreMinutes
+            DesktopIconAutoRestoreMinutes = defaults.DesktopIconAutoRestoreMinutes,
+            VncEnabled = defaults.VncEnabled,
+            VncPort = defaults.VncPort,
+            VncViewOnly = defaults.VncViewOnly,
+            VncPassword = string.IsNullOrWhiteSpace(defaults.VncPassword)
+                ? VncPasswordHelper.Derive(defaults.SharedSecret)
+                : defaults.VncPassword
         }, defaults);
     }
 
@@ -204,6 +238,12 @@ public sealed class AgentSettingsStore
         value.DesktopIconAutoRestoreMinutes = value.DesktopIconAutoRestoreMinutes <= 0
             ? Math.Max(1, defaults.DesktopIconAutoRestoreMinutes)
             : value.DesktopIconAutoRestoreMinutes;
+        value.VncEnabled = value.VncEnabled;
+        value.VncPort = value.VncPort <= 0 ? Math.Max(1, defaults.VncPort) : Math.Max(1, value.VncPort);
+        value.VncViewOnly = value.VncViewOnly;
+        value.VncPassword = string.IsNullOrWhiteSpace(value.VncPassword)
+            ? (string.IsNullOrWhiteSpace(defaults.VncPassword) ? VncPasswordHelper.Derive(defaults.SharedSecret) : defaults.VncPassword)
+            : value.VncPassword.Trim();
         return value;
     }
 
@@ -220,7 +260,11 @@ public sealed class AgentSettingsStore
             BrowserLockEnabled = settings.BrowserLockEnabled,
             InputLockEnabled = settings.InputLockEnabled,
             BrowserLockCheckIntervalSeconds = settings.BrowserLockCheckIntervalSeconds,
-            DesktopIconAutoRestoreMinutes = settings.DesktopIconAutoRestoreMinutes
+            DesktopIconAutoRestoreMinutes = settings.DesktopIconAutoRestoreMinutes,
+            VncEnabled = settings.VncEnabled,
+            VncPort = settings.VncPort,
+            VncViewOnly = settings.VncViewOnly,
+            VncPassword = settings.VncPassword
         };
     }
 
@@ -235,7 +279,11 @@ public sealed class AgentSettingsStore
             && left.BrowserLockEnabled == right.BrowserLockEnabled
             && left.InputLockEnabled == right.InputLockEnabled
             && left.BrowserLockCheckIntervalSeconds == right.BrowserLockCheckIntervalSeconds
-            && left.DesktopIconAutoRestoreMinutes == right.DesktopIconAutoRestoreMinutes;
+            && left.DesktopIconAutoRestoreMinutes == right.DesktopIconAutoRestoreMinutes
+            && left.VncEnabled == right.VncEnabled
+            && left.VncPort == right.VncPort
+            && left.VncViewOnly == right.VncViewOnly
+            && string.Equals(left.VncPassword, right.VncPassword, StringComparison.Ordinal);
     }
 
     private static string HashPassword(string password)
