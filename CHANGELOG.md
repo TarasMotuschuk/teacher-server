@@ -8,6 +8,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Added
 
+- Teacher-side remote management tab in both clients with live student-PC screen tiles, a fullscreen VNC viewer, and visible start/stop actions for the selected student PC
+- Student-side VNC hosting support through `StudentAgent.VncHost` plus teacher-controlled VNC status/start/stop endpoints
 - Desktop icon layout integration from the student desktop session: the student service now exposes save/restore endpoints that capture the current Windows desktop icon arrangement and restore it later through `StudentAgent.UIHost`
 - Teacher clients now offer `Save desktop icon layout` and `Restore desktop icon layout` actions for the current connected student PC
 - Teacher clients now offer group desktop-icon actions to restore layouts on selected or all online student PCs

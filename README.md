@@ -4,6 +4,7 @@
 
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
+- `StudentAgent.VncHost`: session-aware VNC host process for visible remote screen viewing and control.
 - `TeacherServer.Setup`: WiX-based MSI installer project for Windows deployment.
 - `TeacherClient`: Windows Forms application used by the teacher.
 - `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
@@ -23,6 +24,10 @@ The current implementation focuses on visible and explicitly authorized administ
 ### StudentAgent.UIHost
 
 `StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session.
+
+### StudentAgent.VncHost
+
+`StudentAgent.VncHost` is the session-aware host that keeps the classroom remote-management screen visible and controllable in the active student session. It is started and stopped by the student service when teacher-side VNC actions are requested.
 
 Available endpoints:
 
@@ -44,6 +49,9 @@ Available endpoints:
 - `POST /api/desktop-icons/save`: capture the current desktop icon positions from the active Windows session and save them as a named layout.
 - `POST /api/desktop-icons/restore`: restore a previously saved desktop icon layout in the active Windows session.
 - `POST /api/desktop-icons/apply`: store a provided desktop icon layout on the student machine and optionally restore it immediately.
+- `GET /api/vnc/status`: read the current VNC host state on the student machine.
+- `POST /api/vnc/start`: start the student-side VNC host in view-only or control mode.
+- `POST /api/vnc/stop`: stop the student-side VNC host.
 - `GET /api/registry/keys`: list registry subkeys at a given path; empty path returns the five root hives.
 - `GET /api/registry/values`: list registry values at a given path with formatted type and data display.
 - `GET /api/registry/export`: export the selected registry key subtree as a `.reg` file.
@@ -77,6 +85,7 @@ Available endpoints:
 - local and remote file/folder rename actions from the `Files` tab;
 - live transfer progress in the status area during single-file uploads/downloads and bulk file distribution or work collection;
 - remote opening of the selected file or folder on the connected student PC;
+- a `Remote management` tab with live student-PC screen tiles, a fullscreen viewer, and teacher-controlled VNC start/stop actions;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - grouped remote command execution for either selected students or all online students, with support for multi-line command scripts and a `Current user` or `Administrator` run mode;
@@ -122,6 +131,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
 - upload and download files;
+- a `Remote management` tab with live student-PC screen tiles, a fullscreen viewer, and teacher-controlled VNC start/stop actions;
 - remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
