@@ -205,9 +205,10 @@ public partial class MainWindow
         tile.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
+        var session = new TeacherVncSession(tile.Agent.RespondingAddress, tile.Agent.VncPort, _clientSettings.SharedSecret);
         tile.PreviewCancellation = cancellation;
-        tile.Session = new TeacherVncSession(tile.Agent.RespondingAddress, tile.Agent.VncPort, _clientSettings.SharedSecret);
-        tile.Session.StatusChanged += (_, message) =>
+        tile.Session = session;
+        session.StatusChanged += (_, message) =>
         {
             if (!_isClosing)
             {
@@ -217,7 +218,7 @@ public partial class MainWindow
                 });
             }
         };
-        tile.Session.Closed += (_, _) =>
+        session.Closed += (_, _) =>
         {
             if (!_isClosing)
             {
@@ -236,10 +237,10 @@ public partial class MainWindow
             try
             {
                 Dispatcher.UIThread.Post(() => tile.StatusText = CrossPlatformText.RemoteManagementConnecting(tile.Agent.MachineName));
-                await tile.Session.ConnectAsync(cancellation.Token);
+                await session.ConnectAsync(cancellation.Token);
                 while (!cancellation.Token.IsCancellationRequested)
                 {
-                    var frame = await tile.Session.CaptureFrameAsync(cancellation.Token);
+                    var frame = await session.CaptureFrameAsync(cancellation.Token);
                     if (frame is not null)
                     {
                         var preview = CreatePreviewBitmap(frame);
@@ -269,10 +270,18 @@ public partial class MainWindow
             }
             finally
             {
-                tile.Session?.Dispose();
-                tile.Session = null;
-                tile.PreviewCancellation?.Dispose();
-                tile.PreviewCancellation = null;
+                session.Dispose();
+                if (ReferenceEquals(tile.Session, session))
+                {
+                    tile.Session = null;
+                }
+
+                if (ReferenceEquals(tile.PreviewCancellation, cancellation))
+                {
+                    tile.PreviewCancellation = null;
+                }
+
+                cancellation.Dispose();
                 tile.PreviewTask = null;
             }
         }, cancellation.Token);

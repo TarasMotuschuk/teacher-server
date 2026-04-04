@@ -13,6 +13,7 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
     private readonly SemaphoreSlim _captureGate = new(1, 1);
     private readonly object _sync = new();
     private VncClient? _client;
+    private bool _disposed;
 
     public TeacherVncSession(string host, int port, string sharedSecret, bool controlEnabled = false)
     {
@@ -33,6 +34,8 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (IsConnected)
         {
             return;
@@ -72,15 +75,33 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
 
     public async Task<VncFrameCapture?> CaptureFrameAsync(CancellationToken cancellationToken = default)
     {
+        if (_disposed)
+        {
+            return null;
+        }
+
         var client = _client;
         if (client is null || !client.IsConnected || client.Framebuffer is null)
         {
             return null;
         }
 
-        await _captureGate.WaitAsync(cancellationToken);
         try
         {
+            await _captureGate.WaitAsync(cancellationToken);
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (_disposed)
+            {
+                return null;
+            }
+
             client = _client;
             if (client is null || !client.IsConnected || client.Framebuffer is null)
             {
@@ -92,11 +113,24 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             var height = Math.Max(1, framebuffer.Height);
             var stride = width * 4;
             var pixels = new byte[stride * height];
-            var copier = client.GetFramebuffer(null, null, null, null);
+            Action<IntPtr, int>? copier;
+            try
+            {
+                copier = client.GetFramebuffer(null, null, null, null);
+            }
+            catch (ObjectDisposedException)
+            {
+                return null;
+            }
+
             var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
             try
             {
                 copier(handle.AddrOfPinnedObject(), stride);
+            }
+            catch (ObjectDisposedException)
+            {
+                return null;
             }
             finally
             {
@@ -131,6 +165,7 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
 
     public void Close()
     {
+        _disposed = true;
         var client = Interlocked.Exchange(ref _client, null);
         if (client is null)
         {
@@ -179,7 +214,6 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
     public void Dispose()
     {
         Close();
-        _captureGate.Dispose();
     }
 
     public ValueTask DisposeAsync()

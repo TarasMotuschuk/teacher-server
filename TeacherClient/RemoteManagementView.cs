@@ -264,16 +264,17 @@ public partial class MainForm
         card.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
+        var session = new TeacherVncSession(card.Agent.RespondingAddress, card.Agent.VncPort, _clientSettings.SharedSecret);
         card.PreviewCancellation = cancellation;
-        card.Session = new TeacherVncSession(card.Agent.RespondingAddress, card.Agent.VncPort, _clientSettings.SharedSecret);
-        card.Session.StatusChanged += (_, message) =>
+        card.Session = session;
+        session.StatusChanged += (_, message) =>
         {
             if (!IsDisposed)
             {
                 BeginInvoke(new Action(() => card.StatusLabel.Text = $"{BuildRemoteManagementStatusText(card.Agent)}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" - {message}")}"));
             }
         };
-        card.Session.Closed += (_, _) =>
+        session.Closed += (_, _) =>
         {
             if (!IsDisposed)
             {
@@ -292,10 +293,10 @@ public partial class MainForm
             try
             {
                 card.StatusLabel.BeginInvoke(new Action(() => card.StatusLabel.Text = TeacherClientText.RemoteManagementConnecting(card.Agent.MachineName)));
-                await card.Session.ConnectAsync(cancellation.Token);
+                await session.ConnectAsync(cancellation.Token);
                 while (!cancellation.Token.IsCancellationRequested)
                 {
-                    var frame = await card.Session.CaptureFrameAsync(cancellation.Token);
+                    var frame = await session.CaptureFrameAsync(cancellation.Token);
                     if (frame is not null)
                     {
                         var bitmap = CreateThumbnailBitmap(frame, 200);
@@ -322,10 +323,18 @@ public partial class MainForm
             }
             finally
             {
-                card.Session?.Dispose();
-                card.Session = null;
-                card.PreviewCancellation?.Dispose();
-                card.PreviewCancellation = null;
+                session.Dispose();
+                if (ReferenceEquals(card.Session, session))
+                {
+                    card.Session = null;
+                }
+
+                if (ReferenceEquals(card.PreviewCancellation, cancellation))
+                {
+                    card.PreviewCancellation = null;
+                }
+
+                cancellation.Dispose();
                 card.PreviewTask = null;
             }
         }, cancellation.Token);
