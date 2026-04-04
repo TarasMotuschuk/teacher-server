@@ -17,7 +17,7 @@ APP_DIR="$SETUP_ROOT/artifacts/$APP_NAME"
 STAGING_DIR="$SETUP_ROOT/artifacts/staging"
 PKG_DIR="$SETUP_ROOT/dist"
 PKG_PATH="$PKG_DIR/ClassCommander-macos.pkg"
-ICON_PATH="$SETUP_ROOT/Resources/AppIcon.icns"
+ICON_PATH="$REPO_ROOT/Branding/ClassCommander-icon.icns"
 
 mkdir -p "$PUBLISH_DIR" "$STAGING_DIR" "$PKG_DIR"
 rm -rf "$PUBLISH_DIR" "$APP_DIR" "$STAGING_DIR/$APP_NAME"

@@ -23,6 +23,8 @@ public partial class MainWindow : Window
     private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly TeacherUpdatePreparationService _updatePreparationService =
         new(GetUpdatePreparationRootDirectory());
+    private readonly TeacherClientUpdateService _clientUpdateService =
+        new(GetClientUpdateRootDirectory(), typeof(MainWindow).Assembly.GetName().Version?.ToString() ?? "0.0.0");
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -88,6 +90,7 @@ public partial class MainWindow : Window
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
             _updatePreparationService.Dispose();
+            _clientUpdateService.Dispose();
         };
     }
 
@@ -97,6 +100,16 @@ public partial class MainWindow : Window
         var baseDirectory = string.IsNullOrWhiteSpace(localAppData)
             ? Path.Combine(AppContext.BaseDirectory, "data", "updates")
             : Path.Combine(localAppData, "TeacherServer", "TeacherClient.Avalonia", "updates");
+        Directory.CreateDirectory(baseDirectory);
+        return baseDirectory;
+    }
+
+    private static string GetClientUpdateRootDirectory()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var baseDirectory = string.IsNullOrWhiteSpace(localAppData)
+            ? Path.Combine(AppContext.BaseDirectory, "data", "client-updates")
+            : Path.Combine(localAppData, "TeacherServer", "TeacherClient.Avalonia", "client-updates");
         Directory.CreateDirectory(baseDirectory);
         return baseDirectory;
     }
@@ -1710,6 +1723,12 @@ public partial class MainWindow : Window
         await aboutWindow.ShowDialog(this);
     }
 
+    private async void CheckClientUpdateMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var dialog = new ClientUpdateWindow(_clientUpdateService);
+        await dialog.ShowDialog(this);
+    }
+
     private async Task DistributeLocalSelectionAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
     {
         if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
@@ -2730,9 +2749,6 @@ public partial class MainWindow : Window
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
-        UpdateCommandsMenuItem.Header = CrossPlatformText.UpdateCommandsMenu;
-        UpdateSelectedMenuItem.Header = CrossPlatformText.UpdateSelectedStudents;
-        UpdateAllMenuItem.Header = CrossPlatformText.UpdateAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
@@ -2757,17 +2773,23 @@ public partial class MainWindow : Window
         CollectStudentWorkToTeacherPcMenuItem.Header = CrossPlatformText.CollectStudentWorkToTeacherPc;
         ClearStudentWorkFolderAllMenuItem.Header = CrossPlatformText.ClearStudentWorkFolderOnAllAgents;
         HelpMenuItem.Header = CrossPlatformText.Help;
+        ProgramUpdatesMenuItem.Header = CrossPlatformText.ProgramUpdatesMenu;
+        CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
+        StartAgentUpdateMenuItem.Header = CrossPlatformText.StartAgentUpdate;
+        UpdateSelectedMenuItem.Header = CrossPlatformText.UpdateSelectedStudents;
+        UpdateAllMenuItem.Header = CrossPlatformText.UpdateAllOnlineStudents;
+        CheckClientUpdateMenuItem.Header = CrossPlatformText.CheckForClientUpdate;
         AboutMenuItem.Header = CrossPlatformText.About;
         SettingsButton.Content = CrossPlatformText.Settings;
         AgentsTabItem.Header = CrossPlatformText.Agents;
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;
         RegistryTabItem.Header = CrossPlatformText.RegistryTab;
-        ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, ToolbarGlyphKind.Refresh);
-        ApplyTabButtonContent(ConnectSelectedAgentButton, CrossPlatformText.ConnectSelectedAgent, ToolbarGlyphKind.Link);
-        ApplyTabButtonContent(AddManualAgentButton, CrossPlatformText.AddManualAgent, ToolbarGlyphKind.Add);
-        ApplyTabButtonContent(EditManualAgentButton, CrossPlatformText.EditManualAgent, ToolbarGlyphKind.Edit);
-        ApplyTabButtonContent(RemoveManualAgentButton, CrossPlatformText.RemoveManualAgent, ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, "Toolbar/agents/pc-refresh-list.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(ConnectSelectedAgentButton, CrossPlatformText.ConnectSelectedAgent, "Toolbar/agents/connect.png", ToolbarGlyphKind.Link);
+        ApplyTabButtonContent(AddManualAgentButton, CrossPlatformText.AddManualAgent, "Toolbar/agents/add-manual.png", ToolbarGlyphKind.Add);
+        ApplyTabButtonContent(EditManualAgentButton, CrossPlatformText.EditManualAgent, "Toolbar/agents/edit-manual.png", ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(RemoveManualAgentButton, CrossPlatformText.RemoveManualAgent, "Toolbar/agents/delete-manual.png", ToolbarGlyphKind.Remove);
         AgentSearchTextBox.Watermark = CrossPlatformText.SearchAgents;
         GroupFilterComboBox.ItemsSource = _allAgents.Count == 0
             ? new[] { CrossPlatformText.AllGroups }
@@ -2783,20 +2805,20 @@ public partial class MainWindow : Window
         StatusFilterComboBox.SelectedItem = new[] { CrossPlatformText.All, CrossPlatformText.Online, CrossPlatformText.Offline, CrossPlatformText.Unknown }
             .FirstOrDefault(x => string.Equals(x, selectedStatus, StringComparison.OrdinalIgnoreCase)) ?? CrossPlatformText.All;
         AutoReconnectCheckBox.Content = CrossPlatformText.AutoReconnect;
-        ApplyTabButtonContent(RefreshProcessesButton, CrossPlatformText.Refresh, ToolbarGlyphKind.Refresh);
-        ApplyTabButtonContent(KillProcessButton, CrossPlatformText.TerminateSelected, ToolbarGlyphKind.Stop);
-        ApplyTabButtonContent(RefreshFilesButton, CrossPlatformText.RefreshBoth, ToolbarGlyphKind.Refresh);
-        ApplyTabButtonContent(UploadButton, CrossPlatformText.UploadArrow, ToolbarGlyphKind.Upload);
-        ApplyTabButtonContent(SendToSelectedStudentsButton, CrossPlatformText.SendToSelectedStudents, ToolbarGlyphKind.UploadGroup);
-        ApplyTabButtonContent(SendToAllOnlineStudentsButton, CrossPlatformText.SendToAllOnlineStudents, ToolbarGlyphKind.Broadcast);
-        ApplyTabButtonContent(DownloadButton, CrossPlatformText.DownloadArrow, ToolbarGlyphKind.Download);
-        ApplyTabButtonContent(OpenLocalButton, CrossPlatformText.OpenLocal, ToolbarGlyphKind.OpenRemote);
-        ApplyTabButtonContent(OpenRemoteButton, CrossPlatformText.OpenRemote, ToolbarGlyphKind.OpenRemote);
-        ApplyTabButtonContent(RenameLocalButton, CrossPlatformText.RenameLocal, ToolbarGlyphKind.Edit);
-        ApplyTabButtonContent(RenameRemoteButton, CrossPlatformText.RenameRemote, ToolbarGlyphKind.Edit);
-        ApplyTabButtonContent(DeleteLocalButton, CrossPlatformText.DeleteLocal, ToolbarGlyphKind.Remove);
-        ApplyTabButtonContent(DeleteRemoteButton, CrossPlatformText.DeleteRemote, ToolbarGlyphKind.Remove);
-        ApplyTabButtonContent(NewRemoteFolderButton, CrossPlatformText.NewRemoteFolder, ToolbarGlyphKind.NewFolder);
+        ApplyTabButtonContent(RefreshProcessesButton, CrossPlatformText.Refresh, "Toolbar/processes/refresh.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(KillProcessButton, CrossPlatformText.TerminateSelected, "Toolbar/processes/stop.png", ToolbarGlyphKind.Stop);
+        ApplyTabButtonContent(RefreshFilesButton, CrossPlatformText.RefreshBoth, "Toolbar/files/refresh-both.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(UploadButton, CrossPlatformText.UploadArrow, "Toolbar/files/upload.png", ToolbarGlyphKind.Upload);
+        ApplyTabButtonContent(SendToSelectedStudentsButton, CrossPlatformText.SendToSelectedStudents, "Toolbar/files/upload-group.png", ToolbarGlyphKind.UploadGroup);
+        ApplyTabButtonContent(SendToAllOnlineStudentsButton, CrossPlatformText.SendToAllOnlineStudents, "Toolbar/files/broadcast.png", ToolbarGlyphKind.Broadcast);
+        ApplyTabButtonContent(DownloadButton, CrossPlatformText.DownloadArrow, "Toolbar/files/download.png", ToolbarGlyphKind.Download);
+        ApplyTabButtonContent(OpenLocalButton, CrossPlatformText.OpenLocal, "Toolbar/files/open-local.png", ToolbarGlyphKind.OpenRemote);
+        ApplyTabButtonContent(OpenRemoteButton, CrossPlatformText.OpenRemote, "Toolbar/files/open-remote.png", ToolbarGlyphKind.OpenRemote);
+        ApplyTabButtonContent(RenameLocalButton, CrossPlatformText.RenameLocal, "Toolbar/files/rename-local.png", ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(RenameRemoteButton, CrossPlatformText.RenameRemote, "Toolbar/files/rename-remote.png", ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(DeleteLocalButton, CrossPlatformText.DeleteLocal, "Toolbar/files/delete-local.png", ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(DeleteRemoteButton, CrossPlatformText.DeleteRemote, "Toolbar/files/delete-remote.png", ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(NewRemoteFolderButton, CrossPlatformText.NewRemoteFolder, "Toolbar/files/new-folder.png", ToolbarGlyphKind.NewFolder);
         TeacherPcTextBlock.Text = CrossPlatformText.TeacherPc;
         StudentPcTextBlock.Text = CrossPlatformText.StudentPc;
         UpLocalButton.Content = CrossPlatformText.UpWithArrow;
@@ -2810,14 +2832,14 @@ public partial class MainWindow : Window
         {
             RemoteDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
         }
-        ApplyTabButtonContent(RefreshRegistryButton, CrossPlatformText.Refresh, ToolbarGlyphKind.Refresh);
-        ApplyTabButtonContent(NewValueButton, CrossPlatformText.NewValue, ToolbarGlyphKind.Add);
-        ApplyTabButtonContent(NewKeyButton, CrossPlatformText.NewKey, ToolbarGlyphKind.Add);
-        ApplyTabButtonContent(EditValueButton, CrossPlatformText.EditValue, ToolbarGlyphKind.Edit);
-        ApplyTabButtonContent(DeleteValueButton, CrossPlatformText.DeleteValue, ToolbarGlyphKind.Remove);
-        ApplyTabButtonContent(DeleteKeyButton, CrossPlatformText.DeleteKey, ToolbarGlyphKind.Remove);
-        ApplyTabButtonContent(ExportRegistryButton, CrossPlatformText.ExportRegFile, ToolbarGlyphKind.Download);
-        ApplyTabButtonContent(ImportRegistryButton, CrossPlatformText.ImportRegFile, ToolbarGlyphKind.Upload);
+        ApplyTabButtonContent(RefreshRegistryButton, CrossPlatformText.Refresh, "Toolbar/registry/refresh.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(NewValueButton, CrossPlatformText.NewValue, "Toolbar/registry/new-value.png", ToolbarGlyphKind.Add);
+        ApplyTabButtonContent(NewKeyButton, CrossPlatformText.NewKey, "Toolbar/registry/new-key.png", ToolbarGlyphKind.Add);
+        ApplyTabButtonContent(EditValueButton, CrossPlatformText.EditValue, "Toolbar/registry/edit-value.png", ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(DeleteValueButton, CrossPlatformText.DeleteValue, "Toolbar/registry/delete-value.png", ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(DeleteKeyButton, CrossPlatformText.DeleteKey, "Toolbar/registry/delete-key.png", ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(ExportRegistryButton, CrossPlatformText.ExportRegFile, "Toolbar/registry/export-reg.png", ToolbarGlyphKind.Download);
+        ApplyTabButtonContent(ImportRegistryButton, CrossPlatformText.ImportRegFile, "Toolbar/registry/import-reg.png", ToolbarGlyphKind.Upload);
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
         if (AgentsGrid.Columns.Count >= 14)
         {
@@ -2879,12 +2901,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void ApplyTabButtonContent(Button button, string text, ToolbarGlyphKind glyphKind)
+    private static void ApplyTabButtonContent(Button button, string text, string assetPath, ToolbarGlyphKind glyphKind)
     {
-        button.Content = BuildTabButtonContent(text, glyphKind);
+        button.Content = BuildTabButtonContent(text, assetPath, glyphKind);
     }
 
-    private static Control BuildTabButtonContent(string text, ToolbarGlyphKind glyphKind)
+    private static Control BuildTabButtonContent(string text, string assetPath, ToolbarGlyphKind glyphKind)
     {
         var contentGrid = new Grid
         {
@@ -2892,14 +2914,7 @@ public partial class MainWindow : Window
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
         };
 
-        var icon = new PathIcon
-        {
-            Width = 16,
-            Height = 16,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            Foreground = GetGlyphBrush(glyphKind),
-            Data = Geometry.Parse(GetGlyphPath(glyphKind))
-        };
+        Control icon = CreateToolbarIcon(assetPath, glyphKind);
         Grid.SetColumn(icon, 0);
 
         var textBlock = new TextBlock
@@ -2916,6 +2931,30 @@ public partial class MainWindow : Window
         contentGrid.Children.Add(icon);
         contentGrid.Children.Add(textBlock);
         return contentGrid;
+    }
+
+    private static Control CreateToolbarIcon(string assetPath, ToolbarGlyphKind glyphKind)
+    {
+        var bitmap = BrandingAssetLoader.LoadBitmap(assetPath);
+        if (bitmap is not null)
+        {
+            return new Image
+            {
+                Width = 16,
+                Height = 16,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                Source = bitmap
+            };
+        }
+
+        return new PathIcon
+        {
+            Width = 16,
+            Height = 16,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            Foreground = GetGlyphBrush(glyphKind),
+            Data = Geometry.Parse(GetGlyphPath(glyphKind))
+        };
     }
 
     private static IBrush GetGlyphBrush(ToolbarGlyphKind glyphKind)

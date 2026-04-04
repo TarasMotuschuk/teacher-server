@@ -1,4 +1,3 @@
-using System.Reflection;
 using TeacherClient.Localization;
 
 namespace TeacherClient;
@@ -24,12 +23,10 @@ internal sealed class SplashForm : Form
             BackColor = Color.Black
         };
 
-        var assembly = Assembly.GetExecutingAssembly();
-        using var stream = assembly.GetManifestResourceStream("TeacherClient.Assets.ClassCommander-splash.png");
-        if (stream is not null)
+        var splashImage = BrandingResourceLoader.LoadBitmap("ClassCommander-splash.png");
+        if (splashImage is not null)
         {
-            using var image = Image.FromStream(stream);
-            pictureBox.Image = new Bitmap(image);
+            pictureBox.Image = new Bitmap(splashImage);
         }
         else
         {

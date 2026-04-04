@@ -17,15 +17,15 @@ internal static class CrossPlatformText
     public static string MainTitle => "ClassCommander";
     public static string ConnectionMenu => IsUk ? "Підключення" : "Connection";
     public static string Settings => IsUk ? "Налаштування" : "Settings";
-    public static string RefreshAgents => IsUk ? "Оновити агентів" : "Refresh Agents";
-    public static string ConnectSelectedAgent => IsUk ? "Підключити вибраний агент" : "Connect Selected Agent";
+    public static string RefreshAgents => IsUk ? "Оновити список ПК" : "Refresh PC List";
+    public static string ConnectSelectedAgent => IsUk ? "Підключити вибраний ПК" : "Connect Selected PC";
     public static string AddManualAgent => IsUk ? "Додати вручну" : "Add Manual Agent";
     public static string EditManualAgent => IsUk ? "Редагувати вручну" : "Edit Manual Agent";
     public static string RemoveManualAgent => IsUk ? "Видалити вручну" : "Remove Manual Agent";
     public static string Help => IsUk ? "Довідка" : "Help";
     public static string GroupCommands => IsUk ? "Групові команди" : "Group Commands";
     public static string GroupCommandsTitle => IsUk ? "Групові команди" : "Group Commands";
-    public static string UpdateCommandsMenu => IsUk ? "Оновлення" : "Updates";
+    public static string ProgramUpdatesMenu => IsUk ? "Оновлення програми" : "Program Updates";
     public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
     public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
@@ -35,11 +35,11 @@ internal static class CrossPlatformText
     public static string StudentWorkMenu => IsUk ? "Роботи учнів" : "Student Work";
     public static string FrequentProgramsMenu => IsUk ? "Часті програми" : "Frequent Programs";
     public static string About => IsUk ? "Про програму" : "About";
-    public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці агентів і підключіться." : "Ready. Use the Agents tab to select a student machine, then connect.";
-    public static string Agents => IsUk ? "Агенти" : "Agents";
+    public static string StatusReady => IsUk ? "Готово. Виберіть машину на вкладці учнівських ПК і підключіться." : "Ready. Use the Student PCs tab to select a student machine, then connect.";
+    public static string Agents => IsUk ? "Учнівські ПК" : "Student PCs";
     public static string Processes => IsUk ? "Процеси" : "Processes";
     public static string Files => IsUk ? "Файли" : "Files";
-    public static string SearchAgents => IsUk ? "Пошук агентів" : "Search agents";
+    public static string SearchAgents => IsUk ? "Пошук ПК" : "Search PCs";
     public static string AllGroups => IsUk ? "Усі групи" : "All groups";
     public static string All => IsUk ? "Усі" : "All";
     public static string Online => IsUk ? "Онлайн" : "Online";
@@ -164,8 +164,9 @@ internal static class CrossPlatformText
     public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
     public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
     public static string ConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";
-    public static string CheckForAgentUpdate => IsUk ? "Перевірити апдейти..." : "Check for Updates...";
-    public static string StartAgentUpdate => IsUk ? "Оновити вибраний агент" : "Update Selected Agent";
+    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення агентів..." : "Check Agent Updates...";
+    public static string CheckForClientUpdate => IsUk ? "Перевірити оновлення клієнта..." : "Check for Client Updates...";
+    public static string StartAgentUpdate => IsUk ? "Оновити поточний підключений ПК" : "Update Current Connected PC";
     public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн-агент." : "The agent must be online to update.";
     public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення агента" : "Failed to check for agent updates";
     public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення агента" : "Failed to start agent update";
@@ -177,6 +178,21 @@ internal static class CrossPlatformText
     public static string UpdatePreparationManualHint(string manifestUrl, string manualDirectory) => IsUk
         ? $"Якщо немає інтернету: завантажте `student-agent-version.json` і відповідний `student-agent-update-<version>.zip` з {manifestUrl} або GitHub Releases та покладіть їх у папку `{manualDirectory}`."
         : $"If the teacher PC has no internet access, download `student-agent-version.json` and the matching `student-agent-update-<version>.zip` from {manifestUrl} or GitHub Releases, then place them in `{manualDirectory}`.";
+    public static string ClientUpdateTitle => IsUk ? "Оновлення клієнта" : "Client Update";
+    public static string ClientUpdateCheckButton => IsUk ? "Перевірити оновлення" : "Check updates";
+    public static string ClientUpdateDownloadButton => IsUk ? "Завантажити інсталятор" : "Download installer";
+    public static string ClientUpdateInstallButton => IsUk ? "Встановити оновлення" : "Install update";
+    public static string ClientUpdateCurrentVersion(string version) => IsUk ? $"Поточна версія клієнта: {version}" : $"Current client version: {version}";
+    public static string ClientUpdateAvailable(string version, string platform) => IsUk ? $"Доступне оновлення {version} для {platform}" : $"Update {version} is available for {platform}";
+    public static string ClientAlreadyUpToDate(string version) => IsUk ? $"Клієнт уже на актуальній версії {version}" : $"Client is already on version {version}";
+    public static string ClientUpdateReady(string version) => IsUk ? $"Інсталятор {version} готовий до запуску" : $"Installer {version} is ready to launch";
+    public static string ClientUpdateDownloadMissing => IsUk ? "Спочатку перевірте наявність оновлення клієнта." : "Check for a client update first.";
+    public static string ClientUpdateInstallMissing => IsUk ? "Спочатку завантажте інсталятор клієнта." : "Download the client installer first.";
+    public static string ClientUpdateInstallStarted => IsUk ? "Інсталятор оновлення відкрито." : "Update installer has been opened.";
+    public static string ClientUpdateInstallerOpened(string path) => IsUk ? $"Інсталятор відкрито: {path}" : $"Installer opened: {path}";
+    public static string ClientUpdateHint(string manifestUrl, string downloadDirectory) => IsUk
+        ? $"Клієнт завантажує інсталятор з {manifestUrl}. Після завантаження файл зберігається в `{downloadDirectory}` і відкривається системним інсталятором."
+        : $"The client downloads its installer from {manifestUrl}. After download, the file is stored in `{downloadDirectory}` and opened with the system installer.";
     public static string AgentUpToDate(string machine, string version) => IsUk ? $"{machine}: актуальна версія {version}" : $"{machine}: already on version {version}";
     public static string AgentUpdateAvailable(string machine, string version) => IsUk ? $"{machine}: доступне оновлення {version}" : $"{machine}: update {version} is available";
     public static string AgentUpdateStarted(string machine, string version) => IsUk ? $"{machine}: запущено оновлення до {version}" : $"{machine}: started update to {version}";
@@ -256,7 +272,7 @@ internal static class CrossPlatformText
     public static string SelectKeyFirst => IsUk ? "Спочатку виберіть ключ" : "Select a key first";
     public static string SelectValueFirst => IsUk ? "Спочатку виберіть значення" : "Select a value first";
     public static string Required => IsUk ? "обов'язково" : "required";
-    public static string ConnectFromAgentsTabFirst => IsUk ? "Спочатку підключіться до агента на вкладці агентів." : "Connect to an agent from the Agents tab first.";
+    public static string ConnectFromAgentsTabFirst => IsUk ? "Спочатку підключіться до ПК на вкладці учнівських ПК." : "Connect to a PC from the Student PCs tab first.";
     public static string ChooseProcessFirst => IsUk ? "Спочатку виберіть процес." : "Choose a process first.";
     public static string TerminateProcessTitle => IsUk ? "Завершити процес" : "Terminate Process";
     public static string TerminateProcessPrompt(string name, int id) => IsUk ? $"Завершити процес {name} ({id})?" : $"Terminate process {name} ({id})?";

@@ -48,6 +48,7 @@ partial class AboutDialog
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(170, Color.White),
             ColumnCount = 2,
             RowCount = 5
         };

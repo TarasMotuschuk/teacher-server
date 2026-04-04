@@ -47,7 +47,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         _notifyIcon = new NotifyIcon
         {
             Text = StudentAgentText.AgentName,
-            Icon = SystemIcons.Shield,
+            Icon = BrandingResourceLoader.LoadIcon("ClassCommander-icon.ico") ?? SystemIcons.Shield,
             Visible = true,
             ContextMenuStrip = menu
         };
