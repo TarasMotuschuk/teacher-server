@@ -361,7 +361,7 @@ public partial class RemoteVncViewerWindow : Window
         try
         {
             var bitmap = new Bitmap(
-                Avalonia.Platform.PixelFormat.Rgba8888,
+                Avalonia.Platform.PixelFormat.Bgra8888,
                 AlphaFormat.Opaque,
                 handle.AddrOfPinnedObject(),
                 new PixelSize(frame.Width, frame.Height),

@@ -566,7 +566,7 @@ public partial class MainWindow
             try
             {
                 var bitmap = new Bitmap(
-                    PixelFormat.Rgba8888,
+                    PixelFormat.Bgra8888,
                     AlphaFormat.Opaque,
                     handle.AddrOfPinnedObject(),
                     new PixelSize(width, height),
