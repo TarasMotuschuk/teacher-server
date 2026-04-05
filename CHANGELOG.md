@@ -8,6 +8,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Added
 
+- `StudentAgent.UIHost`: tray menu **Exit** now prompts for the same StudentAgent administrator password as **Settings** and **Logs**
 - Teacher-side remote management tab in both clients with live student-PC screen tiles, a fullscreen VNC viewer, and visible start/stop actions for the selected student PC
 - Student-side VNC hosting support through `StudentAgent.VncHost` plus teacher-controlled VNC status/start/stop endpoints
 - Desktop icon layout integration from the student desktop session: the student service now exposes save/restore endpoints that capture the current Windows desktop icon arrangement and restore it later through `StudentAgent.UIHost`
@@ -23,6 +24,9 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Fixed
 
+- `TeacherClient.Avalonia` (macOS): closing VNC sessions no longer runs synchronous async waits on the UI thread, avoiding hangs or watchdog termination when quitting after remote-management viewing
+- Windows MSI: `MajorUpgrade` with same-version upgrades so reinstalling the same package version replaces the existing entry in *Apps & features* instead of creating duplicate listings
+- Windows: stopping `StudentAgent.Service` now terminates session `StudentAgent.UIHost` and `StudentAgent.VncHost` processes (they are not child processes of the service); the MSI also registers util `CloseApplication` for both EXEs as a fallback during uninstall/repair so files are not locked by orphan processes
 - Student-agent updater now stops the session `StudentAgent.UIHost` and retries locked file copies so updates no longer fail just because `Accessibility.dll` or another UI-hosted file is still in use
 - Group and single `Log Off` commands now target the active Windows student session correctly instead of relying on the service-session `shutdown.exe /l` path
 

@@ -23,7 +23,7 @@ The current implementation focuses on visible and explicitly authorized administ
 
 ### StudentAgent.UIHost
 
-`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session.
+`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session. Choosing **Exit** from the tray menu prompts for the same StudentAgent administrator password used to open **Settings** and **Logs** from that menu.
 
 ### StudentAgent.VncHost
 
@@ -155,6 +155,8 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - preferred teacher-hosted update delivery with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for in-progress and rollback states.
 
+On macOS, quitting the app after using remote-management VNC tears down VNC sessions without blocking the UI thread, which avoids hangs or system watchdog termination during exit.
+
 ### Teacher.Common
 
 `Teacher.Common` contains record types used by both applications for process, server, and file operations.
@@ -256,7 +258,9 @@ Build-Msi.cmd
    - `Teacher workstation tools`
    - `Student workstation tools`
 
-When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service` and `StudentAgent.UIHost` together and registers the Windows service automatically.
+When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service`, `StudentAgent.UIHost`, and `StudentAgent.VncHost` together and registers the Windows service automatically.
+
+Reinstalling the **same** MSI package version upgrades the existing installation in place so *Apps & features* / *Programs and Features* keeps a single ClassCommander entry. On uninstall, stopping the service shuts down the session `StudentAgent.UIHost` and `StudentAgent.VncHost` processes; the installer also attempts to terminate those executables if they are still running so files can be removed cleanly.
 
 Example configuration:
 

@@ -113,13 +113,30 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             connection.PropertyChanged -= ConnectionOnPropertyChanged;
             try
             {
-                connection.CloseAsync().GetAwaiter().GetResult();
+                // CloseAsync must not run synchronously on the UI thread: blocking Wait + library continuations
+                // that post back to the same synchronization context causes hangs on exit (macOS watchdog / crash reports).
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        connection.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    }
+                    catch
+                    {
+                    }
+
+                    try
+                    {
+                        connection.Dispose();
+                    }
+                    catch
+                    {
+                    }
+                }).GetAwaiter().GetResult();
             }
             catch
             {
             }
-
-            connection.Dispose();
         }
 
         _renderTarget.Dispose();

@@ -155,6 +155,17 @@ try
     });
     app.Lifetime.ApplicationStopping.Register(() =>
     {
+        try
+        {
+            var vncHostService = app.Services.GetService<VncHostService>();
+            vncHostService?.StopAll();
+            SessionHostedProcessCleanup.StopAllByImageName("StudentAgent.UIHost", logService);
+        }
+        catch (Exception ex)
+        {
+            logService.LogWarning($"Session-hosted process cleanup failed: {ex.Message}");
+        }
+
         logService.LogInfo("StudentAgent.Service stopping.");
     });
 
