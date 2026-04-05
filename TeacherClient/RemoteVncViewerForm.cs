@@ -2,6 +2,7 @@
 
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Teacher.Common;
 using Teacher.Common.Vnc;
 using TeacherClient.Localization;
@@ -13,12 +14,14 @@ public sealed class RemoteVncViewerForm : Form
 {
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
+    private readonly Panel _contentPanel;
     private readonly PictureBox _pictureBox;
     private readonly Label _statusLabel;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new();
     private readonly string _machineName;
     private int _captureInProgress;
+    private int _connectInProgress;
     private int _frameWidth;
     private int _frameHeight;
 
@@ -37,9 +40,15 @@ public sealed class RemoteVncViewerForm : Form
         Text = TeacherClientText.RemoteManagementViewerTitle(machineName);
         StartPosition = FormStartPosition.CenterScreen;
         WindowState = FormWindowState.Maximized;
-        KeyPreview = true;
         BackColor = Color.Black;
         MinimumSize = new Size(800, 600);
+
+        _contentPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Black,
+            TabStop = true
+        };
 
         _pictureBox = new PictureBox
         {
@@ -59,15 +68,10 @@ public sealed class RemoteVncViewerForm : Form
             Padding = new Padding(10, 0, 10, 0)
         };
 
-        var root = new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Color.Black
-        };
-        root.Controls.Add(_pictureBox);
-        root.Controls.Add(_statusLabel);
+        _contentPanel.Controls.Add(_pictureBox);
+        _contentPanel.Controls.Add(_statusLabel);
 
-        Controls.Add(root);
+        Controls.Add(_contentPanel);
 
         _refreshTimer.Interval = 500;
         _refreshTimer.Tick += async (_, _) => await CaptureFrameAsync();
@@ -78,16 +82,28 @@ public sealed class RemoteVncViewerForm : Form
             if (!_cancellation.IsCancellationRequested && !IsDisposed)
             {
                 _refreshTimer.Start();
+                // PictureBox cannot take focus; keyboard events must reach a focused control — not only the Form.
+                _contentPanel.Focus();
             }
         };
         FormClosing += (_, _) =>
         {
             _refreshTimer.Stop();
             _cancellation.Cancel();
+            // Capture/Connect run on thread pool; disposing the session while they touch the render
+            // target or connection can fault the process.
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while ((Volatile.Read(ref _captureInProgress) != 0 || Volatile.Read(ref _connectInProgress) != 0) &&
+                   DateTime.UtcNow < deadline)
+            {
+                Thread.Sleep(20);
+            }
+
             if (_ownsSession)
             {
                 _session.Dispose();
             }
+
             DisposePicture();
         };
         FormClosed += (_, _) =>
@@ -99,9 +115,9 @@ public sealed class RemoteVncViewerForm : Form
         _pictureBox.MouseUp += PictureBox_MouseUp;
         _pictureBox.MouseMove += PictureBox_MouseMove;
         _pictureBox.MouseWheel += PictureBox_MouseWheel;
-        KeyDown += RemoteVncViewerForm_KeyDown;
-        KeyUp += RemoteVncViewerForm_KeyUp;
-        KeyPress += RemoteVncViewerForm_KeyPress;
+        _contentPanel.KeyDown += ContentPanel_KeyDown;
+        _contentPanel.KeyUp += ContentPanel_KeyUp;
+        _contentPanel.KeyPress += ContentPanel_KeyPress;
 
         _statusLabel.Text = _session.ControlEnabled
             ? TeacherClientText.RemoteManagementControl(machineName)
@@ -110,34 +126,45 @@ public sealed class RemoteVncViewerForm : Form
 
     private async Task ConnectAsync()
     {
+        Interlocked.Increment(ref _connectInProgress);
         try
         {
-            _statusLabel.Text = TeacherClientText.RemoteManagementConnecting(_machineName);
-            if (!_session.IsConnected)
+            try
             {
-                // Handshake can run synchronously for long stretches; keep UI responsive.
-                // Do not pass CTS into Task.Run — cancel would fault the outer task and surface OCE to async void handlers.
-                await Task.Run(async () => await _session.ConnectAsync(_cancellation.Token));
-            }
+                _statusLabel.Text = TeacherClientText.RemoteManagementConnecting(_machineName);
+                if (!_session.IsConnected)
+                {
+                    // Handshake can run synchronously for long stretches; keep UI responsive.
+                    // Do not pass CTS into Task.Run — cancel would fault the outer task and surface OCE to async void handlers.
+                    await Task.Run(async () => await _session.ConnectAsync(_cancellation.Token));
+                }
 
-            if (IsDisposed)
-            {
-                return;
-            }
+                if (IsDisposed)
+                {
+                    return;
+                }
 
-            _statusLabel.Text = _session.ControlEnabled
-                ? TeacherClientText.RemoteManagementControl(_machineName)
-                : TeacherClientText.RemoteManagementViewOnly(_machineName);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            if (!IsDisposed)
-            {
-                _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+                _statusLabel.Text = _session.ControlEnabled
+                    ? TeacherClientText.RemoteManagementControl(_machineName)
+                    : TeacherClientText.RemoteManagementViewOnly(_machineName);
             }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (Exception ex)
+            {
+                if (!IsDisposed)
+                {
+                    _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+                }
+            }
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _connectInProgress);
         }
     }
 
@@ -188,6 +215,9 @@ public sealed class RemoteVncViewerForm : Form
         catch (OperationCanceledException)
         {
         }
+        catch (ObjectDisposedException)
+        {
+        }
         catch (Exception ex)
         {
             if (!IsDisposed)
@@ -219,12 +249,23 @@ public sealed class RemoteVncViewerForm : Form
 
     private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
     {
+        _contentPanel.Focus();
+
         if (!_session.ControlEnabled || _frameWidth <= 0 || _frameHeight <= 0)
         {
             return;
         }
 
-        _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, true));
+        try
+        {
+            _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, true));
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     private void PictureBox_MouseUp(object? sender, MouseEventArgs e)
@@ -234,7 +275,16 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
-        _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, false));
+        try
+        {
+            _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, false));
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     private void PictureBox_MouseMove(object? sender, MouseEventArgs e)
@@ -244,15 +294,24 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
-        if ((e.Button & MouseButtons.Left) == 0 &&
-            (e.Button & MouseButtons.Right) == 0 &&
-            (e.Button & MouseButtons.Middle) == 0)
+        try
         {
-            _session.SendPointer(MapX(e.X), MapY(e.Y), 0);
-            return;
-        }
+            if ((e.Button & MouseButtons.Left) == 0 &&
+                (e.Button & MouseButtons.Right) == 0 &&
+                (e.Button & MouseButtons.Middle) == 0)
+            {
+                _session.SendPointer(MapX(e.X), MapY(e.Y), 0);
+                return;
+            }
 
-        _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, true));
+            _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, true));
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     private void PictureBox_MouseWheel(object? sender, MouseEventArgs e)
@@ -262,52 +321,88 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
-        var buttons = e.Delta > 0 ? 8 : 16;
-        _session.SendPointer(MapX(e.X), MapY(e.Y), buttons);
-        _session.SendPointer(MapX(e.X), MapY(e.Y), 0);
+        try
+        {
+            var buttons = e.Delta > 0 ? 8 : 16;
+            _session.SendPointer(MapX(e.X), MapY(e.Y), buttons);
+            _session.SendPointer(MapX(e.X), MapY(e.Y), 0);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
-    private void RemoteVncViewerForm_KeyDown(object? sender, KeyEventArgs e)
+    private void ContentPanel_KeyDown(object? sender, KeyEventArgs e)
     {
         if (!_session.ControlEnabled)
         {
             return;
         }
 
-        var keySym = MapSpecialKey(e.KeyCode);
-        if (keySym is not null)
+        try
         {
-            _session.SendKey(keySym.Value, true);
-            e.Handled = true;
+            var keySym = MapSpecialKey(e.KeyCode);
+            if (keySym is not null)
+            {
+                _session.SendKey(keySym.Value, true);
+                e.Handled = true;
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
         }
     }
 
-    private void RemoteVncViewerForm_KeyUp(object? sender, KeyEventArgs e)
+    private void ContentPanel_KeyUp(object? sender, KeyEventArgs e)
     {
         if (!_session.ControlEnabled)
         {
             return;
         }
 
-        var keySym = MapSpecialKey(e.KeyCode);
-        if (keySym is not null)
+        try
         {
-            _session.SendKey(keySym.Value, false);
-            e.Handled = true;
+            var keySym = MapSpecialKey(e.KeyCode);
+            if (keySym is not null)
+            {
+                _session.SendKey(keySym.Value, false);
+                e.Handled = true;
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
         }
     }
 
-    private void RemoteVncViewerForm_KeyPress(object? sender, KeyPressEventArgs e)
+    private void ContentPanel_KeyPress(object? sender, KeyPressEventArgs e)
     {
         if (!_session.ControlEnabled || char.IsControl(e.KeyChar))
         {
             return;
         }
 
-        var keySym = (KeySym)(uint)e.KeyChar;
-        _session.SendKey(keySym, true);
-        _session.SendKey(keySym, false);
-        e.Handled = true;
+        try
+        {
+            var keySym = (KeySym)(uint)e.KeyChar;
+            _session.SendKey(keySym, true);
+            _session.SendKey(keySym, false);
+            e.Handled = true;
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     private int MapX(int x)
@@ -343,7 +438,6 @@ public sealed class RemoteVncViewerForm : Form
             Keys.Tab => KeySym.Tab,
             Keys.Return => KeySym.Return,
             Keys.Escape => KeySym.Escape,
-            Keys.Space => KeySym.space,
             Keys.PageUp => KeySym.Page_Up,
             Keys.PageDown => KeySym.Page_Down,
             Keys.End => KeySym.End,
@@ -369,8 +463,6 @@ public sealed class RemoteVncViewerForm : Form
             Keys.ShiftKey => KeySym.Shift_L,
             Keys.ControlKey => KeySym.Control_L,
             Keys.Menu => KeySym.Alt_L,
-            _ when key >= Keys.A && key <= Keys.Z => (KeySym)(uint)('a' + (key - Keys.A)),
-            _ when key >= Keys.D0 && key <= Keys.D9 => (KeySym)(uint)('0' + (key - Keys.D0)),
             _ => null
         };
     }

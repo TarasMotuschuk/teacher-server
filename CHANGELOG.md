@@ -24,6 +24,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Fixed
 
+- `StudentAgent.UIHost`: input lock now installs low-level keyboard and mouse hooks (`WH_KEYBOARD_LL` / `WH_MOUSE_LL`) so keys (including Windows / Start) and pointer input are blocked session-wide, not only when the overlay form had Win32 focus
+- WinForms `TeacherClient`: fullscreen remote VNC viewer now routes keyboard through a focusable content panel (click focuses it) and sends printable characters only via `KeyPress`, so typed text and non-Latin layouts reach the student PC; letter keys are no longer sent twice from `KeyDown`+`KeyPress`
+- `TeacherClient.Avalonia`: remote VNC viewer routes keyboard/`TextInput` through a transparent focusable panel around the screen (not the window alone), with deferred focus after load — fixes missing text input on some platforms (e.g. macOS); space is no longer sent twice (`KeyDown`+`TextInput`)
+- WinForms `TeacherClient`: closing the main window while a remote-management fullscreen viewer was open could dispose the shared `TeacherVncSession` from the preview teardown first and fault the app; viewers are closed before remote-management cleanup, and the VNC viewer waits for in-flight connect/capture work before disposing
 - `TeacherClient.Avalonia` (macOS): closing VNC sessions clears the UI `SynchronizationContext` only for the duration of `CloseAsync` (avoids Avalonia deadlocks on quit without moving VNC teardown to another thread, which broke remote control and could abort the process)
 - Windows MSI: `MajorUpgrade` with same-version upgrades so reinstalling the same package version replaces the existing entry in *Apps & features* instead of creating duplicate listings
 - Windows: stopping `StudentAgent.Service` now terminates session `StudentAgent.UIHost` and `StudentAgent.VncHost` processes (they are not child processes of the service); the MSI also registers util `CloseApplication` for both EXEs as a fallback during uninstall/repair so files are not locked by orphan processes

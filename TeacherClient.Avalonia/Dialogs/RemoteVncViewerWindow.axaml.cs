@@ -52,6 +52,10 @@ public partial class RemoteVncViewerWindow : Window
             WindowState = WindowState.Maximized;
             await ConnectAsync();
             _refreshTimer.Start();
+            // Defer: focus before layout can fail on macOS; keyboard/TextInput attach to ViewerInputRoot, not the window chrome.
+            Dispatcher.UIThread.Post(
+                () => ViewerInputRoot.Focus(),
+                DispatcherPriority.Loaded);
         };
 
         Closing += (_, _) =>
@@ -70,9 +74,9 @@ public partial class RemoteVncViewerWindow : Window
         ScreenImage.PointerReleased += ScreenImage_OnPointerReleased;
         ScreenImage.PointerMoved += ScreenImage_OnPointerMoved;
         ScreenImage.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
-        KeyDown += RemoteVncViewerWindow_KeyDown;
-        KeyUp += RemoteVncViewerWindow_KeyUp;
-        TextInput += RemoteVncViewerWindow_TextInput;
+        ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
+        ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
+        ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
 
         StatusTextBlock.Text = _session.ControlEnabled
             ? CrossPlatformText.RemoteManagementControl(machineName)
@@ -153,7 +157,7 @@ public partial class RemoteVncViewerWindow : Window
 
     private void ScreenImage_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        Focus();
+        ViewerInputRoot.Focus();
         if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
         {
             return;
@@ -208,7 +212,7 @@ public partial class RemoteVncViewerWindow : Window
         }
     }
 
-    private void RemoteVncViewerWindow_KeyDown(object? sender, KeyEventArgs e)
+    private void ViewerInputRoot_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (!_session.ControlEnabled)
         {
@@ -223,7 +227,7 @@ public partial class RemoteVncViewerWindow : Window
         }
     }
 
-    private void RemoteVncViewerWindow_KeyUp(object? sender, KeyEventArgs e)
+    private void ViewerInputRoot_OnKeyUp(object? sender, KeyEventArgs e)
     {
         if (!_session.ControlEnabled)
         {
@@ -238,7 +242,7 @@ public partial class RemoteVncViewerWindow : Window
         }
     }
 
-    private void RemoteVncViewerWindow_TextInput(object? sender, TextInputEventArgs e)
+    private void ViewerInputRoot_OnTextInput(object? sender, TextInputEventArgs e)
     {
         if (!_session.ControlEnabled || string.IsNullOrEmpty(e.Text))
         {
@@ -310,7 +314,6 @@ public partial class RemoteVncViewerWindow : Window
             Key.Tab => KeySymbol.Tab,
             Key.Enter => KeySymbol.Return,
             Key.Escape => KeySymbol.Escape,
-            Key.Space => KeySymbol.space,
             Key.PageUp => KeySymbol.Page_Up,
             Key.PageDown => KeySymbol.Page_Down,
             Key.End => KeySymbol.End,

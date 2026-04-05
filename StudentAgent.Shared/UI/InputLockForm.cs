@@ -69,7 +69,12 @@ public sealed class InputLockForm : Form
         _focusTimer.Tick += (_, _) => BringBackToFront();
         _focusTimer.Start();
 
-        Shown += (_, _) => BringBackToFront();
+        Shown += (_, _) =>
+        {
+            InputLockGlobalInputHook.AddRef();
+            BringBackToFront();
+        };
+        FormClosed += (_, _) => InputLockGlobalInputHook.Release();
         Activated += (_, _) => BringBackToFront();
     }
 

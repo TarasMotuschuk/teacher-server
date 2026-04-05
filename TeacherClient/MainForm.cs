@@ -91,6 +91,22 @@ public partial class MainForm : Form
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+            // Remote management preview tears down shared TeacherVncSession instances. Close fullscreen
+            // viewers first or their session is disposed under them and the process can fault.
+            foreach (Form form in Application.OpenForms.Cast<Form>().ToArray())
+            {
+                if (form is RemoteVncViewerForm)
+                {
+                    try
+                    {
+                        form.Close();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
             DisposeRemoteManagementCards();
             _updatePreparationService.Dispose();
             _clientUpdateService.Dispose();

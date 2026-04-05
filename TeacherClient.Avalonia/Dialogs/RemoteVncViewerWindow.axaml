@@ -6,11 +6,18 @@
         Title="VNC Viewer"
         Background="Black">
   <Grid RowDefinitions="*,Auto">
-    <Image x:Name="ScreenImage"
-           Grid.Row="0"
-           Stretch="Uniform"
-           HorizontalAlignment="Stretch"
-           VerticalAlignment="Stretch" />
+    <!-- Image is not keyboard-focusable; route KeyDown/TextInput through this panel (needed on macOS). -->
+    <Border x:Name="ViewerInputRoot"
+            Grid.Row="0"
+            Background="Transparent"
+            Focusable="True"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+      <Image x:Name="ScreenImage"
+             Stretch="Uniform"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch" />
+    </Border>
 
     <Border Grid.Row="1"
             Background="#1F2937"
