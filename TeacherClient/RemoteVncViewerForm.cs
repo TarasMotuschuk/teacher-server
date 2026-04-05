@@ -99,7 +99,6 @@ public sealed class RemoteVncViewerForm : Form
             _statusLabel.Text = _session.ControlEnabled
                 ? TeacherClientText.RemoteManagementControl(_machineName)
                 : TeacherClientText.RemoteManagementViewOnly(_machineName);
-            await CaptureFrameAsync();
         }
         catch (Exception ex)
         {

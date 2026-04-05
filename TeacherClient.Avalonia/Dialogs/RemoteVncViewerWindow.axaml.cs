@@ -71,7 +71,6 @@ public partial class RemoteVncViewerWindow : Window
             StatusTextBlock.Text = _session.ControlEnabled
                 ? CrossPlatformText.RemoteManagementControl(_machineName)
                 : CrossPlatformText.RemoteManagementViewOnly(_machineName);
-            await CaptureFrameAsync();
         }
         catch (Exception ex)
         {

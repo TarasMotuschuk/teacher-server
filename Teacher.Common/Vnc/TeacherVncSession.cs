@@ -61,7 +61,6 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                 _client = client;
             }
 
-            await CaptureFrameAsync(cancellationToken);
             StatusChanged?.Invoke(this, "Connected");
         }
         catch

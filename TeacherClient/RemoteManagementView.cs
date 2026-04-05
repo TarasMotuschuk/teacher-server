@@ -252,6 +252,12 @@ public partial class MainForm
             return;
         }
 
+        if (card.LastFailureUtc is { } lastFailure &&
+            DateTimeOffset.UtcNow - lastFailure < TimeSpan.FromSeconds(5))
+        {
+            return;
+        }
+
         var key = $"{card.Agent.RespondingAddress}:{card.Agent.VncPort}:{card.Agent.VncViewOnly}:{_clientSettings.SharedSecret}";
         if (string.Equals(card.ConnectionKey, key, StringComparison.OrdinalIgnoreCase) &&
             card.Session?.IsConnected == true &&
@@ -299,6 +305,7 @@ public partial class MainForm
                     var frame = await session.CaptureFrameAsync(cancellation.Token);
                     if (frame is not null)
                     {
+                        card.LastFailureUtc = null;
                         var bitmap = CreateThumbnailBitmap(frame, 200);
                         SetRemoteManagementPreview(card, bitmap);
                         card.StatusLabel.BeginInvoke(new Action(() => card.StatusLabel.Text = BuildRemoteManagementStatusText(card.Agent)));
@@ -314,6 +321,7 @@ public partial class MainForm
             {
                 if (!IsDisposed)
                 {
+                    card.LastFailureUtc = DateTimeOffset.UtcNow;
                     BeginInvoke(new Action(() =>
                     {
                         card.StatusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(card.Agent.MachineName, ex.Message);
@@ -412,12 +420,24 @@ public partial class MainForm
             return;
         }
 
+        if (_remoteManagementCards.TryGetValue(agent.AgentId, out var card))
+        {
+            StopRemoteManagementPreview(card);
+        }
+
         var viewer = new RemoteVncViewerForm(
             agent.MachineName,
             agent.RespondingAddress,
             agent.VncPort,
             _clientSettings.SharedSecret,
             controlEnabled: !agent.VncViewOnly);
+        viewer.FormClosed += async (_, _) =>
+        {
+            if (!IsDisposed && _remoteManagementCards.TryGetValue(agent.AgentId, out var currentCard))
+            {
+                await EnsureRemoteManagementPreviewAsync(currentCard);
+            }
+        };
         viewer.Show(this);
         await Task.CompletedTask;
     }
@@ -489,6 +509,7 @@ public partial class MainForm
         public CancellationTokenSource? PreviewCancellation { get; set; }
         public Task? PreviewTask { get; set; }
         public string? ConnectionKey { get; set; }
+        public DateTimeOffset? LastFailureUtc { get; set; }
         public bool Selected { get; set; }
         public Bitmap? CurrentPreview { get; set; }
 

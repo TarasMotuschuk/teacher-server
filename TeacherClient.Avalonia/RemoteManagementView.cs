@@ -193,6 +193,12 @@ public partial class MainWindow
             return;
         }
 
+        if (tile.LastFailureUtc is { } lastFailure &&
+            DateTimeOffset.UtcNow - lastFailure < TimeSpan.FromSeconds(5))
+        {
+            return;
+        }
+
         var key = $"{tile.Agent.RespondingAddress}:{tile.Agent.VncPort}:{tile.Agent.VncViewOnly}:{_clientSettings.SharedSecret}";
         if (string.Equals(tile.ConnectionKey, key, StringComparison.OrdinalIgnoreCase) &&
             tile.Session?.IsConnected == true &&
@@ -243,6 +249,7 @@ public partial class MainWindow
                     var frame = await session.CaptureFrameAsync(cancellation.Token);
                     if (frame is not null)
                     {
+                        tile.LastFailureUtc = null;
                         var preview = CreatePreviewBitmap(frame);
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
@@ -261,6 +268,7 @@ public partial class MainWindow
             {
                 if (!_isClosing)
                 {
+                    tile.LastFailureUtc = DateTimeOffset.UtcNow;
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         tile.StatusText = CrossPlatformText.RemoteManagementConnectionFailed(tile.Agent.MachineName, ex.Message);
@@ -357,12 +365,29 @@ public partial class MainWindow
             return;
         }
 
+        var tile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
+        if (tile is not null)
+        {
+            StopRemoteManagementPreview(tile);
+        }
+
         var viewer = new Dialogs.RemoteVncViewerWindow(
             agent.MachineName,
             agent.RespondingAddress,
             agent.VncPort,
             _clientSettings.SharedSecret,
             controlEnabled: !agent.VncViewOnly);
+        viewer.Closed += async (_, _) =>
+        {
+            if (!_isClosing)
+            {
+                var currentTile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
+                if (currentTile is not null)
+                {
+                    await EnsureRemoteManagementPreviewAsync(currentTile);
+                }
+            }
+        };
         viewer.Show(this);
         await Task.CompletedTask;
     }
@@ -482,6 +507,7 @@ public partial class MainWindow
         public TeacherVncSession? Session { get; set; }
         public CancellationTokenSource? PreviewCancellation { get; set; }
         public Task? PreviewTask { get; set; }
+        public DateTimeOffset? LastFailureUtc { get; set; }
 
         public void SetPreview(PinnedPreviewBitmap? previewBitmap)
         {
