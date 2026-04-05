@@ -77,7 +77,10 @@ public sealed class RemoteVncViewerForm : Form
         Shown += async (_, _) =>
         {
             await ConnectAsync();
-            _refreshTimer.Start();
+            if (!_cancellation.IsCancellationRequested && !IsDisposed)
+            {
+                _refreshTimer.Start();
+            }
         };
         FormClosing += (_, _) =>
         {
@@ -87,8 +90,11 @@ public sealed class RemoteVncViewerForm : Form
             {
                 _session.Dispose();
             }
-            _cancellation.Dispose();
             DisposePicture();
+        };
+        FormClosed += (_, _) =>
+        {
+            _cancellation.Dispose();
         };
 
         _pictureBox.MouseDown += PictureBox_MouseDown;
@@ -111,15 +117,29 @@ public sealed class RemoteVncViewerForm : Form
             _statusLabel.Text = TeacherClientText.RemoteManagementConnecting(_machineName);
             if (!_session.IsConnected)
             {
-                await _session.ConnectAsync(_cancellation.Token);
+                // Handshake can run synchronously for long stretches; keep UI responsive.
+                // Do not pass CTS into Task.Run — cancel would fault the outer task and surface OCE to async void handlers.
+                await Task.Run(async () => await _session.ConnectAsync(_cancellation.Token));
             }
+
+            if (IsDisposed)
+            {
+                return;
+            }
+
             _statusLabel.Text = _session.ControlEnabled
                 ? TeacherClientText.RemoteManagementControl(_machineName)
                 : TeacherClientText.RemoteManagementViewOnly(_machineName);
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
-            _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            if (!IsDisposed)
+            {
+                _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            }
         }
     }
 
@@ -137,28 +157,34 @@ public sealed class RemoteVncViewerForm : Form
 
         try
         {
-            var frame = await _session.CaptureFrameAsync(_cancellation.Token);
-            if (frame is null)
+            // Timer runs on the UI thread; Capture + RGBA→BGRA + GDI+ bitmap are CPU-heavy and must not block it.
+            var (bitmap, frameW, frameH) = await Task.Run(
+                async () =>
+                {
+                    var frame = await _session.CaptureFrameAsync(_cancellation.Token);
+                    if (frame is null)
+                    {
+                        return ((Bitmap?)null, 0, 0);
+                    }
+
+                    var resized = ResizeForViewer(frame, MaxViewerFrameWidth, MaxViewerFrameHeight);
+                    return (CreateBitmap(resized), frame.Width, frame.Height);
+                },
+                _cancellation.Token);
+
+            if (bitmap is null)
             {
                 return;
             }
 
-            _frameWidth = frame.Width;
-            _frameHeight = frame.Height;
-
-            var bitmap = CreateBitmap(ResizeForViewer(frame, MaxViewerFrameWidth, MaxViewerFrameHeight));
             if (IsDisposed)
             {
                 bitmap.Dispose();
                 return;
             }
 
-            if (_pictureBox.InvokeRequired)
-            {
-                _pictureBox.BeginInvoke(new Action(() => SetPicture(bitmap)));
-                return;
-            }
-
+            _frameWidth = frameW;
+            _frameHeight = frameH;
             SetPicture(bitmap);
         }
         catch (OperationCanceledException)
@@ -166,7 +192,10 @@ public sealed class RemoteVncViewerForm : Form
         }
         catch (Exception ex)
         {
-            _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            if (!IsDisposed)
+            {
+                _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            }
         }
         finally
         {
@@ -354,8 +383,7 @@ public sealed class RemoteVncViewerForm : Form
         var data = bitmap.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try
         {
-            var converted = ConvertRgbaToBgra(frame);
-            Marshal.Copy(converted, 0, data.Scan0, Math.Min(converted.Length, Math.Abs(data.Stride) * frame.Height));
+            Marshal.Copy(frame.Pixels, 0, data.Scan0, Math.Min(frame.Pixels.Length, Math.Abs(data.Stride) * frame.Height));
         }
         finally
         {
@@ -363,30 +391,6 @@ public sealed class RemoteVncViewerForm : Form
         }
 
         return bitmap;
-    }
-
-    private static byte[] ConvertRgbaToBgra(VncFrameCapture frame)
-    {
-        var converted = new byte[frame.Width * frame.Height * 4];
-
-        for (var y = 0; y < frame.Height; y++)
-        {
-            var sourceRow = y * frame.Stride;
-            var targetRow = y * frame.Width * 4;
-
-            for (var x = 0; x < frame.Width; x++)
-            {
-                var sourceIndex = sourceRow + (x * 4);
-                var targetIndex = targetRow + (x * 4);
-
-                converted[targetIndex] = frame.Pixels[sourceIndex + 2];
-                converted[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
-                converted[targetIndex + 2] = frame.Pixels[sourceIndex];
-                converted[targetIndex + 3] = 255;
-            }
-        }
-
-        return converted;
     }
 
     private static VncFrameCapture ResizeForViewer(VncFrameCapture frame, int maxWidth, int maxHeight)

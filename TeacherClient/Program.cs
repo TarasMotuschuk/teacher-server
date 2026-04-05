@@ -35,6 +35,11 @@ internal static class Program
             return;
         }
 
+        if (exception is OperationCanceledException)
+        {
+            return;
+        }
+
         MessageBox.Show(
             exception.Message,
             TeacherClientText.MainTitle,

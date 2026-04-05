@@ -41,6 +41,8 @@ public partial class RemoteVncViewerWindow : Window
         InitializeComponent();
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
+        // CenterOwner in XAML conflicts with Maximized on some Windows builds; maximize after open.
+        WindowStartupLocation = WindowStartupLocation.Manual;
         WindowState = WindowState.Maximized;
 
         _refreshTimer.Interval = TimeSpan.FromMilliseconds(500);
@@ -48,6 +50,7 @@ public partial class RemoteVncViewerWindow : Window
 
         Opened += async (_, _) =>
         {
+            WindowState = WindowState.Maximized;
             await ConnectAsync();
             _refreshTimer.Start();
         };
@@ -140,12 +143,6 @@ public partial class RemoteVncViewerWindow : Window
         {
             Interlocked.Exchange(ref _captureInProgress, 0);
         }
-    }
-
-    private void SetBitmap(Bitmap bitmap)
-    {
-        DisposeBitmap();
-        ScreenImage.Source = bitmap;
     }
 
     private void DisposeBitmap()
@@ -360,6 +357,7 @@ public partial class RemoteVncViewerWindow : Window
         var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
         try
         {
+            // Pixels from TeacherVncSession are BGRA (see Teacher.Common VncFrameCapture).
             var bitmap = new Bitmap(
                 Avalonia.Platform.PixelFormat.Bgra8888,
                 AlphaFormat.Opaque,

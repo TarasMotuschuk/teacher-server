@@ -262,17 +262,20 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                     return null;
                 }
 
-                var pixels = new byte[_buffer.Length];
-                Buffer.BlockCopy(_buffer, 0, pixels, 0, _buffer.Length);
+                // MarcusW Plain is a 32-bit value R<<24|G<<16|B<<8|A; in little-endian memory that is bytes A,B,G,R (see Color.ToPlainPixel in MarcusW.VncClient).
+                var raw = new byte[_buffer.Length];
+                Buffer.BlockCopy(_buffer, 0, raw, 0, _buffer.Length);
 
-                // MarcusW.VncClient renders PixelFormat.Plain (RGBA).
-                // The VNC protocol does not use alpha, so keep the capture in RGBA and normalize alpha here.
-                for (var i = 0; i + 3 < pixels.Length; i += 4)
+                var bgra = new byte[raw.Length];
+                for (var i = 0; i + 3 < bgra.Length; i += 4)
                 {
-                    pixels[i + 3] = 255;
+                    bgra[i] = raw[i + 1];
+                    bgra[i + 1] = raw[i + 2];
+                    bgra[i + 2] = raw[i + 3];
+                    bgra[i + 3] = 255;
                 }
 
-                return new VncFrameCapture(_width, _height, _width * 4, pixels);
+                return new VncFrameCapture(_width, _height, _width * 4, bgra);
             }
         }
 

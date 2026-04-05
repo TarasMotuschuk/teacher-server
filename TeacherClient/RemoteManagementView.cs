@@ -82,7 +82,7 @@ public partial class MainForm
 
         foreach (var stale in _remoteManagementCards.Keys.Where(id => !keepIds.Contains(id)).ToList())
         {
-            RemoveRemoteManagementCard(stale);
+            await RemoveRemoteManagementCardAsync(stale);
         }
 
         foreach (var agent in onlineAgents)
@@ -94,7 +94,7 @@ public partial class MainForm
                 remoteManagementCardsPanel.Controls.Add(card.Container);
             }
 
-            UpdateRemoteManagementCard(card, agent);
+            await UpdateRemoteManagementCardAsync(card, agent);
         }
 
         if (!string.IsNullOrWhiteSpace(_remoteManagementSelectedAgentId) &&
@@ -223,14 +223,14 @@ public partial class MainForm
     {
         foreach (var card in _remoteManagementCards.Values.ToList())
         {
-            StopRemoteManagementPreview(card);
+            StopRemoteManagementPreviewSync(card);
             card.Dispose();
         }
 
         _remoteManagementCards.Clear();
     }
 
-    private void UpdateRemoteManagementCard(RemoteManagementCardState card, DiscoveredAgentRow agent)
+    private async Task UpdateRemoteManagementCardAsync(RemoteManagementCardState card, DiscoveredAgentRow agent)
     {
         card.Agent = agent;
         card.TitleLabel.Text = $"{agent.MachineName}";
@@ -241,7 +241,7 @@ public partial class MainForm
             return;
         }
 
-        StopRemoteManagementPreview(card);
+        await StopRemoteManagementPreviewAsync(card);
         SetRemoteManagementPreview(card, CreateRemoteManagementPlaceholderBitmap(agent, card.StatusLabel.Text));
     }
 
@@ -266,7 +266,7 @@ public partial class MainForm
             return;
         }
 
-        StopRemoteManagementPreview(card);
+        await StopRemoteManagementPreviewAsync(card);
         card.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
@@ -354,15 +354,49 @@ public partial class MainForm
         SetRemoteManagementPreview(card, CreateRemoteManagementPlaceholderBitmap(card.Agent, TeacherClientText.RemoteManagementConnecting(card.Agent.MachineName)));
     }
 
-    private void StopRemoteManagementPreview(RemoteManagementCardState card)
+    /// <summary>
+    /// Cancels the preview loop and waits for the background task to finish teardown.
+    /// Does not call <see cref="TeacherVncSession.Close"/> on the UI thread (that blocked the message loop and raced the preview task).
+    /// </summary>
+    private async Task StopRemoteManagementPreviewAsync(RemoteManagementCardState card)
     {
+        var wait = card.PreviewTask;
         card.PreviewCancellation?.Cancel();
-        card.Session?.Close();
-        card.Session?.Dispose();
         card.Session = null;
-        card.PreviewCancellation?.Dispose();
         card.PreviewCancellation = null;
         card.PreviewTask = null;
+        if (wait is not null)
+        {
+            try
+            {
+                await wait.ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    /// <summary>Same as <see cref="StopRemoteManagementPreviewAsync"/> but blocks (e.g. application exit).</summary>
+    private static void StopRemoteManagementPreviewSync(RemoteManagementCardState card)
+    {
+        var wait = card.PreviewTask;
+        card.PreviewCancellation?.Cancel();
+        card.Session = null;
+        card.PreviewCancellation = null;
+        card.PreviewTask = null;
+        if (wait is null)
+        {
+            return;
+        }
+
+        try
+        {
+            wait.GetAwaiter().GetResult();
+        }
+        catch
+        {
+        }
     }
 
     private async Task StartVncForRemoteManagementAsync(DiscoveredAgentRow agent, bool viewOnly)
@@ -428,7 +462,7 @@ public partial class MainForm
         if (_remoteManagementCards.TryGetValue(agent.AgentId, out var existingCard))
         {
             card = existingCard;
-            StopRemoteManagementPreview(card);
+            await StopRemoteManagementPreviewAsync(card);
         }
 
         var viewer = new RemoteVncViewerForm(
@@ -458,6 +492,8 @@ public partial class MainForm
         }
 
         viewer.Show(this);
+        viewer.BringToFront();
+        viewer.Activate();
         await Task.CompletedTask;
     }
 
@@ -490,14 +526,14 @@ public partial class MainForm
         }
     }
 
-    private void RemoveRemoteManagementCard(string agentId)
+    private async Task RemoveRemoteManagementCardAsync(string agentId)
     {
         if (!_remoteManagementCards.TryGetValue(agentId, out var card))
         {
             return;
         }
 
-        StopRemoteManagementPreview(card);
+        await StopRemoteManagementPreviewAsync(card);
         remoteManagementCardsPanel.Controls.Remove(card.Container);
         card.Dispose();
         _remoteManagementCards.Remove(agentId);
@@ -556,8 +592,7 @@ public partial class MainForm
         var sourceData = source.LockBits(new Rectangle(0, 0, sourceWidth, sourceHeight), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try
         {
-            var converted = ConvertRgbaToBgra(frame);
-            Marshal.Copy(converted, 0, sourceData.Scan0, Math.Min(converted.Length, Math.Abs(sourceData.Stride) * sourceHeight));
+            Marshal.Copy(frame.Pixels, 0, sourceData.Scan0, Math.Min(frame.Pixels.Length, Math.Abs(sourceData.Stride) * sourceHeight));
         }
         finally
         {
@@ -573,30 +608,6 @@ public partial class MainForm
 
         source.Dispose();
         return thumbnail;
-    }
-
-    private static byte[] ConvertRgbaToBgra(VncFrameCapture frame)
-    {
-        var converted = new byte[frame.Width * frame.Height * 4];
-
-        for (var y = 0; y < frame.Height; y++)
-        {
-            var sourceRow = y * frame.Stride;
-            var targetRow = y * frame.Width * 4;
-
-            for (var x = 0; x < frame.Width; x++)
-            {
-                var sourceIndex = sourceRow + (x * 4);
-                var targetIndex = targetRow + (x * 4);
-
-                converted[targetIndex] = frame.Pixels[sourceIndex + 2];
-                converted[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
-                converted[targetIndex + 2] = frame.Pixels[sourceIndex];
-                converted[targetIndex + 3] = 255;
-            }
-        }
-
-        return converted;
     }
 
     private static Bitmap CreateRemoteManagementPlaceholderBitmap(DiscoveredAgentRow agent, string status)

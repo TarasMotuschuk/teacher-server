@@ -1,9 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.Dialogs.RemoteVncViewerWindow"
-        Width="1280"
-        Height="800"
-        WindowStartupLocation="CenterOwner"
+        MinWidth="800"
+        MinHeight="600"
         Title="VNC Viewer"
         Background="Black">
   <Grid RowDefinitions="*,Auto">
