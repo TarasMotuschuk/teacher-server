@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Media;
 using Avalonia.Threading;
 using MarcusW.VncClient;
 using Teacher.Common.Vnc;
@@ -14,9 +15,6 @@ namespace TeacherClient.CrossPlatform.Dialogs;
 
 public partial class RemoteVncViewerWindow : Window
 {
-    private const int MaxViewerFrameWidth = 1600;
-    private const int MaxViewerFrameHeight = 900;
-
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
     private readonly DispatcherTimer _refreshTimer = new();
@@ -39,6 +37,7 @@ public partial class RemoteVncViewerWindow : Window
         _ownsSession = ownsSession;
 
         InitializeComponent();
+        RenderOptions.SetBitmapInterpolationMode(ScreenImage, BitmapInterpolationMode.HighQuality);
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
         // CenterOwner in XAML conflicts with Maximized on some Windows builds; maximize after open.
@@ -122,7 +121,7 @@ public partial class RemoteVncViewerWindow : Window
             _frameWidth = frame.Width;
             _frameHeight = frame.Height;
 
-            var bitmap = CreatePinnedBitmap(ResizeForViewer(frame, MaxViewerFrameWidth, MaxViewerFrameHeight));
+            var bitmap = CreatePinnedBitmap(ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight));
             if (Dispatcher.UIThread.CheckAccess())
             {
                 SetBitmap(bitmap);

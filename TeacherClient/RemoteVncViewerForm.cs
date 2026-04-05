@@ -11,9 +11,6 @@ namespace TeacherClient;
 
 public sealed class RemoteVncViewerForm : Form
 {
-    private const int MaxViewerFrameWidth = 1600;
-    private const int MaxViewerFrameHeight = 900;
-
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
     private readonly PictureBox _pictureBox;
@@ -48,7 +45,8 @@ public sealed class RemoteVncViewerForm : Form
         {
             Dock = DockStyle.Fill,
             BackColor = Color.Black,
-            SizeMode = PictureBoxSizeMode.StretchImage
+            // Zoom preserves aspect ratio (matches Avalonia Uniform); StretchImage can distort.
+            SizeMode = PictureBoxSizeMode.Zoom
         };
 
         _statusLabel = new Label
@@ -167,7 +165,7 @@ public sealed class RemoteVncViewerForm : Form
                         return ((Bitmap?)null, 0, 0);
                     }
 
-                    var resized = ResizeForViewer(frame, MaxViewerFrameWidth, MaxViewerFrameHeight);
+                    var resized = ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight);
                     return (CreateBitmap(resized), frame.Width, frame.Height);
                 },
                 _cancellation.Token);
@@ -383,7 +381,7 @@ public sealed class RemoteVncViewerForm : Form
         var data = bitmap.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try
         {
-            Marshal.Copy(frame.Pixels, 0, data.Scan0, Math.Min(frame.Pixels.Length, Math.Abs(data.Stride) * frame.Height));
+            VncBgraBitmapUtils.CopyTightBgraToLockedBitmap(frame.Pixels, frame.Width, frame.Height, frame.Stride, data);
         }
         finally
         {

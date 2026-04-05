@@ -310,7 +310,7 @@ public partial class MainForm
                     if (frame is not null)
                     {
                         card.LastFailureUtc = null;
-                        var bitmap = CreateThumbnailBitmap(frame, 200);
+                        var bitmap = CreateThumbnailBitmap(frame, 220);
                         SetRemoteManagementPreview(card, bitmap);
                         card.StatusLabel.BeginInvoke(new Action(() => card.StatusLabel.Text = BuildRemoteManagementStatusText(card.Agent)));
                     }
@@ -459,18 +459,29 @@ public partial class MainForm
         }
 
         RemoteManagementCardState? card = null;
+        TeacherVncSession? sharedSession = null;
         if (_remoteManagementCards.TryGetValue(agent.AgentId, out var existingCard))
         {
             card = existingCard;
-            await StopRemoteManagementPreviewAsync(card);
+            if (existingCard.Session?.IsConnected == true)
+            {
+                sharedSession = existingCard.Session;
+                sharedSession.ControlEnabled = !agent.VncViewOnly;
+            }
+            else
+            {
+                await StopRemoteManagementPreviewAsync(existingCard);
+            }
         }
 
-        var viewer = new RemoteVncViewerForm(
-            agent.MachineName,
-            agent.RespondingAddress,
-            agent.VncPort,
-            _clientSettings.SharedSecret,
-            controlEnabled: !agent.VncViewOnly);
+        var viewer = sharedSession is not null
+            ? new RemoteVncViewerForm(agent.MachineName, sharedSession, ownsSession: false)
+            : new RemoteVncViewerForm(
+                agent.MachineName,
+                agent.RespondingAddress,
+                agent.VncPort,
+                _clientSettings.SharedSecret,
+                controlEnabled: !agent.VncViewOnly);
 
         if (card is not null)
         {
@@ -592,7 +603,7 @@ public partial class MainForm
         var sourceData = source.LockBits(new Rectangle(0, 0, sourceWidth, sourceHeight), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try
         {
-            Marshal.Copy(frame.Pixels, 0, sourceData.Scan0, Math.Min(frame.Pixels.Length, Math.Abs(sourceData.Stride) * sourceHeight));
+            VncBgraBitmapUtils.CopyTightBgraToLockedBitmap(frame.Pixels, sourceWidth, sourceHeight, frame.Stride, sourceData);
         }
         finally
         {
