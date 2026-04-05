@@ -1,26 +1,34 @@
 #!/bin/bash
 set -euo pipefail
+export COPYFILE_DISABLE=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_PATH="$REPO_ROOT/TeacherClient.Avalonia/TeacherClient.Avalonia.csproj"
 SETUP_ROOT="$SCRIPT_DIR"
-
 CONFIGURATION="${CONFIGURATION:-Release}"
 RUNTIME="${RUNTIME:-osx-arm64}"
 APP_NAME="${APP_NAME:-ClassCommander.app}"
 PRODUCT_NAME="${PRODUCT_NAME:-ClassCommander}"
 BUNDLE_ID="${BUNDLE_ID:-com.tarasmotuschuk.teacherclient.avalonia}"
-VERSION="${VERSION:-1.0.0}"
+DEFAULT_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$REPO_ROOT/Directory.Build.props" | head -n 1)"
+VERSION="${VERSION:-${DEFAULT_VERSION:-1.0.0}}"
 PUBLISH_DIR="$SETUP_ROOT/artifacts/publish"
 APP_DIR="$SETUP_ROOT/artifacts/$APP_NAME"
-STAGING_DIR="$SETUP_ROOT/artifacts/staging"
 PKG_DIR="$SETUP_ROOT/dist"
 PKG_PATH="$PKG_DIR/ClassCommander-macos.pkg"
 ICON_PATH="$REPO_ROOT/Branding/ClassCommander-icon.icns"
+STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/classcommander-pkg.XXXXXX")"
 
-mkdir -p "$PUBLISH_DIR" "$STAGING_DIR" "$PKG_DIR"
-rm -rf "$PUBLISH_DIR" "$APP_DIR" "$STAGING_DIR/$APP_NAME"
+cleanup() {
+  rm -rf "$STAGING_DIR"
+}
+
+trap cleanup EXIT
+
+mkdir -p "$PUBLISH_DIR" "$PKG_DIR"
+rm -rf "$PUBLISH_DIR" "$APP_DIR" "$PKG_PATH"
+mkdir -p "$PUBLISH_DIR" "$PKG_DIR" "$STAGING_DIR"
 
 echo "Publishing self-contained Avalonia client..."
 dotnet publish "$PROJECT_PATH" \
@@ -30,7 +38,7 @@ dotnet publish "$PROJECT_PATH" \
   -o "$PUBLISH_DIR"
 
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
-cp -R "$PUBLISH_DIR/." "$APP_DIR/Contents/MacOS/"
+ditto --norsrc "$PUBLISH_DIR" "$APP_DIR/Contents/MacOS"
 
 INFO_PLIST_TEMPLATE="$SETUP_ROOT/Resources/Info.plist.template"
 INFO_PLIST_PATH="$APP_DIR/Contents/Info.plist"
@@ -43,14 +51,14 @@ sed \
   "$INFO_PLIST_TEMPLATE" > "$INFO_PLIST_PATH"
 
 if [[ -f "$ICON_PATH" ]]; then
-  cp "$ICON_PATH" "$APP_DIR/Contents/Resources/AppIcon.icns"
+  ditto --norsrc "$ICON_PATH" "$APP_DIR/Contents/Resources/AppIcon.icns"
 fi
 
 echo -n "APPL????" > "$APP_DIR/Contents/PkgInfo"
 chmod +x "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
-
-mkdir -p "$STAGING_DIR"
-cp -R "$APP_DIR" "$STAGING_DIR/$APP_NAME"
+find "$APP_DIR" -name '._*' -delete
+find "$APP_DIR" -name '.DS_Store' -delete
+ditto --norsrc "$APP_DIR" "$STAGING_DIR/$APP_NAME"
 
 echo "Building macOS installer package..."
 pkgbuild \

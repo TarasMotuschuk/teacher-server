@@ -21,5 +21,7 @@ cd TeacherClient.Avalonia.Setup
 
 ## Output
 
-- App bundle: `artifacts/Teacher Classroom Client.app`
-- Installer: `dist/TeacherClassroomClient-macos.pkg`
+- App bundle: `artifacts/ClassCommander.app`
+- Installer: `dist/ClassCommander-macos.pkg`
+
+The `.pkg` installs the bundle into `/Applications` (see `Build-MacInstaller.sh`). Optional environment variables include `APP_NAME`, `PRODUCT_NAME`, `BUNDLE_ID`, `VERSION`, `CONFIGURATION`, and `RUNTIME` (defaults match CI: `Release`, `osx-arm64`).

@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 using Teacher.Common;
 using Teacher.Common.Contracts;
+using Teacher.Common.Vnc;
 using TeacherClient.Models;
 using TeacherClient.Services;
 using TeacherClient.Localization;
@@ -23,6 +25,7 @@ public partial class MainForm : Form
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
     private readonly System.Windows.Forms.Timer _updateStatusTimer = new();
+    private readonly Dictionary<string, RemoteManagementCardState> _remoteManagementCards = new(StringComparer.OrdinalIgnoreCase);
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<FrequentProgramEntry> _frequentPrograms = [];
@@ -39,6 +42,7 @@ public partial class MainForm : Form
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
+    private string? _remoteManagementSelectedAgentId;
 
     public MainForm()
     {
@@ -87,6 +91,23 @@ public partial class MainForm : Form
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+            // Remote management preview tears down shared TeacherVncSession instances. Close fullscreen
+            // viewers first or their session is disposed under them and the process can fault.
+            foreach (Form form in Application.OpenForms.Cast<Form>().ToArray())
+            {
+                if (form is RemoteVncViewerForm)
+                {
+                    try
+                    {
+                        form.Close();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            DisposeRemoteManagementCards();
             _updatePreparationService.Dispose();
             _clientUpdateService.Dispose();
         };
@@ -678,6 +699,7 @@ public partial class MainForm : Form
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
+            await RefreshRemoteManagementCardsAsync();
             await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false);
 
             SetStatus(_allAgents.Count == 0
@@ -2840,6 +2862,7 @@ public partial class MainForm : Form
                     if (info is not null)
                     {
                         var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
+                        var vncStatus = await reachabilityClient.GetVncStatusAsync();
                         updatedAgents.Add(agent with
                         {
                             Status = TeacherClientText.Online,
@@ -2847,6 +2870,11 @@ public partial class MainForm : Form
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                            VncEnabled = vncStatus?.Enabled ?? false,
+                            VncRunning = vncStatus?.Running ?? false,
+                            VncViewOnly = vncStatus?.ViewOnly ?? true,
+                            VncPort = vncStatus?.Port ?? 0,
+                            VncStatusMessage = vncStatus?.Message ?? string.Empty,
                             Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                                 ? updateStatus.AvailableVersion ?? info.AgentVersion
                                 : info.AgentVersion
@@ -2869,6 +2897,7 @@ public partial class MainForm : Form
                 {
                     var info = await reachabilityClient.GetServerInfoAsync();
                     var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
+                    var vncStatus = await reachabilityClient.GetVncStatusAsync();
                     updatedAgents.Add(agent with
                     {
                         Status = TeacherClientText.Online,
@@ -2876,6 +2905,11 @@ public partial class MainForm : Form
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                        VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
+                        VncRunning = vncStatus?.Running ?? agent.VncRunning,
+                        VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
+                        VncPort = vncStatus?.Port ?? agent.VncPort,
+                        VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
                         Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                             ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
                             : info?.AgentVersion ?? agent.Version
@@ -2983,6 +3017,11 @@ public partial class MainForm : Form
         string Notes,
         string UpdateStatusBadge,
         string Version,
+        bool VncEnabled,
+        bool VncRunning,
+        bool VncViewOnly,
+        int VncPort,
+        string VncStatusMessage,
         DateTime LastSeenUtc,
         bool IsManual)
     {
@@ -3005,6 +3044,11 @@ public partial class MainForm : Form
                 string.Empty,
                 string.Empty,
                 dto.Version,
+                false,
+                false,
+                true,
+                0,
+                string.Empty,
                 dto.LastSeenUtc,
                 false);
         }
@@ -3024,6 +3068,11 @@ public partial class MainForm : Form
                 entry.Notes,
                 string.Empty,
                 TeacherClientText.ManualVersion,
+                false,
+                false,
+                true,
+                0,
+                string.Empty,
                 DateTime.MinValue,
                 true);
         }

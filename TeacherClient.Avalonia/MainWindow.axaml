@@ -35,6 +35,14 @@
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,0,0" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="Background" Value="#3B82F6" />
+    </Style>
     <Style Selector="Button.tabAction">
       <Setter Property="Padding" Value="5,2" />
       <Setter Property="MinHeight" Value="30" />
@@ -373,6 +381,71 @@
               </DataGrid.Columns>
             </DataGrid>
           </Grid>
+        </Grid>
+      </TabItem>
+
+      <TabItem x:Name="RemoteManagementTabItem" Header="Remote management">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="148" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
+            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="180" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
+            <Button x:Name="StartVncControlButton" Classes="tabAction" Width="180" Margin="0,0,5,5" Click="StartVncControlButton_OnClick" />
+            <Button x:Name="StopVncButton" Classes="tabAction" Width="132" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
+            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="178" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
+          </WrapPanel>
+
+          <TextBlock x:Name="RemoteManagementHintTextBlock"
+                     Grid.Row="1"
+                     Margin="0,0,0,12"
+                     Foreground="#94A3B8"
+                     TextWrapping="Wrap"
+                     Text="Double-click a tile to open the fullscreen viewer. The buttons above start or stop VNC for the selected PC." />
+
+          <ListBox x:Name="RemoteManagementListBox"
+                   Grid.Row="2"
+                   SelectionMode="Single"
+                   DoubleTapped="RemoteManagementListBox_OnDoubleTapped">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Width="238"
+                        Height="286"
+                        Margin="0,0,12,12"
+                        Padding="2"
+                        Background="#BFC7D0"
+                        BorderBrush="{Binding SelectionBrush}"
+                        BorderThickness="3"
+                        CornerRadius="8">
+                  <Border Background="#171D24" CornerRadius="6" Padding="10">
+                    <Grid RowDefinitions="154,32,*">
+                      <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
+                        <Image Source="{Binding PreviewBitmap}"
+                               Stretch="UniformToFill"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Stretch" />
+                      </Border>
+                      <TextBlock Grid.Row="1"
+                                 Text="{Binding MachineName}"
+                                 FontSize="15"
+                                 FontWeight="Bold"
+                                 Foreground="White"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                      <TextBlock Grid.Row="2"
+                                 Margin="0,2,0,0"
+                                 Text="{Binding StatusText}"
+                                 Foreground="#CBD5E1"
+                                 TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
         </Grid>
       </TabItem>
     </TabControl>

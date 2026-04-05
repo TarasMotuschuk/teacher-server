@@ -14,6 +14,7 @@ partial class MainForm
     private TabPage processesTabPage = null!;
     private TabPage filesTabPage = null!;
     private TabPage registryTabPage = null!;
+    private TabPage remoteManagementTabPage = null!;
     private TreeView registryTreeView = null!;
     private DataGridView registryValuesGrid = null!;
     private Button settingsButton = null!;
@@ -48,6 +49,9 @@ partial class MainForm
     private ComboBox groupFilterComboBox = null!;
     private ComboBox statusFilterComboBox = null!;
     private CheckBox autoReconnectCheckBox = null!;
+    private ToolStrip remoteManagementToolStrip = null!;
+    private FlowLayoutPanel remoteManagementCardsPanel = null!;
+    private Label remoteManagementHintLabel = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -68,6 +72,7 @@ partial class MainForm
         processesTabPage = new TabPage();
         filesTabPage = new TabPage();
         registryTabPage = new TabPage();
+        remoteManagementTabPage = new TabPage();
         registryTreeView = new TreeView();
         registryValuesGrid = new DataGridView();
         settingsButton = new Button();
@@ -102,6 +107,9 @@ partial class MainForm
         groupFilterComboBox = new ComboBox();
         statusFilterComboBox = new ComboBox();
         autoReconnectCheckBox = new CheckBox();
+        remoteManagementToolStrip = new ToolStrip();
+        remoteManagementCardsPanel = new FlowLayoutPanel();
+        remoteManagementHintLabel = new Label();
         SuspendLayout();
 
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -253,6 +261,7 @@ partial class MainForm
         mainTabControl.TabPages.Add(processesTabPage);
         mainTabControl.TabPages.Add(filesTabPage);
         mainTabControl.TabPages.Add(registryTabPage);
+        mainTabControl.TabPages.Add(remoteManagementTabPage);
 
         agentsTabPage.Text = TeacherClientText.AgentsTab;
         agentsTabPage.BackColor = Color.FromArgb(236, 239, 243);
@@ -262,6 +271,8 @@ partial class MainForm
         filesTabPage.BackColor = Color.FromArgb(236, 239, 243);
         registryTabPage.Text = TeacherClientText.RegistryTab;
         registryTabPage.BackColor = Color.FromArgb(236, 239, 243);
+        remoteManagementTabPage.Text = TeacherClientText.RemoteManagementTab;
+        remoteManagementTabPage.BackColor = Color.FromArgb(236, 239, 243);
 
         ConfigureGrid(agentsGrid);
         ConfigureGrid(processesGrid);
@@ -652,6 +663,45 @@ partial class MainForm
         registryLayout.Controls.Add(registryToolStrip, 0, 0);
         registryLayout.Controls.Add(registrySplit, 0, 1);
         registryTabPage.Controls.Add(registryLayout);
+
+        var remoteManagementLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(12),
+            ColumnCount = 1,
+            RowCount = 3
+        };
+        remoteManagementLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
+        remoteManagementLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+        remoteManagementLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        remoteManagementToolStrip = CreateTabToolStrip();
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshRemoteManagement, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, refreshRemoteManagementButton_Click));
+        remoteManagementToolStrip.Items.Add(new ToolStripSeparator());
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartVncViewOnly, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, startRemoteManagementViewOnlyButton_Click));
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartVncControl, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, startRemoteManagementControlButton_Click));
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StopVnc, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, stopRemoteManagementButton_Click));
+        remoteManagementToolStrip.Items.Add(new ToolStripSeparator());
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenFullscreenViewer, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, openRemoteManagementViewerButton_Click));
+
+        remoteManagementHintLabel.Dock = DockStyle.Fill;
+        remoteManagementHintLabel.TextAlign = ContentAlignment.MiddleLeft;
+        remoteManagementHintLabel.ForeColor = Color.FromArgb(76, 86, 103);
+        remoteManagementHintLabel.Text = TeacherClientText.RemoteManagementHint;
+        remoteManagementHintLabel.AutoEllipsis = true;
+        remoteManagementHintLabel.Margin = new Padding(0, 4, 0, 4);
+
+        remoteManagementCardsPanel.Dock = DockStyle.Fill;
+        remoteManagementCardsPanel.AutoScroll = true;
+        remoteManagementCardsPanel.WrapContents = true;
+        remoteManagementCardsPanel.FlowDirection = FlowDirection.LeftToRight;
+        remoteManagementCardsPanel.Padding = new Padding(0, 0, 0, 4);
+        remoteManagementCardsPanel.BackColor = Color.FromArgb(236, 239, 243);
+
+        remoteManagementLayout.Controls.Add(remoteManagementToolStrip, 0, 0);
+        remoteManagementLayout.Controls.Add(remoteManagementHintLabel, 0, 1);
+        remoteManagementLayout.Controls.Add(remoteManagementCardsPanel, 0, 2);
+        remoteManagementTabPage.Controls.Add(remoteManagementLayout);
 
         Controls.Add(mainTabControl);
         Controls.Add(topPanel);

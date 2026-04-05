@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.RemoteVncViewerWindow"
+        MinWidth="800"
+        MinHeight="600"
+        Title="VNC Viewer"
+        Background="Black">
+  <Grid RowDefinitions="*,Auto">
+    <!-- Image is not keyboard-focusable; route KeyDown/TextInput through this panel (needed on macOS). -->
+    <Border x:Name="ViewerInputRoot"
+            Grid.Row="0"
+            Background="Transparent"
+            Focusable="True"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+      <Image x:Name="ScreenImage"
+             Stretch="Uniform"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch" />
+    </Border>
+
+    <Border Grid.Row="1"
+            Background="#1F2937"
+            Padding="12,8">
+      <TextBlock x:Name="StatusTextBlock"
+                 Foreground="#F8FAFC"
+                 TextWrapping="Wrap" />
+    </Border>
+  </Grid>
+</Window>

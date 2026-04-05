@@ -21,6 +21,11 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
 
     protected override void HandleExitRequested()
     {
+        if (!PromptForPassword())
+        {
+            return;
+        }
+
         ExitThread();
     }
 

@@ -58,7 +58,7 @@ if ($LASTEXITCODE -ne 0) {
     -DirectoryRefId "STUDENTDIR" `
     -ComponentGroupId "StudentPayloadGroup" `
     -OutputPath (Join-Path $generatedDirectory "StudentPayload.wxs") `
-    -ExcludeFiles @("StudentAgent.Service.exe", "StudentAgent.UIHost.exe")
+    -ExcludeFiles @("StudentAgent.Service.exe", "StudentAgent.UIHost.exe", "StudentAgent.VncHost.exe")
 
 if ($LASTEXITCODE -ne 0) {
     throw "Generating student WiX fragment failed."

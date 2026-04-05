@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentAgent.Service", "Stu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentAgent.UIHost", "StudentAgent.UIHost\StudentAgent.UIHost.csproj", "{F6F66666-6666-6666-6666-666666666666}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentAgent.VncHost", "StudentAgent.VncHost\StudentAgent.VncHost.csproj", "{B8B88888-8888-8888-8888-888888888888}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentAgent.Updater", "StudentAgent.Updater\StudentAgent.Updater.csproj", "{B7B77777-7777-7777-7777-777777777777}"
 EndProject
 Global
@@ -40,6 +42,10 @@ Global
 		{F6F66666-6666-6666-6666-666666666666}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6F66666-6666-6666-6666-666666666666}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6F66666-6666-6666-6666-666666666666}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8B88888-8888-8888-8888-888888888888}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8B88888-8888-8888-8888-888888888888}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8B88888-8888-8888-8888-888888888888}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8B88888-8888-8888-8888-888888888888}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B7B77777-7777-7777-7777-777777777777}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B7B77777-7777-7777-7777-777777777777}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7B77777-7777-7777-7777-777777777777}.Release|Any CPU.ActiveCfg = Release|Any CPU

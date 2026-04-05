@@ -12,10 +12,25 @@
       Language="1033">
 
     <SummaryInformation Description="ClassCommander classroom tools installer." />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of ClassCommander is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of ClassCommander is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="ClassCommanderProductIcon" SourceFile="..\Branding\ClassCommander-icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="ClassCommanderProductIcon" />
+
+    <!--
+      UIHost/VncHost run in the user session (not as children of the service). If they are still
+      running, MSI cannot remove the EXEs. Service shutdown now terminates them; these entries are a
+      fallback during uninstall/repair (TerminateProcess after timeout).
+    -->
+    <util:CloseApplication Id="CloseStudentAgentUiHost"
+                           Target="StudentAgent.UIHost.exe"
+                           RebootPrompt="no"
+                           TerminateProcess="1" />
+    <util:CloseApplication Id="CloseStudentAgentVncHost"
+                           Target="StudentAgent.VncHost.exe"
+                           RebootPrompt="no"
+                           TerminateProcess="1" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="COMPANYFOLDER" Name="MTD">
@@ -74,6 +89,7 @@
     <Feature Id="StudentFeature" Title="Student workstation tools" Description="Install the privileged student service and session UI host." Level="1" AllowAdvertise="no">
       <ComponentRef Id="StudentServiceMainComponent" />
       <ComponentRef Id="StudentUiHostMainComponent" />
+      <ComponentRef Id="StudentVncHostMainComponent" />
       <ComponentRef Id="StudentAgentDataDirComponent" />
       <ComponentGroupRef Id="StudentPayloadGroup" />
     </Feature>
@@ -130,10 +146,19 @@
       <File Id="StudentAgentUiHostExe" Source="$(var.StudentPayloadDir)\StudentAgent.UIHost.exe" KeyPath="yes" />
     </Component>
 
+    <Component Id="StudentVncHostMainComponent" Directory="STUDENTDIR" Guid="*">
+      <File Id="StudentAgentVncHostExe" Source="$(var.StudentPayloadDir)\StudentAgent.VncHost.exe" KeyPath="yes" />
+      <firewall:FirewallException Id="StudentAgentVncHostFirewallRule"
+                                  Name="ClassCommander StudentAgent VNC Host"
+                                  Description="Allows the student VNC host to accept remote management connections."
+                                  Program="[#StudentAgentVncHostExe]"
+                                  Profile="all"
+                                  Scope="any" />
+    </Component>
+
     <ui:WixUI Id="WixUI_FeatureTree" />
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
-
 
 
