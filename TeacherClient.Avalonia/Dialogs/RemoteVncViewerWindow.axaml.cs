@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using MarcusW.VncClient;
 using Teacher.Common.Vnc;
 using TeacherClient.CrossPlatform.Localization;
 
@@ -231,7 +232,7 @@ public partial class RemoteVncViewerWindow : Window
                 continue;
             }
 
-            var keySym = RemoteViewing.Vnc.KeySymHelpers.FromChar(character);
+            var keySym = (KeySymbol)(uint)character;
             _session.SendKey(keySym, true);
             _session.SendKey(keySym, false);
         }
@@ -281,43 +282,43 @@ public partial class RemoteVncViewerWindow : Window
         return mask;
     }
 
-    private static RemoteViewing.Vnc.KeySym? MapSpecialKey(Key key)
+    private static KeySymbol? MapSpecialKey(Key key)
     {
         return key switch
         {
-            Key.Back => RemoteViewing.Vnc.KeySym.Backspace,
-            Key.Tab => RemoteViewing.Vnc.KeySym.Tab,
-            Key.Enter => RemoteViewing.Vnc.KeySym.Return,
-            Key.Escape => RemoteViewing.Vnc.KeySym.Escape,
-            Key.Space => RemoteViewing.Vnc.KeySym.Space,
-            Key.PageUp => RemoteViewing.Vnc.KeySym.PageUp,
-            Key.PageDown => RemoteViewing.Vnc.KeySym.PageDown,
-            Key.End => RemoteViewing.Vnc.KeySym.End,
-            Key.Home => RemoteViewing.Vnc.KeySym.Home,
-            Key.Left => RemoteViewing.Vnc.KeySym.Left,
-            Key.Up => RemoteViewing.Vnc.KeySym.Up,
-            Key.Right => RemoteViewing.Vnc.KeySym.Right,
-            Key.Down => RemoteViewing.Vnc.KeySym.Down,
-            Key.Insert => RemoteViewing.Vnc.KeySym.Insert,
-            Key.Delete => RemoteViewing.Vnc.KeySym.Delete,
-            Key.F1 => RemoteViewing.Vnc.KeySym.F1,
-            Key.F2 => RemoteViewing.Vnc.KeySym.F2,
-            Key.F3 => RemoteViewing.Vnc.KeySym.F3,
-            Key.F4 => RemoteViewing.Vnc.KeySym.F4,
-            Key.F5 => RemoteViewing.Vnc.KeySym.F5,
-            Key.F6 => RemoteViewing.Vnc.KeySym.F6,
-            Key.F7 => RemoteViewing.Vnc.KeySym.F7,
-            Key.F8 => RemoteViewing.Vnc.KeySym.F8,
-            Key.F9 => RemoteViewing.Vnc.KeySym.F9,
-            Key.F10 => RemoteViewing.Vnc.KeySym.F10,
-            Key.F11 => RemoteViewing.Vnc.KeySym.F11,
-            Key.F12 => RemoteViewing.Vnc.KeySym.F12,
-            Key.LeftShift => RemoteViewing.Vnc.KeySym.ShiftLeft,
-            Key.RightShift => RemoteViewing.Vnc.KeySym.ShiftRight,
-            Key.LeftCtrl => RemoteViewing.Vnc.KeySym.ControlLeft,
-            Key.RightCtrl => RemoteViewing.Vnc.KeySym.ControlRight,
-            Key.LeftAlt => RemoteViewing.Vnc.KeySym.AltLeft,
-            Key.RightAlt => RemoteViewing.Vnc.KeySym.AltRight,
+            Key.Back => KeySymbol.BackSpace,
+            Key.Tab => KeySymbol.Tab,
+            Key.Enter => KeySymbol.Return,
+            Key.Escape => KeySymbol.Escape,
+            Key.Space => KeySymbol.space,
+            Key.PageUp => KeySymbol.Page_Up,
+            Key.PageDown => KeySymbol.Page_Down,
+            Key.End => KeySymbol.End,
+            Key.Home => KeySymbol.Home,
+            Key.Left => KeySymbol.Left,
+            Key.Up => KeySymbol.Up,
+            Key.Right => KeySymbol.Right,
+            Key.Down => KeySymbol.Down,
+            Key.Insert => KeySymbol.Insert,
+            Key.Delete => KeySymbol.Delete,
+            Key.F1 => KeySymbol.F1,
+            Key.F2 => KeySymbol.F2,
+            Key.F3 => KeySymbol.F3,
+            Key.F4 => KeySymbol.F4,
+            Key.F5 => KeySymbol.F5,
+            Key.F6 => KeySymbol.F6,
+            Key.F7 => KeySymbol.F7,
+            Key.F8 => KeySymbol.F8,
+            Key.F9 => KeySymbol.F9,
+            Key.F10 => KeySymbol.F10,
+            Key.F11 => KeySymbol.F11,
+            Key.F12 => KeySymbol.F12,
+            Key.LeftShift => KeySymbol.Shift_L,
+            Key.RightShift => KeySymbol.Shift_R,
+            Key.LeftCtrl => KeySymbol.Control_L,
+            Key.RightCtrl => KeySymbol.Control_R,
+            Key.LeftAlt => KeySymbol.Alt_L,
+            Key.RightAlt => KeySymbol.Alt_R,
             _ => null
         };
     }
@@ -338,7 +339,7 @@ public partial class RemoteVncViewerWindow : Window
         try
         {
             var bitmap = new Bitmap(
-                PixelFormat.Bgra8888,
+                Avalonia.Platform.PixelFormat.Bgra8888,
                 AlphaFormat.Unpremul,
                 handle.AddrOfPinnedObject(),
                 new PixelSize(frame.Width, frame.Height),

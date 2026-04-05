@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using Teacher.Common;
 using Teacher.Common.Vnc;
 using TeacherClient.Localization;
-using KeySym = RemoteViewing.Vnc.KeySym;
+using KeySym = MarcusW.VncClient.KeySymbol;
 
 namespace TeacherClient;
 
@@ -252,7 +252,7 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
-        var keySym = RemoteViewing.Vnc.KeySymHelpers.FromChar(e.KeyChar);
+        var keySym = (KeySym)(uint)e.KeyChar;
         _session.SendKey(keySym, true);
         _session.SendKey(keySym, false);
         e.Handled = true;
@@ -283,17 +283,17 @@ public sealed class RemoteVncViewerForm : Form
         return pressed ? mask : 0;
     }
 
-    private static RemoteViewing.Vnc.KeySym? MapSpecialKey(Keys key)
+    private static KeySym? MapSpecialKey(Keys key)
     {
         return key switch
         {
-            Keys.Back => KeySym.Backspace,
+            Keys.Back => KeySym.BackSpace,
             Keys.Tab => KeySym.Tab,
             Keys.Return => KeySym.Return,
             Keys.Escape => KeySym.Escape,
-            Keys.Space => KeySym.Space,
-            Keys.PageUp => KeySym.PageUp,
-            Keys.PageDown => KeySym.PageDown,
+            Keys.Space => KeySym.space,
+            Keys.PageUp => KeySym.Page_Up,
+            Keys.PageDown => KeySym.Page_Down,
             Keys.End => KeySym.End,
             Keys.Home => KeySym.Home,
             Keys.Left => KeySym.Left,
@@ -314,11 +314,11 @@ public sealed class RemoteVncViewerForm : Form
             Keys.F10 => KeySym.F10,
             Keys.F11 => KeySym.F11,
             Keys.F12 => KeySym.F12,
-            Keys.ShiftKey => KeySym.ShiftLeft,
-            Keys.ControlKey => KeySym.ControlLeft,
-            Keys.Menu => KeySym.AltLeft,
-            _ when key >= Keys.A && key <= Keys.Z => RemoteViewing.Vnc.KeySymHelpers.FromChar((char)('a' + (key - Keys.A))),
-            _ when key >= Keys.D0 && key <= Keys.D9 => RemoteViewing.Vnc.KeySymHelpers.FromChar((char)('0' + (key - Keys.D0))),
+            Keys.ShiftKey => KeySym.Shift_L,
+            Keys.ControlKey => KeySym.Control_L,
+            Keys.Menu => KeySym.Alt_L,
+            _ when key >= Keys.A && key <= Keys.Z => (KeySym)(uint)('a' + (key - Keys.A)),
+            _ when key >= Keys.D0 && key <= Keys.D9 => (KeySym)(uint)('0' + (key - Keys.D0)),
             _ => null
         };
     }
