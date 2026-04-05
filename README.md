@@ -155,7 +155,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - preferred teacher-hosted update delivery with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for in-progress and rollback states.
 
-On macOS, quitting the app after using remote-management VNC tears down VNC sessions without blocking the UI thread, which avoids hangs or system watchdog termination during exit.
+On macOS, quitting the app after using remote-management VNC should tear down sessions safely: `CloseAsync` runs with the UI synchronization context cleared for that call so Avalonia does not deadlock, while VNC close/dispose still runs on the UI thread as required by the VNC client library.
 
 ### Teacher.Common
 

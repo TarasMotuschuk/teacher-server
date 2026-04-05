@@ -24,7 +24,7 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Fixed
 
-- `TeacherClient.Avalonia` (macOS): closing VNC sessions no longer runs synchronous async waits on the UI thread, avoiding hangs or watchdog termination when quitting after remote-management viewing
+- `TeacherClient.Avalonia` (macOS): closing VNC sessions clears the UI `SynchronizationContext` only for the duration of `CloseAsync` (avoids Avalonia deadlocks on quit without moving VNC teardown to another thread, which broke remote control and could abort the process)
 - Windows MSI: `MajorUpgrade` with same-version upgrades so reinstalling the same package version replaces the existing entry in *Apps & features* instead of creating duplicate listings
 - Windows: stopping `StudentAgent.Service` now terminates session `StudentAgent.UIHost` and `StudentAgent.VncHost` processes (they are not child processes of the service); the MSI also registers util `CloseApplication` for both EXEs as a fallback during uninstall/repair so files are not locked by orphan processes
 - Student-agent updater now stops the session `StudentAgent.UIHost` and retries locked file copies so updates no longer fail just because `Accessibility.dll` or another UI-hosted file is still in use

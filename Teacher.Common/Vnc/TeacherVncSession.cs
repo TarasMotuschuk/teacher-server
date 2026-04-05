@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Threading;
 using MarcusW.VncClient;
 using MarcusW.VncClient.Protocol.Implementation.MessageTypes.Outgoing;
 using MarcusW.VncClient.Protocol.Implementation.Services.Transports;
@@ -113,26 +114,22 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             connection.PropertyChanged -= ConnectionOnPropertyChanged;
             try
             {
-                // CloseAsync must not run synchronously on the UI thread: blocking Wait + library continuations
-                // that post back to the same synchronization context causes hangs on exit (macOS watchdog / crash reports).
-                Task.Run(() =>
+                // Blocking Wait on the UI thread + async continuations that post to the same sync context
+                // causes deadlocks on Avalonia/macOS during shutdown. Clearing the synchronization context
+                // for this wait avoids that without moving work to another thread (VNC close/dispose is not
+                // thread-safe across threads in all library builds).
+                var previous = SynchronizationContext.Current;
+                try
                 {
-                    try
-                    {
-                        connection.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                    }
-                    catch
-                    {
-                    }
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    connection.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                }
+                finally
+                {
+                    SynchronizationContext.SetSynchronizationContext(previous);
+                }
 
-                    try
-                    {
-                        connection.Dispose();
-                    }
-                    catch
-                    {
-                    }
-                }).GetAwaiter().GetResult();
+                connection.Dispose();
             }
             catch
             {
