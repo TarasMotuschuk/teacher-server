@@ -26,6 +26,16 @@ try
     var logService = new AgentLogService();
     var settingsStore = new AgentSettingsStore(Options.Create(agentOptions));
 
+    AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
+    {
+        logService.LogError($"Unhandled VNC host exception: {eventArgs.ExceptionObject}");
+    };
+    TaskScheduler.UnobservedTaskException += (_, eventArgs) =>
+    {
+        logService.LogError($"Unobserved VNC host task exception: {eventArgs.Exception}");
+        eventArgs.SetObserved();
+    };
+
     StudentAgentText.SetLanguage(settingsStore.Current.Language);
 
     var settings = settingsStore.Current;
@@ -56,6 +66,10 @@ try
     });
 
     using var host = builder.Build();
+    WireServerDiagnostics(
+        host.Services.GetRequiredService<IVncServer>(),
+        logService,
+        host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping);
     logService.LogInfo($"Starting VNC host on {IPAddress.Any}:{Math.Max(1, settings.VncPort)} (view-only: {settings.VncViewOnly}).");
     await host.RunAsync();
 }
@@ -64,6 +78,71 @@ catch (Exception ex)
     var startupLogPath = Path.Combine(StudentAgentPathHelper.GetLogsDirectory(), "studentagent-vnchost-startup-error.log");
     Directory.CreateDirectory(Path.GetDirectoryName(startupLogPath)!);
     File.WriteAllText(startupLogPath, ex.ToString());
+}
+
+static void WireServerDiagnostics(IVncServer server, AgentLogService logService, CancellationToken stoppingToken)
+{
+    server.Connected += (_, _) =>
+    {
+        logService.LogInfo($"VNC server connected. Active sessions: {server.Sessions.Count}.");
+    };
+    server.Closed += (_, _) =>
+    {
+        logService.LogInfo($"VNC server closed. Active sessions: {server.Sessions.Count}.");
+    };
+    server.PasswordProvided += (_, eventArgs) =>
+    {
+        logService.LogInfo($"VNC server password provided. Authenticated: {eventArgs.IsAuthenticated}.");
+    };
+
+    _ = Task.Run(async () =>
+    {
+        var knownSessions = new HashSet<IVncServerSession>();
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                foreach (var session in server.Sessions.ToList())
+                {
+                    if (!knownSessions.Add(session))
+                    {
+                        continue;
+                    }
+
+                    session.Connected += (_, _) =>
+                    {
+                        logService.LogInfo("VNC session connected.");
+                    };
+                    session.ConnectionFailed += (_, _) =>
+                    {
+                        logService.LogWarning("VNC session connection failed.");
+                    };
+                    session.Closed += (_, _) =>
+                    {
+                        logService.LogInfo("VNC session closed.");
+                    };
+                    session.PasswordProvided += (_, eventArgs) =>
+                    {
+                        logService.LogInfo($"VNC session password provided. Authenticated: {eventArgs.IsAuthenticated}.");
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.LogWarning($"Failed to inspect VNC sessions: {ex.Message}");
+            }
+
+            try
+            {
+                await Task.Delay(500, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }, stoppingToken);
 }
 
 internal sealed class AgentLogLoggerProvider : ILoggerProvider
