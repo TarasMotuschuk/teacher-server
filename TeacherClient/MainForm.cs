@@ -2711,12 +2711,31 @@ public partial class MainForm : Form
 
     private List<DiscoveredAgentRow> GetSelectedAgents()
     {
-        return agentsGrid.SelectedRows
+        // SelectedRows is often empty when the user only toggled template checkboxes or a cell selection
+        // did not promote to a full row selection — still treat those rows (and CurrentRow) as chosen.
+        var fromRows = agentsGrid.SelectedRows
             .Cast<DataGridViewRow>()
             .Select(x => x.DataBoundItem)
-            .OfType<DiscoveredAgentRow>()
-            .Distinct()
-            .ToList();
+            .OfType<DiscoveredAgentRow>();
+
+        var fromCells = agentsGrid.SelectedCells
+            .Cast<DataGridViewCell>()
+            .Where(c => c.RowIndex >= 0 && c.RowIndex < agentsGrid.RowCount)
+            .Select(c => agentsGrid.Rows[c.RowIndex].DataBoundItem)
+            .OfType<DiscoveredAgentRow>();
+
+        var merged = fromRows.Concat(fromCells).Distinct().ToList();
+        if (merged.Count > 0)
+        {
+            return merged;
+        }
+
+        if (agentsGrid.CurrentRow?.DataBoundItem is DiscoveredAgentRow current)
+        {
+            return [current];
+        }
+
+        return [];
     }
 
     private void ReplaceAgentRow(DiscoveredAgentRow updated)

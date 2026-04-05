@@ -58,7 +58,11 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             },
             AuthenticationHandler = new StaticAuthenticationHandler(VncPasswordHelper.Derive(_sharedSecret)),
             AllowSharedConnection = true,
-            InitialRenderTarget = _renderTarget
+            InitialRenderTarget = _renderTarget,
+            // When the server uses Tight subencoding with JPEG, prefer high quality and full chroma (visually lossless for typical UI).
+            // Lossless zlib/ZRLE rectangles ignore these; they are negotiated separately by the RFB stack.
+            JpegQualityLevel = 95,
+            JpegSubsamplingLevel = JpegSubsamplingLevel.None
         };
 
         var connection = await client.ConnectAsync(parameters, cancellationToken);

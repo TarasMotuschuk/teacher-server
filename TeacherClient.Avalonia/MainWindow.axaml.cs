@@ -2569,10 +2569,24 @@ public partial class MainWindow : Window
 
     private List<DiscoveredAgentRow> GetSelectedAgents()
     {
-        return AgentsGrid.SelectedItems?
+        var fromItems = AgentsGrid.SelectedItems?
             .OfType<DiscoveredAgentRow>()
             .Distinct()
             .ToList() ?? [];
+
+        if (fromItems.Count > 0)
+        {
+            return fromItems;
+        }
+
+        // Template columns (e.g. lock checkboxes) can absorb clicks so SelectedItems stays empty while
+        // SelectedItem still tracks the focused row.
+        if (AgentsGrid.SelectedItem is DiscoveredAgentRow single)
+        {
+            return [single];
+        }
+
+        return [];
     }
 
     private List<DiscoveredAgentRow> FilterOutCurrentConnectedAgent(IEnumerable<DiscoveredAgentRow> agents)

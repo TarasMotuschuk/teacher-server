@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-04-05
+
 ### Added
 
 - `StudentAgent.UIHost`: tray menu **Exit** now prompts for the same StudentAgent administrator password as **Settings** and **Logs**
@@ -21,9 +23,11 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - `StudentAgent.UIHost` now performs mandatory silent desktop-icon auto-restore on a timer using the locally saved default layout, matching the old `DesktopIconSaver` model
 - Browser-lock enforcement timers on the student side now use the centrally managed teacher-side interval instead of a hardcoded one-minute check
+- `Teacher.Common` VNC client: requests JPEG quality 95 and no chroma subsampling for Tight+JPEG subencoding when the server sends JPEG rectangles (lossless zlib/ZRLE paths are unchanged)
 
 ### Fixed
 
+- Teacher clients (WinForms + Avalonia): group commands for **selected** agents now include the current row and cell-based selection (e.g. after toggling Browser lock / Input lock checkboxes), fixing empty or wrong targets for bulk power actions and similar operations
 - `StudentAgent.UIHost`: input lock now installs low-level keyboard and mouse hooks (`WH_KEYBOARD_LL` / `WH_MOUSE_LL`) so keys (including Windows / Start) and pointer input are blocked session-wide, not only when the overlay form had Win32 focus
 - WinForms `TeacherClient`: fullscreen remote VNC viewer now routes keyboard through a focusable content panel (click focuses it) and sends printable characters only via `KeyPress`, so typed text and non-Latin layouts reach the student PC; letter keys are no longer sent twice from `KeyDown`+`KeyPress`
 - `TeacherClient.Avalonia`: remote VNC viewer routes keyboard/`TextInput` through a transparent focusable panel around the screen (not the window alone), with deferred focus after load — fixes missing text input on some platforms (e.g. macOS); space is no longer sent twice (`KeyDown`+`TextInput`)
