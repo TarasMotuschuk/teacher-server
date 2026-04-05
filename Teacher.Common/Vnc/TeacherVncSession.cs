@@ -214,6 +214,7 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         private GCHandle _bufferHandle;
         private int _width;
         private int _height;
+        private int _activeReferences;
         private bool _disposed;
 
         public event EventHandler? FrameUpdated;
@@ -227,6 +228,13 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                 var width = Math.Max(1, size.Width);
                 var height = Math.Max(1, size.Height);
                 var requiredLength = width * height * 4;
+
+                while ((_width != width || _height != height || _buffer.Length != requiredLength) && _activeReferences > 0)
+                {
+                    Monitor.Wait(_sync);
+                    ObjectDisposedException.ThrowIf(_disposed, this);
+                }
+
                 if (_buffer.Length != requiredLength)
                 {
                     if (_bufferHandle.IsAllocated)
@@ -240,8 +248,8 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                     _height = height;
                 }
 
-                Monitor.Enter(_sync);
-                return new FramebufferReference(this);
+                _activeReferences++;
+                return new FramebufferReference(this, _bufferHandle.AddrOfPinnedObject(), new Size(_width, _height));
             }
         }
 
@@ -257,10 +265,11 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                 var pixels = new byte[_buffer.Length];
                 Buffer.BlockCopy(_buffer, 0, pixels, 0, _buffer.Length);
 
-                // MarcusW.VncClient renders PixelFormat.Plain (RGBA). The existing viewers expect BGRA.
+                // MarcusW.VncClient renders PixelFormat.Plain (RGBA).
+                // The VNC protocol does not use alpha, so keep the capture in RGBA and normalize alpha here.
                 for (var i = 0; i + 3 < pixels.Length; i += 4)
                 {
-                    (pixels[i], pixels[i + 2]) = (pixels[i + 2], pixels[i]);
+                    pixels[i + 3] = 255;
                 }
 
                 return new VncFrameCapture(_width, _height, _width * 4, pixels);
@@ -269,6 +278,8 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
 
         public void Dispose()
         {
+            byte[]? bufferToClear = null;
+
             lock (_sync)
             {
                 if (_disposed)
@@ -277,42 +288,35 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                 }
 
                 _disposed = true;
+                while (_activeReferences > 0)
+                {
+                    Monitor.Wait(_sync);
+                }
+
                 if (_bufferHandle.IsAllocated)
                 {
                     _bufferHandle.Free();
                 }
 
+                bufferToClear = _buffer;
                 _buffer = [];
                 _width = 0;
                 _height = 0;
             }
+
+            if (bufferToClear is not null)
+            {
+                Array.Clear(bufferToClear);
+            }
         }
 
-        private sealed class FramebufferReference(FramebufferRenderTarget owner) : IFramebufferReference
+        private sealed class FramebufferReference(FramebufferRenderTarget owner, IntPtr address, Size size) : IFramebufferReference
         {
             private bool _disposed;
 
-            public IntPtr Address
-            {
-                get
-                {
-                    lock (owner._sync)
-                    {
-                        return owner._bufferHandle.AddrOfPinnedObject();
-                    }
-                }
-            }
+            public IntPtr Address { get; } = address;
 
-            public Size Size
-            {
-                get
-                {
-                    lock (owner._sync)
-                    {
-                        return new Size(owner._width, owner._height);
-                    }
-                }
-            }
+            public Size Size { get; } = size;
 
             public PixelFormat Format => PixelFormat.Plain;
 
@@ -328,8 +332,13 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                 }
 
                 _disposed = true;
+                lock (owner._sync)
+                {
+                    owner._activeReferences = Math.Max(0, owner._activeReferences - 1);
+                    Monitor.PulseAll(owner._sync);
+                }
+
                 owner.FrameUpdated?.Invoke(owner, EventArgs.Empty);
-                Monitor.Exit(owner._sync);
             }
         }
     }

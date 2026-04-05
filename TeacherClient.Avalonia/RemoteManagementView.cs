@@ -211,7 +211,11 @@ public partial class MainWindow
         tile.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
-        var session = new TeacherVncSession(tile.Agent.RespondingAddress, tile.Agent.VncPort, _clientSettings.SharedSecret);
+        var session = new TeacherVncSession(
+            tile.Agent.RespondingAddress,
+            tile.Agent.VncPort,
+            _clientSettings.SharedSecret,
+            controlEnabled: !tile.Agent.VncViewOnly);
         tile.PreviewCancellation = cancellation;
         tile.Session = session;
         session.StatusChanged += (_, message) =>
@@ -258,7 +262,7 @@ public partial class MainWindow
                         });
                     }
 
-                    await Task.Delay(1500, cancellation.Token);
+                    await Task.Delay(2500, cancellation.Token);
                 }
             }
             catch (OperationCanceledException)
@@ -366,28 +370,21 @@ public partial class MainWindow
         }
 
         var tile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
-        if (tile is not null)
+        TeacherVncSession? sharedSession = null;
+        if (tile?.Session?.IsConnected == true)
         {
-            StopRemoteManagementPreview(tile);
+            sharedSession = tile.Session;
+            sharedSession.ControlEnabled = !agent.VncViewOnly;
         }
 
-        var viewer = new Dialogs.RemoteVncViewerWindow(
-            agent.MachineName,
-            agent.RespondingAddress,
-            agent.VncPort,
-            _clientSettings.SharedSecret,
-            controlEnabled: !agent.VncViewOnly);
-        viewer.Closed += async (_, _) =>
-        {
-            if (!_isClosing)
-            {
-                var currentTile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
-                if (currentTile is not null)
-                {
-                    await EnsureRemoteManagementPreviewAsync(currentTile);
-                }
-            }
-        };
+        var viewer = sharedSession is not null
+            ? new Dialogs.RemoteVncViewerWindow(agent.MachineName, sharedSession)
+            : new Dialogs.RemoteVncViewerWindow(
+                agent.MachineName,
+                agent.RespondingAddress,
+                agent.VncPort,
+                _clientSettings.SharedSecret,
+                controlEnabled: !agent.VncViewOnly);
         viewer.Show(this);
         await Task.CompletedTask;
     }
@@ -569,8 +566,8 @@ public partial class MainWindow
             try
             {
                 var bitmap = new Bitmap(
-                    PixelFormat.Bgra8888,
-                    AlphaFormat.Unpremul,
+                    PixelFormat.Rgba8888,
+                    AlphaFormat.Opaque,
                     handle.AddrOfPinnedObject(),
                     new PixelSize(width, height),
                     new Vector(96, 96),

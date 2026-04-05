@@ -270,7 +270,11 @@ public partial class MainForm
         card.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
-        var session = new TeacherVncSession(card.Agent.RespondingAddress, card.Agent.VncPort, _clientSettings.SharedSecret);
+        var session = new TeacherVncSession(
+            card.Agent.RespondingAddress,
+            card.Agent.VncPort,
+            _clientSettings.SharedSecret,
+            controlEnabled: !card.Agent.VncViewOnly);
         card.PreviewCancellation = cancellation;
         card.Session = session;
         session.StatusChanged += (_, message) =>
@@ -311,7 +315,7 @@ public partial class MainForm
                         card.StatusLabel.BeginInvoke(new Action(() => card.StatusLabel.Text = BuildRemoteManagementStatusText(card.Agent)));
                     }
 
-                    await Task.Delay(1500, cancellation.Token);
+                    await Task.Delay(2500, cancellation.Token);
                 }
             }
             catch (OperationCanceledException)
@@ -420,24 +424,22 @@ public partial class MainForm
             return;
         }
 
-        if (_remoteManagementCards.TryGetValue(agent.AgentId, out var card))
+        var sharedSession = _remoteManagementCards.TryGetValue(agent.AgentId, out var card) && card.Session?.IsConnected == true
+            ? card.Session
+            : null;
+        if (sharedSession is not null)
         {
-            StopRemoteManagementPreview(card);
+            sharedSession.ControlEnabled = !agent.VncViewOnly;
         }
 
-        var viewer = new RemoteVncViewerForm(
-            agent.MachineName,
-            agent.RespondingAddress,
-            agent.VncPort,
-            _clientSettings.SharedSecret,
-            controlEnabled: !agent.VncViewOnly);
-        viewer.FormClosed += async (_, _) =>
-        {
-            if (!IsDisposed && _remoteManagementCards.TryGetValue(agent.AgentId, out var currentCard))
-            {
-                await EnsureRemoteManagementPreviewAsync(currentCard);
-            }
-        };
+        var viewer = sharedSession is not null
+            ? new RemoteVncViewerForm(agent.MachineName, sharedSession)
+            : new RemoteVncViewerForm(
+                agent.MachineName,
+                agent.RespondingAddress,
+                agent.VncPort,
+                _clientSettings.SharedSecret,
+                controlEnabled: !agent.VncViewOnly);
         viewer.Show(this);
         await Task.CompletedTask;
     }
@@ -537,7 +539,8 @@ public partial class MainForm
         var sourceData = source.LockBits(new Rectangle(0, 0, sourceWidth, sourceHeight), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try
         {
-            Marshal.Copy(frame.Pixels, 0, sourceData.Scan0, Math.Min(frame.Pixels.Length, frame.Stride * sourceHeight));
+            var converted = ConvertRgbaToBgra(frame);
+            Marshal.Copy(converted, 0, sourceData.Scan0, Math.Min(converted.Length, Math.Abs(sourceData.Stride) * sourceHeight));
         }
         finally
         {
@@ -553,6 +556,30 @@ public partial class MainForm
 
         source.Dispose();
         return thumbnail;
+    }
+
+    private static byte[] ConvertRgbaToBgra(VncFrameCapture frame)
+    {
+        var converted = new byte[frame.Width * frame.Height * 4];
+
+        for (var y = 0; y < frame.Height; y++)
+        {
+            var sourceRow = y * frame.Stride;
+            var targetRow = y * frame.Width * 4;
+
+            for (var x = 0; x < frame.Width; x++)
+            {
+                var sourceIndex = sourceRow + (x * 4);
+                var targetIndex = targetRow + (x * 4);
+
+                converted[targetIndex] = frame.Pixels[sourceIndex + 2];
+                converted[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
+                converted[targetIndex + 2] = frame.Pixels[sourceIndex];
+                converted[targetIndex + 3] = 255;
+            }
+        }
+
+        return converted;
     }
 
     private static Bitmap CreateRemoteManagementPlaceholderBitmap(DiscoveredAgentRow agent, string status)

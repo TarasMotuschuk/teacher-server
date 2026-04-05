@@ -11,19 +11,30 @@ namespace TeacherClient;
 
 public sealed class RemoteVncViewerForm : Form
 {
+    private const int MaxViewerFrameWidth = 1600;
+    private const int MaxViewerFrameHeight = 900;
+
     private readonly TeacherVncSession _session;
+    private readonly bool _ownsSession;
     private readonly PictureBox _pictureBox;
     private readonly Label _statusLabel;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new();
     private readonly string _machineName;
+    private int _captureInProgress;
     private int _frameWidth;
     private int _frameHeight;
 
     public RemoteVncViewerForm(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
+        : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
+    {
+    }
+
+    public RemoteVncViewerForm(string machineName, TeacherVncSession session, bool ownsSession = false)
     {
         _machineName = machineName;
-        _session = new TeacherVncSession(host, port, sharedSecret, controlEnabled);
+        _session = session;
+        _ownsSession = ownsSession;
 
         Icon = AppIconLoader.Load();
         Text = TeacherClientText.RemoteManagementViewerTitle(machineName);
@@ -72,7 +83,10 @@ public sealed class RemoteVncViewerForm : Form
         {
             _refreshTimer.Stop();
             _cancellation.Cancel();
-            _session.Dispose();
+            if (_ownsSession)
+            {
+                _session.Dispose();
+            }
             _cancellation.Dispose();
             DisposePicture();
         };
@@ -85,7 +99,7 @@ public sealed class RemoteVncViewerForm : Form
         KeyUp += RemoteVncViewerForm_KeyUp;
         KeyPress += RemoteVncViewerForm_KeyPress;
 
-        _statusLabel.Text = controlEnabled
+        _statusLabel.Text = _session.ControlEnabled
             ? TeacherClientText.RemoteManagementControl(machineName)
             : TeacherClientText.RemoteManagementViewOnly(machineName);
     }
@@ -95,7 +109,10 @@ public sealed class RemoteVncViewerForm : Form
         try
         {
             _statusLabel.Text = TeacherClientText.RemoteManagementConnecting(_machineName);
-            await _session.ConnectAsync(_cancellation.Token);
+            if (!_session.IsConnected)
+            {
+                await _session.ConnectAsync(_cancellation.Token);
+            }
             _statusLabel.Text = _session.ControlEnabled
                 ? TeacherClientText.RemoteManagementControl(_machineName)
                 : TeacherClientText.RemoteManagementViewOnly(_machineName);
@@ -113,6 +130,11 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
+        if (Interlocked.Exchange(ref _captureInProgress, 1) != 0)
+        {
+            return;
+        }
+
         try
         {
             var frame = await _session.CaptureFrameAsync(_cancellation.Token);
@@ -121,7 +143,10 @@ public sealed class RemoteVncViewerForm : Form
                 return;
             }
 
-            var bitmap = CreateBitmap(frame);
+            _frameWidth = frame.Width;
+            _frameHeight = frame.Height;
+
+            var bitmap = CreateBitmap(ResizeForViewer(frame, MaxViewerFrameWidth, MaxViewerFrameHeight));
             if (IsDisposed)
             {
                 bitmap.Dispose();
@@ -135,8 +160,6 @@ public sealed class RemoteVncViewerForm : Form
             }
 
             SetPicture(bitmap);
-            _frameWidth = frame.Width;
-            _frameHeight = frame.Height;
         }
         catch (OperationCanceledException)
         {
@@ -145,14 +168,16 @@ public sealed class RemoteVncViewerForm : Form
         {
             _statusLabel.Text = TeacherClientText.RemoteManagementConnectionFailed(_machineName, ex.Message);
         }
+        finally
+        {
+            Interlocked.Exchange(ref _captureInProgress, 0);
+        }
     }
 
     private void SetPicture(Bitmap bitmap)
     {
         DisposePicture();
         _pictureBox.Image = bitmap;
-        _frameWidth = bitmap.Width;
-        _frameHeight = bitmap.Height;
     }
 
     private void DisposePicture()
@@ -329,7 +354,8 @@ public sealed class RemoteVncViewerForm : Form
         var data = bitmap.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try
         {
-            Marshal.Copy(frame.Pixels, 0, data.Scan0, Math.Min(frame.Pixels.Length, frame.Stride * frame.Height));
+            var converted = ConvertRgbaToBgra(frame);
+            Marshal.Copy(converted, 0, data.Scan0, Math.Min(converted.Length, Math.Abs(data.Stride) * frame.Height));
         }
         finally
         {
@@ -337,5 +363,63 @@ public sealed class RemoteVncViewerForm : Form
         }
 
         return bitmap;
+    }
+
+    private static byte[] ConvertRgbaToBgra(VncFrameCapture frame)
+    {
+        var converted = new byte[frame.Width * frame.Height * 4];
+
+        for (var y = 0; y < frame.Height; y++)
+        {
+            var sourceRow = y * frame.Stride;
+            var targetRow = y * frame.Width * 4;
+
+            for (var x = 0; x < frame.Width; x++)
+            {
+                var sourceIndex = sourceRow + (x * 4);
+                var targetIndex = targetRow + (x * 4);
+
+                converted[targetIndex] = frame.Pixels[sourceIndex + 2];
+                converted[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
+                converted[targetIndex + 2] = frame.Pixels[sourceIndex];
+                converted[targetIndex + 3] = 255;
+            }
+        }
+
+        return converted;
+    }
+
+    private static VncFrameCapture ResizeForViewer(VncFrameCapture frame, int maxWidth, int maxHeight)
+    {
+        if (frame.Width <= maxWidth && frame.Height <= maxHeight)
+        {
+            return frame;
+        }
+
+        var scale = Math.Min((double)maxWidth / frame.Width, (double)maxHeight / frame.Height);
+        var targetWidth = Math.Max(1, (int)Math.Round(frame.Width * scale));
+        var targetHeight = Math.Max(1, (int)Math.Round(frame.Height * scale));
+        var targetPixels = new byte[targetWidth * targetHeight * 4];
+
+        for (var y = 0; y < targetHeight; y++)
+        {
+            var sourceY = Math.Min(frame.Height - 1, (int)(y / scale));
+            var sourceRow = sourceY * frame.Stride;
+            var targetRow = y * targetWidth * 4;
+
+            for (var x = 0; x < targetWidth; x++)
+            {
+                var sourceX = Math.Min(frame.Width - 1, (int)(x / scale));
+                var sourceIndex = sourceRow + (sourceX * 4);
+                var targetIndex = targetRow + (x * 4);
+
+                targetPixels[targetIndex] = frame.Pixels[sourceIndex];
+                targetPixels[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
+                targetPixels[targetIndex + 2] = frame.Pixels[sourceIndex + 2];
+                targetPixels[targetIndex + 3] = frame.Pixels[sourceIndex + 3];
+            }
+        }
+
+        return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
     }
 }

@@ -14,18 +14,29 @@ namespace TeacherClient.CrossPlatform.Dialogs;
 
 public partial class RemoteVncViewerWindow : Window
 {
+    private const int MaxViewerFrameWidth = 1600;
+    private const int MaxViewerFrameHeight = 900;
+
     private readonly TeacherVncSession _session;
+    private readonly bool _ownsSession;
     private readonly DispatcherTimer _refreshTimer = new();
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _machineName;
+    private int _captureInProgress;
     private PinnedBitmap? _currentBitmap;
     private int _frameWidth;
     private int _frameHeight;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
+        : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
+    {
+    }
+
+    public RemoteVncViewerWindow(string machineName, TeacherVncSession session, bool ownsSession = false)
     {
         _machineName = machineName;
-        _session = new TeacherVncSession(host, port, sharedSecret, controlEnabled);
+        _session = session;
+        _ownsSession = ownsSession;
 
         InitializeComponent();
         Icon = AppIconLoader.Load();
@@ -45,7 +56,10 @@ public partial class RemoteVncViewerWindow : Window
         {
             _refreshTimer.Stop();
             _cancellation.Cancel();
-            _session.Dispose();
+            if (_ownsSession)
+            {
+                _session.Dispose();
+            }
             _cancellation.Dispose();
             DisposeBitmap();
         };
@@ -58,7 +72,7 @@ public partial class RemoteVncViewerWindow : Window
         KeyUp += RemoteVncViewerWindow_KeyUp;
         TextInput += RemoteVncViewerWindow_TextInput;
 
-        StatusTextBlock.Text = controlEnabled
+        StatusTextBlock.Text = _session.ControlEnabled
             ? CrossPlatformText.RemoteManagementControl(machineName)
             : CrossPlatformText.RemoteManagementViewOnly(machineName);
     }
@@ -68,7 +82,10 @@ public partial class RemoteVncViewerWindow : Window
         try
         {
             StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnecting(_machineName);
-            await _session.ConnectAsync(_cancellation.Token);
+            if (!_session.IsConnected)
+            {
+                await _session.ConnectAsync(_cancellation.Token);
+            }
             StatusTextBlock.Text = _session.ControlEnabled
                 ? CrossPlatformText.RemoteManagementControl(_machineName)
                 : CrossPlatformText.RemoteManagementViewOnly(_machineName);
@@ -86,6 +103,11 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
+        if (Interlocked.Exchange(ref _captureInProgress, 1) != 0)
+        {
+            return;
+        }
+
         try
         {
             var frame = await _session.CaptureFrameAsync(_cancellation.Token);
@@ -94,7 +116,10 @@ public partial class RemoteVncViewerWindow : Window
                 return;
             }
 
-            var bitmap = CreatePinnedBitmap(frame);
+            _frameWidth = frame.Width;
+            _frameHeight = frame.Height;
+
+            var bitmap = CreatePinnedBitmap(ResizeForViewer(frame, MaxViewerFrameWidth, MaxViewerFrameHeight));
             if (Dispatcher.UIThread.CheckAccess())
             {
                 SetBitmap(bitmap);
@@ -103,9 +128,6 @@ public partial class RemoteVncViewerWindow : Window
             {
                 await Dispatcher.UIThread.InvokeAsync(() => SetBitmap(bitmap));
             }
-
-            _frameWidth = frame.Width;
-            _frameHeight = frame.Height;
         }
         catch (OperationCanceledException)
         {
@@ -114,14 +136,16 @@ public partial class RemoteVncViewerWindow : Window
         {
             StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
         }
+        finally
+        {
+            Interlocked.Exchange(ref _captureInProgress, 0);
+        }
     }
 
     private void SetBitmap(Bitmap bitmap)
     {
         DisposeBitmap();
         ScreenImage.Source = bitmap;
-        _frameWidth = bitmap.PixelSize.Width;
-        _frameHeight = bitmap.PixelSize.Height;
     }
 
     private void DisposeBitmap()
@@ -328,8 +352,6 @@ public partial class RemoteVncViewerWindow : Window
         DisposeBitmap();
         _currentBitmap = bitmap;
         ScreenImage.Source = bitmap.Bitmap;
-        _frameWidth = bitmap.Bitmap.PixelSize.Width;
-        _frameHeight = bitmap.Bitmap.PixelSize.Height;
     }
 
     private static PinnedBitmap CreatePinnedBitmap(VncFrameCapture frame)
@@ -339,8 +361,8 @@ public partial class RemoteVncViewerWindow : Window
         try
         {
             var bitmap = new Bitmap(
-                Avalonia.Platform.PixelFormat.Bgra8888,
-                AlphaFormat.Unpremul,
+                Avalonia.Platform.PixelFormat.Rgba8888,
+                AlphaFormat.Opaque,
                 handle.AddrOfPinnedObject(),
                 new PixelSize(frame.Width, frame.Height),
                 new Vector(96, 96),
@@ -352,6 +374,40 @@ public partial class RemoteVncViewerWindow : Window
             handle.Free();
             throw;
         }
+    }
+
+    private static VncFrameCapture ResizeForViewer(VncFrameCapture frame, int maxWidth, int maxHeight)
+    {
+        if (frame.Width <= maxWidth && frame.Height <= maxHeight)
+        {
+            return frame;
+        }
+
+        var scale = Math.Min((double)maxWidth / frame.Width, (double)maxHeight / frame.Height);
+        var targetWidth = Math.Max(1, (int)Math.Round(frame.Width * scale));
+        var targetHeight = Math.Max(1, (int)Math.Round(frame.Height * scale));
+        var targetPixels = new byte[targetWidth * targetHeight * 4];
+
+        for (var y = 0; y < targetHeight; y++)
+        {
+            var sourceY = Math.Min(frame.Height - 1, (int)(y / scale));
+            var sourceRow = sourceY * frame.Stride;
+            var targetRow = y * targetWidth * 4;
+
+            for (var x = 0; x < targetWidth; x++)
+            {
+                var sourceX = Math.Min(frame.Width - 1, (int)(x / scale));
+                var sourceIndex = sourceRow + (sourceX * 4);
+                var targetIndex = targetRow + (x * 4);
+
+                targetPixels[targetIndex] = frame.Pixels[sourceIndex];
+                targetPixels[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
+                targetPixels[targetIndex + 2] = frame.Pixels[sourceIndex + 2];
+                targetPixels[targetIndex + 3] = frame.Pixels[sourceIndex + 3];
+            }
+        }
+
+        return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
     }
 
     private sealed class PinnedBitmap(Bitmap bitmap, GCHandle handle) : IDisposable
