@@ -12,6 +12,9 @@ public sealed record ServerInfoDto(
 
 public sealed record BrowserLockStateRequest(bool Enabled);
 public sealed record InputLockStateRequest(bool Enabled);
+public sealed record StudentPolicySettingsRequest(
+    int DesktopIconAutoRestoreMinutes,
+    int BrowserLockCheckIntervalSeconds);
 
 public enum RemoteCommandRunAs
 {

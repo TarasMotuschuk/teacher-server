@@ -9,12 +9,16 @@ public sealed record ClientSettings(
     UiLanguage Language,
     string BulkCopyDestinationPath,
     string StudentWorkRootPath,
-    string StudentWorkFolderName)
+    string StudentWorkFolderName,
+    int DesktopIconAutoRestoreMinutes,
+    int BrowserLockCheckIntervalSeconds)
 {
     public static ClientSettings Default { get; } = new(
         "change-this-secret",
         UiLanguageExtensions.GetDefault(),
         @"C:\TeacherDrops",
         @"C:\Users\Public\Documents",
-        "StudentWorks");
+        "StudentWorks",
+        30,
+        60);
 }

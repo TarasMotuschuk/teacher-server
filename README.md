@@ -4,6 +4,7 @@
 
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
+- `StudentAgent.VncHost`: session-aware VNC host process for visible remote screen viewing and control.
 - `TeacherServer.Setup`: WiX-based MSI installer project for Windows deployment.
 - `TeacherClient`: Windows Forms application used by the teacher.
 - `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
@@ -22,7 +23,11 @@ The current implementation focuses on visible and explicitly authorized administ
 
 ### StudentAgent.UIHost
 
-`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session.
+`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session. Choosing **Exit** from the tray menu prompts for the same StudentAgent administrator password used to open **Settings** and **Logs** from that menu.
+
+### StudentAgent.VncHost
+
+`StudentAgent.VncHost` is the session-aware host that keeps the classroom remote-management screen visible and controllable in the active student session. It is started and stopped by the student service when teacher-side VNC actions are requested.
 
 Available endpoints:
 
@@ -39,6 +44,14 @@ Available endpoints:
 - `POST /api/files/upload`: upload file with `multipart/form-data`.
 - `POST /api/commands/run`: execute a command script on the student machine.
 - `GET /api/commands/frequent-programs/public-desktop`: collect `.lnk` shortcuts from the public desktop for teacher-side frequent program lists.
+- `GET /api/desktop-icons/layouts`: list saved desktop icon layouts on the student machine.
+- `GET /api/desktop-icons/layout`: read a specific saved desktop icon layout snapshot from the student machine.
+- `POST /api/desktop-icons/save`: capture the current desktop icon positions from the active Windows session and save them as a named layout.
+- `POST /api/desktop-icons/restore`: restore a previously saved desktop icon layout in the active Windows session.
+- `POST /api/desktop-icons/apply`: store a provided desktop icon layout on the student machine and optionally restore it immediately.
+- `GET /api/vnc/status`: read the current VNC host state on the student machine.
+- `POST /api/vnc/start`: start the student-side VNC host in view-only or control mode.
+- `POST /api/vnc/stop`: stop the student-side VNC host.
 - `GET /api/registry/keys`: list registry subkeys at a given path; empty path returns the five root hives.
 - `GET /api/registry/values`: list registry values at a given path with formatted type and data display.
 - `GET /api/registry/export`: export the selected registry key subtree as a `.reg` file.
@@ -72,6 +85,7 @@ Available endpoints:
 - local and remote file/folder rename actions from the `Files` tab;
 - live transfer progress in the status area during single-file uploads/downloads and bulk file distribution or work collection;
 - remote opening of the selected file or folder on the connected student PC;
+- a `Remote management` tab with live student-PC screen tiles, a fullscreen viewer, and teacher-controlled VNC start/stop actions;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - grouped remote command execution for either selected students or all online students, with support for multi-line command scripts and a `Current user` or `Administrator` run mode;
@@ -79,7 +93,10 @@ Available endpoints:
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
+- desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
+- group desktop icon actions for restoring layouts on selected or all online student PCs, and for sending the current connected PC's icon layout to other student PCs;
 - a splash screen shown during teacher client startup;
 - remote directory creation;
 - local and remote deletion with confirmation dialogs;
@@ -90,6 +107,8 @@ Available endpoints:
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery: the teacher workstation caches the update bundle once and serves it over the LAN, with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for `Available`, `Downloading`, `Installing`, `Updated`, `Failed`, and `Rolled back` states.
+
+On the student machine, desktop icon auto-restore now runs from `StudentAgent.UIHost` on a timer using the locally saved default layout, mirroring the earlier `DesktopIconSaver` behavior. Browser-lock polling now also uses a configurable teacher-managed interval. A teacher can trigger restore manually, push the current connected PC's layout to other student PCs, and centrally change both timer values from the teacher-side settings window.
 
 ### TeacherClient.Avalonia
 
@@ -112,6 +131,7 @@ Available endpoints:
 - richer file listings with folder/file icons, file extensions, file attributes, and human-readable sizes;
 - drive selectors for switching local and remote roots directly from the file panels;
 - upload and download files;
+- a `Remote management` tab with live student-PC screen tiles, a fullscreen viewer, and teacher-controlled VNC start/stop actions;
 - remote opening of the selected file or folder on the connected student PC;
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
@@ -120,7 +140,10 @@ Available endpoints:
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
+- desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
+- group desktop icon actions for restoring layouts on selected or all online student PCs, and for sending the current connected PC's icon layout to other student PCs;
 - a splash screen shown during teacher client startup;
 - delete local and remote entries;
 - create remote folders;
@@ -131,6 +154,8 @@ Available endpoints:
 - bulk `Update selected PCs` and `Update all online PCs` actions from the group commands menu.
 - preferred teacher-hosted update delivery with fallback to the configured remote manifest on the student agent.
 - per-agent update badges with polling for in-progress and rollback states.
+
+On macOS, quitting the app after using remote-management VNC should tear down sessions safely: `CloseAsync` runs with the UI synchronization context cleared for that call so Avalonia does not deadlock, while VNC close/dispose still runs on the UI thread as required by the VNC client library.
 
 ### Teacher.Common
 
@@ -233,7 +258,9 @@ Build-Msi.cmd
    - `Teacher workstation tools`
    - `Student workstation tools`
 
-When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service` and `StudentAgent.UIHost` together and registers the Windows service automatically.
+When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service`, `StudentAgent.UIHost`, and `StudentAgent.VncHost` together and registers the Windows service automatically.
+
+Reinstalling the **same** MSI package version upgrades the existing installation in place so *Apps & features* / *Programs and Features* keeps a single ClassCommander entry. On uninstall, stopping the service shuts down the session `StudentAgent.UIHost` and `StudentAgent.VncHost` processes; the installer also attempts to terminate those executables if they are still running so files can be removed cleanly.
 
 Example configuration:
 

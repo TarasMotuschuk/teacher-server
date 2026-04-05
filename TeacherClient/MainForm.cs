@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 using Teacher.Common;
 using Teacher.Common.Contracts;
+using Teacher.Common.Vnc;
 using TeacherClient.Models;
 using TeacherClient.Services;
 using TeacherClient.Localization;
@@ -23,6 +25,7 @@ public partial class MainForm : Form
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
     private readonly System.Windows.Forms.Timer _updateStatusTimer = new();
+    private readonly Dictionary<string, RemoteManagementCardState> _remoteManagementCards = new(StringComparer.OrdinalIgnoreCase);
     private ClientSettings _clientSettings = ClientSettings.Default;
     private List<ManualAgentEntry> _manualAgents = [];
     private List<FrequentProgramEntry> _frequentPrograms = [];
@@ -39,6 +42,7 @@ public partial class MainForm : Form
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
+    private string? _remoteManagementSelectedAgentId;
 
     public MainForm()
     {
@@ -87,6 +91,23 @@ public partial class MainForm : Form
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+            // Remote management preview tears down shared TeacherVncSession instances. Close fullscreen
+            // viewers first or their session is disposed under them and the process can fault.
+            foreach (Form form in Application.OpenForms.Cast<Form>().ToArray())
+            {
+                if (form is RemoteVncViewerForm)
+                {
+                    try
+                    {
+                        form.Close();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            DisposeRemoteManagementCards();
             _updatePreparationService.Dispose();
             _clientUpdateService.Dispose();
         };
@@ -165,6 +186,7 @@ public partial class MainForm : Form
 
         _preparedStudentWorkFolders.Clear();
         await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
+        await ApplyStudentPolicySettingsToOnlineAgentsAsync(reportSummary: true);
     }
 
     private async void refreshProcessesButton_Click(object sender, EventArgs e) => await LoadProcessesAsync();
@@ -463,6 +485,16 @@ public partial class MainForm : Form
         await ConnectSelectedAgentAsync();
     }
 
+    private async void saveDesktopIconLayoutMenuItem_Click(object? sender, EventArgs e)
+    {
+        await SaveDesktopIconLayoutAsync();
+    }
+
+    private async void restoreDesktopIconLayoutMenuItem_Click(object? sender, EventArgs e)
+    {
+        await RestoreDesktopIconLayoutAsync();
+    }
+
     private async void checkSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
     {
         await CheckSelectedAgentUpdateAsync();
@@ -667,6 +699,7 @@ public partial class MainForm : Form
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
+            await RefreshRemoteManagementCardsAsync();
             await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: false);
 
             SetStatus(_allAgents.Count == 0
@@ -894,6 +927,48 @@ public partial class MainForm : Form
         }
 
         await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: false);
+    }
+
+    private async void restoreDesktopIconsOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await RestoreDesktopIconsOnAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: true);
+    }
+
+    private async void restoreDesktopIconsOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        await RestoreDesktopIconsOnAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: false);
+    }
+
+    private async void applyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ApplyCurrentDesktopLayoutToAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: true);
+    }
+
+    private async void applyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        await ApplyCurrentDesktopLayoutToAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: false);
     }
 
     private async void refreshFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
@@ -1746,6 +1821,20 @@ public partial class MainForm : Form
         dialog.ShowDialog(this);
     }
 
+    private async Task SaveDesktopIconLayoutAsync()
+    {
+        await RunDesktopIconLayoutActionAsync(
+            save: true,
+            execute: client => client.SaveDesktopIconLayoutAsync());
+    }
+
+    private async Task RestoreDesktopIconLayoutAsync()
+    {
+        await RunDesktopIconLayoutActionAsync(
+            save: false,
+            execute: client => client.RestoreDesktopIconLayoutAsync());
+    }
+
     private async Task StartSelectedAgentUpdateAsync()
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent)
@@ -1780,6 +1869,148 @@ public partial class MainForm : Form
         {
             SetStatus($"{TeacherClientText.AgentUpdateStartFailed}: {ex.Message}");
         }
+    }
+
+    private async Task RunDesktopIconLayoutActionAsync(
+        bool save,
+        Func<TeacherApiClient, Task<DesktopIconLayoutOperationResultDto?>> execute)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            SetStatus(TeacherClientText.ConnectFromAgentsTabFirst);
+            return;
+        }
+
+        using var cursorScope = new CursorScope(this);
+        try
+        {
+            var client = CreateClient();
+            var result = await execute(client);
+            var machineName = _lastConnectedMachineName ?? "PC";
+            var iconCount = result?.IconCount ?? 0;
+            SetStatus(save
+                ? TeacherClientText.DesktopIconLayoutSaved(machineName, iconCount)
+                : TeacherClientText.DesktopIconLayoutRestored(machineName, iconCount));
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.DesktopIconLayoutError}: {ex.Message}");
+        }
+    }
+
+    private async Task RestoreDesktopIconsOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+        using var cursorScope = new CursorScope(this);
+
+        for (var index = 0; index < targetAgents.Count; index++)
+        {
+            var agent = targetAgents[index];
+            try
+            {
+                SetStatus(TeacherClientText.DesktopIconLayoutBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.RestoreDesktopIconLayoutAsync();
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.DesktopIconLayoutBulkCompleted(succeeded)
+            : TeacherClientText.DesktopIconLayoutBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                this,
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.DesktopIconLayoutError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private async Task ApplyCurrentDesktopLayoutToAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            SetStatus(TeacherClientText.ConnectFromAgentsTabFirst);
+            return;
+        }
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        DesktopIconLayoutSnapshotDto sourceLayout;
+        try
+        {
+            var sourceClient = CreateClient();
+            await sourceClient.SaveDesktopIconLayoutAsync();
+            sourceLayout = await sourceClient.GetDesktopIconLayoutAsync()
+                ?? throw new InvalidOperationException("Desktop icon layout snapshot is unavailable.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"{TeacherClientText.DesktopIconLayoutError}: {ex.Message}");
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+        using var cursorScope = new CursorScope(this);
+
+        for (var index = 0; index < targetAgents.Count; index++)
+        {
+            var agent = targetAgents[index];
+            try
+            {
+                SetStatus(TeacherClientText.DesktopIconLayoutApplyBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.ApplyDesktopIconLayoutAsync(sourceLayout, restoreAfterApply: true);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.DesktopIconLayoutAppliedBulkCompleted(succeeded)
+            : TeacherClientText.DesktopIconLayoutAppliedBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                this,
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.DesktopIconLayoutError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private List<DiscoveredAgentRow> FilterOutCurrentConnectedAgent(IEnumerable<DiscoveredAgentRow> agents)
+    {
+        return agents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.IsNullOrWhiteSpace(_lastConnectedAgentId)
+                || !string.Equals(x.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     private async Task DistributeLocalSelectionAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
@@ -2346,6 +2577,14 @@ public partial class MainForm : Form
             _lastConnectedAgentId = agent?.AgentId;
             _lastConnectedServerUrl = serverUrl;
             _lastConnectedMachineName = info.MachineName;
+            try
+            {
+                await ApplyStudentPolicySettingsToAgentAsync(client);
+            }
+            catch
+            {
+                // Best-effort policy sync on connect should not block regular teacher connection flow.
+            }
             SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
@@ -2403,6 +2642,58 @@ public partial class MainForm : Form
         }
     }
 
+    private async Task ApplyStudentPolicySettingsToAgentAsync(TeacherApiClient client, CancellationToken cancellationToken = default)
+    {
+        await client.ApplyStudentPolicySettingsAsync(
+            _clientSettings.DesktopIconAutoRestoreMinutes,
+            _clientSettings.BrowserLockCheckIntervalSeconds,
+            cancellationToken);
+    }
+
+    private async Task ApplyStudentPolicySettingsToOnlineAgentsAsync(bool reportSummary)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .Distinct()
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failed = 0;
+
+        foreach (var agent in targetAgents)
+        {
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await ApplyStudentPolicySettingsToAgentAsync(client);
+                succeeded++;
+            }
+            catch
+            {
+                failed++;
+            }
+        }
+
+        if (!reportSummary)
+        {
+            return;
+        }
+
+        if (failed == 0)
+        {
+            SetStatus(TeacherClientText.StudentPolicySettingsApplied(succeeded));
+            return;
+        }
+
+        SetStatus(TeacherClientText.StudentPolicySettingsAppliedWithFailures(succeeded, failed));
+    }
+
     private string GetCurrentServerUrlOrThrow()
     {
         if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
@@ -2420,12 +2711,31 @@ public partial class MainForm : Form
 
     private List<DiscoveredAgentRow> GetSelectedAgents()
     {
-        return agentsGrid.SelectedRows
+        // SelectedRows is often empty when the user only toggled template checkboxes or a cell selection
+        // did not promote to a full row selection — still treat those rows (and CurrentRow) as chosen.
+        var fromRows = agentsGrid.SelectedRows
             .Cast<DataGridViewRow>()
             .Select(x => x.DataBoundItem)
-            .OfType<DiscoveredAgentRow>()
-            .Distinct()
-            .ToList();
+            .OfType<DiscoveredAgentRow>();
+
+        var fromCells = agentsGrid.SelectedCells
+            .Cast<DataGridViewCell>()
+            .Where(c => c.RowIndex >= 0 && c.RowIndex < agentsGrid.RowCount)
+            .Select(c => agentsGrid.Rows[c.RowIndex].DataBoundItem)
+            .OfType<DiscoveredAgentRow>();
+
+        var merged = fromRows.Concat(fromCells).Distinct().ToList();
+        if (merged.Count > 0)
+        {
+            return merged;
+        }
+
+        if (agentsGrid.CurrentRow?.DataBoundItem is DiscoveredAgentRow current)
+        {
+            return [current];
+        }
+
+        return [];
     }
 
     private void ReplaceAgentRow(DiscoveredAgentRow updated)
@@ -2571,6 +2881,7 @@ public partial class MainForm : Form
                     if (info is not null)
                     {
                         var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
+                        var vncStatus = await reachabilityClient.GetVncStatusAsync();
                         updatedAgents.Add(agent with
                         {
                             Status = TeacherClientText.Online,
@@ -2578,6 +2889,11 @@ public partial class MainForm : Form
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                            VncEnabled = vncStatus?.Enabled ?? false,
+                            VncRunning = vncStatus?.Running ?? false,
+                            VncViewOnly = vncStatus?.ViewOnly ?? true,
+                            VncPort = vncStatus?.Port ?? 0,
+                            VncStatusMessage = vncStatus?.Message ?? string.Empty,
                             Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                                 ? updateStatus.AvailableVersion ?? info.AgentVersion
                                 : info.AgentVersion
@@ -2600,6 +2916,7 @@ public partial class MainForm : Form
                 {
                     var info = await reachabilityClient.GetServerInfoAsync();
                     var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
+                    var vncStatus = await reachabilityClient.GetVncStatusAsync();
                     updatedAgents.Add(agent with
                     {
                         Status = TeacherClientText.Online,
@@ -2607,6 +2924,11 @@ public partial class MainForm : Form
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                        VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
+                        VncRunning = vncStatus?.Running ?? agent.VncRunning,
+                        VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
+                        VncPort = vncStatus?.Port ?? agent.VncPort,
+                        VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
                         Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                             ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
                             : info?.AgentVersion ?? agent.Version
@@ -2714,6 +3036,11 @@ public partial class MainForm : Form
         string Notes,
         string UpdateStatusBadge,
         string Version,
+        bool VncEnabled,
+        bool VncRunning,
+        bool VncViewOnly,
+        int VncPort,
+        string VncStatusMessage,
         DateTime LastSeenUtc,
         bool IsManual)
     {
@@ -2736,6 +3063,11 @@ public partial class MainForm : Form
                 string.Empty,
                 string.Empty,
                 dto.Version,
+                false,
+                false,
+                true,
+                0,
+                string.Empty,
                 dto.LastSeenUtc,
                 false);
         }
@@ -2755,6 +3087,11 @@ public partial class MainForm : Form
                 entry.Notes,
                 string.Empty,
                 TeacherClientText.ManualVersion,
+                false,
+                false,
+                true,
+                0,
+                string.Empty,
                 DateTime.MinValue,
                 true);
         }

@@ -117,6 +117,20 @@ public static class StudentAgentHostExtensions
             }
         });
 
+        app.MapPost("/api/policy-settings", ([FromBody] StudentPolicySettingsRequest request, [FromServices] AgentSettingsStore store, [FromServices] AgentLogService agentLog) =>
+        {
+            try
+            {
+                store.UpdatePolicySettings(request.DesktopIconAutoRestoreMinutes, request.BrowserLockCheckIntervalSeconds);
+                agentLog.LogInfo($"Teacher updated policy settings: desktop icon auto-restore {Math.Max(1, request.DesktopIconAutoRestoreMinutes)} min, browser-lock check {Math.Max(5, request.BrowserLockCheckIntervalSeconds)} s.");
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         app.MapPost("/api/power", ([FromBody] PowerActionRequest request, [FromServices] ProcessService service, [FromServices] AgentLogService agentLog) =>
         {
             try

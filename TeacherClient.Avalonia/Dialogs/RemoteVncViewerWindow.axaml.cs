@@ -1,0 +1,427 @@
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Media;
+using Avalonia.Threading;
+using MarcusW.VncClient;
+using Teacher.Common.Vnc;
+using TeacherClient.CrossPlatform.Localization;
+
+namespace TeacherClient.CrossPlatform.Dialogs;
+
+public partial class RemoteVncViewerWindow : Window
+{
+    private readonly TeacherVncSession _session;
+    private readonly bool _ownsSession;
+    private readonly DispatcherTimer _refreshTimer = new();
+    private readonly CancellationTokenSource _cancellation = new();
+    private readonly string _machineName;
+    private int _captureInProgress;
+    private PinnedBitmap? _currentBitmap;
+    private int _frameWidth;
+    private int _frameHeight;
+
+    public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
+        : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
+    {
+    }
+
+    public RemoteVncViewerWindow(string machineName, TeacherVncSession session, bool ownsSession = false)
+    {
+        _machineName = machineName;
+        _session = session;
+        _ownsSession = ownsSession;
+
+        InitializeComponent();
+        RenderOptions.SetBitmapInterpolationMode(ScreenImage, BitmapInterpolationMode.HighQuality);
+        Icon = AppIconLoader.Load();
+        Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
+        // CenterOwner in XAML conflicts with Maximized on some Windows builds; maximize after open.
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        WindowState = WindowState.Maximized;
+
+        _refreshTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _refreshTimer.Tick += async (_, _) => await CaptureFrameAsync();
+
+        Opened += async (_, _) =>
+        {
+            WindowState = WindowState.Maximized;
+            await ConnectAsync();
+            _refreshTimer.Start();
+            // Defer: focus before layout can fail on macOS; keyboard/TextInput attach to ViewerInputRoot, not the window chrome.
+            Dispatcher.UIThread.Post(
+                () => ViewerInputRoot.Focus(),
+                DispatcherPriority.Loaded);
+        };
+
+        Closing += (_, _) =>
+        {
+            _refreshTimer.Stop();
+            _cancellation.Cancel();
+            if (_ownsSession)
+            {
+                _session.Dispose();
+            }
+            _cancellation.Dispose();
+            DisposeBitmap();
+        };
+
+        ScreenImage.PointerPressed += ScreenImage_OnPointerPressed;
+        ScreenImage.PointerReleased += ScreenImage_OnPointerReleased;
+        ScreenImage.PointerMoved += ScreenImage_OnPointerMoved;
+        ScreenImage.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
+        ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
+        ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
+        ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
+
+        StatusTextBlock.Text = _session.ControlEnabled
+            ? CrossPlatformText.RemoteManagementControl(machineName)
+            : CrossPlatformText.RemoteManagementViewOnly(machineName);
+    }
+
+    private async Task ConnectAsync()
+    {
+        try
+        {
+            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnecting(_machineName);
+            if (!_session.IsConnected)
+            {
+                await _session.ConnectAsync(_cancellation.Token);
+            }
+            StatusTextBlock.Text = _session.ControlEnabled
+                ? CrossPlatformText.RemoteManagementControl(_machineName)
+                : CrossPlatformText.RemoteManagementViewOnly(_machineName);
+        }
+        catch (Exception ex)
+        {
+            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+        }
+    }
+
+    private async Task CaptureFrameAsync()
+    {
+        if (_cancellation.IsCancellationRequested || !_session.IsConnected)
+        {
+            return;
+        }
+
+        if (Interlocked.Exchange(ref _captureInProgress, 1) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var frame = await _session.CaptureFrameAsync(_cancellation.Token);
+            if (frame is null)
+            {
+                return;
+            }
+
+            _frameWidth = frame.Width;
+            _frameHeight = frame.Height;
+
+            var bitmap = CreatePinnedBitmap(ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight));
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                SetBitmap(bitmap);
+            }
+            else
+            {
+                await Dispatcher.UIThread.InvokeAsync(() => SetBitmap(bitmap));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _captureInProgress, 0);
+        }
+    }
+
+    private void DisposeBitmap()
+    {
+        ScreenImage.Source = null;
+        _currentBitmap?.Dispose();
+        _currentBitmap = null;
+    }
+
+    private void ScreenImage_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        ViewerInputRoot.Focus();
+        if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
+        {
+            return;
+        }
+
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        {
+            _session.SendPointer(x, y, ButtonsMask(e.GetCurrentPoint(ScreenImage).Properties));
+        }
+    }
+
+    private void ScreenImage_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
+        {
+            return;
+        }
+
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        {
+            _session.SendPointer(x, y, 0);
+        }
+    }
+
+    private void ScreenImage_OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
+        {
+            return;
+        }
+
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        {
+            var properties = e.GetCurrentPoint(ScreenImage).Properties;
+            var pressed = ButtonsMask(properties);
+            _session.SendPointer(x, y, pressed);
+        }
+    }
+
+    private void ScreenImage_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
+        {
+            return;
+        }
+
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        {
+            var buttons = e.Delta.Y > 0 ? 8 : 16;
+            _session.SendPointer(x, y, buttons);
+            _session.SendPointer(x, y, 0);
+        }
+    }
+
+    private void ViewerInputRoot_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (!_session.ControlEnabled)
+        {
+            return;
+        }
+
+        var keySym = MapSpecialKey(e.Key);
+        if (keySym is not null)
+        {
+            _session.SendKey(keySym.Value, true);
+            e.Handled = true;
+        }
+    }
+
+    private void ViewerInputRoot_OnKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (!_session.ControlEnabled)
+        {
+            return;
+        }
+
+        var keySym = MapSpecialKey(e.Key);
+        if (keySym is not null)
+        {
+            _session.SendKey(keySym.Value, false);
+            e.Handled = true;
+        }
+    }
+
+    private void ViewerInputRoot_OnTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (!_session.ControlEnabled || string.IsNullOrEmpty(e.Text))
+        {
+            return;
+        }
+
+        foreach (var character in e.Text)
+        {
+            if (char.IsControl(character))
+            {
+                continue;
+            }
+
+            var keySym = (KeySymbol)(uint)character;
+            _session.SendKey(keySym, true);
+            _session.SendKey(keySym, false);
+        }
+    }
+
+    private bool TryMapPointer(Point position, out int x, out int y)
+    {
+        var bounds = ScreenImage.Bounds;
+        var width = Math.Max(1, bounds.Width);
+        var height = Math.Max(1, bounds.Height);
+
+        var scale = Math.Min(width / _frameWidth, height / _frameHeight);
+        var displayedWidth = _frameWidth * scale;
+        var displayedHeight = _frameHeight * scale;
+        var offsetX = (width - displayedWidth) / 2;
+        var offsetY = (height - displayedHeight) / 2;
+
+        if (position.X < offsetX || position.Y < offsetY ||
+            position.X > offsetX + displayedWidth || position.Y > offsetY + displayedHeight)
+        {
+            x = 0;
+            y = 0;
+            return false;
+        }
+
+        x = Math.Clamp((int)Math.Round((position.X - offsetX) / scale), 0, _frameWidth - 1);
+        y = Math.Clamp((int)Math.Round((position.Y - offsetY) / scale), 0, _frameHeight - 1);
+        return true;
+    }
+
+    private static int ButtonsMask(PointerPointProperties properties)
+    {
+        var mask = 0;
+        if (properties.IsLeftButtonPressed)
+        {
+            mask |= 1;
+        }
+        if (properties.IsMiddleButtonPressed)
+        {
+            mask |= 2;
+        }
+        if (properties.IsRightButtonPressed)
+        {
+            mask |= 4;
+        }
+
+        return mask;
+    }
+
+    private static KeySymbol? MapSpecialKey(Key key)
+    {
+        return key switch
+        {
+            Key.Back => KeySymbol.BackSpace,
+            Key.Tab => KeySymbol.Tab,
+            Key.Enter => KeySymbol.Return,
+            Key.Escape => KeySymbol.Escape,
+            Key.PageUp => KeySymbol.Page_Up,
+            Key.PageDown => KeySymbol.Page_Down,
+            Key.End => KeySymbol.End,
+            Key.Home => KeySymbol.Home,
+            Key.Left => KeySymbol.Left,
+            Key.Up => KeySymbol.Up,
+            Key.Right => KeySymbol.Right,
+            Key.Down => KeySymbol.Down,
+            Key.Insert => KeySymbol.Insert,
+            Key.Delete => KeySymbol.Delete,
+            Key.F1 => KeySymbol.F1,
+            Key.F2 => KeySymbol.F2,
+            Key.F3 => KeySymbol.F3,
+            Key.F4 => KeySymbol.F4,
+            Key.F5 => KeySymbol.F5,
+            Key.F6 => KeySymbol.F6,
+            Key.F7 => KeySymbol.F7,
+            Key.F8 => KeySymbol.F8,
+            Key.F9 => KeySymbol.F9,
+            Key.F10 => KeySymbol.F10,
+            Key.F11 => KeySymbol.F11,
+            Key.F12 => KeySymbol.F12,
+            Key.LeftShift => KeySymbol.Shift_L,
+            Key.RightShift => KeySymbol.Shift_R,
+            Key.LeftCtrl => KeySymbol.Control_L,
+            Key.RightCtrl => KeySymbol.Control_R,
+            Key.LeftAlt => KeySymbol.Alt_L,
+            Key.RightAlt => KeySymbol.Alt_R,
+            _ => null
+        };
+    }
+
+    private void SetBitmap(PinnedBitmap bitmap)
+    {
+        DisposeBitmap();
+        _currentBitmap = bitmap;
+        ScreenImage.Source = bitmap.Bitmap;
+    }
+
+    private static PinnedBitmap CreatePinnedBitmap(VncFrameCapture frame)
+    {
+        var pixels = frame.Pixels;
+        var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+        try
+        {
+            // Pixels from TeacherVncSession are BGRA (see Teacher.Common VncFrameCapture).
+            var bitmap = new Bitmap(
+                Avalonia.Platform.PixelFormat.Bgra8888,
+                AlphaFormat.Opaque,
+                handle.AddrOfPinnedObject(),
+                new PixelSize(frame.Width, frame.Height),
+                new Vector(96, 96),
+                frame.Stride);
+            return new PinnedBitmap(bitmap, handle);
+        }
+        catch
+        {
+            handle.Free();
+            throw;
+        }
+    }
+
+    private static VncFrameCapture ResizeForViewer(VncFrameCapture frame, int maxWidth, int maxHeight)
+    {
+        if (frame.Width <= maxWidth && frame.Height <= maxHeight)
+        {
+            return frame;
+        }
+
+        var scale = Math.Min((double)maxWidth / frame.Width, (double)maxHeight / frame.Height);
+        var targetWidth = Math.Max(1, (int)Math.Round(frame.Width * scale));
+        var targetHeight = Math.Max(1, (int)Math.Round(frame.Height * scale));
+        var targetPixels = new byte[targetWidth * targetHeight * 4];
+
+        for (var y = 0; y < targetHeight; y++)
+        {
+            var sourceY = Math.Min(frame.Height - 1, (int)(y / scale));
+            var sourceRow = sourceY * frame.Stride;
+            var targetRow = y * targetWidth * 4;
+
+            for (var x = 0; x < targetWidth; x++)
+            {
+                var sourceX = Math.Min(frame.Width - 1, (int)(x / scale));
+                var sourceIndex = sourceRow + (sourceX * 4);
+                var targetIndex = targetRow + (x * 4);
+
+                targetPixels[targetIndex] = frame.Pixels[sourceIndex];
+                targetPixels[targetIndex + 1] = frame.Pixels[sourceIndex + 1];
+                targetPixels[targetIndex + 2] = frame.Pixels[sourceIndex + 2];
+                targetPixels[targetIndex + 3] = frame.Pixels[sourceIndex + 3];
+            }
+        }
+
+        return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
+    }
+
+    private sealed class PinnedBitmap(Bitmap bitmap, GCHandle handle) : IDisposable
+    {
+        public Bitmap Bitmap { get; } = bitmap;
+        private GCHandle Handle { get; } = handle;
+
+        public void Dispose()
+        {
+            Bitmap.Dispose();
+            if (Handle.IsAllocated)
+            {
+                Handle.Free();
+            }
+        }
+    }
+}

@@ -33,6 +33,9 @@ jobs:
           }
           "value=$version" >> $env:GITHUB_OUTPUT
 
+      - name: Build StudentAgent.VncHost
+        run: dotnet build StudentAgent.VncHost/StudentAgent.VncHost.csproj -c Release --nologo
+
       - name: Publish student-agent bundle
         shell: pwsh
         run: |
@@ -84,6 +87,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      - name: Build StudentAgent.VncHost
+        run: dotnet build StudentAgent.VncHost/StudentAgent.VncHost.csproj -c Release --nologo
 
       - name: Build MSI
         shell: pwsh

@@ -13,6 +13,10 @@ partial class SettingsDialog
     private TextBox studentWorkRootPathTextBox = null!;
     private Label studentWorkFolderNameLabel = null!;
     private TextBox studentWorkFolderNameTextBox = null!;
+    private Label desktopIconAutoRestoreIntervalLabel = null!;
+    private NumericUpDown desktopIconAutoRestoreIntervalNumeric = null!;
+    private Label browserLockCheckIntervalLabel = null!;
+    private NumericUpDown browserLockCheckIntervalNumeric = null!;
     private Label languageLabel = null!;
     private ComboBox languageComboBox = null!;
     private Label hintLabel = null!;
@@ -40,6 +44,10 @@ partial class SettingsDialog
         studentWorkRootPathTextBox = new TextBox();
         studentWorkFolderNameLabel = new Label();
         studentWorkFolderNameTextBox = new TextBox();
+        desktopIconAutoRestoreIntervalLabel = new Label();
+        desktopIconAutoRestoreIntervalNumeric = new NumericUpDown();
+        browserLockCheckIntervalLabel = new Label();
+        browserLockCheckIntervalNumeric = new NumericUpDown();
         languageLabel = new Label();
         languageComboBox = new ComboBox();
         hintLabel = new Label();
@@ -63,10 +71,12 @@ partial class SettingsDialog
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 7
+            RowCount = 9
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
@@ -110,6 +120,28 @@ partial class SettingsDialog
         studentWorkFolderNameTextBox.Dock = DockStyle.Fill;
         studentWorkFolderNameTextBox.MinimumSize = new Size(0, 45);
         studentWorkFolderNameTextBox.Margin = new Padding(0, 8, 0, 8);
+
+        desktopIconAutoRestoreIntervalLabel.Dock = DockStyle.Fill;
+        desktopIconAutoRestoreIntervalLabel.TextAlign = ContentAlignment.MiddleLeft;
+        desktopIconAutoRestoreIntervalLabel.Margin = new Padding(0, 0, 12, 0);
+
+        desktopIconAutoRestoreIntervalNumeric.Dock = DockStyle.Left;
+        desktopIconAutoRestoreIntervalNumeric.Minimum = 1;
+        desktopIconAutoRestoreIntervalNumeric.Maximum = 1440;
+        desktopIconAutoRestoreIntervalNumeric.Width = 180;
+        desktopIconAutoRestoreIntervalNumeric.Height = 45;
+        desktopIconAutoRestoreIntervalNumeric.Margin = new Padding(0, 8, 0, 8);
+
+        browserLockCheckIntervalLabel.Dock = DockStyle.Fill;
+        browserLockCheckIntervalLabel.TextAlign = ContentAlignment.MiddleLeft;
+        browserLockCheckIntervalLabel.Margin = new Padding(0, 0, 12, 0);
+
+        browserLockCheckIntervalNumeric.Dock = DockStyle.Left;
+        browserLockCheckIntervalNumeric.Minimum = 5;
+        browserLockCheckIntervalNumeric.Maximum = 3600;
+        browserLockCheckIntervalNumeric.Width = 180;
+        browserLockCheckIntervalNumeric.Height = 45;
+        browserLockCheckIntervalNumeric.Margin = new Padding(0, 8, 0, 8);
 
         languageLabel.Dock = DockStyle.Fill;
         languageLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -155,11 +187,15 @@ partial class SettingsDialog
         layout.Controls.Add(studentWorkRootPathTextBox, 1, 2);
         layout.Controls.Add(studentWorkFolderNameLabel, 0, 3);
         layout.Controls.Add(studentWorkFolderNameTextBox, 1, 3);
-        layout.Controls.Add(languageLabel, 0, 4);
-        layout.Controls.Add(languageComboBox, 1, 4);
-        layout.Controls.Add(hintLabel, 0, 5);
+        layout.Controls.Add(desktopIconAutoRestoreIntervalLabel, 0, 4);
+        layout.Controls.Add(desktopIconAutoRestoreIntervalNumeric, 1, 4);
+        layout.Controls.Add(browserLockCheckIntervalLabel, 0, 5);
+        layout.Controls.Add(browserLockCheckIntervalNumeric, 1, 5);
+        layout.Controls.Add(languageLabel, 0, 6);
+        layout.Controls.Add(languageComboBox, 1, 6);
+        layout.Controls.Add(hintLabel, 0, 7);
         layout.SetColumnSpan(hintLabel, 2);
-        layout.Controls.Add(buttonsPanel, 0, 6);
+        layout.Controls.Add(buttonsPanel, 0, 8);
         layout.SetColumnSpan(buttonsPanel, 2);
 
         Controls.Add(layout);

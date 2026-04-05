@@ -6,6 +6,7 @@ param(
 
 $serviceProject = Join-Path $PSScriptRoot "StudentAgent.Service.csproj"
 $uiHostProject = Join-Path (Split-Path $PSScriptRoot -Parent) "StudentAgent.UIHost\StudentAgent.UIHost.csproj"
+$vncHostProject = Join-Path (Split-Path $PSScriptRoot -Parent) "StudentAgent.VncHost\StudentAgent.VncHost.csproj"
 $updaterProject = Join-Path (Split-Path $PSScriptRoot -Parent) "StudentAgent.Updater\StudentAgent.Updater.csproj"
 
 if (-not (Test-Path $serviceProject)) {
@@ -14,6 +15,10 @@ if (-not (Test-Path $serviceProject)) {
 
 if (-not (Test-Path $uiHostProject)) {
     throw "StudentAgent.UIHost.csproj was not found."
+}
+
+if (-not (Test-Path $vncHostProject)) {
+    throw "StudentAgent.VncHost.csproj was not found."
 }
 
 if (-not (Test-Path $updaterProject)) {
@@ -42,6 +47,16 @@ if ($LASTEXITCODE -ne 0) {
     throw "Publishing StudentAgent.UIHost failed."
 }
 
+dotnet publish $vncHostProject `
+    -c $Configuration `
+    -r $Runtime `
+    --self-contained true `
+    -o $OutputDirectory
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Publishing StudentAgent.VncHost failed."
+}
+
 dotnet publish $updaterProject `
     -c $Configuration `
     -r $Runtime `
@@ -52,4 +67,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Publishing StudentAgent.Updater failed."
 }
 
-Write-Host "Published StudentAgent.Service, StudentAgent.UIHost, and StudentAgent.Updater to '$OutputDirectory'."
+Write-Host "Published StudentAgent.Service, StudentAgent.UIHost, StudentAgent.VncHost, and StudentAgent.Updater to '$OutputDirectory'."

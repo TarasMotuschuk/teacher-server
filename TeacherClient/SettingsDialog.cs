@@ -23,6 +23,8 @@ public partial class SettingsDialog : Form
         bulkCopyDestinationPathTextBox.Text = settings.BulkCopyDestinationPath;
         studentWorkRootPathTextBox.Text = settings.StudentWorkRootPath;
         studentWorkFolderNameTextBox.Text = settings.StudentWorkFolderName;
+        desktopIconAutoRestoreIntervalNumeric.Value = settings.DesktopIconAutoRestoreMinutes;
+        browserLockCheckIntervalNumeric.Value = settings.BrowserLockCheckIntervalSeconds;
         ApplyLocalization();
     }
 
@@ -32,7 +34,9 @@ public partial class SettingsDialog : Form
             languageComboBox.SelectedIndex == 0 ? UiLanguage.Ukrainian : UiLanguage.English,
             bulkCopyDestinationPathTextBox.Text.Trim(),
             studentWorkRootPathTextBox.Text.Trim(),
-            studentWorkFolderNameTextBox.Text.Trim());
+            studentWorkFolderNameTextBox.Text.Trim(),
+            (int)desktopIconAutoRestoreIntervalNumeric.Value,
+            (int)browserLockCheckIntervalNumeric.Value);
 
     private void ApplyLocalization()
     {
@@ -41,6 +45,8 @@ public partial class SettingsDialog : Form
         bulkCopyDestinationPathLabel.Text = TeacherClientText.BulkCopyDestinationPath;
         studentWorkRootPathLabel.Text = TeacherClientText.StudentWorkRootPath;
         studentWorkFolderNameLabel.Text = TeacherClientText.StudentWorkFolderName;
+        desktopIconAutoRestoreIntervalLabel.Text = TeacherClientText.DesktopIconAutoRestoreInterval;
+        browserLockCheckIntervalLabel.Text = TeacherClientText.BrowserLockCheckInterval;
         languageLabel.Text = TeacherClientText.Language;
         hintLabel.Text = TeacherClientText.SettingsHint;
         saveButton.Text = TeacherClientText.Save;

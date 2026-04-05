@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Teacher.Common;
 using Teacher.Common.Localization;
 
 namespace StudentAgent.Services;
@@ -64,13 +65,36 @@ public sealed class AgentSettingsStore
         lock (_sync)
         {
             ReloadFromDiskIfChanged();
-            _current.SharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
+            var previousSharedSecret = _current.SharedSecret;
+            var nextSharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
+            var shouldRefreshDerivedVncPassword = string.IsNullOrWhiteSpace(_current.VncPassword)
+                || string.Equals(_current.VncPassword, VncPasswordHelper.Derive(previousSharedSecret), StringComparison.Ordinal);
+
+            _current.SharedSecret = nextSharedSecret;
             _current.Language = language;
             if (!string.IsNullOrWhiteSpace(password))
             {
                 _current.AdminPasswordHash = HashPassword(password.Trim());
             }
 
+            if (shouldRefreshDerivedVncPassword)
+            {
+                _current.VncPassword = VncPasswordHelper.Derive(_current.SharedSecret);
+            }
+
+            Save(_current);
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void UpdatePolicySettings(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds)
+    {
+        lock (_sync)
+        {
+            ReloadFromDiskIfChanged();
+            _current.DesktopIconAutoRestoreMinutes = Math.Max(1, desktopIconAutoRestoreMinutes);
+            _current.BrowserLockCheckIntervalSeconds = Math.Max(5, browserLockCheckIntervalSeconds);
             Save(_current);
         }
 
@@ -95,6 +119,37 @@ public sealed class AgentSettingsStore
         {
             ReloadFromDiskIfChanged();
             _current.InputLockEnabled = enabled;
+            Save(_current);
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void UpdateVncSettings(bool enabled, int? port = null, bool? viewOnly = null, string? password = null)
+    {
+        lock (_sync)
+        {
+            ReloadFromDiskIfChanged();
+            _current.VncEnabled = enabled;
+            if (port is not null)
+            {
+                _current.VncPort = Math.Max(1, port.GetValueOrDefault());
+            }
+
+            if (viewOnly is not null)
+            {
+                _current.VncViewOnly = viewOnly.GetValueOrDefault();
+            }
+
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                _current.VncPassword = password.Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(_current.VncPassword))
+            {
+                _current.VncPassword = VncPasswordHelper.Derive(_current.SharedSecret);
+            }
+
             Save(_current);
         }
 
@@ -159,7 +214,15 @@ public sealed class AgentSettingsStore
             VisibleBannerText = defaults.VisibleBannerText,
             Language = UiLanguageExtensions.GetDefault(),
             BrowserLockEnabled = defaults.BrowserLockEnabled,
-            InputLockEnabled = defaults.InputLockEnabled
+            InputLockEnabled = defaults.InputLockEnabled,
+            BrowserLockCheckIntervalSeconds = defaults.BrowserLockCheckIntervalSeconds,
+            DesktopIconAutoRestoreMinutes = defaults.DesktopIconAutoRestoreMinutes,
+            VncEnabled = defaults.VncEnabled,
+            VncPort = defaults.VncPort,
+            VncViewOnly = defaults.VncViewOnly,
+            VncPassword = string.IsNullOrWhiteSpace(defaults.VncPassword)
+                ? VncPasswordHelper.Derive(defaults.SharedSecret)
+                : defaults.VncPassword
         }, defaults);
     }
 
@@ -183,6 +246,18 @@ public sealed class AgentSettingsStore
         value.Language = value.Language.Normalize();
         value.BrowserLockEnabled = value.BrowserLockEnabled;
         value.InputLockEnabled = value.InputLockEnabled;
+        value.BrowserLockCheckIntervalSeconds = value.BrowserLockCheckIntervalSeconds <= 0
+            ? Math.Max(5, defaults.BrowserLockCheckIntervalSeconds)
+            : Math.Max(5, value.BrowserLockCheckIntervalSeconds);
+        value.DesktopIconAutoRestoreMinutes = value.DesktopIconAutoRestoreMinutes <= 0
+            ? Math.Max(1, defaults.DesktopIconAutoRestoreMinutes)
+            : value.DesktopIconAutoRestoreMinutes;
+        value.VncEnabled = value.VncEnabled;
+        value.VncPort = value.VncPort <= 0 ? Math.Max(1, defaults.VncPort) : Math.Max(1, value.VncPort);
+        value.VncViewOnly = value.VncViewOnly;
+        value.VncPassword = string.IsNullOrWhiteSpace(value.VncPassword)
+            ? (string.IsNullOrWhiteSpace(defaults.VncPassword) ? VncPasswordHelper.Derive(value.SharedSecret) : defaults.VncPassword)
+            : value.VncPassword.Trim();
         return value;
     }
 
@@ -197,7 +272,13 @@ public sealed class AgentSettingsStore
             VisibleBannerText = settings.VisibleBannerText,
             Language = settings.Language,
             BrowserLockEnabled = settings.BrowserLockEnabled,
-            InputLockEnabled = settings.InputLockEnabled
+            InputLockEnabled = settings.InputLockEnabled,
+            BrowserLockCheckIntervalSeconds = settings.BrowserLockCheckIntervalSeconds,
+            DesktopIconAutoRestoreMinutes = settings.DesktopIconAutoRestoreMinutes,
+            VncEnabled = settings.VncEnabled,
+            VncPort = settings.VncPort,
+            VncViewOnly = settings.VncViewOnly,
+            VncPassword = settings.VncPassword
         };
     }
 
@@ -210,7 +291,13 @@ public sealed class AgentSettingsStore
             && string.Equals(left.VisibleBannerText, right.VisibleBannerText, StringComparison.Ordinal)
             && left.Language == right.Language
             && left.BrowserLockEnabled == right.BrowserLockEnabled
-            && left.InputLockEnabled == right.InputLockEnabled;
+            && left.InputLockEnabled == right.InputLockEnabled
+            && left.BrowserLockCheckIntervalSeconds == right.BrowserLockCheckIntervalSeconds
+            && left.DesktopIconAutoRestoreMinutes == right.DesktopIconAutoRestoreMinutes
+            && left.VncEnabled == right.VncEnabled
+            && left.VncPort == right.VncPort
+            && left.VncViewOnly == right.VncViewOnly
+            && string.Equals(left.VncPassword, right.VncPassword, StringComparison.Ordinal);
     }
 
     private static string HashPassword(string password)
