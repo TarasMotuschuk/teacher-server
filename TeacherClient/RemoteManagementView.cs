@@ -424,22 +424,39 @@ public partial class MainForm
             return;
         }
 
-        var sharedSession = _remoteManagementCards.TryGetValue(agent.AgentId, out var card) && card.Session?.IsConnected == true
-            ? card.Session
-            : null;
-        if (sharedSession is not null)
+        RemoteManagementCardState? card = null;
+        if (_remoteManagementCards.TryGetValue(agent.AgentId, out var existingCard))
         {
-            sharedSession.ControlEnabled = !agent.VncViewOnly;
+            card = existingCard;
+            StopRemoteManagementPreview(card);
         }
 
-        var viewer = sharedSession is not null
-            ? new RemoteVncViewerForm(agent.MachineName, sharedSession)
-            : new RemoteVncViewerForm(
-                agent.MachineName,
-                agent.RespondingAddress,
-                agent.VncPort,
-                _clientSettings.SharedSecret,
-                controlEnabled: !agent.VncViewOnly);
+        var viewer = new RemoteVncViewerForm(
+            agent.MachineName,
+            agent.RespondingAddress,
+            agent.VncPort,
+            _clientSettings.SharedSecret,
+            controlEnabled: !agent.VncViewOnly);
+
+        if (card is not null)
+        {
+            viewer.FormClosed += async (_, _) =>
+            {
+                if (IsDisposed || !agent.VncRunning)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await EnsureRemoteManagementPreviewAsync(card);
+                }
+                catch
+                {
+                }
+            };
+        }
+
         viewer.Show(this);
         await Task.CompletedTask;
     }

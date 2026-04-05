@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using RemoteViewing.Hosting;
 using RemoteViewing.Vnc;
 using RemoteViewing.Vnc.Server;
+using KeySym = RemoteViewing.Vnc.KeySym;
 using StudentAgent;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
@@ -46,8 +47,8 @@ try
     }
 
     var source = new DesktopCaptureFramebufferSource(logService);
-    var keyboard = new NoOpVncRemoteKeyboard();
-    var controller = new NoOpVncRemoteController();
+    var keyboard = new WindowsVncRemoteKeyboard(logService);
+    var controller = new WindowsVncRemoteController();
 
     var builder = Host.CreateApplicationBuilder(args);
     builder.Logging.ClearProviders();
@@ -215,17 +216,220 @@ internal sealed class AgentLogLogger : ILogger
     }
 }
 
-internal sealed class NoOpVncRemoteKeyboard : IVncRemoteKeyboard
+internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
 {
+    private readonly AgentLogService _logService;
+
+    public WindowsVncRemoteKeyboard(AgentLogService logService)
+    {
+        _logService = logService;
+    }
+
     public void HandleKeyEvent(object? sender, KeyChangedEventArgs e)
     {
+        try
+        {
+            if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
+            {
+                SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags);
+                return;
+            }
+
+            var keysymValue = (uint)e.Keysym;
+            if (keysymValue is >= 0x20 and <= 0xFFFF)
+            {
+                SendUnicode((char)keysymValue, e.Pressed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"VNC keyboard event failed: {ex.Message}");
+        }
+    }
+
+    private static bool TryMapVirtualKey(KeySym keySym, out ushort virtualKey, out ushort scanCode, out uint keyFlags)
+    {
+        virtualKey = 0;
+        scanCode = 0;
+        keyFlags = 0;
+
+        switch ((uint)keySym)
+        {
+            case 0xFF08:
+                virtualKey = 0x08;
+                return true;
+            case 0xFF09:
+                virtualKey = 0x09;
+                return true;
+            case 0xFF0D:
+                virtualKey = 0x0D;
+                return true;
+            case 0xFF1B:
+                virtualKey = 0x1B;
+                return true;
+            case 0xFF50:
+                virtualKey = 0x24;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF51:
+                virtualKey = 0x25;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF52:
+                virtualKey = 0x26;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF53:
+                virtualKey = 0x27;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF54:
+                virtualKey = 0x28;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF55:
+                virtualKey = 0x21;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF56:
+                virtualKey = 0x22;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF57:
+                virtualKey = 0x23;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFF63:
+                virtualKey = 0x2D;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFFFF:
+                virtualKey = 0x2E;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFFE1:
+                virtualKey = 0xA0;
+                return true;
+            case 0xFFE2:
+                virtualKey = 0xA1;
+                return true;
+            case 0xFFE3:
+                virtualKey = 0xA2;
+                return true;
+            case 0xFFE4:
+                virtualKey = 0xA3;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            case 0xFFE9:
+                virtualKey = 0xA4;
+                return true;
+            case 0xFFEA:
+                virtualKey = 0xA5;
+                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+        }
+
+        var raw = (uint)keySym;
+        if (raw is >= 0xFFBE and <= 0xFFC9)
+        {
+            virtualKey = (ushort)(0x70 + (raw - 0xFFBE));
+            return true;
+        }
+
+        if (raw < 0x20)
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    private static void SendVirtualKey(ushort virtualKey, ushort scanCode, bool pressed, uint keyFlags)
+    {
+        var input = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    wScan = scanCode,
+                    dwFlags = keyFlags | (pressed ? 0u : KEYEVENTF_KEYUP),
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        SendSingleInput(input);
+    }
+
+    private static void SendUnicode(char character, bool pressed)
+    {
+        var input = new INPUT
+        {
+            type = INPUT_KEYBOARD,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = 0,
+                    wScan = character,
+                    dwFlags = KEYEVENTF_UNICODE | (pressed ? 0u : KEYEVENTF_KEYUP),
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        SendSingleInput(input);
+    }
+
+    private static void SendSingleInput(INPUT input)
+    {
+        var inputs = new[] { input };
+        _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+    }
+
+    private const uint INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+    private const uint KEYEVENTF_KEYUP = 0x0002;
+    private const uint KEYEVENTF_UNICODE = 0x0004;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion U;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
     }
 }
 
-internal sealed class NoOpVncRemoteController : IVncRemoteController
+internal sealed class WindowsVncRemoteController : IVncRemoteController
 {
+    private readonly VncMouse _mouse = new();
+
     public void HandleTouchEvent(object? sender, PointerChangedEventArgs e)
     {
+        _mouse.OnMouseUpdate(sender, e);
     }
 }
 

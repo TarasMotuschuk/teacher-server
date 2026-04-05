@@ -6,20 +6,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_PATH="$REPO_ROOT/TeacherClient.Avalonia/TeacherClient.Avalonia.csproj"
 SETUP_ROOT="$SCRIPT_DIR"
-TMP_ROOT="${TMPDIR:-/tmp}"
-
 CONFIGURATION="${CONFIGURATION:-Release}"
 RUNTIME="${RUNTIME:-osx-arm64}"
 APP_NAME="${APP_NAME:-ClassCommander.app}"
 PRODUCT_NAME="${PRODUCT_NAME:-ClassCommander}"
 BUNDLE_ID="${BUNDLE_ID:-com.tarasmotuschuk.teacherclient.avalonia}"
-VERSION="${VERSION:-1.0.0}"
+DEFAULT_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$REPO_ROOT/Directory.Build.props" | head -n 1)"
+VERSION="${VERSION:-${DEFAULT_VERSION:-1.0.0}}"
 PUBLISH_DIR="$SETUP_ROOT/artifacts/publish"
 APP_DIR="$SETUP_ROOT/artifacts/$APP_NAME"
 PKG_DIR="$SETUP_ROOT/dist"
 PKG_PATH="$PKG_DIR/ClassCommander-macos.pkg"
 ICON_PATH="$REPO_ROOT/Branding/ClassCommander-icon.icns"
-STAGING_DIR="$(mktemp -d "$TMP_ROOT/classcommander-pkg.XXXXXX")"
+STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/classcommander-pkg.XXXXXX")"
 
 cleanup() {
   rm -rf "$STAGING_DIR"
@@ -29,7 +28,7 @@ trap cleanup EXIT
 
 mkdir -p "$PUBLISH_DIR" "$PKG_DIR"
 rm -rf "$PUBLISH_DIR" "$APP_DIR" "$PKG_PATH"
-mkdir -p "$PUBLISH_DIR" "$PKG_DIR"
+mkdir -p "$PUBLISH_DIR" "$PKG_DIR" "$STAGING_DIR"
 
 echo "Publishing self-contained Avalonia client..."
 dotnet publish "$PROJECT_PATH" \
@@ -57,8 +56,8 @@ fi
 
 echo -n "APPL????" > "$APP_DIR/Contents/PkgInfo"
 chmod +x "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
-
-mkdir -p "$STAGING_DIR"
+find "$APP_DIR" -name '._*' -delete
+find "$APP_DIR" -name '.DS_Store' -delete
 ditto --norsrc "$APP_DIR" "$STAGING_DIR/$APP_NAME"
 
 echo "Building macOS installer package..."
