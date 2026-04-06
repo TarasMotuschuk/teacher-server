@@ -6,6 +6,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Fixed
+
+- `StudentAgent.VncHost`: VNC remote keyboard used an incomplete `INPUT` union for `SendInput`, so `cbSize` did not match the Win32 structure on x64 and keystrokes were dropped; the union now includes `MOUSEINPUT` and `HARDWAREINPUT`, with limited logging when `SendInput` fails
+
 ## [1.0.12] - 2026-04-05
 
 ### Added

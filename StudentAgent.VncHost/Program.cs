@@ -219,6 +219,7 @@ internal sealed class AgentLogLogger : ILogger
 internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
 {
     private readonly AgentLogService _logService;
+    private int _sendInputFailureLogBudget = 8;
 
     public WindowsVncRemoteKeyboard(AgentLogService logService)
     {
@@ -231,7 +232,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
         {
             if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
             {
-                SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags);
+                SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
                 return;
             }
 
@@ -344,7 +345,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
         return false;
     }
 
-    private static void SendVirtualKey(ushort virtualKey, ushort scanCode, bool pressed, uint keyFlags)
+    private void SendVirtualKey(ushort virtualKey, ushort scanCode, bool pressed, uint keyFlags, uint keysymForLog)
     {
         var input = new INPUT
         {
@@ -356,15 +357,15 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
                     wVk = virtualKey,
                     wScan = scanCode,
                     dwFlags = keyFlags | (pressed ? 0u : KEYEVENTF_KEYUP),
-                    dwExtraInfo = IntPtr.Zero
+                    dwExtraInfo = UIntPtr.Zero
                 }
             }
         };
 
-        SendSingleInput(input);
+        SendSingleInput(input, keysymForLog);
     }
 
-    private static void SendUnicode(char character, bool pressed)
+    private void SendUnicode(char character, bool pressed)
     {
         var input = new INPUT
         {
@@ -376,18 +377,31 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
                     wVk = 0,
                     wScan = character,
                     dwFlags = KEYEVENTF_UNICODE | (pressed ? 0u : KEYEVENTF_KEYUP),
-                    dwExtraInfo = IntPtr.Zero
+                    dwExtraInfo = UIntPtr.Zero
                 }
             }
         };
 
-        SendSingleInput(input);
+        SendSingleInput(input, character);
     }
 
-    private static void SendSingleInput(INPUT input)
+    private void SendSingleInput(INPUT input, uint keysymForLog)
     {
         var inputs = new[] { input };
-        _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        var size = Marshal.SizeOf<INPUT>();
+        var sent = SendInput((uint)inputs.Length, inputs, size);
+        if (sent != 0)
+        {
+            return;
+        }
+
+        if (_sendInputFailureLogBudget-- <= 0)
+        {
+            return;
+        }
+
+        _logService.LogWarning(
+            $"VNC SendInput failed (keysym=0x{keysymForLog:X}, cbSize={size}, err={Marshal.GetLastWin32Error()}).");
     }
 
     private const uint INPUT_KEYBOARD = 1;
@@ -398,6 +412,9 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
+    /// <summary>
+    /// Must match Win32 INPUT: the union size is that of the largest member (MOUSEINPUT), or SendInput rejects keyboard events on x64.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
     {
@@ -409,7 +426,30 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     private struct InputUnion
     {
         [FieldOffset(0)]
+        public MOUSEINPUT mi;
+        [FieldOffset(0)]
         public KEYBDINPUT ki;
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -419,7 +459,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
         public ushort wScan;
         public uint dwFlags;
         public uint time;
-        public IntPtr dwExtraInfo;
+        public UIntPtr dwExtraInfo;
     }
 }
 
