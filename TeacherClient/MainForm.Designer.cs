@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Drawing.Drawing2D;
+using Teacher.Common.Contracts;
 using TeacherClient.Localization;
 
 namespace TeacherClient;
@@ -164,6 +165,32 @@ partial class MainForm
         inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, lockInputOnAllOnlineStudentsMenuItem_Click);
         inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, unlockInputOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(inputMenuItem);
+        var windowsRestrictionsMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionsMenu);
+        var taskManagerMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager));
+        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
+        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
+        windowsRestrictionsMenuItem.DropDownItems.Add(taskManagerMenuItem);
+        var runDialogMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.RunDialog));
+        runDialogMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
+        runDialogMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
+        windowsRestrictionsMenuItem.DropDownItems.Add(runDialogMenuItem);
+        var controlPanelMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ControlPanelAndSettings));
+        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
+        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
+        windowsRestrictionsMenuItem.DropDownItems.Add(controlPanelMenuItem);
+        var lockWorkstationMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LockWorkstation));
+        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
+        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
+        windowsRestrictionsMenuItem.DropDownItems.Add(lockWorkstationMenuItem);
+        var changePasswordMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword));
+        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
+        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
+        windowsRestrictionsMenuItem.DropDownItems.Add(changePasswordMenuItem);
+        var logOffMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LogOff));
+        logOffMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
+        logOffMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
+        windowsRestrictionsMenuItem.DropDownItems.Add(logOffMenuItem);
+        groupCommandsMenuItem.DropDownItems.Add(windowsRestrictionsMenuItem);
         var commandsMenuItem = new ToolStripMenuItem(TeacherClientText.CommandsMenu);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);

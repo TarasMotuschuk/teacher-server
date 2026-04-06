@@ -94,6 +94,32 @@
           <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
           <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
         </MenuItem>
+        <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Windows Restrictions">
+          <MenuItem x:Name="TaskManagerRestrictionsMenuItem" Header="Task Manager">
+            <MenuItem x:Name="EnableTaskManagerRestrictionMenuItem" Header="Enable" Click="EnableTaskManagerRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableTaskManagerRestrictionMenuItem" Header="Disable" Click="DisableTaskManagerRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="RunDialogRestrictionsMenuItem" Header="Run dialog">
+            <MenuItem x:Name="EnableRunDialogRestrictionMenuItem" Header="Enable" Click="EnableRunDialogRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableRunDialogRestrictionMenuItem" Header="Disable" Click="DisableRunDialogRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="ControlPanelRestrictionsMenuItem" Header="Control Panel and Settings">
+            <MenuItem x:Name="EnableControlPanelRestrictionMenuItem" Header="Enable" Click="EnableControlPanelRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableControlPanelRestrictionMenuItem" Header="Disable" Click="DisableControlPanelRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="LockWorkstationRestrictionsMenuItem" Header="Lock workstation">
+            <MenuItem x:Name="EnableLockWorkstationRestrictionMenuItem" Header="Enable" Click="EnableLockWorkstationRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableLockWorkstationRestrictionMenuItem" Header="Disable" Click="DisableLockWorkstationRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="ChangePasswordRestrictionsMenuItem" Header="Change password">
+            <MenuItem x:Name="EnableChangePasswordRestrictionMenuItem" Header="Enable" Click="EnableChangePasswordRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableChangePasswordRestrictionMenuItem" Header="Disable" Click="DisableChangePasswordRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="LogOffRestrictionsMenuItem" Header="Log off">
+            <MenuItem x:Name="EnableLogOffRestrictionMenuItem" Header="Enable" Click="EnableLogOffRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableLogOffRestrictionMenuItem" Header="Disable" Click="DisableLogOffRestrictionMenuItem_OnClick" />
+          </MenuItem>
+        </MenuItem>
         <MenuItem x:Name="CommandsMenuItem" Header="_Commands">
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />

@@ -904,6 +904,34 @@ public partial class MainForm : Form
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
+    private Task ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind restriction, bool enabled)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return Task.CompletedTask;
+        }
+
+        return SetWindowsRestrictionOnAgentsAsync(targetAgents, restriction, enabled);
+    }
+
+    private async void enableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: true);
+    private async void disableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: false);
+    private async void enableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: true);
+    private async void disableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: false);
+    private async void enableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: true);
+    private async void disableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: false);
+    private async void enableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: true);
+    private async void disableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: false);
+    private async void enableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
+    private async void disableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
+    private async void enableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
+    private async void disableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
+
     private async void runCommandOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
@@ -3217,6 +3245,51 @@ public partial class MainForm : Form
             MessageBox.Show(
                 string.Join(Environment.NewLine, failures),
                 TeacherClientText.BulkInputLockError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private async Task SetWindowsRestrictionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, WindowsRestrictionKind restriction, bool enabled)
+    {
+        if (MessageBox.Show(
+                TeacherClientText.WindowsRestrictionPrompt(restriction, enabled, targetAgents.Count),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.WindowsRestrictionProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, restriction, enabled));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.SetWindowsRestrictionEnabledAsync(restriction, enabled);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.WindowsRestrictionCompleted(restriction, enabled, succeeded)
+            : TeacherClientText.WindowsRestrictionCompletedWithFailures(restriction, enabled, succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.BulkWindowsRestrictionsError,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
         }

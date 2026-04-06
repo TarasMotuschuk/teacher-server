@@ -6,6 +6,14 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- Group Commands in both teacher clients now include a `Windows Restrictions` submenu with on/off actions for `Task Manager`, `Run dialog`, `Control Panel and Settings`, `Lock workstation`, `Change password`, and `Log off`
+
+### Fixed
+
+- Student service now applies Windows classroom restrictions through a dedicated `WindowsRestrictionsService`, using machine-wide policy registry keys and a policy refresh broadcast instead of requiring manual registry edits on each student PC
+
 ## [1.0.15] - 2026-04-06
 
 ### Added

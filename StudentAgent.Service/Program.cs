@@ -19,6 +19,7 @@ try
     builder.Services.AddSingleton<PublicDesktopShortcutService>();
     builder.Services.AddSingleton<DesktopIconLayoutService>();
     builder.Services.AddSingleton<VncHostService>();
+    builder.Services.AddSingleton<WindowsRestrictionsService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
     builder.Services.AddHostedService<VncHostLauncherService>();
 
@@ -142,6 +143,18 @@ try
             store.UpdateVncSettings(false);
             vncHostService.StopAll();
 
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapPost("/api/windows-restrictions", ([FromBody] WindowsRestrictionStateRequest request, [FromServices] WindowsRestrictionsService service) =>
+    {
+        try
+        {
+            service.SetRestriction(request.Restriction, request.Enabled);
             return Results.NoContent();
         }
         catch (Exception ex)

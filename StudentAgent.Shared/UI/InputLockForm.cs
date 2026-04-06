@@ -6,6 +6,7 @@ public sealed class InputLockForm : Form
 {
     private readonly System.Windows.Forms.Timer _focusTimer;
     private bool _allowClose;
+    private bool _disposed;
 
     public InputLockForm(Screen screen)
     {
@@ -69,12 +70,7 @@ public sealed class InputLockForm : Form
         _focusTimer.Tick += (_, _) => BringBackToFront();
         _focusTimer.Start();
 
-        Shown += (_, _) =>
-        {
-            InputLockGlobalInputHook.AddRef();
-            BringBackToFront();
-        };
-        FormClosed += (_, _) => InputLockGlobalInputHook.Release();
+        Shown += (_, _) => BringBackToFront();
         Activated += (_, _) => BringBackToFront();
     }
 
@@ -96,6 +92,24 @@ public sealed class InputLockForm : Form
         _focusTimer.Stop();
         _focusTimer.Dispose();
         base.OnFormClosing(e);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            base.Dispose(disposing);
+            return;
+        }
+
+        _disposed = true;
+        if (disposing)
+        {
+            _focusTimer.Stop();
+            _focusTimer.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -126,14 +140,27 @@ public sealed class InputLockForm : Form
 
     private void BringBackToFront()
     {
-        if (!Visible)
+        if (_disposed || IsDisposed || Disposing || !Visible)
         {
             return;
         }
 
-        TopMost = true;
-        Activate();
-        BringToFront();
-        Focus();
+        try
+        {
+            if (!TopMost)
+            {
+                TopMost = true;
+            }
+
+            BringToFront();
+            if (!ContainsFocus)
+            {
+                Activate();
+                Focus();
+            }
+        }
+        catch
+        {
+        }
     }
 }

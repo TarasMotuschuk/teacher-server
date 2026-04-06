@@ -73,6 +73,15 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task SetWindowsRestrictionEnabledAsync(WindowsRestrictionKind restriction, bool enabled, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/windows-restrictions",
+            new WindowsRestrictionStateRequest(restriction, enabled),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task ApplyStudentPolicySettingsAsync(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync(

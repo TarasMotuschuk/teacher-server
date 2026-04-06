@@ -1555,6 +1555,34 @@ public partial class MainWindow : Window
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
+    private Task ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind restriction, bool enabled)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return Task.CompletedTask;
+        }
+
+        return SetWindowsRestrictionOnAgentsAsync(targetAgents, restriction, enabled);
+    }
+
+    private async void EnableTaskManagerRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: true);
+    private async void DisableTaskManagerRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: false);
+    private async void EnableRunDialogRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: true);
+    private async void DisableRunDialogRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: false);
+    private async void EnableControlPanelRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: true);
+    private async void DisableControlPanelRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: false);
+    private async void EnableLockWorkstationRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: true);
+    private async void DisableLockWorkstationRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: false);
+    private async void EnableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
+    private async void DisableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
+    private async void EnableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
+    private async void DisableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
+
     private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = GetSelectedAgents();
@@ -2218,6 +2246,51 @@ public partial class MainWindow : Window
                     string.Join(Environment.NewLine, failures));
             }
         }, CrossPlatformText.BulkInputLockError);
+    }
+
+    private async Task SetWindowsRestrictionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, WindowsRestrictionKind restriction, bool enabled)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.WindowsRestrictionPrompt(restriction, enabled, targetAgents.Count)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.WindowsRestrictionProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, restriction, enabled));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.SetWindowsRestrictionEnabledAsync(restriction, enabled);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.WindowsRestrictionCompleted(restriction, enabled, succeeded)
+                : CrossPlatformText.WindowsRestrictionCompletedWithFailures(restriction, enabled, succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkWindowsRestrictionsError);
     }
 
     private async Task ExecutePowerActionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, PowerActionKind action, bool selectedOnly)
@@ -3071,6 +3144,25 @@ public partial class MainWindow : Window
         DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
+        WindowsRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionsMenu;
+        TaskManagerRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager);
+        EnableTaskManagerRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableTaskManagerRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        RunDialogRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.RunDialog);
+        EnableRunDialogRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableRunDialogRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        ControlPanelRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ControlPanelAndSettings);
+        EnableControlPanelRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableControlPanelRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        LockWorkstationRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.LockWorkstation);
+        EnableLockWorkstationRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableLockWorkstationRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        ChangePasswordRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword);
+        EnableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        LogOffRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.LogOff);
+        EnableLogOffRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableLogOffRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;

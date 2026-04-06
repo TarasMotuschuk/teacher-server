@@ -18,6 +18,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     private readonly ToolStripMenuItem _exitMenuItem;
     private readonly List<InputLockForm> _inputLockForms = [];
     private bool _browserCheckInProgress;
+    private bool _inputLockHookHeld;
 
     protected AgentUiApplicationContextBase(
         AgentSettingsStore settingsStore,
@@ -215,6 +216,12 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         if (_settingsStore.Current.InputLockEnabled)
         {
+            if (!_inputLockHookHeld)
+            {
+                InputLockGlobalInputHook.AddRef();
+                _inputLockHookHeld = true;
+            }
+
             if (_inputLockForms.Count == 0)
             {
                 foreach (var screen in Screen.AllScreens)
@@ -247,5 +254,10 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         }
 
         _inputLockForms.Clear();
+        if (_inputLockHookHeld)
+        {
+            InputLockGlobalInputHook.Release();
+            _inputLockHookHeld = false;
+        }
     }
 }

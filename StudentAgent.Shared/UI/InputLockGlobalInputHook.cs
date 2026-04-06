@@ -15,6 +15,7 @@ internal static class InputLockGlobalInputHook
     private const int WhKeyboardLl = 13;
     private const int WhMouseLl = 14;
 
+    private static readonly object Sync = new();
     private static int _refCount;
     private static IntPtr _keyboardHook;
     private static IntPtr _mouseHook;
@@ -23,25 +24,43 @@ internal static class InputLockGlobalInputHook
 
     public static void AddRef()
     {
-        if (Interlocked.Increment(ref _refCount) != 1)
+        lock (Sync)
         {
-            return;
-        }
+            checked
+            {
+                _refCount++;
+            }
 
-        if (!TryInstall())
-        {
-            Interlocked.Decrement(ref _refCount);
+            if (_refCount != 1)
+            {
+                return;
+            }
+
+            if (!TryInstall())
+            {
+                _refCount = 0;
+            }
         }
     }
 
     public static void Release()
     {
-        if (Interlocked.Decrement(ref _refCount) > 0)
+        lock (Sync)
         {
-            return;
-        }
+            if (_refCount <= 0)
+            {
+                _refCount = 0;
+                return;
+            }
 
-        Uninstall();
+            _refCount--;
+            if (_refCount > 0)
+            {
+                return;
+            }
+
+            Uninstall();
+        }
     }
 
     private static bool TryInstall()
@@ -92,23 +111,39 @@ internal static class InputLockGlobalInputHook
 
     private static IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode < 0)
+        try
         {
+            if (nCode < 0)
+            {
+                return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+            }
+
+            // Swallow all keyboard input (including Left/Right Win, Alt+Tab, etc.).
+            return (IntPtr)1;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Input lock keyboard hook failed: {ex}");
             return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
         }
-
-        // Swallow all keyboard input (including Left/Right Win, Alt+Tab, etc.).
-        return (IntPtr)1;
     }
 
     private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode < 0)
+        try
         {
+            if (nCode < 0)
+            {
+                return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+            }
+
+            return (IntPtr)1;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Input lock mouse hook failed: {ex}");
             return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
         }
-
-        return (IntPtr)1;
     }
 
     private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);

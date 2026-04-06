@@ -30,6 +30,7 @@ internal static class TeacherClientText
     public static string ProgramUpdatesMenu => IsUk ? "Оновлення програми" : "Program Updates";
     public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
     public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
+    public static string WindowsRestrictionsMenu => IsUk ? "Обмеження Windows" : "Windows Restrictions";
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
     public static string DesktopIconsMenu => IsUk ? "Іконки робочого стола" : "Desktop Icons";
     public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
@@ -200,6 +201,33 @@ internal static class TeacherClientText
     public static string ChooseLocalFileOrFolderToDistribute => IsUk ? "Виберіть локальний файл або папку для розсилки." : "Choose a local file or folder to distribute.";
     public static string ChooseAgentsForDistribution => IsUk ? "Виберіть одного або кількох агентів для розсилки." : "Choose one or more agents for distribution.";
     public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн-агентів для групового копіювання." : "No online agents are available for bulk copy.";
+    public static string WindowsRestrictionName(WindowsRestrictionKind restriction)
+        => restriction switch
+        {
+            WindowsRestrictionKind.TaskManager => IsUk ? "Диспетчер задач" : "Task Manager",
+            WindowsRestrictionKind.RunDialog => IsUk ? "Вікно Виконати" : "Run dialog",
+            WindowsRestrictionKind.ControlPanelAndSettings => IsUk ? "Панель керування і Параметри" : "Control Panel and Settings",
+            WindowsRestrictionKind.LockWorkstation => IsUk ? "Блокування робочої станції" : "Lock workstation",
+            WindowsRestrictionKind.ChangePassword => IsUk ? "Зміна пароля" : "Change password",
+            WindowsRestrictionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
+            _ => restriction.ToString()
+        };
+    public static string WindowsRestrictionPrompt(WindowsRestrictionKind restriction, bool enabled, int count)
+        => IsUk
+            ? $"{(enabled ? "Увімкнути" : "Вимкнути")} обмеження \"{WindowsRestrictionName(restriction)}\" на {count} онлайн учнівських ПК?"
+            : $"{(enabled ? "Enable" : "Disable")} the \"{WindowsRestrictionName(restriction)}\" restriction on {count} online student PCs?";
+    public static string WindowsRestrictionProgress(string machine, int index, int total, WindowsRestrictionKind restriction, bool enabled)
+        => IsUk
+            ? $"{(enabled ? "Увімкнення" : "Вимкнення")} обмеження \"{WindowsRestrictionName(restriction)}\": {machine} ({index}/{total})"
+            : $"{(enabled ? "Enabling" : "Disabling")} \"{WindowsRestrictionName(restriction)}\": {machine} ({index}/{total})";
+    public static string WindowsRestrictionCompleted(WindowsRestrictionKind restriction, bool enabled, int succeeded)
+        => IsUk
+            ? $"{(enabled ? "Увімкнено" : "Вимкнено")} обмеження \"{WindowsRestrictionName(restriction)}\" на {succeeded} ПК"
+            : $"{(enabled ? "Enabled" : "Disabled")} \"{WindowsRestrictionName(restriction)}\" on {succeeded} PCs";
+    public static string WindowsRestrictionCompletedWithFailures(WindowsRestrictionKind restriction, bool enabled, int succeeded, int failures)
+        => IsUk
+            ? $"{(enabled ? "Увімкнення" : "Вимкнення")} \"{WindowsRestrictionName(restriction)}\": успішно {succeeded}, з помилками {failures}"
+            : $"{(enabled ? "Enabled" : "Disabled")} \"{WindowsRestrictionName(restriction)}\": {succeeded} succeeded, {failures} failed";
     public static string BrowserLockEnabledFor(string machine) => IsUk ? $"Блокування браузера увімкнено на {machine}" : $"Browser lock enabled on {machine}";
     public static string BrowserLockDisabledFor(string machine) => IsUk ? $"Блокування браузера вимкнено на {machine}" : $"Browser lock disabled on {machine}";
     public static string BrowserLockToggleFailed => IsUk ? "Не вдалося оновити блокування браузера" : "Failed to update browser lock";
@@ -250,6 +278,8 @@ internal static class TeacherClientText
     public static string LockBrowsersOnAllOnlineStudents => IsUk ? "Заблокувати браузер на всіх онлайн учнівських ПК" : "Lock browser on all online student PCs";
     public static string LockInputOnAllOnlineStudents => IsUk ? "Заблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Lock keyboard and mouse on all online student PCs";
     public static string UnlockInputOnAllOnlineStudents => IsUk ? "Розблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Unlock keyboard and mouse on all online student PCs";
+    public static string EnableCommand => IsUk ? "Увімкнути" : "Enable";
+    public static string DisableCommand => IsUk ? "Вимкнути" : "Disable";
     public static string ShutdownCommand => IsUk ? "Вимкнути" : "Shut Down";
     public static string RestartCommand => IsUk ? "Перезавантажити" : "Restart";
     public static string LogOffCommand => IsUk ? "Вийти з облікового запису" : "Log Off";
@@ -302,6 +332,7 @@ internal static class TeacherClientText
             ? $"Групове {(enabled ? "увімкнення" : "вимкнення")} блокування вводу: успішно {succeeded}, з помилками {failed}"
             : $"Bulk {(enabled ? "enable" : "disable")} input lock: {succeeded} succeeded, {failed} failed";
     public static string BulkInputLockError => IsUk ? "Помилка групового блокування клавіатури і миші" : "Bulk keyboard and mouse lock error";
+    public static string BulkWindowsRestrictionsError => IsUk ? "Помилка групового застосування Windows-обмежень" : "Bulk Windows restrictions error";
     public static string InputLockProgress(string agent, int agentIndex, int agentCount, bool enabled)
         => IsUk
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} блокування вводу на {agent} ({agentIndex}/{agentCount})"
