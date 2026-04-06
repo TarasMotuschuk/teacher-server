@@ -236,6 +236,9 @@ public sealed class AgentUpdateService
     private void LaunchUpdater(string updaterPath, string packagePath, string targetVersion)
     {
         var installDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var runnerDirectory = PrepareUpdaterRunnerDirectory(installDirectory);
+        var stagedUpdaterPath = Path.Combine(runnerDirectory, Path.GetFileName(updaterPath));
+
         var args = string.Join(' ', [
             "--service-name", Quote(ServiceName),
             "--zip", Quote(packagePath),
@@ -246,14 +249,64 @@ public sealed class AgentUpdateService
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = updaterPath,
+            FileName = stagedUpdaterPath,
             Arguments = args,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = installDirectory
+            WorkingDirectory = runnerDirectory
         };
 
         Process.Start(startInfo);
+    }
+
+    private string PrepareUpdaterRunnerDirectory(string installDirectory)
+    {
+        var runnerRoot = StudentAgentPathHelper.GetUpdateRunnerDirectory();
+        Directory.CreateDirectory(runnerRoot);
+        CleanupStaleUpdaterRunnerDirectories(runnerRoot);
+
+        var runnerDirectory = Path.Combine(runnerRoot, Guid.NewGuid().ToString("N"));
+        CopyDirectory(installDirectory, runnerDirectory, static _ => false);
+        return runnerDirectory;
+    }
+
+    private void CleanupStaleUpdaterRunnerDirectories(string runnerRoot)
+    {
+        foreach (var directory in Directory.GetDirectories(runnerRoot))
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Failed to remove stale updater runner directory '{directory}': {ex.Message}");
+            }
+        }
+    }
+
+    private static void CopyDirectory(string sourceDirectory, string destinationDirectory, Func<string, bool> skipPredicate)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+
+        foreach (var directory in Directory.GetDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, directory);
+            Directory.CreateDirectory(Path.Combine(destinationDirectory, relativePath));
+        }
+
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            if (skipPredicate(file))
+            {
+                continue;
+            }
+
+            var relativePath = Path.GetRelativePath(sourceDirectory, file);
+            var destinationPath = Path.Combine(destinationDirectory, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            File.Copy(file, destinationPath, overwrite: true);
+        }
     }
 
     private void UpdateState(

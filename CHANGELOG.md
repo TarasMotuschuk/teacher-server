@@ -6,6 +6,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Fixed
+
+- Student-agent updates now launch `StudentAgent.Updater` from a temporary runner directory and stop both `StudentAgent.UIHost` and `StudentAgent.VncHost` before file replacement, preventing self-locked runtime files such as `clrjit.dll` from breaking install or rollback
+
 ## [1.0.14] - 2026-04-06
 
 ### Added

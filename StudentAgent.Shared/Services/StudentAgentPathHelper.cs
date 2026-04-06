@@ -50,6 +50,9 @@ internal static class StudentAgentPathHelper
     public static string GetUpdateBackupDirectory()
         => Path.Combine(GetUpdatesDirectory(), "backup");
 
+    public static string GetUpdateRunnerDirectory()
+        => Path.Combine(GetUpdatesDirectory(), "runner");
+
     public static string GetUpdateStatusPath()
         => Path.Combine(GetUpdatesDirectory(), "update-status.json");
 

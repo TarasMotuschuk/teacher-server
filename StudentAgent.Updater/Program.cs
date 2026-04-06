@@ -14,7 +14,7 @@ try
 {
     Log(logPath, $"Preparing update to {options.TargetVersion}.");
     StopService(options.ServiceName, logPath);
-    StopUiHostProcesses(options.InstallDirectory, logPath);
+    StopHostedProcesses(options.InstallDirectory, logPath, "StudentAgent.UIHost", "StudentAgent.VncHost");
 
     var stagingDirectory = Path.Combine(Path.GetTempPath(), $"StudentAgentUpdate-{Guid.NewGuid():N}");
     if (Directory.Exists(stagingDirectory))
@@ -172,7 +172,7 @@ static void RestoreBackup(string backupDirectory, string installDirectory, strin
     }
 
     Log(logPath, $"Restoring backup from '{backupDirectory}'.");
-    StopUiHostProcesses(installDirectory, logPath);
+    StopHostedProcesses(installDirectory, logPath, "StudentAgent.UIHost", "StudentAgent.VncHost");
     CopyDirectory(
         backupDirectory,
         installDirectory,
@@ -245,48 +245,51 @@ static void RunNetsh(string arguments, string logPath, bool ignoreFailure = fals
     }
 }
 
-static void StopUiHostProcesses(string installDirectory, string logPath)
+static void StopHostedProcesses(string installDirectory, string logPath, params string[] processNames)
 {
     var normalizedInstallDirectory = Path.GetFullPath(installDirectory)
         .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-    foreach (var process in Process.GetProcessesByName("StudentAgent.UIHost"))
+    foreach (var processName in processNames)
     {
-        using (process)
+        foreach (var process in Process.GetProcessesByName(processName))
         {
-            try
+            using (process)
             {
-                if (process.HasExited)
-                {
-                    continue;
-                }
-
-                string? processPath;
                 try
                 {
-                    processPath = process.MainModule?.FileName;
-                }
-                catch
-                {
-                    processPath = null;
-                }
-
-                if (!string.IsNullOrWhiteSpace(processPath))
-                {
-                    var normalizedProcessPath = Path.GetFullPath(processPath);
-                    if (!normalizedProcessPath.StartsWith(normalizedInstallDirectory, StringComparison.OrdinalIgnoreCase))
+                    if (process.HasExited)
                     {
                         continue;
                     }
-                }
 
-                Log(logPath, $"Stopping StudentAgent.UIHost process {process.Id}.");
-                process.Kill(entireProcessTree: true);
-                process.WaitForExit((int)TimeSpan.FromSeconds(30).TotalMilliseconds);
-            }
-            catch (Exception ex)
-            {
-                Log(logPath, $"Failed to stop StudentAgent.UIHost process {process.Id}: {ex}");
+                    string? processPath;
+                    try
+                    {
+                        processPath = process.MainModule?.FileName;
+                    }
+                    catch
+                    {
+                        processPath = null;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(processPath))
+                    {
+                        var normalizedProcessPath = Path.GetFullPath(processPath);
+                        if (!normalizedProcessPath.StartsWith(normalizedInstallDirectory, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+                    }
+
+                    Log(logPath, $"Stopping {processName} process {process.Id}.");
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit((int)TimeSpan.FromSeconds(30).TotalMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    Log(logPath, $"Failed to stop {processName} process {process.Id}: {ex}");
+                }
             }
         }
     }
