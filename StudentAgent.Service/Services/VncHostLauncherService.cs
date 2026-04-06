@@ -23,7 +23,8 @@ public sealed class VncHostLauncherService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        // Match Veyon-style service polling: re-check console session and VNC host soon after logon/logoff.
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
 
         while (!stoppingToken.IsCancellationRequested)
         {

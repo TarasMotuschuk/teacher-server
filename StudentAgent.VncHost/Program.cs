@@ -14,6 +14,7 @@ using KeySym = RemoteViewing.Vnc.KeySym;
 using StudentAgent;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
+using StudentAgent.VncHost;
 using System.Windows.Forms;
 
 try
@@ -46,7 +47,7 @@ try
         return;
     }
 
-    var source = new DesktopCaptureFramebufferSource(logService);
+    var source = CreateFramebufferSource(logService);
     var keyboard = new WindowsVncRemoteKeyboard(logService);
     var controller = new WindowsVncRemoteController();
 
@@ -79,6 +80,28 @@ catch (Exception ex)
     var startupLogPath = Path.Combine(StudentAgentPathHelper.GetLogsDirectory(), "studentagent-vnchost-startup-error.log");
     Directory.CreateDirectory(Path.GetDirectoryName(startupLogPath)!);
     File.WriteAllText(startupLogPath, ex.ToString());
+}
+
+static IVncFramebufferSource CreateFramebufferSource(AgentLogService log)
+{
+    if (SystemInformation.MonitorCount > 1)
+    {
+        log.LogInfo(
+            "VNC: multiple monitors — GDI capture is used for the full virtual desktop. With one monitor, DXGI duplication is used (secure desktop / UAC visible, same technique class as Veyon's UltraVNC DeskDup).");
+        return new DesktopCaptureFramebufferSource(log);
+    }
+
+    try
+    {
+        var dxgi = new DxgiDesktopFramebufferSource(log);
+        _ = dxgi.Capture();
+        return dxgi;
+    }
+    catch (Exception ex)
+    {
+        log.LogWarning($"VNC: DXGI Desktop Duplication unavailable ({ex.Message}); using GDI capture.");
+        return new DesktopCaptureFramebufferSource(log);
+    }
 }
 
 static void WireServerDiagnostics(IVncServer server, AgentLogService logService, CancellationToken stoppingToken)

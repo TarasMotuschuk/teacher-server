@@ -4,12 +4,40 @@ using System.Runtime.InteropServices;
 
 namespace StudentAgent.Service.Services;
 
+/// <summary>
+/// Launches processes in interactive sessions from the Windows service (session 0).
+/// Mirrors the Veyon model: the service stays in session 0; session work runs in child processes.
+/// For remote desktop / login-screen capable starts, Veyon uses <c>winlogon.exe</c> in the target
+/// session as the token source (<see cref="StartProcessInSessionUsingWinlogonToken"/>); plain
+/// <c>WTSQueryUserToken</c> only works after a user has logged on.
+/// </summary>
 internal static class SessionProcessLauncher
 {
+    private const int NormalPriorityClass = 0x00000020;
+    private const int CreateUnicodeEnvironment = 0x00000400;
+    private const int CreateNoWindow = 0x08000000;
+
+    private static readonly Guid FolderIdProfile = new("5E6C858F-0E22-4760-9A6C-E0883C6723D4");
+
     public static int GetActiveSessionId()
     {
         var sessionId = WTSGetActiveConsoleSessionId();
         return sessionId == 0xFFFFFFFF ? -1 : unchecked((int)sessionId);
+    }
+
+    /// <summary>
+    /// Starts a process in the session using the same approach as Veyon: duplicate the access token
+    /// from <c>winlogon.exe</c> in that session so the child can run on the logon desktop before any
+    /// user session token exists. Falls back to <c>WTSQueryUserToken</c> if winlogon-based launch fails.
+    /// </summary>
+    public static void StartProcessInSessionPreferWinlogon(string applicationPath, string arguments, int sessionId, bool hideWindow = false)
+    {
+        if (TryStartProcessUsingWinlogonToken(applicationPath, arguments, sessionId, hideWindow, waitForExit: false, timeout: null, out _))
+        {
+            return;
+        }
+
+        StartProcessInSession(applicationPath, arguments, sessionId, hideWindow);
     }
 
     public static void StartProcessInSession(string applicationPath, string arguments, int sessionId)
@@ -20,6 +48,243 @@ internal static class SessionProcessLauncher
 
     public static int StartProcessInSessionAndWait(string applicationPath, string arguments, int sessionId, bool hideWindow, TimeSpan timeout)
         => StartProcessInSessionInternal(applicationPath, arguments, sessionId, hideWindow, waitForExit: true, timeout);
+
+    private static bool TryFindWinlogonProcessId(int sessionId, out int processId)
+    {
+        processId = 0;
+        foreach (var process in Process.GetProcessesByName("winlogon"))
+        {
+            try
+            {
+                if (process.SessionId == sessionId)
+                {
+                    processId = process.Id;
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Veyon-style launch: token from winlogon in the session (works at the Windows logon screen).</summary>
+    private static bool TryStartProcessUsingWinlogonToken(
+        string applicationPath,
+        string arguments,
+        int sessionId,
+        bool hideWindow,
+        bool waitForExit,
+        TimeSpan? timeout,
+        out int exitCode)
+    {
+        exitCode = 0;
+        if (!TryFindWinlogonProcessId(sessionId, out var winlogonPid))
+        {
+            return false;
+        }
+
+        EnableLaunchPrivilegesBestEffort();
+
+        IntPtr winlogonProcess = OpenProcess(0x1F0FFF, false, winlogonPid);
+        if (winlogonProcess == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        try
+        {
+            if (!OpenProcessToken(winlogonProcess, 0x02000000, out var userProcessToken))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (!CreateEnvironmentBlock(out var userEnvironment, userProcessToken, false))
+                {
+                    return false;
+                }
+
+                try
+                {
+                    var folderIdProfile = FolderIdProfile;
+                    if (SHGetKnownFolderPath(ref folderIdProfile, 0, userProcessToken, out var profileDirPtr) != 0)
+                    {
+                        return false;
+                    }
+
+                    string? profileDir;
+                    try
+                    {
+                        profileDir = Marshal.PtrToStringUni(profileDirPtr);
+                    }
+                    finally
+                    {
+                        CoTaskMemFree(profileDirPtr);
+                    }
+
+                    if (string.IsNullOrEmpty(profileDir))
+                    {
+                        return false;
+                    }
+
+                    if (!ImpersonateLoggedOnUser(userProcessToken))
+                    {
+                        return false;
+                    }
+
+                    try
+                    {
+                        var startupInfo = new STARTUPINFO
+                        {
+                            cb = Marshal.SizeOf<STARTUPINFO>(),
+                            lpDesktop = @"winsta0\default",
+                            dwFlags = hideWindow ? 0x00000001 : 0,
+                            wShowWindow = hideWindow ? (short)0 : (short)1
+                        };
+
+                        var commandLine = string.IsNullOrWhiteSpace(arguments)
+                            ? $"\"{applicationPath}\""
+                            : $"\"{applicationPath}\" {arguments}";
+
+                        var creationFlags = CreateUnicodeEnvironment | NormalPriorityClass;
+                        if (hideWindow)
+                        {
+                            creationFlags |= CreateNoWindow;
+                        }
+
+                        if (!DuplicateTokenEx(
+                                userProcessToken,
+                                0x02000000 | 0x000F0000 | 0x00000008 | 0x00000002 | 0x00000001,
+                                IntPtr.Zero,
+                                2,
+                                1,
+                                out var newToken))
+                        {
+                            return false;
+                        }
+
+                        try
+                        {
+                            if (!CreateProcessAsUser(
+                                    newToken,
+                                    null,
+                                    commandLine,
+                                    IntPtr.Zero,
+                                    IntPtr.Zero,
+                                    false,
+                                    creationFlags,
+                                    userEnvironment,
+                                    profileDir,
+                                    ref startupInfo,
+                                    out var processInformation))
+                            {
+                                return false;
+                            }
+
+                            try
+                            {
+                                if (!waitForExit)
+                                {
+                                    return true;
+                                }
+
+                                var waitMilliseconds = timeout is null
+                                    ? Timeout.Infinite
+                                    : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
+
+                                var waitResult = WaitForSingleObject(processInformation.hProcess, waitMilliseconds);
+                                if (waitResult == WAIT_TIMEOUT)
+                                {
+                                    throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
+                                }
+
+                                if (!GetExitCodeProcess(processInformation.hProcess, out var code))
+                                {
+                                    throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed.");
+                                }
+
+                                exitCode = unchecked((int)code);
+                                return true;
+                            }
+                            finally
+                            {
+                                CloseHandle(processInformation.hThread);
+                                CloseHandle(processInformation.hProcess);
+                            }
+                        }
+                        finally
+                        {
+                            CloseHandle(newToken);
+                        }
+                    }
+                    finally
+                    {
+                        RevertToSelf();
+                    }
+                }
+                finally
+                {
+                    DestroyEnvironmentBlock(userEnvironment);
+                }
+            }
+            finally
+            {
+                CloseHandle(userProcessToken);
+            }
+        }
+        finally
+        {
+            CloseHandle(winlogonProcess);
+        }
+    }
+
+    private static void EnableLaunchPrivilegesBestEffort()
+    {
+        foreach (var name in new[] { "SeAssignPrimaryTokenPrivilege", "SeIncreaseQuotaPrivilege", "SeTcbPrivilege" })
+        {
+            TryEnablePrivilege(name);
+        }
+    }
+
+    private static void TryEnablePrivilege(string privilegeName)
+    {
+        if (!OpenProcessToken(GetCurrentProcess(), 0x0020 | 0x0008, out var hToken))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!LookupPrivilegeValue(null, privilegeName, out var luid))
+            {
+                return;
+            }
+
+            var tp = new TOKEN_PRIVILEGES
+            {
+                PrivilegeCount = 1,
+                Privileges = new LUID_AND_ATTRIBUTES
+                {
+                    Luid = luid,
+                    Attributes = SE_PRIVILEGE_ENABLED
+                }
+            };
+
+            AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+        }
+        finally
+        {
+            CloseHandle(hToken);
+        }
+    }
 
     private static int StartProcessInSessionInternal(string applicationPath, string arguments, int sessionId, bool hideWindow, bool waitForExit, TimeSpan? timeout)
     {
@@ -257,5 +522,60 @@ internal static class SessionProcessLauncher
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
 
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr processHandle, uint dwDesiredAccess, out IntPtr tokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool ImpersonateLoggedOnUser(IntPtr hToken);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool RevertToSelf();
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool LookupPrivilegeValue(string? lpSystemName, string lpName, out LUID lpLuid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool AdjustTokenPrivileges(
+        IntPtr tokenHandle,
+        bool disableAllPrivileges,
+        ref TOKEN_PRIVILEGES newState,
+        int bufferLength,
+        IntPtr previousState,
+        IntPtr returnLength);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHGetKnownFolderPath(ref Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
+
+    [DllImport("ole32.dll")]
+    private static extern void CoTaskMemFree(IntPtr ptr);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LUID
+    {
+        public uint LowPart;
+        public int HighPart;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LUID_AND_ATTRIBUTES
+    {
+        public LUID Luid;
+        public uint Attributes;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TOKEN_PRIVILEGES
+    {
+        public uint PrivilegeCount;
+        public LUID_AND_ATTRIBUTES Privileges;
+    }
+
+    private const uint SE_PRIVILEGE_ENABLED = 0x00000002;
     private const uint WAIT_TIMEOUT = 0x00000102;
 }

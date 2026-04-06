@@ -6,6 +6,11 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Changed
+
+- `StudentAgent.Service`: VNC host launch follows the same model as Veyon — the service stays in session 0 and starts `StudentAgent.VncHost` using the `winlogon.exe` token for the active console session (with `WTSQueryUserToken` fallback after logon), enabling remote management at the Windows sign-in screen; the VNC launcher polls every 2 seconds to pick up session switches faster
+- `StudentAgent.VncHost`: screen capture uses **DXGI Desktop Duplication** on the primary output when a single monitor is detected — the same technique class as Veyon’s bundled UltraVNC (`DeskdupEngine`, `_USE_DESKTOPDUPLICATION`), so the secure-desktop UAC prompt is visible over VNC; multi-monitor setups keep full-desktop **GDI** capture (virtual screen) for correct layout, with a log line explaining the trade-off
+
 ### Fixed
 
 - `StudentAgent.VncHost`: VNC remote keyboard used an incomplete `INPUT` union for `SendInput`, so `cbSize` did not match the Win32 structure on x64 and keystrokes were dropped; the union now includes `MOUSEINPUT` and `HARDWAREINPUT`, with limited logging when `SendInput` fails
