@@ -28,12 +28,14 @@ internal static class CrossPlatformText
     public static string ProgramUpdatesMenu => IsUk ? "Оновлення програми" : "Program Updates";
     public static string RemoteManagementTab => IsUk ? "Віддалене керування" : "Remote management";
     public static string RemoteManagementTitle => IsUk ? "Віддалене керування" : "Remote management";
-    public static string RemoteManagementHint => IsUk ? "Подвійний клік на плитці відкриває повноекранний перегляд. Кнопки нижче запускають або зупиняють VNC для вибраного ПК." : "Double-click a tile to open the fullscreen viewer. The buttons below start or stop VNC for the selected PC.";
+    public static string RemoteManagementHint => IsUk ? "Подвійний клік на плитці відкриває повноекранний перегляд. Кнопки нижче запускають або зупиняють VNC, а керування вмикається вже у вікні перегляду." : "Double-click a tile to open the fullscreen viewer. The buttons below start or stop VNC, and control is enabled inside the viewer window.";
     public static string RefreshRemoteManagement => IsUk ? "Оновити екрани" : "Refresh screens";
-    public static string StartVncViewOnly => IsUk ? "Запустити VNC (перегляд)" : "Start VNC (view-only)";
+    public static string StartVncViewOnly => IsUk ? "Запустити VNC" : "Start VNC";
     public static string StartVncControl => IsUk ? "Запустити VNC (керування)" : "Start VNC (control)";
     public static string StopVnc => IsUk ? "Зупинити VNC" : "Stop VNC";
     public static string OpenFullscreenViewer => IsUk ? "Відкрити на весь екран" : "Open fullscreen viewer";
+    public static string EnableFullscreenControl => IsUk ? "Увімкнути керування" : "Enable control";
+    public static string SendKeyboardShortcut => IsUk ? "Надіслати комбінацію клавіш" : "Send keyboard shortcut";
     public static string RemoteManagementNoScreens => IsUk ? "Немає доступних екранів учнівських ПК." : "No student PC screens are available.";
     public static string RemoteManagementNoSelection => IsUk ? "Спочатку виберіть учнівський ПК на вкладці віддаленого керування." : "Choose a student PC on the remote management tab first.";
     public static string RemoteManagementSelectTitle => IsUk ? "Вибір ПК" : "Select PC";

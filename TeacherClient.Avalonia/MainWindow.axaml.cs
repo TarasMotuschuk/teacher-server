@@ -3119,7 +3119,6 @@ public partial class MainWindow : Window
             : CrossPlatformText.RemoteManagementHint;
         RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
         StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StartVncControlButton.Content = CrossPlatformText.StartVncControl;
         StopVncButton.Content = CrossPlatformText.StopVnc;
         OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
         ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, "Toolbar/agents/pc-refresh-list.png", ToolbarGlyphKind.Refresh);
@@ -3234,7 +3233,6 @@ public partial class MainWindow : Window
 
         RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
         StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StartVncControlButton.Content = CrossPlatformText.StartVncControl;
         StopVncButton.Content = CrossPlatformText.StopVnc;
         OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
         RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0

@@ -34,18 +34,6 @@ public partial class MainWindow
         await StartVncForRemoteManagementAsync(agent, viewOnly: true);
     }
 
-    private async void StartVncControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var agent = GetSelectedRemoteManagementAgent();
-        if (agent is null)
-        {
-            SetStatus(CrossPlatformText.RemoteManagementNoSelection);
-            return;
-        }
-
-        await StartVncForRemoteManagementAsync(agent, viewOnly: false);
-    }
-
     private async void StopVncButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var agent = GetSelectedRemoteManagementAgent();
@@ -148,7 +136,7 @@ public partial class MainWindow
 
     private RemoteManagementTileViewModel CreateRemoteManagementTile(DiscoveredAgentRow agent)
     {
-        var tile = new RemoteManagementTileViewModel(agent);
+        var tile = new RemoteManagementTileViewModel(agent, BuildRemoteManagementStatusText(agent));
         UpdateRemoteManagementTile(tile, agent);
         return tile;
     }
@@ -169,7 +157,7 @@ public partial class MainWindow
         tile.SetPreview(CreatePlaceholderBitmap(200, 140));
     }
 
-    private static string BuildRemoteManagementStatusText(DiscoveredAgentRow agent)
+    private string BuildRemoteManagementStatusText(DiscoveredAgentRow agent)
     {
         var baseStatus = !string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)
             ? CrossPlatformText.RemoteManagementStopped(agent.MachineName)
@@ -199,7 +187,7 @@ public partial class MainWindow
             return;
         }
 
-        var key = $"{tile.Agent.RespondingAddress}:{tile.Agent.VncPort}:{tile.Agent.VncViewOnly}:{_clientSettings.SharedSecret}";
+        var key = $"{tile.Agent.RespondingAddress}:{tile.Agent.VncPort}:False:{_clientSettings.SharedSecret}";
         if (string.Equals(tile.ConnectionKey, key, StringComparison.OrdinalIgnoreCase) &&
             tile.Session?.IsConnected == true &&
             tile.PreviewTask is { IsCompleted: false })
@@ -215,7 +203,7 @@ public partial class MainWindow
             tile.Agent.RespondingAddress,
             tile.Agent.VncPort,
             _clientSettings.SharedSecret,
-            controlEnabled: !tile.Agent.VncViewOnly);
+            controlEnabled: false);
         tile.PreviewCancellation = cancellation;
         tile.Session = session;
         session.StatusChanged += (_, message) =>
@@ -402,7 +390,7 @@ public partial class MainWindow
             if (tile.Session?.IsConnected == true)
             {
                 sharedSession = tile.Session;
-                sharedSession.ControlEnabled = !agent.VncViewOnly;
+                sharedSession.ControlEnabled = false;
             }
             else
             {
@@ -417,7 +405,7 @@ public partial class MainWindow
                 agent.RespondingAddress,
                 agent.VncPort,
                 _clientSettings.SharedSecret,
-                controlEnabled: !agent.VncViewOnly);
+                controlEnabled: false);
 
         if (tile is not null)
         {
@@ -514,12 +502,12 @@ public partial class MainWindow
         private string _statusText = string.Empty;
         private bool _isSelected;
 
-        public RemoteManagementTileViewModel(DiscoveredAgentRow agent)
+        public RemoteManagementTileViewModel(DiscoveredAgentRow agent, string initialStatus)
         {
             AgentId = agent.AgentId;
             Agent = agent;
             MachineName = agent.MachineName;
-            StatusText = BuildRemoteManagementStatusText(agent);
+            StatusText = initialStatus;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

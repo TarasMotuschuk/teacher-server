@@ -29,18 +29,6 @@ public partial class MainForm
         await StartVncForRemoteManagementAsync(agent, viewOnly: true);
     }
 
-    private async void startRemoteManagementControlButton_Click(object? sender, EventArgs e)
-    {
-        var agent = GetSelectedRemoteManagementAgent();
-        if (agent is null)
-        {
-            SetStatus(TeacherClientText.RemoteManagementNoSelection);
-            return;
-        }
-
-        await StartVncForRemoteManagementAsync(agent, viewOnly: false);
-    }
-
     private async void stopRemoteManagementButton_Click(object? sender, EventArgs e)
     {
         var agent = GetSelectedRemoteManagementAgent();
@@ -258,7 +246,7 @@ public partial class MainForm
             return;
         }
 
-        var key = $"{card.Agent.RespondingAddress}:{card.Agent.VncPort}:{card.Agent.VncViewOnly}:{_clientSettings.SharedSecret}";
+        var key = $"{card.Agent.RespondingAddress}:{card.Agent.VncPort}:False:{_clientSettings.SharedSecret}";
         if (string.Equals(card.ConnectionKey, key, StringComparison.OrdinalIgnoreCase) &&
             card.Session?.IsConnected == true &&
             card.PreviewTask is { IsCompleted: false })
@@ -274,7 +262,7 @@ public partial class MainForm
             card.Agent.RespondingAddress,
             card.Agent.VncPort,
             _clientSettings.SharedSecret,
-            controlEnabled: !card.Agent.VncViewOnly);
+            controlEnabled: false);
         card.PreviewCancellation = cancellation;
         card.Session = session;
         session.StatusChanged += (_, message) =>
@@ -466,7 +454,7 @@ public partial class MainForm
             if (existingCard.Session?.IsConnected == true)
             {
                 sharedSession = existingCard.Session;
-                sharedSession.ControlEnabled = !agent.VncViewOnly;
+                sharedSession.ControlEnabled = false;
             }
             else
             {
@@ -481,7 +469,7 @@ public partial class MainForm
                 agent.RespondingAddress,
                 agent.VncPort,
                 _clientSettings.SharedSecret,
-                controlEnabled: !agent.VncViewOnly);
+                controlEnabled: false);
 
         if (card is not null)
         {

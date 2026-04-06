@@ -12,11 +12,28 @@ namespace TeacherClient;
 
 public sealed class RemoteVncViewerForm : Form
 {
+    private static readonly KeyboardShortcutOption[] ShortcutOptions =
+    [
+        new(TeacherClientText.SendKeyboardShortcut),
+        new("Ctrl+Alt+Del", KeySym.Control_L, KeySym.Alt_L, KeySym.Delete),
+        new("Ctrl+Shift+Esc", KeySym.Control_L, KeySym.Shift_L, KeySym.Escape),
+        new("Alt+Tab", KeySym.Alt_L, KeySym.Tab),
+        new("Alt+F4", KeySym.Alt_L, KeySym.F4),
+        new("Win", KeySym.Super_L),
+        new("Win+Tab", KeySym.Super_L, KeySym.Tab),
+        new("Win+R", KeySym.Super_L, KeySym.R),
+        new("Win+D", KeySym.Super_L, KeySym.D),
+        new("Ctrl+Esc", KeySym.Control_L, KeySym.Escape),
+        new("Print Screen", KeySym.Print)
+    ];
+
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
     private readonly Panel _contentPanel;
     private readonly PictureBox _pictureBox;
     private readonly Label _statusLabel;
+    private readonly ComboBox _sendShortcutComboBox;
+    private readonly Button _enableControlButton;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new();
     private readonly string _machineName;
@@ -24,6 +41,7 @@ public sealed class RemoteVncViewerForm : Form
     private int _connectInProgress;
     private int _frameWidth;
     private int _frameHeight;
+    private bool _updatingShortcutSelection;
 
     public RemoteVncViewerForm(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
@@ -68,7 +86,54 @@ public sealed class RemoteVncViewerForm : Form
             Padding = new Padding(10, 0, 10, 0)
         };
 
+        _enableControlButton = new Button
+        {
+            Dock = DockStyle.Right,
+            Width = 170,
+            Text = TeacherClientText.EnableFullscreenControl,
+            Visible = !_session.ControlEnabled
+        };
+        _enableControlButton.Click += (_, _) =>
+        {
+            _session.ControlEnabled = true;
+            UpdateControlUi();
+            _contentPanel.Focus();
+        };
+
+        _sendShortcutComboBox = new ComboBox
+        {
+            Dock = DockStyle.Right,
+            Width = 240,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        _sendShortcutComboBox.Items.AddRange(ShortcutOptions);
+        _sendShortcutComboBox.SelectedIndex = 0;
+        _sendShortcutComboBox.SelectedIndexChanged += async (_, _) =>
+        {
+            if (_updatingShortcutSelection || _sendShortcutComboBox.SelectedItem is not KeyboardShortcutOption option || option.Keys.Length == 0)
+            {
+                return;
+            }
+
+            _session.ControlEnabled = true;
+            UpdateControlUi();
+
+            try
+            {
+                await _session.SendKeyCombinationAsync(option.Keys);
+            }
+            finally
+            {
+                _updatingShortcutSelection = true;
+                _sendShortcutComboBox.SelectedIndex = 0;
+                _updatingShortcutSelection = false;
+                _contentPanel.Focus();
+            }
+        };
+
         _contentPanel.Controls.Add(_pictureBox);
+        _contentPanel.Controls.Add(_sendShortcutComboBox);
+        _contentPanel.Controls.Add(_enableControlButton);
         _contentPanel.Controls.Add(_statusLabel);
 
         Controls.Add(_contentPanel);
@@ -118,10 +183,7 @@ public sealed class RemoteVncViewerForm : Form
         _contentPanel.KeyDown += ContentPanel_KeyDown;
         _contentPanel.KeyUp += ContentPanel_KeyUp;
         _contentPanel.KeyPress += ContentPanel_KeyPress;
-
-        _statusLabel.Text = _session.ControlEnabled
-            ? TeacherClientText.RemoteManagementControl(machineName)
-            : TeacherClientText.RemoteManagementViewOnly(machineName);
+        UpdateControlUi();
     }
 
     private async Task ConnectAsync()
@@ -144,9 +206,7 @@ public sealed class RemoteVncViewerForm : Form
                     return;
                 }
 
-                _statusLabel.Text = _session.ControlEnabled
-                    ? TeacherClientText.RemoteManagementControl(_machineName)
-                    : TeacherClientText.RemoteManagementViewOnly(_machineName);
+                UpdateControlUi();
             }
             catch (OperationCanceledException)
             {
@@ -237,6 +297,14 @@ public sealed class RemoteVncViewerForm : Form
         _pictureBox.Image = bitmap;
     }
 
+    private void UpdateControlUi()
+    {
+        _statusLabel.Text = _session.ControlEnabled
+            ? TeacherClientText.RemoteManagementControl(_machineName)
+            : TeacherClientText.RemoteManagementViewOnly(_machineName);
+        _enableControlButton.Visible = !_session.ControlEnabled;
+    }
+
     private void DisposePicture()
     {
         if (_pictureBox.Image is not null)
@@ -245,6 +313,11 @@ public sealed class RemoteVncViewerForm : Form
             _pictureBox.Image = null;
             image.Dispose();
         }
+    }
+
+    private sealed record KeyboardShortcutOption(string Label, params KeySym[] Keys)
+    {
+        public override string ToString() => Label;
     }
 
     private void PictureBox_MouseDown(object? sender, MouseEventArgs e)

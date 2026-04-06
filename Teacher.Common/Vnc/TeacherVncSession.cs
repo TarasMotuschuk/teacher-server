@@ -104,6 +104,42 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             CancellationToken.None);
     }
 
+    public async Task SendKeyCombinationAsync(params KeySymbol[] keySymbols)
+    {
+        if (keySymbols.Length == 0)
+        {
+            return;
+        }
+
+        var connection = _connection;
+        if (connection is null || connection.ConnectionState != ConnectionState.Connected || !ControlEnabled)
+        {
+            return;
+        }
+
+        for (var index = 0; index < keySymbols.Length - 1; index++)
+        {
+            await connection.SendMessageAsync(
+                new KeyEventMessage(true, keySymbols[index]),
+                CancellationToken.None);
+        }
+
+        var finalKey = keySymbols[^1];
+        await connection.SendMessageAsync(
+            new KeyEventMessage(true, finalKey),
+            CancellationToken.None);
+        await connection.SendMessageAsync(
+            new KeyEventMessage(false, finalKey),
+            CancellationToken.None);
+
+        for (var index = keySymbols.Length - 2; index >= 0; index--)
+        {
+            await connection.SendMessageAsync(
+                new KeyEventMessage(false, keySymbols[index]),
+                CancellationToken.None);
+        }
+    }
+
     public void Close()
     {
         if (_disposed)

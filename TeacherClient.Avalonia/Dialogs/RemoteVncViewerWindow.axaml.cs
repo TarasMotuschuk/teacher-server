@@ -15,6 +15,21 @@ namespace TeacherClient.CrossPlatform.Dialogs;
 
 public partial class RemoteVncViewerWindow : Window
 {
+    private static readonly IReadOnlyList<KeyboardShortcutOption> ShortcutOptions =
+    [
+        new(CrossPlatformText.SendKeyboardShortcut),
+        new("Ctrl+Alt+Del", KeySymbol.Control_L, KeySymbol.Alt_L, KeySymbol.Delete),
+        new("Ctrl+Shift+Esc", KeySymbol.Control_L, KeySymbol.Shift_L, KeySymbol.Escape),
+        new("Alt+Tab", KeySymbol.Alt_L, KeySymbol.Tab),
+        new("Alt+F4", KeySymbol.Alt_L, KeySymbol.F4),
+        new("Win", KeySymbol.Super_L),
+        new("Win+Tab", KeySymbol.Super_L, KeySymbol.Tab),
+        new("Win+R", KeySymbol.Super_L, KeySymbol.R),
+        new("Win+D", KeySymbol.Super_L, KeySymbol.D),
+        new("Ctrl+Esc", KeySymbol.Control_L, KeySymbol.Escape),
+        new("Print Screen", KeySymbol.Print)
+    ];
+
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
     private readonly DispatcherTimer _refreshTimer = new();
@@ -24,6 +39,7 @@ public partial class RemoteVncViewerWindow : Window
     private PinnedBitmap? _currentBitmap;
     private int _frameWidth;
     private int _frameHeight;
+    private bool _updatingShortcutSelection;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
@@ -77,10 +93,10 @@ public partial class RemoteVncViewerWindow : Window
         ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
         ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
         ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
-
-        StatusTextBlock.Text = _session.ControlEnabled
-            ? CrossPlatformText.RemoteManagementControl(machineName)
-            : CrossPlatformText.RemoteManagementViewOnly(machineName);
+        SendShortcutComboBox.ItemsSource = ShortcutOptions;
+        SendShortcutComboBox.SelectedIndex = 0;
+        EnableControlButton.Content = CrossPlatformText.EnableFullscreenControl;
+        UpdateControlUi();
     }
 
     private async Task ConnectAsync()
@@ -92,9 +108,7 @@ public partial class RemoteVncViewerWindow : Window
             {
                 await _session.ConnectAsync(_cancellation.Token);
             }
-            StatusTextBlock.Text = _session.ControlEnabled
-                ? CrossPlatformText.RemoteManagementControl(_machineName)
-                : CrossPlatformText.RemoteManagementViewOnly(_machineName);
+            UpdateControlUi();
         }
         catch (Exception ex)
         {
@@ -153,6 +167,44 @@ public partial class RemoteVncViewerWindow : Window
         ScreenImage.Source = null;
         _currentBitmap?.Dispose();
         _currentBitmap = null;
+    }
+
+    private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        _session.ControlEnabled = true;
+        UpdateControlUi();
+        ViewerInputRoot.Focus();
+    }
+
+    private async void SendShortcutComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingShortcutSelection || SendShortcutComboBox.SelectedItem is not KeyboardShortcutOption option || option.Keys.Count == 0)
+        {
+            return;
+        }
+
+        _session.ControlEnabled = true;
+        UpdateControlUi();
+
+        try
+        {
+            await _session.SendKeyCombinationAsync(option.Keys.ToArray());
+        }
+        finally
+        {
+            _updatingShortcutSelection = true;
+            SendShortcutComboBox.SelectedIndex = 0;
+            _updatingShortcutSelection = false;
+            ViewerInputRoot.Focus();
+        }
+    }
+
+    private void UpdateControlUi()
+    {
+        StatusTextBlock.Text = _session.ControlEnabled
+            ? CrossPlatformText.RemoteManagementControl(_machineName)
+            : CrossPlatformText.RemoteManagementViewOnly(_machineName);
+        EnableControlButton.IsVisible = !_session.ControlEnabled;
     }
 
     private void ScreenImage_OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -423,5 +475,12 @@ public partial class RemoteVncViewerWindow : Window
                 Handle.Free();
             }
         }
+    }
+
+    private sealed record KeyboardShortcutOption(string Label, params KeySymbol[] ShortcutKeys)
+    {
+        public IReadOnlyList<KeySymbol> Keys { get; } = ShortcutKeys;
+
+        public override string ToString() => Label;
     }
 }

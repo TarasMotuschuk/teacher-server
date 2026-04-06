@@ -6,6 +6,16 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.15] - 2026-04-06
+
+### Added
+
+- Fullscreen remote-management viewers in both teacher clients now include a `Send keyboard shortcut` selector with common Windows combinations such as `Ctrl+Alt+Del`, `Alt+Tab`, `Alt+F4`, `Win`, `Win+Tab`, `Win+R`, `Win+D`, `Ctrl+Esc`, `Ctrl+Shift+Esc`, and `Print Screen`
+
+### Changed
+
+- Remote-management control enablement is now fullscreen-centric in both teacher clients: the remote-management tab starts or stops VNC, while mouse/keyboard control is enabled from inside the fullscreen viewer window
+
 ### Fixed
 
 - Student-agent updates now launch `StudentAgent.Updater` from a temporary runner directory and stop both `StudentAgent.UIHost` and `StudentAgent.VncHost` before file replacement, preventing self-locked runtime files such as `clrjit.dll` from breaking install or rollback

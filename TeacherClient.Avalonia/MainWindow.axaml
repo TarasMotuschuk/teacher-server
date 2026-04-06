@@ -390,7 +390,6 @@
           <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
             <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="148" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
             <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="180" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
-            <Button x:Name="StartVncControlButton" Classes="tabAction" Width="180" Margin="0,0,5,5" Click="StartVncControlButton_OnClick" />
             <Button x:Name="StopVncButton" Classes="tabAction" Width="132" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
             <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="178" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
           </WrapPanel>

@@ -680,7 +680,6 @@ partial class MainForm
         remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshRemoteManagement, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, refreshRemoteManagementButton_Click));
         remoteManagementToolStrip.Items.Add(new ToolStripSeparator());
         remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartVncViewOnly, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, startRemoteManagementViewOnlyButton_Click));
-        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartVncControl, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, startRemoteManagementControlButton_Click));
         remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StopVnc, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, stopRemoteManagementButton_Click));
         remoteManagementToolStrip.Items.Add(new ToolStripSeparator());
         remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenFullscreenViewer, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, openRemoteManagementViewerButton_Click));
