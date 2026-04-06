@@ -40,6 +40,7 @@ public partial class RemoteVncViewerWindow : Window
     private int _frameWidth;
     private int _frameHeight;
     private bool _updatingShortcutSelection;
+    private int _pointerButtonsMask;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
@@ -86,10 +87,10 @@ public partial class RemoteVncViewerWindow : Window
             DisposeBitmap();
         };
 
-        ScreenImage.PointerPressed += ScreenImage_OnPointerPressed;
-        ScreenImage.PointerReleased += ScreenImage_OnPointerReleased;
-        ScreenImage.PointerMoved += ScreenImage_OnPointerMoved;
-        ScreenImage.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
+        ViewerInputRoot.PointerPressed += ScreenImage_OnPointerPressed;
+        ViewerInputRoot.PointerReleased += ScreenImage_OnPointerReleased;
+        ViewerInputRoot.PointerMoved += ScreenImage_OnPointerMoved;
+        ViewerInputRoot.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
         ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
         ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
         ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
@@ -215,9 +216,11 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
-        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ViewerInputRoot).Properties);
+
+        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
         {
-            _session.SendPointer(x, y, ButtonsMask(e.GetCurrentPoint(ScreenImage).Properties));
+            _session.SendPointer(x, y, _pointerButtonsMask);
         }
     }
 
@@ -228,10 +231,14 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
-        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ViewerInputRoot).Properties);
+
+        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
         {
             _session.SendPointer(x, y, 0);
         }
+
+        _pointerButtonsMask = 0;
     }
 
     private void ScreenImage_OnPointerMoved(object? sender, PointerEventArgs e)
@@ -241,11 +248,11 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
-        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ViewerInputRoot).Properties);
+
+        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
         {
-            var properties = e.GetCurrentPoint(ScreenImage).Properties;
-            var pressed = ButtonsMask(properties);
-            _session.SendPointer(x, y, pressed);
+            _session.SendPointer(x, y, _pointerButtonsMask);
         }
     }
 
@@ -256,7 +263,7 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
-        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
+        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
         {
             var buttons = e.Delta.Y > 0 ? 8 : 16;
             _session.SendPointer(x, y, buttons);
@@ -339,8 +346,24 @@ public partial class RemoteVncViewerWindow : Window
         return true;
     }
 
-    private static int ButtonsMask(PointerPointProperties properties)
+    private static int UpdateButtonsMask(int currentMask, PointerPointProperties properties)
     {
+        switch (properties.PointerUpdateKind)
+        {
+            case PointerUpdateKind.LeftButtonPressed:
+                return currentMask | 1;
+            case PointerUpdateKind.LeftButtonReleased:
+                return currentMask & ~1;
+            case PointerUpdateKind.MiddleButtonPressed:
+                return currentMask | 2;
+            case PointerUpdateKind.MiddleButtonReleased:
+                return currentMask & ~2;
+            case PointerUpdateKind.RightButtonPressed:
+                return currentMask | 4;
+            case PointerUpdateKind.RightButtonReleased:
+                return currentMask & ~4;
+        }
+
         var mask = 0;
         if (properties.IsLeftButtonPressed)
         {
