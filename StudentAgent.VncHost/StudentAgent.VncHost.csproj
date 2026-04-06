@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Sang.RemoteViewing" Version="2.0.1" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\StudentAgent.Shared\AgentOptions.cs" Link="Shared\AgentOptions.cs" />
