@@ -29,7 +29,7 @@ public sealed class RemoteVncViewerForm : Form
 
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
-    private readonly Panel _contentPanel;
+    private readonly Panel _imagePanel;
     private readonly PictureBox _pictureBox;
     private readonly Label _statusLabel;
     private readonly ComboBox _sendShortcutComboBox;
@@ -61,7 +61,7 @@ public sealed class RemoteVncViewerForm : Form
         BackColor = Color.Black;
         MinimumSize = new Size(800, 600);
 
-        _contentPanel = new Panel
+        _imagePanel = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = Color.Black,
@@ -78,8 +78,7 @@ public sealed class RemoteVncViewerForm : Form
 
         _statusLabel = new Label
         {
-            Dock = DockStyle.Bottom,
-            Height = 30,
+            Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
             ForeColor = Color.WhiteSmoke,
             BackColor = Color.FromArgb(60, 60, 60),
@@ -88,8 +87,7 @@ public sealed class RemoteVncViewerForm : Form
 
         _enableControlButton = new Button
         {
-            Dock = DockStyle.Right,
-            Width = 170,
+            Dock = DockStyle.Fill,
             Text = TeacherClientText.EnableFullscreenControl,
             Visible = !_session.ControlEnabled
         };
@@ -97,13 +95,12 @@ public sealed class RemoteVncViewerForm : Form
         {
             _session.ControlEnabled = true;
             UpdateControlUi();
-            _contentPanel.Focus();
+            _imagePanel.Focus();
         };
 
         _sendShortcutComboBox = new ComboBox
         {
-            Dock = DockStyle.Right,
-            Width = 240,
+            Dock = DockStyle.Fill,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
         _sendShortcutComboBox.Items.AddRange(ShortcutOptions);
@@ -127,16 +124,30 @@ public sealed class RemoteVncViewerForm : Form
                 _updatingShortcutSelection = true;
                 _sendShortcutComboBox.SelectedIndex = 0;
                 _updatingShortcutSelection = false;
-                _contentPanel.Focus();
+                _imagePanel.Focus();
             }
         };
 
-        _contentPanel.Controls.Add(_pictureBox);
-        _contentPanel.Controls.Add(_sendShortcutComboBox);
-        _contentPanel.Controls.Add(_enableControlButton);
-        _contentPanel.Controls.Add(_statusLabel);
+        var bottomBar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 40,
+            BackColor = Color.FromArgb(60, 60, 60),
+            Padding = new Padding(8, 4, 8, 4),
+            ColumnCount = 3,
+            RowCount = 1
+        };
+        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 248F));
+        bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 178F));
+        bottomBar.Controls.Add(_statusLabel, 0, 0);
+        bottomBar.Controls.Add(_sendShortcutComboBox, 1, 0);
+        bottomBar.Controls.Add(_enableControlButton, 2, 0);
 
-        Controls.Add(_contentPanel);
+        _imagePanel.Controls.Add(_pictureBox);
+        // Dock Bottom first so the fill panel receives the remaining client height above the toolbar.
+        Controls.Add(bottomBar);
+        Controls.Add(_imagePanel);
 
         _refreshTimer.Interval = 500;
         _refreshTimer.Tick += async (_, _) => await CaptureFrameAsync();
@@ -148,7 +159,7 @@ public sealed class RemoteVncViewerForm : Form
             {
                 _refreshTimer.Start();
                 // PictureBox cannot take focus; keyboard events must reach a focused control — not only the Form.
-                _contentPanel.Focus();
+                _imagePanel.Focus();
             }
         };
         FormClosing += (_, _) =>
@@ -180,9 +191,9 @@ public sealed class RemoteVncViewerForm : Form
         _pictureBox.MouseUp += PictureBox_MouseUp;
         _pictureBox.MouseMove += PictureBox_MouseMove;
         _pictureBox.MouseWheel += PictureBox_MouseWheel;
-        _contentPanel.KeyDown += ContentPanel_KeyDown;
-        _contentPanel.KeyUp += ContentPanel_KeyUp;
-        _contentPanel.KeyPress += ContentPanel_KeyPress;
+        _imagePanel.KeyDown += ImagePanel_KeyDown;
+        _imagePanel.KeyUp += ImagePanel_KeyUp;
+        _imagePanel.KeyPress += ImagePanel_KeyPress;
         UpdateControlUi();
     }
 
@@ -322,16 +333,21 @@ public sealed class RemoteVncViewerForm : Form
 
     private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
     {
-        _contentPanel.Focus();
+        _imagePanel.Focus();
 
         if (!_session.ControlEnabled || _frameWidth <= 0 || _frameHeight <= 0)
         {
             return;
         }
 
+        if (!TryMapPointerToRemote(e.X, e.Y, out var rx, out var ry))
+        {
+            return;
+        }
+
         try
         {
-            _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, true));
+            _session.SendPointer(rx, ry, ButtonsMask(e.Button, true));
         }
         catch (ObjectDisposedException)
         {
@@ -348,9 +364,14 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
+        if (!TryMapPointerToRemote(e.X, e.Y, out var rx, out var ry))
+        {
+            return;
+        }
+
         try
         {
-            _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, false));
+            _session.SendPointer(rx, ry, ButtonsMask(e.Button, false));
         }
         catch (ObjectDisposedException)
         {
@@ -367,17 +388,22 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
+        if (!TryMapPointerToRemote(e.X, e.Y, out var rx, out var ry))
+        {
+            return;
+        }
+
         try
         {
             if ((e.Button & MouseButtons.Left) == 0 &&
                 (e.Button & MouseButtons.Right) == 0 &&
                 (e.Button & MouseButtons.Middle) == 0)
             {
-                _session.SendPointer(MapX(e.X), MapY(e.Y), 0);
+                _session.SendPointer(rx, ry, 0);
                 return;
             }
 
-            _session.SendPointer(MapX(e.X), MapY(e.Y), ButtonsMask(e.Button, true));
+            _session.SendPointer(rx, ry, ButtonsMask(e.Button, true));
         }
         catch (ObjectDisposedException)
         {
@@ -394,11 +420,16 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
+        if (!TryMapPointerToRemote(e.X, e.Y, out var rx, out var ry))
+        {
+            return;
+        }
+
         try
         {
             var buttons = e.Delta > 0 ? 8 : 16;
-            _session.SendPointer(MapX(e.X), MapY(e.Y), buttons);
-            _session.SendPointer(MapX(e.X), MapY(e.Y), 0);
+            _session.SendPointer(rx, ry, buttons);
+            _session.SendPointer(rx, ry, 0);
         }
         catch (ObjectDisposedException)
         {
@@ -408,7 +439,7 @@ public sealed class RemoteVncViewerForm : Form
         }
     }
 
-    private void ContentPanel_KeyDown(object? sender, KeyEventArgs e)
+    private void ImagePanel_KeyDown(object? sender, KeyEventArgs e)
     {
         if (!_session.ControlEnabled)
         {
@@ -432,7 +463,7 @@ public sealed class RemoteVncViewerForm : Form
         }
     }
 
-    private void ContentPanel_KeyUp(object? sender, KeyEventArgs e)
+    private void ImagePanel_KeyUp(object? sender, KeyEventArgs e)
     {
         if (!_session.ControlEnabled)
         {
@@ -456,7 +487,7 @@ public sealed class RemoteVncViewerForm : Form
         }
     }
 
-    private void ContentPanel_KeyPress(object? sender, KeyPressEventArgs e)
+    private void ImagePanel_KeyPress(object? sender, KeyPressEventArgs e)
     {
         if (!_session.ControlEnabled || char.IsControl(e.KeyChar))
         {
@@ -478,16 +509,29 @@ public sealed class RemoteVncViewerForm : Form
         }
     }
 
-    private int MapX(int x)
+    // Client rect → remote framebuffer; matches PictureBox Zoom (same math as Avalonia TryMapPointer).
+    private bool TryMapPointerToRemote(int clientX, int clientY, out int x, out int y)
     {
         var width = Math.Max(1, _pictureBox.ClientSize.Width);
-        return Math.Max(0, Math.Min(_frameWidth - 1, (int)Math.Round(x * (_frameWidth / (double)width))));
-    }
-
-    private int MapY(int y)
-    {
         var height = Math.Max(1, _pictureBox.ClientSize.Height);
-        return Math.Max(0, Math.Min(_frameHeight - 1, (int)Math.Round(y * (_frameHeight / (double)height))));
+
+        var scale = Math.Min(width / (double)_frameWidth, height / (double)_frameHeight);
+        var displayedWidth = _frameWidth * scale;
+        var displayedHeight = _frameHeight * scale;
+        var offsetX = (width - displayedWidth) / 2.0;
+        var offsetY = (height - displayedHeight) / 2.0;
+
+        if (clientX < offsetX || clientY < offsetY ||
+            clientX > offsetX + displayedWidth || clientY > offsetY + displayedHeight)
+        {
+            x = 0;
+            y = 0;
+            return false;
+        }
+
+        x = Math.Clamp((int)Math.Round((clientX - offsetX) / scale), 0, _frameWidth - 1);
+        y = Math.Clamp((int)Math.Round((clientY - offsetY) / scale), 0, _frameHeight - 1);
+        return true;
     }
 
     private static int ButtonsMask(MouseButtons button, bool pressed)

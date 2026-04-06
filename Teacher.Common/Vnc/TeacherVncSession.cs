@@ -122,12 +122,15 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             await connection.SendMessageAsync(
                 new KeyEventMessage(true, keySymbols[index]),
                 CancellationToken.None);
+            // Brief pause so the remote OS (especially Windows) applies modifiers before the next key.
+            await Task.Delay(15, CancellationToken.None);
         }
 
         var finalKey = keySymbols[^1];
         await connection.SendMessageAsync(
             new KeyEventMessage(true, finalKey),
             CancellationToken.None);
+        await Task.Delay(15, CancellationToken.None);
         await connection.SendMessageAsync(
             new KeyEventMessage(false, finalKey),
             CancellationToken.None);
@@ -137,6 +140,7 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             await connection.SendMessageAsync(
                 new KeyEventMessage(false, keySymbols[index]),
                 CancellationToken.None);
+            await Task.Delay(10, CancellationToken.None);
         }
     }
 

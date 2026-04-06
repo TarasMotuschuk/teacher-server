@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Net;
@@ -233,6 +234,9 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
 {
     private readonly AgentLogService _logService;
     private int _sendInputFailureLogBudget = 8;
+    private int _ctrlDownCount;
+    private int _altDownCount;
+    private bool _skipNextDeleteKeyUp;
 
     public WindowsVncRemoteKeyboard(AgentLogService logService)
     {
@@ -243,6 +247,23 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     {
         try
         {
+            var keysymU = (uint)e.Keysym;
+            UpdateModifierTally(keysymU, e.Pressed);
+
+            // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
+            if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
+                TryLaunchTaskManagerFromCadShortcut())
+            {
+                _skipNextDeleteKeyUp = true;
+                return;
+            }
+
+            if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
+            {
+                _skipNextDeleteKeyUp = false;
+                return;
+            }
+
             if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
             {
                 SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
@@ -258,6 +279,37 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
         catch (Exception ex)
         {
             _logService.LogWarning($"VNC keyboard event failed: {ex.Message}");
+        }
+    }
+
+    private void UpdateModifierTally(uint keysymU, bool pressed)
+    {
+        var delta = pressed ? 1 : -1;
+        if (keysymU is 0xFFE3 or 0xFFE4)
+        {
+            _ctrlDownCount = Math.Max(0, _ctrlDownCount + delta);
+        }
+        else if (keysymU is 0xFFE9 or 0xFFEA)
+        {
+            _altDownCount = Math.Max(0, _altDownCount + delta);
+        }
+    }
+
+    private bool TryLaunchTaskManagerFromCadShortcut()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "taskmgr.exe",
+                UseShellExecute = true
+            });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"VNC Ctrl+Alt+Del shortcut: could not start Task Manager: {ex.Message}");
+            return false;
         }
     }
 
@@ -340,6 +392,15 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
             case 0xFFEA:
                 virtualKey = 0xA5;
                 keyFlags = KEYEVENTF_EXTENDEDKEY;
+                return true;
+            // Left/Right Win — X11 Super_* / Meta_* (MarcusW KeySymbol.Super_L etc.)
+            case 0xFFE7:
+            case 0xFFEB:
+                virtualKey = 0x5B;
+                return true;
+            case 0xFFE8:
+            case 0xFFEC:
+                virtualKey = 0x5C;
                 return true;
         }
 
