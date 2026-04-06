@@ -9,6 +9,9 @@
     <ApplicationIcon>..\Branding\ClassCommander-icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="libjpeg-turbo-native-windows" Version="3.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
   </ItemGroup>
   <ItemGroup>

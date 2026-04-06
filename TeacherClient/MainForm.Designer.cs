@@ -295,6 +295,7 @@ partial class MainForm
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC", DataPropertyName = "MacAddressesDisplay", Width = 220, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Notes, DataPropertyName = "Notes", Width = 200, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.UpdateStatus, DataPropertyName = "UpdateStatusBadge", Width = 140, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.UpdateStatusDetailColumn, DataPropertyName = "UpdateStatusDetail", Width = 280, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Version.TrimEnd(':'), DataPropertyName = "Version", Width = 110, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190, ReadOnly = true });
 

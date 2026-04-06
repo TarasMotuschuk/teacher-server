@@ -77,6 +77,7 @@ internal static class CrossPlatformText
     public static string User => IsUk ? "Користувач" : "User";
     public static string Notes => IsUk ? "Нотатки" : "Notes";
     public static string UpdateStatus => IsUk ? "Оновлення" : "Update";
+    public static string UpdateStatusDetailColumn => IsUk ? "Деталі оновлення" : "Update details";
     public static string Version => IsUk ? "Версія" : "Version";
     public static string LastSeenUtc => IsUk ? "Останній сигнал UTC" : "Last Seen UTC";
     public static string Refresh => IsUk ? "Оновити" : "Refresh";
@@ -253,6 +254,16 @@ internal static class CrossPlatformText
     public static string BulkAgentUpdateCompletedWithFailures(int succeeded, int failures) => IsUk
         ? $"Оновлення запущено: успішно {succeeded}, з помилками {failures}"
         : $"Started updates: {succeeded} succeeded, {failures} failed";
+    public static string FormatUpdateStatusDetail(AgentUpdateStatusDto? status)
+    {
+        if (status is null || status.State != AgentUpdateStateKind.Failed)
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(status.Message) ? string.Empty : status.Message.Trim();
+    }
+
     public static string UpdateStateBadge(AgentUpdateStatusDto? status)
     {
         if (status is null)

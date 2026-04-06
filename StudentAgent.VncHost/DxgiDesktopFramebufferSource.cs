@@ -33,6 +33,9 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
     private int _width;
     private int _height;
     private bool _loggedInit;
+    private int _accessLostCount;
+    private int _invalidCallCount;
+    private int _timeoutCount;
 
     public DxgiDesktopFramebufferSource(AgentLogService logService)
     {
@@ -63,19 +66,31 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
                 var code = hr.Code;
                 if (code == DxgiErrorWaitTimeout)
                 {
+                    _timeoutCount++;
                     return framebuffer;
                 }
 
                 if (code == DxgiErrorAccessLost || code == DxgiErrorInvalidCall)
                 {
+                    if (code == DxgiErrorAccessLost)
+                    {
+                        _accessLostCount++;
+                    }
+                    else
+                    {
+                        _invalidCallCount++;
+                    }
+
                     TeardownDuplication();
-                    _ = EnsureInitialized();
-                    return _framebuffer ?? framebuffer;
+                    throw new InvalidOperationException(
+                        code == DxgiErrorAccessLost
+                            ? "DXGI duplication access was lost."
+                            : "DXGI duplication reported an invalid call.");
                 }
 
                 if (hr.Failure || desktopResource is null)
                 {
-                    return framebuffer;
+                    throw new InvalidOperationException($"DXGI AcquireNextFrame failed: 0x{code:X8}");
                 }
 
                 acquired = true;
@@ -130,6 +145,23 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
 
     public ExtendedDesktopSizeStatus SetDesktopSize(int width, int height)
         => ExtendedDesktopSizeStatus.Prohibited;
+
+    /// <summary>Releases DXGI/D3D objects when switching to GDI-only fallback.</summary>
+    internal void DisposeDxgiResources()
+    {
+        lock (_sync)
+        {
+            TeardownDuplication();
+        }
+    }
+
+    internal void ResetForDisplayChange()
+    {
+        lock (_sync)
+        {
+            TeardownDuplication();
+        }
+    }
 
     private bool EnsureInitialized()
     {
@@ -207,6 +239,11 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
                 _loggedInit = true;
                 _logService.LogInfo(
                     $"VNC desktop capture: DXGI Desktop Duplication ({_width}x{_height}, primary output).");
+            }
+            else if (_accessLostCount > 0 || _invalidCallCount > 0)
+            {
+                _logService.LogInfo(
+                    $"VNC desktop capture: DXGI duplication recovered ({_width}x{_height}, accessLost={_accessLostCount}, invalidCall={_invalidCallCount}, timeouts={_timeoutCount}).");
             }
 
             return true;

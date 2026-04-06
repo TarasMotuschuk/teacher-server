@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>..\Branding\ClassCommander-icon.ico</ApplicationIcon>
+    <LibjpegTurboMacosVersion>3.0.3</LibjpegTurboMacosVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +14,11 @@
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.5" />
     <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
+    <PackageReference Include="libjpeg-turbo-native-windows" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageDownload Include="Libjpeg-Turbo_macos" Version="[$(LibjpegTurboMacosVersion)]" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,5 +26,17 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="..\Branding\**\*.png" Link="Assets/Branding/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(NuGetPackageRoot)libjpeg-turbo_macos/$(LibjpegTurboMacosVersion)/lib/libturbojpeg.0.dylib"
+          Link="libturbojpeg.0.dylib"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Condition="Exists('$(NuGetPackageRoot)libjpeg-turbo_macos/$(LibjpegTurboMacosVersion)/lib/libturbojpeg.0.dylib')" />
+    <None Include="$(NuGetPackageRoot)libjpeg-turbo_macos/$(LibjpegTurboMacosVersion)/lib/libturbojpeg.0.dylib"
+          Link="libturbojpeg.dylib"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Condition="Exists('$(NuGetPackageRoot)libjpeg-turbo_macos/$(LibjpegTurboMacosVersion)/lib/libturbojpeg.0.dylib')" />
   </ItemGroup>
 </Project>

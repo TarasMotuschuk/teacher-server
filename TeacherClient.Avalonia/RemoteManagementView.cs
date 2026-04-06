@@ -165,7 +165,7 @@ public partial class MainWindow
             return;
         }
 
-        StopRemoteManagementPreview(tile);
+        StopRemoteManagementPreviewNoWait(tile);
         tile.SetPreview(CreatePlaceholderBitmap(200, 140));
     }
 
@@ -207,7 +207,7 @@ public partial class MainWindow
             return;
         }
 
-        StopRemoteManagementPreview(tile);
+        await StopRemoteManagementPreviewAsync(tile);
         tile.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
@@ -220,21 +220,24 @@ public partial class MainWindow
         tile.Session = session;
         session.StatusChanged += (_, message) =>
         {
-            if (!_isClosing)
+            if (!_isClosing && !tile.IsDisposed)
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    tile.StatusText = $"{BuildRemoteManagementStatusText(tile.Agent)}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" - {message}")}";
+                    if (!tile.IsDisposed)
+                    {
+                        tile.StatusText = $"{BuildRemoteManagementStatusText(tile.Agent)}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" - {message}")}";
+                    }
                 });
             }
         };
         session.Closed += (_, _) =>
         {
-            if (!_isClosing)
+            if (!_isClosing && !tile.IsDisposed)
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (!cancellation.IsCancellationRequested)
+                    if (!cancellation.IsCancellationRequested && !tile.IsDisposed)
                     {
                         tile.StatusText = BuildRemoteManagementStatusText(tile.Agent);
                     }
@@ -270,13 +273,16 @@ public partial class MainWindow
             }
             catch (Exception ex)
             {
-                if (!_isClosing)
+                if (!_isClosing && !tile.IsDisposed)
                 {
                     tile.LastFailureUtc = DateTimeOffset.UtcNow;
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        tile.StatusText = CrossPlatformText.RemoteManagementConnectionFailed(tile.Agent.MachineName, ex.Message);
-                        tile.SetPreview(CreatePlaceholderBitmap(200, 140));
+                        if (!tile.IsDisposed)
+                        {
+                            tile.StatusText = CrossPlatformText.RemoteManagementConnectionFailed(tile.Agent.MachineName, ex.Message);
+                            tile.SetPreview(CreatePlaceholderBitmap(200, 140));
+                        }
                     });
                 }
             }
@@ -301,13 +307,33 @@ public partial class MainWindow
         tile.SetPreview(CreatePlaceholderBitmap(200, 140));
     }
 
-    private void StopRemoteManagementPreview(RemoteManagementTileViewModel tile)
+    /// <summary>
+    /// Cancels the preview loop and waits for the background task to finish teardown.
+    /// Does not call <see cref="TeacherVncSession.Close"/> on the UI thread (that blocked and raced the preview task).
+    /// </summary>
+    private async Task StopRemoteManagementPreviewAsync(RemoteManagementTileViewModel tile)
+    {
+        var wait = tile.PreviewTask;
+        tile.PreviewCancellation?.Cancel();
+        tile.Session = null;
+        tile.PreviewCancellation = null;
+        tile.PreviewTask = null;
+        if (wait is not null)
+        {
+            try
+            {
+                await wait.ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static void StopRemoteManagementPreviewNoWait(RemoteManagementTileViewModel tile)
     {
         tile.PreviewCancellation?.Cancel();
-        tile.Session?.Close();
-        tile.Session?.Dispose();
         tile.Session = null;
-        tile.PreviewCancellation?.Dispose();
         tile.PreviewCancellation = null;
         tile.PreviewTask = null;
     }
@@ -371,10 +397,17 @@ public partial class MainWindow
 
         var tile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
         TeacherVncSession? sharedSession = null;
-        if (tile?.Session?.IsConnected == true)
+        if (tile is not null)
         {
-            sharedSession = tile.Session;
-            sharedSession.ControlEnabled = !agent.VncViewOnly;
+            if (tile.Session?.IsConnected == true)
+            {
+                sharedSession = tile.Session;
+                sharedSession.ControlEnabled = !agent.VncViewOnly;
+            }
+            else
+            {
+                await StopRemoteManagementPreviewAsync(tile);
+            }
         }
 
         var viewer = sharedSession is not null
@@ -385,6 +418,26 @@ public partial class MainWindow
                 agent.VncPort,
                 _clientSettings.SharedSecret,
                 controlEnabled: !agent.VncViewOnly);
+
+        if (tile is not null)
+        {
+            viewer.Closed += async (_, _) =>
+            {
+                if (_isClosing || !agent.VncRunning)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await EnsureRemoteManagementPreviewAsync(tile);
+                }
+                catch
+                {
+                }
+            };
+        }
+
         viewer.Show(this);
         await Task.CompletedTask;
     }
@@ -417,7 +470,7 @@ public partial class MainWindow
     {
         foreach (var tile in _remoteManagementTiles.ToList())
         {
-            StopRemoteManagementPreview(tile);
+            StopRemoteManagementPreviewNoWait(tile);
             tile.Dispose();
         }
 
@@ -432,7 +485,7 @@ public partial class MainWindow
             return;
         }
 
-        StopRemoteManagementPreview(tile);
+        StopRemoteManagementPreviewNoWait(tile);
         tile.Dispose();
         _remoteManagementTiles.Remove(tile);
     }
@@ -505,6 +558,7 @@ public partial class MainWindow
         public CancellationTokenSource? PreviewCancellation { get; set; }
         public Task? PreviewTask { get; set; }
         public DateTimeOffset? LastFailureUtc { get; set; }
+        public bool IsDisposed { get; private set; }
 
         public void SetPreview(PinnedPreviewBitmap? previewBitmap)
         {
@@ -522,6 +576,7 @@ public partial class MainWindow
 
         public void Dispose()
         {
+            IsDisposed = true;
             _previewBitmap?.Dispose();
             _previewBitmap = null;
             Session?.Dispose();

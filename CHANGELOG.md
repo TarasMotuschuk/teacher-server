@@ -6,6 +6,18 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.14] - 2026-04-06
+
+### Added
+
+- Teacher clients now bundle native `libjpeg-turbo` dependencies with their published output so `MarcusW.VncClient` can negotiate Tight/JPEG encoding without a separate manual install on Windows or macOS
+
+### Fixed
+
+- `StudentAgent.VncHost`: single-monitor DXGI capture no longer leaves remote control dead after a runtime capture failure — a hybrid source falls back to GDI automatically (startup only caught the first failure before)
+- `StudentAgent.VncHost`: DXGI desktop duplication now retries after runtime failures instead of degrading to GDI for the rest of the process; display/session changes schedule reinitialization so capture can recover after lock/unlock, console/remote reconnects, and display-mode changes
+- `TeacherClient.Avalonia`: remote-management preview teardown no longer runs nested async work on the UI dispatcher or blocks synchronously during tile cleanup, reducing freezes and dispose races when previews stop, tiles are removed, or the fullscreen viewer closes
+
 ## [1.0.13] - 2026-04-06
 
 ### Changed

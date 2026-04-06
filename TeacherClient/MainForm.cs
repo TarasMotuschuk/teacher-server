@@ -56,6 +56,8 @@ public partial class MainForm : Form
         agentsGrid.AutoGenerateColumns = false;
         agentsGrid.CurrentCellDirtyStateChanged += agentsGrid_CurrentCellDirtyStateChanged;
         agentsGrid.CellValueChanged += agentsGrid_CellValueChanged;
+        agentsGrid.ShowCellToolTips = true;
+        agentsGrid.CellToolTipTextNeeded += agentsGrid_CellToolTipTextNeeded;
         agentsGrid.DataSource = _agents;
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
@@ -140,6 +142,33 @@ public partial class MainForm : Form
         if (agentsGrid.IsCurrentCellDirty)
         {
             agentsGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+    }
+
+    private void agentsGrid_CellToolTipTextNeeded(object? sender, DataGridViewCellToolTipTextNeededEventArgs e)
+    {
+        if (e.RowIndex < 0 || e.ColumnIndex < 0)
+        {
+            return;
+        }
+
+        if (agentsGrid.Rows[e.RowIndex].DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        var name = agentsGrid.Columns[e.ColumnIndex].DataPropertyName;
+        if (string.Equals(name, nameof(DiscoveredAgentRow.UpdateStatusDetail), StringComparison.Ordinal) &&
+            !string.IsNullOrWhiteSpace(agent.UpdateStatusDetail))
+        {
+            e.ToolTipText = agent.UpdateStatusDetail;
+            return;
+        }
+
+        if (string.Equals(name, nameof(DiscoveredAgentRow.UpdateStatusBadge), StringComparison.Ordinal) &&
+            !string.IsNullOrWhiteSpace(agent.UpdateStatusDetail))
+        {
+            e.ToolTipText = agent.UpdateStatusDetail;
         }
     }
 
@@ -2801,7 +2830,8 @@ public partial class MainForm : Form
         return agent with
         {
             Version = targetVersion,
-            UpdateStatusBadge = TeacherClientText.UpdateStateBadge(status)
+            UpdateStatusBadge = TeacherClientText.UpdateStateBadge(status),
+            UpdateStatusDetail = TeacherClientText.FormatUpdateStatusDetail(status)
         };
     }
 
@@ -2889,6 +2919,7 @@ public partial class MainForm : Form
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                            UpdateStatusDetail = TeacherClientText.FormatUpdateStatusDetail(updateStatus),
                             VncEnabled = vncStatus?.Enabled ?? false,
                             VncRunning = vncStatus?.Running ?? false,
                             VncViewOnly = vncStatus?.ViewOnly ?? true,
@@ -2924,6 +2955,7 @@ public partial class MainForm : Form
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = TeacherClientText.UpdateStateBadge(updateStatus),
+                        UpdateStatusDetail = TeacherClientText.FormatUpdateStatusDetail(updateStatus),
                         VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
                         VncRunning = vncStatus?.Running ?? agent.VncRunning,
                         VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
@@ -3009,6 +3041,8 @@ public partial class MainForm : Form
                     MacAddressesDisplay = string.IsNullOrWhiteSpace(existingManual.MacAddressesDisplay)
                         ? discovered.MacAddressesDisplay
                         : existingManual.MacAddressesDisplay,
+                    UpdateStatusBadge = discovered.UpdateStatusBadge,
+                    UpdateStatusDetail = discovered.UpdateStatusDetail,
                     Version = discovered.Version,
                     LastSeenUtc = discovered.LastSeenUtc
                 };
@@ -3035,6 +3069,7 @@ public partial class MainForm : Form
         string MacAddressesDisplay,
         string Notes,
         string UpdateStatusBadge,
+        string UpdateStatusDetail,
         string Version,
         bool VncEnabled,
         bool VncRunning,
@@ -3062,6 +3097,7 @@ public partial class MainForm : Form
                 string.Join(", ", dto.MacAddresses),
                 string.Empty,
                 string.Empty,
+                string.Empty,
                 dto.Version,
                 false,
                 false,
@@ -3085,6 +3121,7 @@ public partial class MainForm : Form
                 entry.Port,
                 entry.MacAddress,
                 entry.Notes,
+                string.Empty,
                 string.Empty,
                 TeacherClientText.ManualVersion,
                 false,

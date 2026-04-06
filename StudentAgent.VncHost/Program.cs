@@ -87,21 +87,11 @@ static IVncFramebufferSource CreateFramebufferSource(AgentLogService log)
     if (SystemInformation.MonitorCount > 1)
     {
         log.LogInfo(
-            "VNC: multiple monitors — GDI capture is used for the full virtual desktop. With one monitor, DXGI duplication is used (secure desktop / UAC visible, same technique class as Veyon's UltraVNC DeskDup).");
+            "VNC: multiple monitors — GDI capture for the full virtual desktop.");
         return new DesktopCaptureFramebufferSource(log);
     }
 
-    try
-    {
-        var dxgi = new DxgiDesktopFramebufferSource(log);
-        _ = dxgi.Capture();
-        return dxgi;
-    }
-    catch (Exception ex)
-    {
-        log.LogWarning($"VNC: DXGI Desktop Duplication unavailable ({ex.Message}); using GDI capture.");
-        return new DesktopCaptureFramebufferSource(log);
-    }
+    return new HybridDesktopFramebufferSource(log, attemptDxgi: true);
 }
 
 static void WireServerDiagnostics(IVncServer server, AgentLogService logService, CancellationToken stoppingToken)

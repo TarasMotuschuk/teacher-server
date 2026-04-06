@@ -95,6 +95,7 @@ internal static class TeacherClientText
     public static string User => IsUk ? "Користувач" : "User";
     public static string Notes => IsUk ? "Нотатки" : "Notes";
     public static string UpdateStatus => IsUk ? "Оновлення" : "Update";
+    public static string UpdateStatusDetailColumn => IsUk ? "Деталі оновлення" : "Update details";
     public static string LastSeenUtc => IsUk ? "Останній сигнал UTC" : "Last Seen UTC";
     public static string Visible => IsUk ? "Видимий" : "Visible";
     public static string StartedUtc => IsUk ? "Запущено UTC" : "Started UTC";
@@ -414,6 +415,17 @@ internal static class TeacherClientText
     public static string BulkAgentUpdateCompletedWithFailures(int succeeded, int failures) => IsUk
         ? $"Оновлення запущено: успішно {succeeded}, з помилками {failures}"
         : $"Started updates: {succeeded} succeeded, {failures} failed";
+    /// <summary>Full error text from the student agent when an update fails (shown in the Update details column).</summary>
+    public static string FormatUpdateStatusDetail(AgentUpdateStatusDto? status)
+    {
+        if (status is null || status.State != AgentUpdateStateKind.Failed)
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(status.Message) ? string.Empty : status.Message.Trim();
+    }
+
     public static string UpdateStateBadge(AgentUpdateStatusDto? status)
     {
         if (status is null)

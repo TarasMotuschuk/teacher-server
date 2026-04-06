@@ -845,6 +845,7 @@ public partial class MainWindow : Window
                             BrowserLockEnabled = info.IsBrowserLockEnabled,
                             InputLockEnabled = info.IsInputLockEnabled,
                             UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                            UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(updateStatus),
                             VncEnabled = vncStatus?.Enabled ?? false,
                             VncRunning = vncStatus?.Running ?? false,
                             VncViewOnly = vncStatus?.ViewOnly ?? true,
@@ -880,6 +881,7 @@ public partial class MainWindow : Window
                         BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
                         InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
                         UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                        UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(updateStatus),
                         VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
                         VncRunning = vncStatus?.Running ?? agent.VncRunning,
                         VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
@@ -2661,7 +2663,8 @@ public partial class MainWindow : Window
         return agent with
         {
             Version = targetVersion,
-            UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(status)
+            UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(status),
+            UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(status)
         };
     }
 
@@ -2693,6 +2696,8 @@ public partial class MainWindow : Window
                     MacAddressesDisplay = string.IsNullOrWhiteSpace(existingManual.MacAddressesDisplay)
                         ? discovered.MacAddressesDisplay
                         : existingManual.MacAddressesDisplay,
+                    UpdateStatusBadge = discovered.UpdateStatusBadge,
+                    UpdateStatusDetail = discovered.UpdateStatusDetail,
                     Version = discovered.Version,
                     LastSeenUtc = discovered.LastSeenUtc
                 };
@@ -2957,6 +2962,7 @@ public partial class MainWindow : Window
         string MacAddressesDisplay,
         string Notes,
         string UpdateStatusBadge,
+        string UpdateStatusDetail,
         string Version,
         bool VncEnabled,
         bool VncRunning,
@@ -2984,6 +2990,7 @@ public partial class MainWindow : Window
                 string.Join(", ", dto.MacAddresses),
                 string.Empty,
                 string.Empty,
+                string.Empty,
                 dto.Version,
                 false,
                 false,
@@ -3007,6 +3014,7 @@ public partial class MainWindow : Window
                 entry.Port,
                 entry.MacAddress,
                 entry.Notes,
+                string.Empty,
                 string.Empty,
                 CrossPlatformText.ManualVersion,
                 false,
@@ -3170,7 +3178,7 @@ public partial class MainWindow : Window
         ApplyTabButtonContent(ExportRegistryButton, CrossPlatformText.ExportRegFile, "Toolbar/registry/export-reg.png", ToolbarGlyphKind.Download);
         ApplyTabButtonContent(ImportRegistryButton, CrossPlatformText.ImportRegFile, "Toolbar/registry/import-reg.png", ToolbarGlyphKind.Upload);
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
-        if (AgentsGrid.Columns.Count >= 14)
+        if (AgentsGrid.Columns.Count >= 15)
         {
             AgentsGrid.Columns[0].Header = CrossPlatformText.BrowserLock;
             AgentsGrid.Columns[1].Header = CrossPlatformText.InputLock;
@@ -3184,8 +3192,9 @@ public partial class MainWindow : Window
             AgentsGrid.Columns[9].Header = "MAC";
             AgentsGrid.Columns[10].Header = CrossPlatformText.Notes;
             AgentsGrid.Columns[11].Header = CrossPlatformText.UpdateStatus;
-            AgentsGrid.Columns[12].Header = CrossPlatformText.Version;
-            AgentsGrid.Columns[13].Header = CrossPlatformText.LastSeenUtc;
+            AgentsGrid.Columns[12].Header = CrossPlatformText.UpdateStatusDetailColumn;
+            AgentsGrid.Columns[13].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[14].Header = CrossPlatformText.LastSeenUtc;
         }
 
         if (ProcessesGrid.Columns.Count >= 6)
