@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-04-06
+
 ### Changed
 
 - `StudentAgent.Service`: VNC host launch follows the same model as Veyon — the service stays in session 0 and starts `StudentAgent.VncHost` using the `winlogon.exe` token for the active console session (with `WTSQueryUserToken` fallback after logon), enabling remote management at the Windows sign-in screen; the VNC launcher polls every 2 seconds to pick up session switches faster
