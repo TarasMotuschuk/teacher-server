@@ -6,8 +6,8 @@ using StudentAgent.Services;
 namespace StudentAgent.VncHost;
 
 /// <summary>
-/// Tries DXGI Desktop Duplication (UAC / secure desktop visible) on a single monitor, but any runtime
-/// failure falls back to GDI <see cref="DesktopCaptureFramebufferSource"/> so remote control keeps working.
+/// Tries DXGI Desktop Duplication on a single monitor; stale DXGI frames (timeout) and runtime failures fall back to
+/// GDI <see cref="DesktopCaptureFramebufferSource"/> with <see cref="InputDesktopGdiCapture"/> so Winlogon/UAC stay visible.
 /// DXGI alone can throw after driver updates, session changes, or access loss — the original code only
 /// caught failures at startup.
 /// </summary>
@@ -109,7 +109,12 @@ internal sealed class HybridDesktopFramebufferSource : IVncFramebufferSource, ID
 
         try
         {
-            framebuffer = dxgi.Capture();
+            framebuffer = dxgi.Capture(out var timedOut);
+            if (timedOut)
+            {
+                framebuffer = _gdi.Capture();
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -131,7 +136,7 @@ internal sealed class HybridDesktopFramebufferSource : IVncFramebufferSource, ID
             try
             {
                 var dxgi = new DxgiDesktopFramebufferSource(_logService);
-                _ = dxgi.Capture();
+                _ = dxgi.Capture(out _);
                 _dxgi = dxgi;
                 _nextDxgiRetryUtc = DateTimeOffset.MinValue;
 

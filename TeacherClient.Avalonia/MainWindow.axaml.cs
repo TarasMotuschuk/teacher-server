@@ -774,6 +774,12 @@ public partial class MainWindow : Window
 
     private void ApplyAgentFilters()
     {
+        var selectedIds = GetSelectedAgents()
+            .Select(a => a.AgentId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var search = AgentSearchTextBox.Text?.Trim() ?? string.Empty;
         var selectedGroup = GroupFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.AllGroups;
         var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.All;
@@ -794,6 +800,41 @@ public partial class MainWindow : Window
             .ToList();
 
         ReplaceItems(_agents, filtered);
+        RestoreAgentsGridSelection(selectedIds);
+    }
+
+    /// <summary>
+    /// Re-applies row selection after <see cref="ReplaceItems"/> rebuilds the grid source; otherwise
+    /// <see cref="GetSelectedAgents"/> is empty and "selected PCs" group commands appear to do nothing.
+    /// </summary>
+    private void RestoreAgentsGridSelection(HashSet<string> selectedIds)
+    {
+        if (selectedIds.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var selected = AgentsGrid.SelectedItems;
+            if (selected is null)
+            {
+                return;
+            }
+
+            selected.Clear();
+            foreach (var row in _agents)
+            {
+                if (selectedIds.Contains(row.AgentId))
+                {
+                    selected.Add(row);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Agents grid selection restore failed: {ex.Message}");
+        }
     }
 
     private void RefreshGroupFilterOptions()
@@ -1727,19 +1768,7 @@ public partial class MainWindow : Window
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
     }
 
-    private async void CollectStudentWorkSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var selectedAgents = GetSelectedAgents();
-        if (selectedAgents.Count == 0)
-        {
-            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
-            return;
-        }
-
-        await CollectStudentWorkAsync(selectedAgents);
-    }
-
-    private async void CollectStudentWorkAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void CollectStudentWorkToTeacherPcMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1758,21 +1787,6 @@ public partial class MainWindow : Window
     {
         _preparedStudentWorkFolders.Clear();
         await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
-    }
-
-    private async void CollectStudentWorkToTeacherPcMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var targetAgents = _allAgents
-            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
-            return;
-        }
-
-        await CollectStudentWorkAsync(targetAgents);
     }
 
     private async void ClearStudentWorkFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

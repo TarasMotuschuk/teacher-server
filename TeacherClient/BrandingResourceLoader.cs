@@ -27,24 +27,24 @@ internal static class BrandingResourceLoader
         return icon;
     }
 
+    // Cached master bitmap is cloned per call so multiple forms/controls never share one GDI+ Image (WinForms paint is not thread-safe on a single instance).
     public static Bitmap? LoadBitmap(string relativePath)
     {
-        if (BitmapCache.TryGetValue(relativePath, out var cached))
+        if (!BitmapCache.TryGetValue(relativePath, out var cached))
         {
-            return cached;
+            using var stream = OpenResource(relativePath);
+            if (stream is null)
+            {
+                BitmapCache[relativePath] = null;
+                return null;
+            }
+
+            using var image = Image.FromStream(stream);
+            cached = new Bitmap(image);
+            BitmapCache[relativePath] = cached;
         }
 
-        using var stream = OpenResource(relativePath);
-        if (stream is null)
-        {
-            BitmapCache[relativePath] = null;
-            return null;
-        }
-
-        using var image = Image.FromStream(stream);
-        var bitmap = new Bitmap(image);
-        BitmapCache[relativePath] = bitmap;
-        return bitmap;
+        return cached is null ? null : (Bitmap)cached.Clone();
     }
 
     private static Stream? OpenResource(string relativePath)

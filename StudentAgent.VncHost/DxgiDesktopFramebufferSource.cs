@@ -11,8 +11,8 @@ namespace StudentAgent.VncHost;
 
 /// <summary>
 /// DXGI Desktop Duplication — same technique class as Veyon's bundled UltraVNC
-/// (<c>DeskdupEngine.cpp</c>, <c>_USE_DESKTOPDUPLICATION</c>). Duplicates the GPU-composed image,
-/// so secure-desktop UAC prompts match what Veyon shows. GDI <c>CopyFromScreen</c> does not.
+/// (<c>DeskdupEngine.cpp</c>, <c>_USE_DESKTOPDUPLICATION</c>). Duplicates the GPU-composed image.
+/// On WAIT_TIMEOUT, frames are stale; callers should use GDI via <see cref="InputDesktopGdiCapture"/> (input desktop).
 /// </summary>
 internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
 {
@@ -44,8 +44,15 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
 
     public bool SupportsResizing => false;
 
-    public VncFramebuffer Capture()
+    public VncFramebuffer Capture() => Capture(out _);
+
+    /// <param name="timedOut">
+    /// True when <see cref="IDXGIOutputDuplication.AcquireNextFrame"/> returned WAIT_TIMEOUT — the framebuffer is stale.
+    /// Callers should fall back to GDI capture (e.g. <see cref="InputDesktopGdiCapture"/>) so Winlogon / UAC is visible.
+    /// </param>
+    public VncFramebuffer Capture(out bool timedOut)
     {
+        timedOut = false;
         lock (_sync)
         {
             if (!EnsureInitialized())
@@ -67,6 +74,7 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
                 if (code == DxgiErrorWaitTimeout)
                 {
                     _timeoutCount++;
+                    timedOut = true;
                     return framebuffer;
                 }
 

@@ -1516,33 +1516,6 @@ public partial class MainForm : Form
         await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
     }
 
-    private async void collectStudentWorkFromSelectedAgentsMenuItem_Click(object? sender, EventArgs e)
-    {
-        var targetAgents = GetSelectedAgents();
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
-            return;
-        }
-
-        await CollectStudentWorkAsync(targetAgents);
-    }
-
-    private async void collectStudentWorkFromAllOnlineAgentsMenuItem_Click(object? sender, EventArgs e)
-    {
-        var targetAgents = _allAgents
-            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
-            return;
-        }
-
-        await CollectStudentWorkAsync(targetAgents);
-    }
-
     private async void createStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
     {
         _preparedStudentWorkFolders.Clear();
@@ -2870,6 +2843,12 @@ public partial class MainForm : Form
 
     private void ApplyAgentFilters()
     {
+        var selectedIds = GetSelectedAgents()
+            .Select(a => a.AgentId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var search = agentSearchTextBox.Text.Trim();
         var selectedGroup = groupFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllGroups;
         var selectedStatus = statusFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllStatuses;
@@ -2892,6 +2871,34 @@ public partial class MainForm : Form
         _agents = new BindingList<DiscoveredAgentRow>(filtered.ToList());
         agentsGrid.DataSource = _agents;
         _suppressBrowserLockEvents = false;
+
+        RestoreAgentsGridSelection(selectedIds);
+    }
+
+    /// <summary>
+    /// Restores selection after rebinding the grid; otherwise group commands for selected PCs see an empty selection.
+    /// </summary>
+    private void RestoreAgentsGridSelection(HashSet<string> selectedIds)
+    {
+        if (selectedIds.Count == 0 || agentsGrid.Rows.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            agentsGrid.ClearSelection();
+            foreach (DataGridViewRow row in agentsGrid.Rows)
+            {
+                if (row.DataBoundItem is DiscoveredAgentRow agent && selectedIds.Contains(agent.AgentId))
+                {
+                    row.Selected = true;
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     private void RefreshGroupFilterOptions()

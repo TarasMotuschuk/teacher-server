@@ -523,10 +523,7 @@ internal sealed class DesktopCaptureFramebufferSource : IVncFramebufferSource
             try
             {
                 using var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-                using (var graphics = Graphics.FromImage(bitmap))
-                {
-                    graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
-                }
+                InputDesktopGdiCapture.CopyVirtualScreenToBitmap(bounds, width, height, bitmap);
 
                 var bitmapData = bitmap.LockBits(
                     new Rectangle(0, 0, width, height),
