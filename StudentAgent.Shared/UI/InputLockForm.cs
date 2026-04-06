@@ -25,45 +25,38 @@ public sealed class InputLockForm : Form
         MinimizeBox = false;
         MaximizeBox = false;
         KeyPreview = true;
-        Text = StudentAgentText.InputLockTitle;
+        Text = StudentAgentText.InputLockStatusLine;
 
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(170, 15, 23, 42),
             ColumnCount = 1,
-            RowCount = 3,
-            Padding = new Padding(48)
+            RowCount = 2,
+            Padding = new Padding(48, 48, 48, 32)
         };
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 60F));
 
-        var titleLabel = new Label
+        var spacer = new Panel
         {
-            AutoSize = true,
-            Anchor = AnchorStyles.None,
-            Text = StudentAgentText.InputLockTitle,
-            Font = new Font("Segoe UI", 28F, FontStyle.Bold, GraphicsUnit.Point),
-            ForeColor = Color.White,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 24)
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent
         };
 
-        var messageLabel = new Label
+        var statusLabel = new Label
         {
             AutoSize = true,
-            MaximumSize = new Size(900, 0),
-            Anchor = AnchorStyles.Top,
-            Text = $"{StudentAgentText.InputLockMessage}{Environment.NewLine}{Environment.NewLine}{StudentAgentText.InputLockFooter}",
-            Font = new Font("Segoe UI", 17F, FontStyle.Regular, GraphicsUnit.Point),
+            Dock = DockStyle.Fill,
+            Text = StudentAgentText.InputLockStatusLine,
+            Font = new Font("Segoe UI", 20F, FontStyle.Regular, GraphicsUnit.Point),
             ForeColor = Color.White,
             BackColor = Color.Transparent,
-            TextAlign = ContentAlignment.MiddleCenter
+            TextAlign = ContentAlignment.BottomCenter
         };
 
-        layout.Controls.Add(titleLabel, 0, 0);
-        layout.Controls.Add(messageLabel, 0, 1);
+        layout.Controls.Add(spacer, 0, 0);
+        layout.Controls.Add(statusLabel, 0, 1);
         Controls.Add(layout);
 
         _focusTimer = new System.Windows.Forms.Timer { Interval = 750 };

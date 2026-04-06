@@ -56,9 +56,7 @@ internal static class StudentAgentText
     public static string SettingsSaved => IsUk ? "Налаштування збережено." : "Settings saved.";
     public static string ProtectedMenuAccessDeniedLog => IsUk ? "У доступі до захищеного меню відмовлено через неправильний пароль." : "Protected menu access denied because of an invalid password.";
     public static string ExitDeniedBecauseNotAdminLog => IsUk ? "Вихід заборонено, тому що поточний користувач не адміністратор." : "Exit denied because current user is not an administrator.";
-    public static string BrowserUsageForbiddenTitle => IsUk ? "Браузер заблоковано" : "Browser blocked";
-    public static string BrowserUsageForbiddenMessage => IsUk ? "Використання браузера заборонене вчителем до кінця уроку." : "Browser usage is forbidden by the teacher until the end of the lesson.";
-    public static string BrowserWillCloseIn(int seconds) => IsUk ? $"Браузер буде закрито через {seconds} с." : $"The browser will be closed in {seconds} s.";
+    public static string BrowserUsageForbiddenTitle => IsUk ? "Використання браузера зараз не дозволено" : "Browser use is not allowed right now";
     public static string BrowserLockEnabledLog => IsUk ? "Викладач увімкнув блокування браузера." : "Teacher enabled browser lock.";
     public static string BrowserLockDisabledLog => IsUk ? "Викладач вимкнув блокування браузера." : "Teacher disabled browser lock.";
     public static string BrowserLockKilledBrowsersLog(int count) => IsUk ? $"Завершено браузерів: {count}." : $"Closed browser processes: {count}.";
@@ -67,7 +65,5 @@ internal static class StudentAgentText
     public static string ShutdownRequestedLog => IsUk ? "Викладач надіслав команду вимкнення ПК." : "Teacher requested computer shutdown.";
     public static string RestartRequestedLog => IsUk ? "Викладач надіслав команду перезавантаження ПК." : "Teacher requested computer restart.";
     public static string LogOffRequestedLog => IsUk ? "Викладач надіслав команду виходу з облікового запису." : "Teacher requested user log off.";
-    public static string InputLockTitle => IsUk ? "Ввід заблоковано" : "Input blocked";
-    public static string InputLockMessage => IsUk ? "Клавіатуру і мишу тимчасово заблоковано викладачем до кінця уроку." : "Keyboard and mouse access has been temporarily blocked by the teacher until the end of the lesson.";
-    public static string InputLockFooter => IsUk ? "Тільки викладач може зняти це блокування." : "Only the teacher can remove this lock.";
+    public static string InputLockStatusLine => IsUk ? "Клавіатуру і мишу заблоковано." : "Keyboard and mouse are blocked.";
 }

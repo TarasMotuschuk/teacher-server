@@ -192,7 +192,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
         try
         {
-            using var warningForm = new BrowserLockWarningForm(StudentAgentText.BrowserUsageForbiddenMessage, 10);
+            using var warningForm = new BrowserLockWarningForm(10);
             warningForm.Show();
             await Task.Delay(TimeSpan.FromSeconds(10));
 
