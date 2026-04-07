@@ -21,7 +21,7 @@ public partial class RemoteCommandWindow : Window
         RunAsComboBox.ItemsSource = new[]
         {
             CrossPlatformText.RunAsCurrentUser,
-            CrossPlatformText.RunAsAdministrator
+            CrossPlatformText.RunAsAdministrator,
         };
         RunAsComboBox.SelectedIndex = 0;
     }

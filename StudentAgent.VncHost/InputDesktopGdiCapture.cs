@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace StudentAgent.VncHost;
@@ -71,7 +70,7 @@ internal static class InputDesktopGdiCapture
             _worker = new Thread(WorkerLoop)
             {
                 IsBackground = true,
-                Name = "VncInputDesktopGdiCapture"
+                Name = "VncInputDesktopGdiCapture",
             };
             _worker.Start();
         }

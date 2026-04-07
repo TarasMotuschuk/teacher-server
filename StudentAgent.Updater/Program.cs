@@ -1,8 +1,8 @@
-using System.IO.Compression;
-using System.Text.Json;
-using System.ServiceProcess;
-using System.Diagnostics;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO.Compression;
+using System.ServiceProcess;
+using System.Text.Json;
 using Teacher.Common.Contracts;
 
 var options = ParseArgs(args);
@@ -217,7 +217,7 @@ static void RunNetsh(string arguments, string logPath, bool ignoreFailure = fals
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true
+        RedirectStandardError = true,
     });
 
     if (process is null)
@@ -332,7 +332,7 @@ static void WriteStatus(UpdaterOptions options, AgentUpdateStateKind state, stri
         DateTime.UtcNow);
     File.WriteAllText(options.StatusPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions
     {
-        WriteIndented = true
+        WriteIndented = true,
     }));
 }
 

@@ -137,7 +137,7 @@ public sealed class TeacherUpdatePreparationService : IDisposable
 
         File.WriteAllText(_preparedStatePath, JsonSerializer.Serialize(prepared, new JsonSerializerOptions
         {
-            WriteIndented = true
+            WriteIndented = true,
         }));
 
         Report(progress, TeacherUpdatePreparationStage.Prepared, checkResult.Version, $"Update {checkResult.Version} is prepared and ready for deployment.", 100, null);
@@ -301,7 +301,7 @@ public enum TeacherUpdatePreparationStage
     ReadyToDownload = 2,
     Downloading = 3,
     Prepared = 4,
-    Failed = 5
+    Failed = 5,
 }
 
 public sealed record TeacherUpdatePreparationProgress(

@@ -1,6 +1,5 @@
 #nullable enable
 
-using Teacher.Common.Contracts;
 using TeacherClient.Localization;
 
 namespace TeacherClient;
@@ -28,7 +27,7 @@ public sealed class RegistryEditDialog : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(16),
             ColumnCount = 1,
-            RowCount = 4
+            RowCount = 4,
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
@@ -39,7 +38,7 @@ public sealed class RegistryEditDialog : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 1
+            RowCount = 1,
         };
         nameLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
         nameLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -48,13 +47,13 @@ public sealed class RegistryEditDialog : Form
         {
             Dock = DockStyle.Fill,
             Text = TeacherClientText.ValueName,
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
         };
 
         _nameTextBox = new TextBox
         {
             Dock = DockStyle.Fill,
-            Text = initialName ?? string.Empty
+            Text = initialName ?? string.Empty,
         };
 
         nameLayout.Controls.Add(nameLabel, 0, 0);
@@ -64,7 +63,7 @@ public sealed class RegistryEditDialog : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 1
+            RowCount = 1,
         };
         typeLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
         typeLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -73,13 +72,13 @@ public sealed class RegistryEditDialog : Form
         {
             Dock = DockStyle.Fill,
             Text = TeacherClientText.ValueType,
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
         };
 
         _typeComboBox = new ComboBox
         {
             Dock = DockStyle.Fill,
-            DropDownStyle = ComboBoxStyle.DropDownList
+            DropDownStyle = ComboBoxStyle.DropDownList,
         };
         _typeComboBox.Items.AddRange([
             "REG_SZ",
@@ -99,7 +98,7 @@ public sealed class RegistryEditDialog : Form
             Dock = DockStyle.Top,
             Text = TeacherClientText.ValueData,
             TextAlign = ContentAlignment.MiddleLeft,
-            Height = 20
+            Height = 20,
         };
 
         _dataTextBox = new TextBox
@@ -109,7 +108,7 @@ public sealed class RegistryEditDialog : Form
             ScrollBars = ScrollBars.Both,
             AcceptsReturn = true,
             WordWrap = false,
-            Text = initialData ?? string.Empty
+            Text = initialData ?? string.Empty,
         };
 
         var dataPanel = new Panel { Dock = DockStyle.Fill };
@@ -119,7 +118,7 @@ public sealed class RegistryEditDialog : Form
         var bottomButtons = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.RightToLeft
+            FlowDirection = FlowDirection.RightToLeft,
         };
 
         var okButton = new Button
@@ -127,7 +126,7 @@ public sealed class RegistryEditDialog : Form
             Text = TeacherClientText.Ok,
             DialogResult = DialogResult.OK,
             MinimumSize = new Size(120, 42),
-            AutoSize = true
+            AutoSize = true,
         };
         okButton.Click += (_, e) =>
         {
@@ -143,7 +142,7 @@ public sealed class RegistryEditDialog : Form
             Text = TeacherClientText.Cancel,
             DialogResult = DialogResult.Cancel,
             MinimumSize = new Size(120, 42),
-            AutoSize = true
+            AutoSize = true,
         };
 
         bottomButtons.Controls.Add(okButton);
@@ -160,6 +159,8 @@ public sealed class RegistryEditDialog : Form
     }
 
     public string ValueName => _nameTextBox.Text.Trim();
+
     public string ValueType => _typeComboBox.SelectedItem?.ToString() ?? "REG_SZ";
+
     public string ValueData => _dataTextBox.Text;
 }

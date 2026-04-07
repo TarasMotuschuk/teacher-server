@@ -13,7 +13,8 @@ public partial class ProcessDetailsWindow : Window
         InitializeComponent();
     }
 
-    public ProcessDetailsWindow(ProcessDetailsDto details) : this()
+    public ProcessDetailsWindow(ProcessDetailsDto details)
+        : this()
     {
         Title = CrossPlatformText.ProcessDetailsTitle;
         KillButton.Content = CrossPlatformText.TerminateSelected;
@@ -49,7 +50,8 @@ public partial class ProcessDetailsWindow : Window
 
     private static string BuildText(ProcessDetailsDto details)
     {
-        return string.Join(Environment.NewLine,
+        return string.Join(
+            Environment.NewLine,
         [
             $"PID: {details.Id}",
             $"{CrossPlatformText.ProcessLabel}: {details.Name}",
@@ -97,5 +99,5 @@ public enum ProcessActionRequested
 {
     None,
     Kill,
-    Restart
+    Restart,
 }

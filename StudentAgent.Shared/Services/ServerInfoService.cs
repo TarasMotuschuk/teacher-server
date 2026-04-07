@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using Teacher.Common.Contracts;
 
 namespace StudentAgent.Services;
@@ -132,6 +131,6 @@ public sealed class ServerInfoService
     private enum WtsInfoClass
     {
         WTSUserName = 5,
-        WTSDomainName = 7
+        WTSDomainName = 7,
     }
 }

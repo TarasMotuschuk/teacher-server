@@ -10,7 +10,7 @@ public enum AgentUpdateStateKind
     Installing = 5,
     Succeeded = 6,
     Failed = 7,
-    RolledBack = 8
+    RolledBack = 8,
 }
 
 public sealed record UpdateInfoDto(

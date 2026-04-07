@@ -1,5 +1,3 @@
-using System.Windows.Forms;
-using System.Threading;
 using TeacherClient.Localization;
 using TeacherClient.Services;
 
@@ -25,6 +23,7 @@ internal static class Program
             Thread.Sleep(900);
             splash.Close();
         }
+
         Application.Run(new MainForm());
     }
 

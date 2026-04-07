@@ -46,7 +46,7 @@ public sealed class ManualAgentStore
         {
             var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
             });
 
             File.WriteAllText(_storagePath, json);

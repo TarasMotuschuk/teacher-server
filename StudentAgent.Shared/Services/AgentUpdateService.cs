@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -253,7 +252,7 @@ public sealed class AgentUpdateService
             Arguments = args,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = runnerDirectory
+            WorkingDirectory = runnerDirectory,
         };
 
         Process.Start(startInfo);
@@ -354,7 +353,7 @@ public sealed class AgentUpdateService
                 UpdateAvailable = persisted.State is AgentUpdateStateKind.Available or AgentUpdateStateKind.Downloading or AgentUpdateStateKind.Installing,
                 Message = persisted.Message,
                 RollbackPerformed = persisted.RollbackPerformed,
-                LastUpdatedUtc = persisted.UpdatedAtUtc
+                LastUpdatedUtc = persisted.UpdatedAtUtc,
             };
         }
         catch

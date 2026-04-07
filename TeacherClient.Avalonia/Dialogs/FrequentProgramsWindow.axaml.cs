@@ -11,7 +11,8 @@ public partial class FrequentProgramsWindow : Window
 {
     private readonly ObservableCollection<FrequentProgramEntry> _entries;
 
-    public FrequentProgramsWindow() : this([])
+    public FrequentProgramsWindow()
+        : this([])
     {
     }
 
@@ -110,7 +111,7 @@ file sealed class FrequentProgramEditWindow : Window
         {
             Margin = new Thickness(16),
             RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"),
-            ColumnDefinitions = new ColumnDefinitions("160,*")
+            ColumnDefinitions = new ColumnDefinitions("160,*"),
         };
 
         grid.Children.Add(new TextBlock { Text = CrossPlatformText.ProgramName, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });

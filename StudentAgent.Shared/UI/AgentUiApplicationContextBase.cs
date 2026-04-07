@@ -50,7 +50,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             Text = StudentAgentText.AgentName,
             Icon = BrandingResourceLoader.LoadIcon("ClassCommander-icon.ico") ?? SystemIcons.Shield,
             Visible = true,
-            ContextMenuStrip = menu
+            ContextMenuStrip = menu,
         };
 
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
@@ -60,14 +60,14 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
         _browserLockTimer = new System.Windows.Forms.Timer
         {
-            Interval = checked((int)TimeSpan.FromSeconds(Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds)).TotalMilliseconds)
+            Interval = checked((int)TimeSpan.FromSeconds(Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds)).TotalMilliseconds),
         };
         _browserLockTimer.Tick += async (_, _) => await EvaluateBrowserLockAsync();
         _browserLockTimer.Start();
 
         _inputLockRefreshTimer = new System.Windows.Forms.Timer
         {
-            Interval = 1000
+            Interval = 1000,
         };
         _inputLockRefreshTimer.Tick += (_, _) => EnsureInputLockForms();
         _inputLockRefreshTimer.Start();

@@ -1,6 +1,5 @@
 using Microsoft.Win32;
 using RemoteViewing.Vnc;
-using RemoteViewing.Vnc.Server;
 using StudentAgent.Services;
 
 namespace StudentAgent.VncHost;

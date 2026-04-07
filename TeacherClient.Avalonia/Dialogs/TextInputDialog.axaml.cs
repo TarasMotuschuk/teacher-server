@@ -16,7 +16,7 @@ public partial class TextInputDialog : Window
     {
         var dialog = new TextInputDialog
         {
-            Title = title
+            Title = title,
         };
         dialog.PromptTextBlock.Text = prompt;
         dialog.ValueTextBox.Text = defaultValue;

@@ -1,7 +1,7 @@
 #nullable enable
 
-using TeacherClient.Models;
 using TeacherClient.Localization;
+using TeacherClient.Models;
 
 namespace TeacherClient;
 
@@ -37,14 +37,14 @@ public partial class ManualAgentDialog : Form
             Id = existingId ?? Guid.NewGuid().ToString("N"),
             DisplayName = displayNameTextBox.Text.Trim(),
             IpAddress = ipAddressTextBox.Text.Trim(),
-            Port = Decimal.ToInt32(portNumericUpDown.Value),
+            Port = decimal.ToInt32(portNumericUpDown.Value),
             GroupName = groupNameTextBox.Text.Trim(),
             MacAddress = macAddressTextBox.Text.Trim(),
-            Notes = notesTextBox.Text.Trim()
+            Notes = notesTextBox.Text.Trim(),
         };
     }
 
-    private void saveButton_Click(object? sender, EventArgs e)
+    private void SaveButton_Click(object? sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(displayNameTextBox.Text))
         {
@@ -62,7 +62,7 @@ public partial class ManualAgentDialog : Form
         Close();
     }
 
-    private void cancelButton_Click(object? sender, EventArgs e)
+    private void CancelButton_Click(object? sender, EventArgs e)
     {
         DialogResult = DialogResult.Cancel;
         Close();

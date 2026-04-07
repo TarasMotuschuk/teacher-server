@@ -5,7 +5,7 @@ namespace Teacher.Common.Localization;
 public enum UiLanguage
 {
     English,
-    Ukrainian
+    Ukrainian,
 }
 
 public static class UiLanguageExtensions

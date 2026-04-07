@@ -125,7 +125,7 @@ public sealed class TeacherClientUpdateService : IDisposable
 
         File.WriteAllText(_statePath, JsonSerializer.Serialize(installerInfo, new JsonSerializerOptions
         {
-            WriteIndented = true
+            WriteIndented = true,
         }));
 
         Report(progress, TeacherClientUpdateStage.ReadyToInstall, $"Installer {checkResult.AssetFileName} is ready.", 100, null, null);
@@ -144,7 +144,7 @@ public sealed class TeacherClientUpdateService : IDisposable
             Process.Start(new ProcessStartInfo
             {
                 FileName = installerInfo.LocalInstallerPath,
-                UseShellExecute = true
+                UseShellExecute = true,
             });
             return;
         }
@@ -155,7 +155,7 @@ public sealed class TeacherClientUpdateService : IDisposable
             {
                 FileName = "open",
                 UseShellExecute = false,
-                ArgumentList = { installerInfo.LocalInstallerPath }
+                ArgumentList = { installerInfo.LocalInstallerPath },
             });
             return;
         }
@@ -337,7 +337,7 @@ public enum TeacherClientUpdateStage
     UpToDate = 3,
     Downloading = 4,
     ReadyToInstall = 5,
-    Failed = 6
+    Failed = 6,
 }
 
 public sealed record TeacherClientUpdateProgress(

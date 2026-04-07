@@ -33,7 +33,7 @@ public sealed class UpdatePreparationWindow : Window
         _statusTextBlock = new TextBlock
         {
             FontWeight = Avalonia.Media.FontWeight.SemiBold,
-            Margin = new Thickness(0, 0, 0, 8)
+            Margin = new Thickness(0, 0, 0, 8),
         };
 
         _progressBar = new ProgressBar
@@ -41,13 +41,13 @@ public sealed class UpdatePreparationWindow : Window
             Height = 20,
             Minimum = 0,
             Maximum = 100,
-            Margin = new Thickness(0, 0, 0, 10)
+            Margin = new Thickness(0, 0, 0, 10),
         };
 
         _progressDetailsTextBlock = new TextBlock
         {
             Margin = new Thickness(0, 0, 0, 10),
-            Foreground = Avalonia.Media.Brushes.LightGray
+            Foreground = Avalonia.Media.Brushes.LightGray,
         };
 
         _logTextBox = new TextBox
@@ -56,20 +56,20 @@ public sealed class UpdatePreparationWindow : Window
             IsReadOnly = true,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch
+            VerticalAlignment = VerticalAlignment.Stretch,
         };
 
         _hintTextBlock = new TextBlock
         {
             Margin = new Thickness(0, 10, 0, 10),
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Foreground = Avalonia.Media.Brushes.LightGray
+            Foreground = Avalonia.Media.Brushes.LightGray,
         };
 
         _checkButton = new Button
         {
             Content = CrossPlatformText.UpdatePreparationCheckButton,
-            MinWidth = 170
+            MinWidth = 170,
         };
         _checkButton.Click += async (_, _) => await CheckForUpdatesAsync();
 
@@ -77,14 +77,14 @@ public sealed class UpdatePreparationWindow : Window
         {
             Content = CrossPlatformText.UpdatePreparationDownloadButton,
             MinWidth = 170,
-            IsEnabled = false
+            IsEnabled = false,
         };
         _downloadButton.Click += async (_, _) => await DownloadUpdateAsync();
 
         var closeButton = new Button
         {
             Content = CrossPlatformText.Close,
-            MinWidth = 130
+            MinWidth = 130,
         };
         closeButton.Click += (_, _) => Close();
 
@@ -92,7 +92,7 @@ public sealed class UpdatePreparationWindow : Window
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10,
-            HorizontalAlignment = HorizontalAlignment.Right
+            HorizontalAlignment = HorizontalAlignment.Right,
         };
         buttonsPanel.Children.Add(_checkButton);
         buttonsPanel.Children.Add(_downloadButton);
@@ -101,7 +101,7 @@ public sealed class UpdatePreparationWindow : Window
         var rootGrid = new Grid
         {
             Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto")
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto"),
         };
         rootGrid.Children.Add(_statusTextBlock);
         rootGrid.Children.Add(_progressBar);

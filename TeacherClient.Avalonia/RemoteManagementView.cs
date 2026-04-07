@@ -1,7 +1,6 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -240,7 +239,8 @@ public partial class MainWindow
             }
         };
 
-        tile.PreviewTask = Task.Run(async () =>
+        tile.PreviewTask = Task.Run(
+            async () =>
         {
             try
             {
@@ -527,6 +527,7 @@ public partial class MainWindow
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public string AgentId { get; }
+
         public DiscoveredAgentRow Agent { get; set; }
 
         public string MachineName
@@ -556,13 +557,18 @@ public partial class MainWindow
         public IBrush SelectionBrush => IsSelected ? Brushes.DodgerBlue : Brushes.Transparent;
 
         public string? ConnectionKey { get; set; }
+
         public TeacherVncSession? Session { get; set; }
+
         public CancellationTokenSource? PreviewCancellation { get; set; }
+
         public Task? PreviewTask { get; set; }
+
         public DateTimeOffset? LastFailureUtc { get; set; }
+
         public bool IsDisposed { get; private set; }
 
-        /// <summary>Fullscreen <see cref="Dialogs.RemoteVncViewerWindow"/> instances open for this agent (tile preview is paused while &gt; 0).</summary>
+        /// <summary>Gets or sets fullscreen <see cref="Dialogs.RemoteVncViewerWindow"/> instances open for this agent (tile preview is paused while &gt; 0).</summary>
         public int FullscreenViewerCount { get; set; }
 
         public void SetPreview(PinnedPreviewBitmap? previewBitmap)

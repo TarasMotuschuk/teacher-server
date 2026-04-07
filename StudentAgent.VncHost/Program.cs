@@ -1,22 +1,20 @@
+using System.Diagnostics;
+using System.Drawing.Imaging;
+using System.Net;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Net;
-using System.Runtime.InteropServices;
 using RemoteViewing.Hosting;
 using RemoteViewing.Vnc;
 using RemoteViewing.Vnc.Server;
-using KeySym = RemoteViewing.Vnc.KeySym;
 using StudentAgent;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
 using StudentAgent.VncHost;
-using System.Windows.Forms;
+using KeySym = RemoteViewing.Vnc.KeySym;
 
 try
 {
@@ -65,7 +63,7 @@ try
         Address = IPAddress.Any.ToString(),
         Port = Math.Max(1, settings.VncPort),
         Password = settings.VncPassword,
-        Reverse = false
+        Reverse = false,
     });
 
     using var host = builder.Build();
@@ -110,7 +108,8 @@ static void WireServerDiagnostics(IVncServer server, AgentLogService logService,
         logService.LogInfo($"VNC server password provided. Authenticated: {eventArgs.IsAuthenticated}.");
     };
 
-    _ = Task.Run(async () =>
+    _ = Task.Run(
+        async () =>
     {
         var knownSessions = new HashSet<IVncServerSession>();
 
@@ -187,7 +186,9 @@ internal sealed class AgentLogLogger : ILogger
         _categoryName = categoryName;
     }
 
-    public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+    public IDisposable BeginScope<TState>(TState state)
+        where TState : notnull
+        => NullScope.Instance;
 
     public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
 
@@ -302,7 +303,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
             Process.Start(new ProcessStartInfo
             {
                 FileName = "taskmgr.exe",
-                UseShellExecute = true
+                UseShellExecute = true,
             });
             return true;
         }
@@ -335,43 +336,43 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
                 return true;
             case 0xFF50:
                 virtualKey = 0x24;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF51:
                 virtualKey = 0x25;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF52:
                 virtualKey = 0x26;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF53:
                 virtualKey = 0x27;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF54:
                 virtualKey = 0x28;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF55:
                 virtualKey = 0x21;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF56:
                 virtualKey = 0x22;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF57:
                 virtualKey = 0x23;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFF63:
                 virtualKey = 0x2D;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFFFF:
                 virtualKey = 0x2E;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFFE1:
                 virtualKey = 0xA0;
@@ -384,15 +385,16 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
                 return true;
             case 0xFFE4:
                 virtualKey = 0xA3;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
             case 0xFFE9:
                 virtualKey = 0xA4;
                 return true;
             case 0xFFEA:
                 virtualKey = 0xA5;
-                keyFlags = KEYEVENTF_EXTENDEDKEY;
+                keyFlags = KEYEVENTFEXTENDEDKEY;
                 return true;
+
             // Left/Right Win — X11 Super_* / Meta_* (MarcusW KeySymbol.Super_L etc.)
             case 0xFFE7:
             case 0xFFEB:
@@ -423,17 +425,17 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     {
         var input = new INPUT
         {
-            type = INPUT_KEYBOARD,
+            Type = INPUTKEYBOARD,
             U = new InputUnion
             {
-                ki = new KEYBDINPUT
+                Ki = new KEYBDINPUT
                 {
-                    wVk = virtualKey,
-                    wScan = scanCode,
-                    dwFlags = keyFlags | (pressed ? 0u : KEYEVENTF_KEYUP),
-                    dwExtraInfo = UIntPtr.Zero
+                    WVk = virtualKey,
+                    WScan = scanCode,
+                    DwFlags = keyFlags | (pressed ? 0u : KEYEVENTFKEYUP),
+                    DwExtraInfo = UIntPtr.Zero
                 }
-            }
+            },
         };
 
         SendSingleInput(input, keysymForLog);
@@ -443,17 +445,17 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     {
         var input = new INPUT
         {
-            type = INPUT_KEYBOARD,
+            Type = INPUTKEYBOARD,
             U = new InputUnion
             {
-                ki = new KEYBDINPUT
+                Ki = new KEYBDINPUT
                 {
-                    wVk = 0,
-                    wScan = character,
-                    dwFlags = KEYEVENTF_UNICODE | (pressed ? 0u : KEYEVENTF_KEYUP),
-                    dwExtraInfo = UIntPtr.Zero
+                    WVk = 0,
+                    WScan = character,
+                    DwFlags = KEYEVENTFUNICODE | (pressed ? 0u : KEYEVENTFKEYUP),
+                    DwExtraInfo = UIntPtr.Zero
                 }
-            }
+            },
         };
 
         SendSingleInput(input, character);
@@ -478,10 +480,10 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
             $"VNC SendInput failed (keysym=0x{keysymForLog:X}, cbSize={size}, err={Marshal.GetLastWin32Error()}).");
     }
 
-    private const uint INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
-    private const uint KEYEVENTF_KEYUP = 0x0002;
-    private const uint KEYEVENTF_UNICODE = 0x0004;
+    private const uint INPUTKEYBOARD = 1;
+    private const uint KEYEVENTFEXTENDEDKEY = 0x0001;
+    private const uint KEYEVENTFKEYUP = 0x0002;
+    private const uint KEYEVENTFUNICODE = 0x0004;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
@@ -492,7 +494,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
     {
-        public uint type;
+        public uint Type;
         public InputUnion U;
     }
 
@@ -500,40 +502,40 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     private struct InputUnion
     {
         [FieldOffset(0)]
-        public MOUSEINPUT mi;
+        public MOUSEINPUT Mi;
         [FieldOffset(0)]
-        public KEYBDINPUT ki;
+        public KEYBDINPUT Ki;
         [FieldOffset(0)]
-        public HARDWAREINPUT hi;
+        public HARDWAREINPUT Hi;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MOUSEINPUT
     {
-        public int dx;
-        public int dy;
-        public uint mouseData;
-        public uint dwFlags;
-        public uint time;
-        public UIntPtr dwExtraInfo;
+        public int Dx;
+        public int Dy;
+        public uint MouseData;
+        public uint DwFlags;
+        public uint Time;
+        public UIntPtr DwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct HARDWAREINPUT
     {
-        public uint uMsg;
-        public ushort wParamL;
-        public ushort wParamH;
+        public uint UMsg;
+        public ushort WParamL;
+        public ushort WParamH;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct KEYBDINPUT
     {
-        public ushort wVk;
-        public ushort wScan;
-        public uint dwFlags;
-        public uint time;
-        public UIntPtr dwExtraInfo;
+        public ushort WVk;
+        public ushort WScan;
+        public uint DwFlags;
+        public uint Time;
+        public UIntPtr DwExtraInfo;
     }
 }
 

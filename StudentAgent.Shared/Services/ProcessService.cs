@@ -58,7 +58,7 @@ public sealed class ProcessService
         var startInfo = new ProcessStartInfo
         {
             FileName = executablePath,
-            UseShellExecute = true
+            UseShellExecute = true,
         };
 
         if (!string.IsNullOrWhiteSpace(details.CommandLine))
@@ -123,7 +123,7 @@ public sealed class ProcessService
         {
             PowerActionKind.Shutdown => "/s /t 0 /f",
             PowerActionKind.Restart => "/r /t 0 /f",
-            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported power action.")
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported power action."),
         };
 
         using var process = new Process
@@ -135,7 +135,7 @@ public sealed class ProcessService
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden
-            }
+            },
         };
 
         process.Start();

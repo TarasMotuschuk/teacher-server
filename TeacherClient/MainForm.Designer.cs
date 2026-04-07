@@ -122,120 +122,120 @@ partial class MainForm
         MainMenuStrip = mainMenuStrip;
 
         var connectionMenuItem = new ToolStripMenuItem(TeacherClientText.ConnectionMenu);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, settingsButton_Click);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, refreshAgentsButton_Click);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, connectSelectedAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, SettingsButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, RefreshAgentsButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, ConnectSelectedAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         var desktopIconsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
-        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.SaveDesktopIconLayout, null, saveDesktopIconLayoutMenuItem_Click);
-        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayout, null, restoreDesktopIconLayoutMenuItem_Click);
+        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.SaveDesktopIconLayout, null, SaveDesktopIconLayoutMenuItem_Click);
+        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayout, null, RestoreDesktopIconLayoutMenuItem_Click);
         connectionMenuItem.DropDownItems.Add(desktopIconsMenuItem);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, addManualAgentButton_Click);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, editManualAgentButton_Click);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, removeManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, AddManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, EditManualAgentButton_Click);
+        connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, RemoveManualAgentButton_Click);
 
         var processesMenuItem = new ToolStripMenuItem(TeacherClientText.ProcessesMenu);
-        processesMenuItem.DropDownItems.Add(TeacherClientText.Refresh, null, refreshProcessesButton_Click);
-        processesMenuItem.DropDownItems.Add(TeacherClientText.TerminateSelected, null, killProcessButton_Click);
+        processesMenuItem.DropDownItems.Add(TeacherClientText.Refresh, null, RefreshProcessesButton_Click);
+        processesMenuItem.DropDownItems.Add(TeacherClientText.TerminateSelected, null, KillProcessButton_Click);
 
         var filesMenuItem = new ToolStripMenuItem(TeacherClientText.FilesMenu);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RefreshBoth, null, refreshFilesButton_Click);
-        filesMenuItem.DropDownItems.Add($"{TeacherClientText.Upload} ->", null, uploadButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToSelectedStudents, null, sendToSelectedStudentsButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToAllOnlineStudents, null, sendToAllOnlineStudentsButton_Click);
-        filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, downloadButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenLocal, null, openLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenRemote, null, openRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameLocal, null, renameLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameRemote, null, renameRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, deleteLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, deleteRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, newRemoteFolderButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.RefreshBoth, null, RefreshFilesButton_Click);
+        filesMenuItem.DropDownItems.Add($"{TeacherClientText.Upload} ->", null, UploadButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToSelectedStudents, null, SendToSelectedStudentsButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToAllOnlineStudents, null, SendToAllOnlineStudentsButton_Click);
+        filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, DownloadButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenLocal, null, OpenLocalButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenRemote, null, OpenRemoteButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameLocal, null, RenameLocalButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameRemote, null, RenameRemoteButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, DeleteLocalButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, DeleteRemoteButton_Click);
+        filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, NewRemoteFolderButton_Click);
 
         var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
         var destinationFolderMenuItem = new ToolStripMenuItem(TeacherClientText.DestinationFolderMenu);
-        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, clearSelectedFolderOnSelectedStudentsMenuItem_Click);
-        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, clearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
+        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, ClearSelectedFolderOnSelectedStudentsMenuItem_Click);
+        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, ClearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(destinationFolderMenuItem);
         var browserMenuItem = new ToolStripMenuItem(TeacherClientText.BrowserCommandsMenu);
-        browserMenuItem.DropDownItems.Add(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, lockBrowsersOnAllOnlineStudentsMenuItem_Click);
+        browserMenuItem.DropDownItems.Add(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, LockBrowsersOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(browserMenuItem);
         var inputMenuItem = new ToolStripMenuItem(TeacherClientText.InputCommandsMenu);
-        inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, lockInputOnAllOnlineStudentsMenuItem_Click);
-        inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, unlockInputOnAllOnlineStudentsMenuItem_Click);
+        inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, LockInputOnAllOnlineStudentsMenuItem_Click);
+        inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, UnlockInputOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(inputMenuItem);
         var windowsRestrictionsMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionsMenu);
         var taskManagerMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager));
-        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
-        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
+        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
+        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(taskManagerMenuItem);
         var runDialogMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.RunDialog));
-        runDialogMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
-        runDialogMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
+        runDialogMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
+        runDialogMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(runDialogMenuItem);
         var controlPanelMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ControlPanelAndSettings));
-        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
-        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
+        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
+        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(controlPanelMenuItem);
         var lockWorkstationMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LockWorkstation));
-        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
-        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
+        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
+        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(lockWorkstationMenuItem);
         var changePasswordMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword));
-        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
-        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
+        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
+        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(changePasswordMenuItem);
         var logOffMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LogOff));
-        logOffMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, enableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
-        logOffMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, disableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
+        logOffMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
+        logOffMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(logOffMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(windowsRestrictionsMenuItem);
         var commandsMenuItem = new ToolStripMenuItem(TeacherClientText.CommandsMenu);
-        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, runCommandOnSelectedStudentsMenuItem_Click);
-        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, runCommandOnAllOnlineStudentsMenuItem_Click);
+        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, RunCommandOnSelectedStudentsMenuItem_Click);
+        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, RunCommandOnAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
         var desktopIconsCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnSelectedStudents, null, restoreDesktopIconsOnSelectedStudentsMenuItem_Click);
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnAllOnlineStudents, null, restoreDesktopIconsOnAllOnlineStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnSelectedStudents, null, RestoreDesktopIconsOnSelectedStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnAllOnlineStudents, null, RestoreDesktopIconsOnAllOnlineStudentsMenuItem_Click);
         desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToSelectedStudents, null, applyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click);
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents, null, applyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToSelectedStudents, null, ApplyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents, null, ApplyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(desktopIconsCommandsMenuItem);
         var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
         var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
-        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownSelectedStudentsMenuItem_Click);
-        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, restartSelectedStudentsMenuItem_Click);
-        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, logOffSelectedStudentsMenuItem_Click);
+        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, ShutdownSelectedStudentsMenuItem_Click);
+        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, RestartSelectedStudentsMenuItem_Click);
+        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, LogOffSelectedStudentsMenuItem_Click);
         var powerAllOnlineMenuItem = new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu);
-        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, shutdownAllOnlineStudentsMenuItem_Click);
-        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, restartAllOnlineStudentsMenuItem_Click);
-        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, logOffAllOnlineStudentsMenuItem_Click);
+        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, ShutdownAllOnlineStudentsMenuItem_Click);
+        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, RestartAllOnlineStudentsMenuItem_Click);
+        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, LogOffAllOnlineStudentsMenuItem_Click);
         powerMenuItem.DropDownItems.Add(powerSelectedMenuItem);
         powerMenuItem.DropDownItems.Add(powerAllOnlineMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(powerMenuItem);
         var frequentProgramsMenuItem = new ToolStripMenuItem(TeacherClientText.FrequentProgramsMenu);
-        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.RefreshFrequentPrograms, null, refreshFrequentProgramsMenuItem_Click);
-        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.ManageFrequentPrograms, null, manageFrequentProgramsMenuItem_Click);
+        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.RefreshFrequentPrograms, null, RefreshFrequentProgramsMenuItem_Click);
+        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.ManageFrequentPrograms, null, ManageFrequentProgramsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(frequentProgramsMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
-        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, createStudentWorkFolderOnAllAgentsMenuItem_Click);
-        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkToTeacherPc, null, collectStudentWorkToTeacherPcMenuItem_Click);
-        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.ClearStudentWorkFolderOnAllAgents, null, clearStudentWorkFolderOnAllAgentsMenuItem_Click);
+        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, CreateStudentWorkFolderOnAllAgentsMenuItem_Click);
+        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkToTeacherPc, null, CollectStudentWorkToTeacherPcMenuItem_Click);
+        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.ClearStudentWorkFolderOnAllAgents, null, ClearStudentWorkFolderOnAllAgentsMenuItem_Click);
         groupCommandsMenuItem.DropDownItems.Add(studentWorkMenuItem);
 
         var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
         var programUpdatesMenuItem = new ToolStripMenuItem(TeacherClientText.ProgramUpdatesMenu);
-        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.CheckForAgentUpdate, null, checkSelectedAgentUpdateButton_Click);
-        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.StartAgentUpdate, null, startSelectedAgentUpdateButton_Click);
-        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.UpdateSelectedStudents, null, updateSelectedStudentsMenuItem_Click);
-        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.UpdateAllOnlineStudents, null, updateAllOnlineStudentsMenuItem_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.CheckForAgentUpdate, null, CheckSelectedAgentUpdateButton_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.StartAgentUpdate, null, StartSelectedAgentUpdateButton_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.UpdateSelectedStudents, null, UpdateSelectedStudentsMenuItem_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.UpdateAllOnlineStudents, null, UpdateAllOnlineStudentsMenuItem_Click);
         programUpdatesMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.CheckForClientUpdate, null, checkClientUpdateMenuItem_Click);
+        programUpdatesMenuItem.DropDownItems.Add(TeacherClientText.CheckForClientUpdate, null, CheckClientUpdateMenuItem_Click);
         helpMenuItem.DropDownItems.Add(programUpdatesMenuItem);
         helpMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, aboutMenuItem_Click);
+        helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, AboutMenuItem_Click);
 
         mainMenuStrip.Dock = DockStyle.Top;
         mainMenuStrip.BackColor = Color.White;
@@ -268,7 +268,7 @@ partial class MainForm
         settingsButton.Dock = DockStyle.Fill;
         settingsButton.Margin = new Padding(0, 0, 16, 0);
         settingsButton.MinimumSize = new Size(130, 48);
-        settingsButton.Click += settingsButton_Click;
+        settingsButton.Click += SettingsButton_Click;
 
         statusLabel.Dock = DockStyle.Fill;
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -309,7 +309,7 @@ partial class MainForm
         agentsGrid.ReadOnly = false;
 
         agentsGrid.Dock = DockStyle.Fill;
-        agentsGrid.CellDoubleClick += agentsGrid_CellDoubleClick;
+        agentsGrid.CellDoubleClick += AgentsGrid_CellDoubleClick;
         agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.BrowserLock, DataPropertyName = "BrowserLockEnabled", Width = 90 });
         agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.InputLock, DataPropertyName = "InputLockEnabled", Width = 90 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100, ReadOnly = true });
@@ -327,7 +327,7 @@ partial class MainForm
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.LastSeenUtc, DataPropertyName = "LastSeenDisplay", Width = 190, ReadOnly = true });
 
         processesGrid.Dock = DockStyle.Fill;
-        processesGrid.CellDoubleClick += processesGrid_CellDoubleClick;
+        processesGrid.CellDoubleClick += ProcessesGrid_CellDoubleClick;
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "PID", DataPropertyName = "Id", Width = 90 });
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Process, DataPropertyName = "Name", Width = 220 });
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Window, DataPropertyName = "MainWindowTitle", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 260 });
@@ -336,7 +336,7 @@ partial class MainForm
         processesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.StartedUtc, DataPropertyName = "StartTimeUtc", Width = 180 });
 
         localFilesGrid.Dock = DockStyle.Fill;
-        localFilesGrid.CellDoubleClick += localFilesGrid_CellDoubleClick;
+        localFilesGrid.CellDoubleClick += LocalFilesGrid_CellDoubleClick;
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 58F, MinimumWidth = 260 });
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
@@ -344,7 +344,7 @@ partial class MainForm
         localFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 12F, MinimumWidth = 150 });
 
         remoteFilesGrid.Dock = DockStyle.Fill;
-        remoteFilesGrid.CellDoubleClick += remoteFilesGrid_CellDoubleClick;
+        remoteFilesGrid.CellDoubleClick += RemoteFilesGrid_CellDoubleClick;
         remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.NameWithIcon, DataPropertyName = "DisplayNameWithIcon", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 58F, MinimumWidth = 260 });
         remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Extension, DataPropertyName = "Extension", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
         remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Attributes, DataPropertyName = "AttributesDisplay", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 10F, MinimumWidth = 90 });
@@ -352,39 +352,39 @@ partial class MainForm
         remoteFilesGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ModifiedUtc, DataPropertyName = "LastModifiedUtc", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 12F, MinimumWidth = 150 });
 
         refreshAgentsButton.Text = TeacherClientText.RefreshAgents;
-        refreshAgentsButton.Click += refreshAgentsButton_Click;
+        refreshAgentsButton.Click += RefreshAgentsButton_Click;
         connectSelectedAgentButton.Text = TeacherClientText.ConnectSelectedAgent;
-        connectSelectedAgentButton.Click += connectSelectedAgentButton_Click;
+        connectSelectedAgentButton.Click += ConnectSelectedAgentButton_Click;
         addManualAgentButton.Text = TeacherClientText.AddManualAgent;
-        addManualAgentButton.Click += addManualAgentButton_Click;
+        addManualAgentButton.Click += AddManualAgentButton_Click;
         editManualAgentButton.Text = TeacherClientText.EditManualAgent;
-        editManualAgentButton.Click += editManualAgentButton_Click;
+        editManualAgentButton.Click += EditManualAgentButton_Click;
         removeManualAgentButton.Text = TeacherClientText.RemoveManualAgent;
-        removeManualAgentButton.Click += removeManualAgentButton_Click;
+        removeManualAgentButton.Click += RemoveManualAgentButton_Click;
 
         refreshProcessesButton.Text = TeacherClientText.Refresh;
-        refreshProcessesButton.Click += refreshProcessesButton_Click;
+        refreshProcessesButton.Click += RefreshProcessesButton_Click;
         killProcessButton.Text = TeacherClientText.TerminateSelected;
-        killProcessButton.Click += killProcessButton_Click;
+        killProcessButton.Click += KillProcessButton_Click;
 
         refreshFilesButton.Text = TeacherClientText.RefreshBoth;
-        refreshFilesButton.Click += refreshFilesButton_Click;
+        refreshFilesButton.Click += RefreshFilesButton_Click;
         uploadButton.Text = TeacherClientText.Upload;
-        uploadButton.Click += uploadButton_Click;
+        uploadButton.Click += UploadButton_Click;
         downloadButton.Text = TeacherClientText.Download;
-        downloadButton.Click += downloadButton_Click;
+        downloadButton.Click += DownloadButton_Click;
         openRemoteButton.Text = TeacherClientText.OpenRemote;
-        openRemoteButton.Click += openRemoteButton_Click;
+        openRemoteButton.Click += OpenRemoteButton_Click;
         deleteLocalButton.Text = TeacherClientText.DeleteLocal;
-        deleteLocalButton.Click += deleteLocalButton_Click;
+        deleteLocalButton.Click += DeleteLocalButton_Click;
         deleteRemoteButton.Text = TeacherClientText.DeleteRemote;
-        deleteRemoteButton.Click += deleteRemoteButton_Click;
+        deleteRemoteButton.Click += DeleteRemoteButton_Click;
         newRemoteFolderButton.Text = TeacherClientText.NewRemoteFolder;
-        newRemoteFolderButton.Click += newRemoteFolderButton_Click;
+        newRemoteFolderButton.Click += NewRemoteFolderButton_Click;
         upLocalButton.Text = TeacherClientText.UpWithArrow;
-        upLocalButton.Click += upLocalButton_Click;
+        upLocalButton.Click += UpLocalButton_Click;
         upRemoteButton.Text = TeacherClientText.UpWithArrow;
-        upRemoteButton.Click += upRemoteButton_Click;
+        upRemoteButton.Click += UpRemoteButton_Click;
 
         var agentsLayout = new TableLayoutPanel
         {
@@ -398,11 +398,11 @@ partial class MainForm
         agentsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var agentsToolStrip = CreateTabToolStrip();
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, @"Toolbar/agents/pc-refresh-list.png", ToolbarIconKind.Refresh, refreshAgentsButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, connectSelectedAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, @"Toolbar/agents/add-manual.png", ToolbarIconKind.Add, addManualAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, @"Toolbar/agents/edit-manual.png", ToolbarIconKind.Edit, editManualAgentButton_Click));
-        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RemoveManualAgent, @"Toolbar/agents/delete-manual.png", ToolbarIconKind.Remove, removeManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshAgents, @"Toolbar/agents/pc-refresh-list.png", ToolbarIconKind.Refresh, RefreshAgentsButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ConnectSelectedAgent, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, ConnectSelectedAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.AddManualAgent, @"Toolbar/agents/add-manual.png", ToolbarIconKind.Add, AddManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditManualAgent, @"Toolbar/agents/edit-manual.png", ToolbarIconKind.Edit, EditManualAgentButton_Click));
+        agentsToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RemoveManualAgent, @"Toolbar/agents/delete-manual.png", ToolbarIconKind.Remove, RemoveManualAgentButton_Click));
 
         var agentsFilterLayout = new TableLayoutPanel
         {
@@ -427,19 +427,19 @@ partial class MainForm
         agentSearchTextBox.Dock = DockStyle.Fill;
         agentSearchTextBox.Margin = new Padding(0, 6, 14, 6);
         agentSearchTextBox.MinimumSize = new Size(0, 45);
-        agentSearchTextBox.TextChanged += agentFilters_Changed;
+        agentSearchTextBox.TextChanged += AgentFilters_Changed;
 
         groupFilterComboBox.Dock = DockStyle.Fill;
         groupFilterComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         groupFilterComboBox.Margin = new Padding(0, 6, 14, 6);
         groupFilterComboBox.MinimumSize = new Size(0, 45);
-        groupFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
+        groupFilterComboBox.SelectedIndexChanged += AgentFilters_Changed;
 
         statusFilterComboBox.Dock = DockStyle.Fill;
         statusFilterComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         statusFilterComboBox.Margin = new Padding(0, 6, 14, 6);
         statusFilterComboBox.MinimumSize = new Size(0, 45);
-        statusFilterComboBox.SelectedIndexChanged += agentFilters_Changed;
+        statusFilterComboBox.SelectedIndexChanged += AgentFilters_Changed;
 
         autoReconnectCheckBox.Text = TeacherClientText.AutoReconnect;
         autoReconnectCheckBox.Dock = DockStyle.Fill;
@@ -471,8 +471,8 @@ partial class MainForm
         processesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var processesToolStrip = CreateTabToolStrip();
-        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, @"Toolbar/processes/refresh.png", ToolbarIconKind.Refresh, refreshProcessesButton_Click));
-        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.TerminateSelected, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, killProcessButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, @"Toolbar/processes/refresh.png", ToolbarIconKind.Refresh, RefreshProcessesButton_Click));
+        processesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.TerminateSelected, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, KillProcessButton_Click));
 
         processesLayout.Controls.Add(processesToolStrip, 0, 0);
         processesLayout.Controls.Add(processesGrid, 0, 1);
@@ -489,20 +489,20 @@ partial class MainForm
         filesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var filesToolStrip = CreateTabToolStrip();
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshBoth, @"Toolbar/files/refresh-both.png", ToolbarIconKind.Refresh, refreshFilesButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshBoth, @"Toolbar/files/refresh-both.png", ToolbarIconKind.Refresh, RefreshFilesButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Upload, @"Toolbar/files/upload.png", ToolbarIconKind.Upload, uploadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, @"Toolbar/files/upload-group.png", ToolbarIconKind.UploadGroup, sendToSelectedStudentsButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, @"Toolbar/files/broadcast.png", ToolbarIconKind.Broadcast, sendToAllOnlineStudentsButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, @"Toolbar/files/download.png", ToolbarIconKind.Download, downloadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, openLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, openRemoteButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, renameLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, renameRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Upload, @"Toolbar/files/upload.png", ToolbarIconKind.Upload, UploadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, @"Toolbar/files/upload-group.png", ToolbarIconKind.UploadGroup, SendToSelectedStudentsButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, @"Toolbar/files/broadcast.png", ToolbarIconKind.Broadcast, SendToAllOnlineStudentsButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, @"Toolbar/files/download.png", ToolbarIconKind.Download, DownloadButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, OpenLocalButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, OpenRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, RenameLocalButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, RenameRemoteButton_Click, showText: true));
         filesToolStrip.Items.Add(new ToolStripSeparator());
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, @"Toolbar/files/delete-local.png", ToolbarIconKind.Remove, deleteLocalButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, @"Toolbar/files/delete-remote.png", ToolbarIconKind.Remove, deleteRemoteButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewRemoteFolder, @"Toolbar/files/new-folder.png", ToolbarIconKind.NewFolder, newRemoteFolderButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, @"Toolbar/files/delete-local.png", ToolbarIconKind.Remove, DeleteLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, @"Toolbar/files/delete-remote.png", ToolbarIconKind.Remove, DeleteRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewRemoteFolder, @"Toolbar/files/new-folder.png", ToolbarIconKind.NewFolder, NewRemoteFolderButton_Click));
 
         var filesPanelsLayout = new TableLayoutPanel
         {
@@ -548,7 +548,7 @@ partial class MainForm
         localDriveComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         localDriveComboBox.Margin = new Padding(0, 0, 10, 0);
         localDriveComboBox.MinimumSize = new Size(0, 42);
-        localDriveComboBox.SelectedIndexChanged += localDriveComboBox_SelectedIndexChanged;
+        localDriveComboBox.SelectedIndexChanged += LocalDriveComboBox_SelectedIndexChanged;
 
         upLocalButton.Dock = DockStyle.Fill;
         upLocalButton.MinimumSize = new Size(64, 42);
@@ -608,7 +608,7 @@ partial class MainForm
         remoteDriveComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         remoteDriveComboBox.Margin = new Padding(0, 0, 10, 0);
         remoteDriveComboBox.MinimumSize = new Size(0, 42);
-        remoteDriveComboBox.SelectedIndexChanged += remoteDriveComboBox_SelectedIndexChanged;
+        remoteDriveComboBox.SelectedIndexChanged += RemoteDriveComboBox_SelectedIndexChanged;
 
         upRemoteButton.Dock = DockStyle.Fill;
         upRemoteButton.MinimumSize = new Size(64, 42);
@@ -651,8 +651,8 @@ partial class MainForm
         registryTreeView.BackColor = Color.White;
         registryTreeView.BorderStyle = BorderStyle.None;
         registryTreeView.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-        registryTreeView.BeforeExpand += registryTreeView_BeforeExpand;
-        registryTreeView.AfterSelect += registryTreeView_AfterSelect;
+        registryTreeView.BeforeExpand += RegistryTreeView_BeforeExpand;
+        registryTreeView.AfterSelect += RegistryTreeView_AfterSelect;
 
         var registryLayout = new TableLayoutPanel
         {
@@ -665,17 +665,17 @@ partial class MainForm
         registryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var registryToolStrip = CreateTabToolStrip();
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, refreshRegistryButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Refresh, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, RefreshRegistryButton_Click));
         registryToolStrip.Items.Add(new ToolStripSeparator());
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewValue, @"Toolbar/registry/new-value.png", ToolbarIconKind.Add, newRegistryValueButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewKey, @"Toolbar/registry/new-key.png", ToolbarIconKind.Add, newRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewValue, @"Toolbar/registry/new-value.png", ToolbarIconKind.Add, NewRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.NewKey, @"Toolbar/registry/new-key.png", ToolbarIconKind.Add, NewRegistryKeyButton_Click));
         registryToolStrip.Items.Add(new ToolStripSeparator());
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, @"Toolbar/registry/edit-value.png", ToolbarIconKind.Edit, editRegistryValueButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, @"Toolbar/registry/delete-value.png", ToolbarIconKind.Remove, deleteRegistryValueButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, @"Toolbar/registry/delete-key.png", ToolbarIconKind.Remove, deleteRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.EditValue, @"Toolbar/registry/edit-value.png", ToolbarIconKind.Edit, EditRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteValue, @"Toolbar/registry/delete-value.png", ToolbarIconKind.Remove, DeleteRegistryValueButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteKey, @"Toolbar/registry/delete-key.png", ToolbarIconKind.Remove, DeleteRegistryKeyButton_Click));
         registryToolStrip.Items.Add(new ToolStripSeparator());
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ExportRegFile, @"Toolbar/registry/export-reg.png", ToolbarIconKind.Download, exportRegistryKeyButton_Click));
-        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ImportRegFile, @"Toolbar/registry/import-reg.png", ToolbarIconKind.Upload, importRegistryFileButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ExportRegFile, @"Toolbar/registry/export-reg.png", ToolbarIconKind.Download, ExportRegistryKeyButton_Click));
+        registryToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.ImportRegFile, @"Toolbar/registry/import-reg.png", ToolbarIconKind.Upload, ImportRegistryFileButton_Click));
 
         var registrySplit = new SplitContainer
         {
@@ -704,12 +704,12 @@ partial class MainForm
         remoteManagementLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         remoteManagementToolStrip = CreateTabToolStrip();
-        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshRemoteManagement, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, refreshRemoteManagementButton_Click));
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RefreshRemoteManagement, @"Toolbar/registry/refresh.png", ToolbarIconKind.Refresh, RefreshRemoteManagementButton_Click));
         remoteManagementToolStrip.Items.Add(new ToolStripSeparator());
-        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartVncViewOnly, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, startRemoteManagementViewOnlyButton_Click));
-        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StopVnc, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, stopRemoteManagementButton_Click));
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StartVncViewOnly, @"Toolbar/agents/connect.png", ToolbarIconKind.Link, StartRemoteManagementViewOnlyButton_Click));
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.StopVnc, @"Toolbar/processes/stop.png", ToolbarIconKind.Stop, StopRemoteManagementButton_Click));
         remoteManagementToolStrip.Items.Add(new ToolStripSeparator());
-        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenFullscreenViewer, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, openRemoteManagementViewerButton_Click));
+        remoteManagementToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenFullscreenViewer, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, OpenRemoteManagementViewerButton_Click));
 
         remoteManagementHintLabel.Dock = DockStyle.Fill;
         remoteManagementHintLabel.TextAlign = ContentAlignment.MiddleLeft;

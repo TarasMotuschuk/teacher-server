@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Media;
 using Avalonia.Threading;
 using MarcusW.VncClient;
 using Teacher.Common.Vnc;
@@ -57,6 +56,7 @@ public partial class RemoteVncViewerWindow : Window
         RenderOptions.SetBitmapInterpolationMode(ScreenImage, BitmapInterpolationMode.HighQuality);
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
+
         // CenterOwner in XAML conflicts with Maximized on some Windows builds; maximize after open.
         WindowStartupLocation = WindowStartupLocation.Manual;
         WindowState = WindowState.Maximized;
@@ -69,6 +69,7 @@ public partial class RemoteVncViewerWindow : Window
             WindowState = WindowState.Maximized;
             await ConnectAsync();
             _refreshTimer.Start();
+
             // Defer: focus before layout can fail on macOS; keyboard/TextInput attach to ViewerInputRoot, not the window chrome.
             Dispatcher.UIThread.Post(
                 () => ViewerInputRoot.Focus(),
@@ -83,6 +84,7 @@ public partial class RemoteVncViewerWindow : Window
             {
                 _session.Dispose();
             }
+
             _cancellation.Dispose();
             DisposeBitmap();
         };
@@ -109,6 +111,7 @@ public partial class RemoteVncViewerWindow : Window
             {
                 await _session.ConnectAsync(_cancellation.Token);
             }
+
             UpdateControlUi();
         }
         catch (Exception ex)
@@ -369,10 +372,12 @@ public partial class RemoteVncViewerWindow : Window
         {
             mask |= 1;
         }
+
         if (properties.IsMiddleButtonPressed)
         {
             mask |= 2;
         }
+
         if (properties.IsRightButtonPressed)
         {
             mask |= 4;
@@ -417,7 +422,7 @@ public partial class RemoteVncViewerWindow : Window
             Key.RightCtrl => KeySymbol.Control_R,
             Key.LeftAlt => KeySymbol.Alt_L,
             Key.RightAlt => KeySymbol.Alt_R,
-            _ => null
+            _ => null,
         };
     }
 
@@ -488,6 +493,7 @@ public partial class RemoteVncViewerWindow : Window
     private sealed class PinnedBitmap(Bitmap bitmap, GCHandle handle) : IDisposable
     {
         public Bitmap Bitmap { get; } = bitmap;
+
         private GCHandle Handle { get; } = handle;
 
         public void Dispose()

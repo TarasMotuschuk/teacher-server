@@ -34,7 +34,7 @@ public sealed class InputLockForm : Form
             BackColor = Color.FromArgb(170, 15, 23, 42),
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(48, 48, 48, 32)
+            Padding = new Padding(48, 48, 48, 32),
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -42,7 +42,7 @@ public sealed class InputLockForm : Form
         var spacer = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.Transparent
+            BackColor = Color.Transparent,
         };
 
         var statusLabel = new Label
@@ -53,7 +53,7 @@ public sealed class InputLockForm : Form
             Font = new Font("Segoe UI", 20F, FontStyle.Regular, GraphicsUnit.Point),
             ForeColor = Color.White,
             BackColor = Color.Transparent,
-            TextAlign = ContentAlignment.BottomCenter
+            TextAlign = ContentAlignment.BottomCenter,
         };
 
         layout.Controls.Add(spacer, 0, 0);

@@ -1,12 +1,11 @@
-using System.Drawing;
 using System.Runtime.InteropServices;
 using RemoteViewing.Vnc;
-using RemoteViewing.Vnc.Server;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+
 namespace StudentAgent.VncHost;
 
 /// <summary>
@@ -50,6 +49,7 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
     /// True when <see cref="IDXGIOutputDuplication.AcquireNextFrame"/> returned WAIT_TIMEOUT — the framebuffer is stale.
     /// Callers should fall back to GDI capture (e.g. <see cref="InputDesktopGdiCapture"/>) so Winlogon / UAC is visible.
     /// </param>
+    /// <returns></returns>
     public VncFramebuffer Capture(out bool timedOut)
     {
         timedOut = false;
@@ -302,8 +302,8 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
         desktopLeft = desktopTop = desktopRight = desktopBottom = 0;
 
         var primary = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
-        var cx = primary.Left + Math.Max(1, primary.Width) / 2;
-        var cy = primary.Top + Math.Max(1, primary.Height) / 2;
+        var cx = primary.Left + (Math.Max(1, primary.Width) / 2);
+        var cy = primary.Top + (Math.Max(1, primary.Height) / 2);
 
         for (uint i = 0; ; i++)
         {

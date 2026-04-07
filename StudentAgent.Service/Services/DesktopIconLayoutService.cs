@@ -10,7 +10,7 @@ public sealed class DesktopIconLayoutService
     private readonly string _uiHostPath;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        WriteIndented = true
+        WriteIndented = true,
     };
 
     public DesktopIconLayoutService(AgentLogService logService)
@@ -65,7 +65,7 @@ public sealed class DesktopIconLayoutService
         var snapshot = request.Layout with
         {
             Name = targetLayoutName,
-            SavedAtUtc = DateTime.UtcNow
+            SavedAtUtc = DateTime.UtcNow,
         };
 
         File.WriteAllText(layoutPath, JsonSerializer.Serialize(snapshot, JsonOptions));

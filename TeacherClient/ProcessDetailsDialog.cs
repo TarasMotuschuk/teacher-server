@@ -15,14 +15,14 @@ public partial class ProcessDetailsDialog : Form
         detailsTextBox.Text = BuildText(details);
     }
 
-    private void killButton_Click(object? sender, EventArgs e)
+    private void KillButton_Click(object? sender, EventArgs e)
     {
         ActionRequested = ProcessActionRequested.Kill;
         DialogResult = DialogResult.OK;
         Close();
     }
 
-    private void restartButton_Click(object? sender, EventArgs e)
+    private void RestartButton_Click(object? sender, EventArgs e)
     {
         ActionRequested = ProcessActionRequested.Restart;
         DialogResult = DialogResult.OK;
@@ -31,7 +31,8 @@ public partial class ProcessDetailsDialog : Form
 
     private static string BuildText(ProcessDetailsDto details)
     {
-        return string.Join(Environment.NewLine,
+        return string.Join(
+            Environment.NewLine,
         [
             $"PID: {details.Id}",
             $"{TeacherClientText.Process}: {details.Name}",
@@ -79,5 +80,5 @@ public enum ProcessActionRequested
 {
     None,
     Kill,
-    Restart
+    Restart,
 }

@@ -9,9 +9,32 @@ permissions:
   contents: write
 
 jobs:
+  code-quality:
+    name: Code quality
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore solution
+        run: dotnet restore TeacherServer.sln --nologo
+
+      - name: Verify formatting
+        run: dotnet format TeacherServer.sln --verify-no-changes --no-restore --severity warn
+
+      - name: Build with analyzers
+        run: dotnet build TeacherServer.sln -c Release --no-restore --nologo -p:ContinuousIntegrationBuild=true
+
   build-student-agent:
     name: Build student-agent update bundle
     runs-on: windows-latest
+    needs: code-quality
 
     steps:
       - name: Checkout
@@ -78,6 +101,7 @@ jobs:
   build-windows-installer:
     name: Build Windows MSI
     runs-on: windows-latest
+    needs: code-quality
 
     steps:
       - name: Checkout
@@ -106,6 +130,7 @@ jobs:
   build-macos-installer:
     name: Build macOS PKG
     runs-on: macos-14
+    needs: code-quality
 
     steps:
       - name: Checkout

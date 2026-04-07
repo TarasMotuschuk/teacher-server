@@ -16,7 +16,7 @@ public partial class ConfirmationDialog : Window
     {
         var dialog = new ConfirmationDialog
         {
-            Title = title
+            Title = title,
         };
         dialog.MessageTextBlock.Text = message;
         return await dialog.ShowDialog<bool>(owner);
@@ -26,7 +26,7 @@ public partial class ConfirmationDialog : Window
     {
         var dialog = new ConfirmationDialog
         {
-            Title = title
+            Title = title,
         };
         dialog.MessageTextBlock.Text = message;
         dialog.CancelButton.IsVisible = false;

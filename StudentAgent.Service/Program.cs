@@ -1,8 +1,8 @@
-using StudentAgent.Hosting;
-using StudentAgent.Services;
-using StudentAgent.Service.Services;
-using StudentAgent.UI.Localization;
 using Microsoft.AspNetCore.Mvc;
+using StudentAgent.Hosting;
+using StudentAgent.Service.Services;
+using StudentAgent.Services;
+using StudentAgent.UI.Localization;
 using Teacher.Common.Contracts;
 
 try

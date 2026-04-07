@@ -8,7 +8,7 @@ internal static class DesktopIconLayoutCommandRunner
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        WriteIndented = true
+        WriteIndented = true,
     };
 
     public static bool TryExecute(string[] args, AgentLogService logService, out DesktopIconCommandResultDto result, out string? resultPath)

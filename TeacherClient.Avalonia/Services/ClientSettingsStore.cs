@@ -49,7 +49,7 @@ public sealed class ClientSettingsStore
         {
             var json = JsonSerializer.Serialize(Normalize(settings), new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
             });
 
             File.WriteAllText(_storagePath, json);

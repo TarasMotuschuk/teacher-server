@@ -1,0 +1,19 @@
+{
+  "settings": {
+    "documentationRules": {
+      "companyName": "ClassCommander",
+      "documentExposedElements": false,
+      "documentInternalElements": false,
+      "documentPrivateElements": false,
+      "documentInterfaces": false,
+      "documentPrivateFields": false,
+      "xmlHeader": false
+    },
+    "orderingRules": {
+      "usingDirectivesPlacement": "outsideNamespace"
+    },
+    "layoutRules": {
+      "newlineAtEndOfFile": "require"
+    }
+  }
+}

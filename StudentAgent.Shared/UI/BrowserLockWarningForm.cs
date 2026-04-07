@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace StudentAgent.UI;
 
 public sealed class BrowserLockWarningForm : Form
@@ -32,8 +34,8 @@ public sealed class BrowserLockWarningForm : Form
             ForeColor = Color.White,
             BackColor = Color.Transparent,
             Font = new Font("Segoe UI", 32F, FontStyle.Bold, GraphicsUnit.Point),
-            Text = _secondsRemaining.ToString(),
-            UseCompatibleTextRendering = false
+            Text = _secondsRemaining.ToString(CultureInfo.InvariantCulture),
+            UseCompatibleTextRendering = false,
         };
 
         Controls.Add(_countdownLabel);
@@ -78,7 +80,7 @@ public sealed class BrowserLockWarningForm : Form
             return;
         }
 
-        _countdownLabel.Text = _secondsRemaining.ToString();
+        _countdownLabel.Text = _secondsRemaining.ToString(CultureInfo.InvariantCulture);
         PositionCountdownLabel();
     }
 }

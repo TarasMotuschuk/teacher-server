@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Threading;
 using MarcusW.VncClient;
 using MarcusW.VncClient.Protocol.Implementation.MessageTypes.Outgoing;
 using MarcusW.VncClient.Protocol.Implementation.Services.Transports;
@@ -36,7 +35,9 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
     public bool IsConnected => _connection?.ConnectionState == ConnectionState.Connected;
 
     public event EventHandler<string>? StatusChanged;
+
     public event EventHandler? Connected;
+
     public event EventHandler? Closed;
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
@@ -54,15 +55,16 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             TransportParameters = new TcpTransportParameters
             {
                 Host = _host,
-                Port = _port
+                Port = _port,
             },
             AuthenticationHandler = new StaticAuthenticationHandler(VncPasswordHelper.Derive(_sharedSecret)),
             AllowSharedConnection = true,
             InitialRenderTarget = _renderTarget,
+
             // When the server uses Tight subencoding with JPEG, prefer high quality and full chroma (visually lossless for typical UI).
             // Lossless zlib/ZRLE rectangles ignore these; they are negotiated separately by the RFB stack.
             JpegQualityLevel = 95,
-            JpegSubsamplingLevel = JpegSubsamplingLevel.None
+            JpegSubsamplingLevel = JpegSubsamplingLevel.None,
         };
 
         var connection = await client.ConnectAsync(parameters, cancellationToken);
@@ -122,6 +124,7 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             await connection.SendMessageAsync(
                 new KeyEventMessage(true, keySymbols[index]),
                 CancellationToken.None);
+
             // Brief pause so the remote OS (especially Windows) applies modifiers before the next key.
             await Task.Delay(15, CancellationToken.None);
         }
@@ -217,18 +220,22 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         {
             buttons |= MouseButtons.Left;
         }
+
         if ((pressedButtons & 2) != 0)
         {
             buttons |= MouseButtons.Middle;
         }
+
         if ((pressedButtons & 4) != 0)
         {
             buttons |= MouseButtons.Right;
         }
+
         if ((pressedButtons & 8) != 0)
         {
             buttons |= MouseButtons.WheelUp;
         }
+
         if ((pressedButtons & 16) != 0)
         {
             buttons |= MouseButtons.WheelDown;

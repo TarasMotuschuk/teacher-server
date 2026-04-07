@@ -1,6 +1,6 @@
-using Teacher.Common.Contracts;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Teacher.Common.Contracts;
 
 namespace StudentAgent.Services;
 
@@ -227,7 +227,7 @@ public sealed class FileService
             size,
             info.LastWriteTimeUtc)
         {
-            AttributesDisplay = FormatAttributes(info.Attributes)
+            AttributesDisplay = FormatAttributes(info.Attributes),
         };
     }
 

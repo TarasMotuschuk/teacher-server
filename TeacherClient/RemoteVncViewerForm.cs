@@ -1,9 +1,6 @@
 #nullable enable
 
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Threading;
-using Teacher.Common;
 using Teacher.Common.Vnc;
 using TeacherClient.Localization;
 using KeySym = MarcusW.VncClient.KeySymbol;
@@ -65,15 +62,16 @@ public sealed class RemoteVncViewerForm : Form
         {
             Dock = DockStyle.Fill,
             BackColor = Color.Black,
-            TabStop = true
+            TabStop = true,
         };
 
         _pictureBox = new PictureBox
         {
             Dock = DockStyle.Fill,
             BackColor = Color.Black,
+
             // Zoom preserves aspect ratio (matches Avalonia Uniform); StretchImage can distort.
-            SizeMode = PictureBoxSizeMode.Zoom
+            SizeMode = PictureBoxSizeMode.Zoom,
         };
 
         _statusLabel = new Label
@@ -82,14 +80,14 @@ public sealed class RemoteVncViewerForm : Form
             TextAlign = ContentAlignment.MiddleLeft,
             ForeColor = Color.WhiteSmoke,
             BackColor = Color.FromArgb(60, 60, 60),
-            Padding = new Padding(10, 0, 10, 0)
+            Padding = new Padding(10, 0, 10, 0),
         };
 
         _enableControlButton = new Button
         {
             Dock = DockStyle.Fill,
             Text = TeacherClientText.EnableFullscreenControl,
-            Visible = !_session.ControlEnabled
+            Visible = !_session.ControlEnabled,
         };
         _enableControlButton.Click += (_, _) =>
         {
@@ -101,7 +99,7 @@ public sealed class RemoteVncViewerForm : Form
         _sendShortcutComboBox = new ComboBox
         {
             Dock = DockStyle.Fill,
-            DropDownStyle = ComboBoxStyle.DropDownList
+            DropDownStyle = ComboBoxStyle.DropDownList,
         };
         _sendShortcutComboBox.Items.AddRange(ShortcutOptions);
         _sendShortcutComboBox.SelectedIndex = 0;
@@ -135,7 +133,7 @@ public sealed class RemoteVncViewerForm : Form
             BackColor = Color.FromArgb(60, 60, 60),
             Padding = new Padding(8, 4, 8, 4),
             ColumnCount = 3,
-            RowCount = 1
+            RowCount = 1,
         };
         bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         bottomBar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 248F));
@@ -145,6 +143,7 @@ public sealed class RemoteVncViewerForm : Form
         bottomBar.Controls.Add(_enableControlButton, 2, 0);
 
         _imagePanel.Controls.Add(_pictureBox);
+
         // Dock Bottom first so the fill panel receives the remaining client height above the toolbar.
         Controls.Add(bottomBar);
         Controls.Add(_imagePanel);
@@ -158,6 +157,7 @@ public sealed class RemoteVncViewerForm : Form
             if (!_cancellation.IsCancellationRequested && !IsDisposed)
             {
                 _refreshTimer.Start();
+
                 // PictureBox cannot take focus; keyboard events must reach a focused control — not only the Form.
                 _imagePanel.Focus();
             }
@@ -166,6 +166,7 @@ public sealed class RemoteVncViewerForm : Form
         {
             _refreshTimer.Stop();
             _cancellation.Cancel();
+
             // Capture/Connect run on thread pool; disposing the session while they touch the render
             // target or connection can fault the process.
             var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -541,7 +542,7 @@ public sealed class RemoteVncViewerForm : Form
             MouseButtons.Left => 1,
             MouseButtons.Middle => 2,
             MouseButtons.Right => 4,
-            _ => 0
+            _ => 0,
         };
 
         return pressed ? mask : 0;
@@ -580,7 +581,7 @@ public sealed class RemoteVncViewerForm : Form
             Keys.ShiftKey => KeySym.Shift_L,
             Keys.ControlKey => KeySym.Control_L,
             Keys.Menu => KeySym.Alt_L,
-            _ => null
+            _ => null,
         };
     }
 

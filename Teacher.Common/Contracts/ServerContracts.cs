@@ -11,7 +11,9 @@ public sealed record ServerInfoDto(
     string AgentVersion);
 
 public sealed record BrowserLockStateRequest(bool Enabled);
+
 public sealed record InputLockStateRequest(bool Enabled);
+
 public sealed record StudentPolicySettingsRequest(
     int DesktopIconAutoRestoreMinutes,
     int BrowserLockCheckIntervalSeconds);
@@ -19,7 +21,7 @@ public sealed record StudentPolicySettingsRequest(
 public enum RemoteCommandRunAs
 {
     CurrentUser = 0,
-    Administrator = 1
+    Administrator = 1,
 }
 
 public sealed record RemoteCommandRequest(
@@ -37,7 +39,7 @@ public enum PowerActionKind
 {
     Shutdown = 0,
     Restart = 1,
-    LogOff = 2
+    LogOff = 2,
 }
 
 public sealed record PowerActionRequest(PowerActionKind Action);

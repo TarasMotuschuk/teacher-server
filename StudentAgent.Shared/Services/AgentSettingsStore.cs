@@ -1,8 +1,9 @@
+using System.Net.Http.Json;
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
-using Microsoft.Win32;
 using Microsoft.Extensions.Options;
+using Microsoft.Win32;
 using Teacher.Common;
 using Teacher.Common.Localization;
 
@@ -12,33 +13,86 @@ public sealed class AgentSettingsStore
 {
     private readonly object _sync = new();
     private readonly bool _useRegistry;
-    private readonly string _legacySettingsPath;
+    private readonly bool _canWriteHklm;
     private readonly AgentOptions _defaults;
     private AgentRuntimeSettings _current;
+
     public event EventHandler? SettingsChanged;
 
     public AgentSettingsStore(IOptions<AgentOptions> options)
     {
         _defaults = options.Value;
         _useRegistry = OperatingSystem.IsWindows();
-        _legacySettingsPath = Path.Combine(GetDataDirectory(), "agentsettings.json");
+        _canWriteHklm = !_useRegistry || TryCanCreateMachineAgentRegistryKey();
 
         lock (_sync)
         {
             if (_useRegistry)
             {
-                TryMigrateLegacyJsonToRegistry();
                 _current = LoadFromRegistry(_defaults);
-                SaveToRegistry(_current);
+                if (_canWriteHklm)
+                {
+                    PersistSettings(_current, _current.SharedSecret);
+                }
             }
             else
             {
-                var dataDirectory = GetDataDirectory();
-                Directory.CreateDirectory(dataDirectory);
-                _current = LoadFromDisk(_defaults);
-                SaveToDisk(_current);
+                _current = NewRuntimeFromAgentOptions(_defaults);
             }
         }
+    }
+
+    /// <summary>
+    /// Applies a full settings snapshot (used by the local HTTP API when session processes cannot write HKLM).
+    /// </summary>
+    public void ImportRuntimeSettings(AgentRuntimeSettings snapshot)
+    {
+        lock (_sync)
+        {
+            _current = Normalize(Clone(snapshot), _defaults);
+            if (_useRegistry)
+            {
+                if (_canWriteHklm)
+                {
+                    WriteAllValuesToHklm(_current);
+                }
+            }
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static bool TryCanCreateMachineAgentRegistryKey()
+    {
+        try
+        {
+            Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true)?.Dispose();
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (SecurityException)
+        {
+            return false;
+        }
+    }
+
+    private void PersistSettings(AgentRuntimeSettings settings, string authorizationSharedSecretForHttp)
+    {
+        if (!_useRegistry)
+        {
+            return;
+        }
+
+        if (_canWriteHklm)
+        {
+            WriteAllValuesToHklm(settings);
+            return;
+        }
+
+        PushRuntimeSettingsToLocalAgent(settings, authorizationSharedSecretForHttp);
     }
 
     public AgentRuntimeSettings Current
@@ -49,7 +103,7 @@ public sealed class AgentSettingsStore
             var changed = false;
             lock (_sync)
             {
-                changed = _useRegistry ? ReloadFromRegistryIfChanged() : ReloadFromDiskIfChanged();
+                changed = _useRegistry && ReloadFromRegistryIfChanged();
                 if (changed)
                 {
                     changedHandler = SettingsChanged;
@@ -75,10 +129,7 @@ public sealed class AgentSettingsStore
             {
                 ReloadFromRegistryIfChanged();
             }
-            else
-            {
-                ReloadFromDiskIfChanged();
-            }
+
             return string.Equals(hash, _current.AdminPasswordHash, StringComparison.OrdinalIgnoreCase);
         }
     }
@@ -91,10 +142,8 @@ public sealed class AgentSettingsStore
             {
                 ReloadFromRegistryIfChanged();
             }
-            else
-            {
-                ReloadFromDiskIfChanged();
-            }
+
+            var authorizationSecret = _current.SharedSecret;
             var previousSharedSecret = _current.SharedSecret;
             var nextSharedSecret = string.IsNullOrWhiteSpace(sharedSecret) ? _current.SharedSecret : sharedSecret.Trim();
             var shouldRefreshDerivedVncPassword = string.IsNullOrWhiteSpace(_current.VncPassword)
@@ -114,11 +163,7 @@ public sealed class AgentSettingsStore
 
             if (_useRegistry)
             {
-                SaveToRegistry(_current);
-            }
-            else
-            {
-                SaveToDisk(_current);
+                PersistSettings(_current, authorizationSecret);
             }
         }
 
@@ -133,19 +178,12 @@ public sealed class AgentSettingsStore
             {
                 ReloadFromRegistryIfChanged();
             }
-            else
-            {
-                ReloadFromDiskIfChanged();
-            }
+
             _current.DesktopIconAutoRestoreMinutes = Math.Max(1, desktopIconAutoRestoreMinutes);
             _current.BrowserLockCheckIntervalSeconds = Math.Max(5, browserLockCheckIntervalSeconds);
             if (_useRegistry)
             {
-                SaveToRegistry(_current);
-            }
-            else
-            {
-                SaveToDisk(_current);
+                PersistSettings(_current, _current.SharedSecret);
             }
         }
 
@@ -160,18 +198,11 @@ public sealed class AgentSettingsStore
             {
                 ReloadFromRegistryIfChanged();
             }
-            else
-            {
-                ReloadFromDiskIfChanged();
-            }
+
             _current.BrowserLockEnabled = enabled;
             if (_useRegistry)
             {
-                SaveToRegistry(_current);
-            }
-            else
-            {
-                SaveToDisk(_current);
+                PersistSettings(_current, _current.SharedSecret);
             }
         }
 
@@ -186,18 +217,11 @@ public sealed class AgentSettingsStore
             {
                 ReloadFromRegistryIfChanged();
             }
-            else
-            {
-                ReloadFromDiskIfChanged();
-            }
+
             _current.InputLockEnabled = enabled;
             if (_useRegistry)
             {
-                SaveToRegistry(_current);
-            }
-            else
-            {
-                SaveToDisk(_current);
+                PersistSettings(_current, _current.SharedSecret);
             }
         }
 
@@ -212,10 +236,7 @@ public sealed class AgentSettingsStore
             {
                 ReloadFromRegistryIfChanged();
             }
-            else
-            {
-                ReloadFromDiskIfChanged();
-            }
+
             _current.VncEnabled = enabled;
             if (port is not null)
             {
@@ -238,11 +259,7 @@ public sealed class AgentSettingsStore
 
             if (_useRegistry)
             {
-                SaveToRegistry(_current);
-            }
-            else
-            {
-                SaveToDisk(_current);
+                PersistSettings(_current, _current.SharedSecret);
             }
         }
 
@@ -268,92 +285,10 @@ public sealed class AgentSettingsStore
         }
     }
 
-    private bool ReloadFromDiskIfChanged()
+    private static AgentRuntimeSettings NewRuntimeFromAgentOptions(AgentOptions defaults)
     {
-        if (!File.Exists(_legacySettingsPath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var json = File.ReadAllText(_legacySettingsPath);
-            var loaded = JsonSerializer.Deserialize<AgentRuntimeSettings>(json);
-            if (loaded is null)
-            {
-                return false;
-            }
-
-            var normalized = Normalize(loaded, _defaults);
-            if (AreEquivalent(_current, normalized))
-            {
-                return false;
-            }
-
-            _current = normalized;
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private AgentRuntimeSettings LoadFromDisk(AgentOptions defaults)
-    {
-        if (File.Exists(_legacySettingsPath))
-        {
-            try
-            {
-                var json = File.ReadAllText(_legacySettingsPath);
-                var loaded = JsonSerializer.Deserialize<AgentRuntimeSettings>(json);
-                if (loaded is not null)
-                {
-                    return Normalize(loaded, defaults);
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        return Normalize(new AgentRuntimeSettings
-        {
-            Port = defaults.Port,
-            DiscoveryPort = defaults.DiscoveryPort,
-            SharedSecret = defaults.SharedSecret,
-            AdminPasswordHash = defaults.AdminPasswordHash,
-            VisibleBannerText = defaults.VisibleBannerText,
-            Language = UiLanguageExtensions.GetDefault(),
-            BrowserLockEnabled = defaults.BrowserLockEnabled,
-            InputLockEnabled = defaults.InputLockEnabled,
-            BrowserLockCheckIntervalSeconds = defaults.BrowserLockCheckIntervalSeconds,
-            DesktopIconAutoRestoreMinutes = defaults.DesktopIconAutoRestoreMinutes,
-            VncEnabled = defaults.VncEnabled,
-            VncPort = defaults.VncPort,
-            VncViewOnly = defaults.VncViewOnly,
-            VncPassword = string.IsNullOrWhiteSpace(defaults.VncPassword)
-                ? VncPasswordHelper.Derive(defaults.SharedSecret)
-                : defaults.VncPassword
-        }, defaults);
-    }
-
-    private void SaveToDisk(AgentRuntimeSettings settings)
-    {
-        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-
-        File.WriteAllText(_legacySettingsPath, json);
-    }
-
-    private AgentRuntimeSettings LoadFromRegistry(AgentOptions defaults)
-    {
-        using var key = Registry.LocalMachine.OpenSubKey(RegistryKeyPath, writable: false);
-        if (key is null)
-        {
-            return Normalize(new AgentRuntimeSettings
+        return Normalize(
+            new AgentRuntimeSettings
             {
                 Port = defaults.Port,
                 DiscoveryPort = defaults.DiscoveryPort,
@@ -370,8 +305,17 @@ public sealed class AgentSettingsStore
                 VncViewOnly = defaults.VncViewOnly,
                 VncPassword = string.IsNullOrWhiteSpace(defaults.VncPassword)
                     ? VncPasswordHelper.Derive(defaults.SharedSecret)
-                    : defaults.VncPassword
-            }, defaults);
+                    : defaults.VncPassword,
+            },
+            defaults);
+    }
+
+    private AgentRuntimeSettings LoadFromRegistry(AgentOptions defaults)
+    {
+        using var key = Registry.LocalMachine.OpenSubKey(RegistryKeyPath, writable: false);
+        if (key is null)
+        {
+            return NewRuntimeFromAgentOptions(defaults);
         }
 
         var loaded = new AgentRuntimeSettings
@@ -392,13 +336,31 @@ public sealed class AgentSettingsStore
             VncPassword = ReadProtectedString(key, ValueNameVncPasswordProtected)
                           ?? (string.IsNullOrWhiteSpace(defaults.VncPassword)
                               ? VncPasswordHelper.Derive(defaults.SharedSecret)
-                              : defaults.VncPassword)
+                              : defaults.VncPassword),
         };
 
         return Normalize(loaded, defaults);
     }
 
-    private void SaveToRegistry(AgentRuntimeSettings settings)
+    private void PushRuntimeSettingsToLocalAgent(AgentRuntimeSettings settings, string authorizationSharedSecret)
+    {
+        var url = $"http://127.0.0.1:{Math.Max(1, settings.Port)}/api/agent/runtime-settings";
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(25) };
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.TryAddWithoutValidation("X-Teacher-Secret", authorizationSharedSecret);
+        request.Content = JsonContent.Create(settings);
+        using var response = client.Send(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            throw new InvalidOperationException(
+                string.IsNullOrWhiteSpace(detail)
+                    ? $"Local agent rejected settings update (HTTP {(int)response.StatusCode})."
+                    : detail);
+        }
+    }
+
+    private static void WriteAllValuesToHklm(AgentRuntimeSettings settings)
     {
         using var key = Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true);
         if (key is null)
@@ -420,71 +382,6 @@ public sealed class AgentSettingsStore
         key.SetValue(nameof(AgentRuntimeSettings.VncPort), settings.VncPort, RegistryValueKind.DWord);
         key.SetValue(nameof(AgentRuntimeSettings.VncViewOnly), settings.VncViewOnly ? 1 : 0, RegistryValueKind.DWord);
         WriteProtectedString(key, ValueNameVncPasswordProtected, settings.VncPassword ?? string.Empty);
-        key.SetValue(ValueNameLegacyJsonMigrated, 1, RegistryValueKind.DWord);
-    }
-
-    private void TryMigrateLegacyJsonToRegistry()
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true);
-            if (key is null)
-            {
-                return;
-            }
-
-            if (ReadInt(key, ValueNameLegacyJsonMigrated, 0) == 1)
-            {
-                return;
-            }
-
-            if (!File.Exists(_legacySettingsPath))
-            {
-                return;
-            }
-
-            AgentRuntimeSettings? loaded;
-            try
-            {
-                var json = File.ReadAllText(_legacySettingsPath);
-                loaded = JsonSerializer.Deserialize<AgentRuntimeSettings>(json);
-            }
-            catch
-            {
-                loaded = null;
-            }
-
-            if (loaded is null)
-            {
-                return;
-            }
-
-            var normalized = Normalize(loaded, _defaults);
-            SaveToRegistry(normalized);
-
-            TryRenameLegacyJson();
-        }
-        catch
-        {
-            // Best-effort migration: keep running with defaults/registry even if migration fails.
-        }
-    }
-
-    private void TryRenameLegacyJson()
-    {
-        try
-        {
-            var migratedPath = $"{_legacySettingsPath}.migrated";
-            if (File.Exists(migratedPath))
-            {
-                return;
-            }
-
-            File.Move(_legacySettingsPath, migratedPath);
-        }
-        catch
-        {
-        }
     }
 
     private static AgentRuntimeSettings Normalize(AgentRuntimeSettings value, AgentOptions defaults)
@@ -529,7 +426,7 @@ public sealed class AgentSettingsStore
             VncEnabled = settings.VncEnabled,
             VncPort = settings.VncPort,
             VncViewOnly = settings.VncViewOnly,
-            VncPassword = settings.VncPassword
+            VncPassword = settings.VncPassword,
         };
     }
 
@@ -557,11 +454,7 @@ public sealed class AgentSettingsStore
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private static string GetDataDirectory()
-        => StudentAgentPathHelper.GetRootDirectory();
-
     private const string RegistryKeyPath = @"Software\TeacherServer\StudentAgent";
-    private const string ValueNameLegacyJsonMigrated = "LegacyJsonMigrated";
     private const string ValueNameSharedSecretProtected = "SharedSecretProtected";
     private const string ValueNameVncPasswordProtected = "VncPasswordProtected";
 
@@ -574,7 +467,7 @@ public sealed class AgentSettingsStore
             {
                 int i => i,
                 string s when int.TryParse(s, out var parsed) => parsed,
-                _ => defaultValue
+                _ => defaultValue,
             };
         }
         catch

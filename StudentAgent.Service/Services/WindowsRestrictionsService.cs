@@ -55,7 +55,7 @@ public sealed class WindowsRestrictionsService
             WindowsRestrictionKind.LockWorkstation => new(SystemPoliciesPath, "DisableLockWorkstation"),
             WindowsRestrictionKind.ChangePassword => new(SystemPoliciesPath, "DisableChangePassword"),
             WindowsRestrictionKind.LogOff => new(ExplorerPoliciesPath, "NoLogoff"),
-            _ => throw new ArgumentOutOfRangeException(nameof(restriction), restriction, "Unsupported Windows restriction.")
+            _ => throw new ArgumentOutOfRangeException(nameof(restriction), restriction, "Unsupported Windows restriction."),
         };
 
     private static void CloseRunningTaskManagerWindows()

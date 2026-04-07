@@ -6,34 +6,34 @@ namespace StudentAgent.UIHost.DesktopIcons;
 
 internal static class DesktopListView
 {
-    private const int LVM_FIRST = 0x1000;
-    private const int LVM_GETITEMCOUNT = LVM_FIRST + 4;
-    private const int LVM_GETITEMPOSITION = LVM_FIRST + 16;
-    private const int LVM_SETITEMPOSITION = LVM_FIRST + 15;
-    private const int LVM_GETITEMTEXTW = LVM_FIRST + 115;
-    private const int LVIF_TEXT = 0x0001;
-    private const uint MEM_COMMIT = 0x1000;
-    private const uint MEM_RELEASE = 0x8000;
-    private const uint PAGE_READWRITE = 0x04;
+    private const int LVMFIRST = 0x1000;
+    private const int LVMGETITEMCOUNT = LVMFIRST + 4;
+    private const int LVMGETITEMPOSITION = LVMFIRST + 16;
+    private const int LVMSETITEMPOSITION = LVMFIRST + 15;
+    private const int LVMGETITEMTEXTW = LVMFIRST + 115;
+    private const int LVIFTEXT = 0x0001;
+    private const uint MEMCOMMIT = 0x1000;
+    private const uint MEMRELEASE = 0x8000;
+    private const uint PAGEREADWRITE = 0x04;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct LVITEM
     {
-        public uint mask;
-        public int iItem;
-        public int iSubItem;
-        public uint state;
-        public uint stateMask;
-        public IntPtr pszText;
-        public int cchTextMax;
-        public int iImage;
-        public IntPtr lParam;
-        public int iIndent;
-        public int iGroupId;
-        public uint cColumns;
-        public IntPtr puColumns;
-        public IntPtr piColFmt;
-        public int iGroup;
+        public uint Mask;
+        public int IItem;
+        public int ISubItem;
+        public uint State;
+        public uint StateMask;
+        public IntPtr PszText;
+        public int CchTextMax;
+        public int IImage;
+        public IntPtr LParam;
+        public int IIndent;
+        public int IGroupId;
+        public uint CColumns;
+        public IntPtr PuColumns;
+        public IntPtr PiColFmt;
+        public int IGroup;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -49,7 +49,7 @@ internal static class DesktopListView
         VmOperation = 0x0008,
         VmRead = 0x0010,
         VmWrite = 0x0020,
-        QueryInformation = 0x0400
+        QueryInformation = 0x0400,
     }
 
     public static IReadOnlyList<DesktopIconInfo> CaptureIcons()
@@ -105,7 +105,7 @@ internal static class DesktopListView
     {
         var (listViewHandle, explorerHandle) = GetHandlesOrThrow();
         CloseHandle(explorerHandle);
-        return (int)SendMessage(listViewHandle, LVM_GETITEMCOUNT, IntPtr.Zero, IntPtr.Zero);
+        return (int)SendMessage(listViewHandle, LVMGETITEMCOUNT, IntPtr.Zero, IntPtr.Zero);
     }
 
     private static string? GetItemText(int index)
@@ -120,8 +120,8 @@ internal static class DesktopListView
 
         try
         {
-            remoteText = VirtualAllocEx(explorerHandle, IntPtr.Zero, (UIntPtr)textBytes, MEM_COMMIT, PAGE_READWRITE);
-            remoteItem = VirtualAllocEx(explorerHandle, IntPtr.Zero, (UIntPtr)lvSize, MEM_COMMIT, PAGE_READWRITE);
+            remoteText = VirtualAllocEx(explorerHandle, IntPtr.Zero, (UIntPtr)textBytes, MEMCOMMIT, PAGEREADWRITE);
+            remoteItem = VirtualAllocEx(explorerHandle, IntPtr.Zero, (UIntPtr)lvSize, MEMCOMMIT, PAGEREADWRITE);
             if (remoteText == IntPtr.Zero || remoteItem == IntPtr.Zero)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "VirtualAllocEx failed.");
@@ -129,11 +129,11 @@ internal static class DesktopListView
 
             var local = new LVITEM
             {
-                mask = LVIF_TEXT,
-                iItem = index,
-                iSubItem = 0,
-                pszText = remoteText,
-                cchTextMax = maxChars
+                Mask = LVIFTEXT,
+                IItem = index,
+                ISubItem = 0,
+                PszText = remoteText,
+                CchTextMax = maxChars,
             };
 
             var lvBytes = new byte[lvSize];
@@ -153,7 +153,7 @@ internal static class DesktopListView
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "WriteProcessMemory(LVITEM) failed.");
             }
 
-            SendMessage(listViewHandle, LVM_GETITEMTEXTW, new IntPtr(index), remoteItem);
+            SendMessage(listViewHandle, LVMGETITEMTEXTW, new IntPtr(index), remoteItem);
 
             var textBuffer = new byte[textBytes];
             if (!ReadProcessMemory(explorerHandle, remoteText, textBuffer, (UIntPtr)textBuffer.Length, out _))
@@ -183,13 +183,13 @@ internal static class DesktopListView
         try
         {
             var size = Marshal.SizeOf<POINT>();
-            remotePoint = VirtualAllocEx(explorerHandle, IntPtr.Zero, (UIntPtr)size, MEM_COMMIT, PAGE_READWRITE);
+            remotePoint = VirtualAllocEx(explorerHandle, IntPtr.Zero, (UIntPtr)size, MEMCOMMIT, PAGEREADWRITE);
             if (remotePoint == IntPtr.Zero)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "VirtualAllocEx(POINT) failed.");
             }
 
-            SendMessage(listViewHandle, LVM_GETITEMPOSITION, new IntPtr(index), remotePoint);
+            SendMessage(listViewHandle, LVMGETITEMPOSITION, new IntPtr(index), remotePoint);
 
             var buffer = new byte[size];
             if (!ReadProcessMemory(explorerHandle, remotePoint, buffer, (UIntPtr)buffer.Length, out _))
@@ -224,7 +224,7 @@ internal static class DesktopListView
         var (listViewHandle, explorerHandle) = GetHandlesOrThrow();
         try
         {
-            return SendMessage(listViewHandle, LVM_SETITEMPOSITION, new IntPtr(index), MakeLParam(x, y)) != IntPtr.Zero;
+            return SendMessage(listViewHandle, LVMSETITEMPOSITION, new IntPtr(index), MakeLParam(x, y)) != IntPtr.Zero;
         }
         finally
         {
@@ -240,7 +240,11 @@ internal static class DesktopListView
             throw new Win32Exception("Desktop ListView not found.");
         }
 
-        GetWindowThreadProcessId(listViewHandle, out var processId);
+        if (GetWindowThreadProcessId(listViewHandle, out var processId) == 0 || processId == 0)
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "GetWindowThreadProcessId(desktop ListView) failed.");
+        }
+
         var explorerHandle = OpenProcess(
             ProcessAccess.VmOperation | ProcessAccess.VmRead | ProcessAccess.VmWrite | ProcessAccess.QueryInformation,
             false,
@@ -287,7 +291,7 @@ internal static class DesktopListView
     {
         if (memory != IntPtr.Zero)
         {
-            _ = VirtualFreeEx(processHandle, memory, UIntPtr.Zero, MEM_RELEASE);
+            _ = VirtualFreeEx(processHandle, memory, UIntPtr.Zero, MEMRELEASE);
         }
     }
 
@@ -297,7 +301,7 @@ internal static class DesktopListView
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string cls, string? window);
 
     [DllImport("user32.dll")]

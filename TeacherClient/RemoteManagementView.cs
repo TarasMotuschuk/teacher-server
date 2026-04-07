@@ -1,8 +1,6 @@
 #nullable enable
 
-using System.Drawing;
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 using Teacher.Common;
 using Teacher.Common.Vnc;
 using TeacherClient.Localization;
@@ -12,12 +10,12 @@ namespace TeacherClient;
 
 public partial class MainForm
 {
-    private async void refreshRemoteManagementButton_Click(object? sender, EventArgs e)
+    private async void RefreshRemoteManagementButton_Click(object? sender, EventArgs e)
     {
         await RefreshRemoteManagementCardsAsync();
     }
 
-    private async void startRemoteManagementViewOnlyButton_Click(object? sender, EventArgs e)
+    private async void StartRemoteManagementViewOnlyButton_Click(object? sender, EventArgs e)
     {
         var agent = GetSelectedRemoteManagementAgent();
         if (agent is null)
@@ -29,7 +27,7 @@ public partial class MainForm
         await StartVncForRemoteManagementAsync(agent, viewOnly: true);
     }
 
-    private async void stopRemoteManagementButton_Click(object? sender, EventArgs e)
+    private async void StopRemoteManagementButton_Click(object? sender, EventArgs e)
     {
         var agent = GetSelectedRemoteManagementAgent();
         if (agent is null)
@@ -41,7 +39,7 @@ public partial class MainForm
         await StopVncForRemoteManagementAsync(agent);
     }
 
-    private async void openRemoteManagementViewerButton_Click(object? sender, EventArgs e)
+    private async void OpenRemoteManagementViewerButton_Click(object? sender, EventArgs e)
     {
         var agent = GetSelectedRemoteManagementAgent();
         if (agent is null)
@@ -109,21 +107,21 @@ public partial class MainForm
             Height = 286,
             Margin = new Padding(0, 0, 12, 12),
             Padding = new Padding(2),
-            BackColor = Color.FromArgb(191, 199, 208)
+            BackColor = Color.FromArgb(191, 199, 208),
         };
 
         var inner = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = Color.White,
-            Padding = new Padding(10)
+            Padding = new Padding(10),
         };
 
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 3
+            RowCount = 3,
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 154F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
@@ -133,7 +131,7 @@ public partial class MainForm
         {
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(24, 29, 36),
-            SizeMode = PictureBoxSizeMode.StretchImage
+            SizeMode = PictureBoxSizeMode.StretchImage,
         };
 
         var title = new Label
@@ -141,7 +139,7 @@ public partial class MainForm
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
             Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point),
-            AutoEllipsis = true
+            AutoEllipsis = true,
         };
 
         var status = new Label
@@ -149,7 +147,7 @@ public partial class MainForm
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.TopLeft,
             ForeColor = Color.FromArgb(75, 85, 99),
-            AutoEllipsis = false
+            AutoEllipsis = false,
         };
 
         layout.Controls.Add(preview, 0, 0);
@@ -286,7 +284,8 @@ public partial class MainForm
             }
         };
 
-        card.PreviewTask = Task.Run(async () =>
+        card.PreviewTask = Task.Run(
+            async () =>
         {
             try
             {
@@ -554,17 +553,29 @@ public partial class MainForm
     private sealed class RemoteManagementCardState(string agentId, DiscoveredAgentRow agent, Panel container, PictureBox previewPictureBox, Label titleLabel, Label statusLabel) : IDisposable
     {
         public string AgentId { get; } = agentId;
+
         public DiscoveredAgentRow Agent { get; set; } = agent;
+
         public Panel Container { get; } = container;
+
         public PictureBox PreviewPictureBox { get; } = previewPictureBox;
+
         public Label TitleLabel { get; } = titleLabel;
+
         public Label StatusLabel { get; } = statusLabel;
+
         public TeacherVncSession? Session { get; set; }
+
         public CancellationTokenSource? PreviewCancellation { get; set; }
+
         public Task? PreviewTask { get; set; }
+
         public string? ConnectionKey { get; set; }
+
         public DateTimeOffset? LastFailureUtc { get; set; }
+
         public bool Selected { get; set; }
+
         public Bitmap? CurrentPreview { get; set; }
 
         public void Dispose()
@@ -628,5 +639,4 @@ public partial class MainForm
         graphics.DrawString(status, statusFont, statusBrush, statusRect);
         return bitmap;
     }
-
 }

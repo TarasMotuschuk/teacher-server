@@ -20,7 +20,7 @@ internal sealed class SplashForm : Form
         {
             Dock = DockStyle.Fill,
             SizeMode = PictureBoxSizeMode.StretchImage,
-            BackColor = Color.Black
+            BackColor = Color.Black,
         };
 
         var splashImage = BrandingResourceLoader.LoadBitmap("ClassCommander-splash.png");
@@ -37,7 +37,7 @@ internal sealed class SplashForm : Form
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(15, 23, 42),
                 Font = new Font("Segoe UI", 32F, FontStyle.Bold, GraphicsUnit.Point),
-                TextAlign = ContentAlignment.MiddleCenter
+                TextAlign = ContentAlignment.MiddleCenter,
             };
 
             Controls.Add(fallbackLabel);
