@@ -11,13 +11,15 @@ namespace StudentAgent.Services;
 
 public sealed class AgentSettingsStore
 {
+    private const string RegistryKeyPath = @"Software\TeacherServer\StudentAgent";
+    private const string ValueNameSharedSecretProtected = "SharedSecretProtected";
+    private const string ValueNameVncPasswordProtected = "VncPasswordProtected";
+
     private readonly object _sync = new();
     private readonly bool _useRegistry;
     private readonly bool _canWriteHklm;
     private readonly AgentOptions _defaults;
     private AgentRuntimeSettings _current;
-
-    public event EventHandler? SettingsChanged;
 
     public AgentSettingsStore(IOptions<AgentOptions> options)
     {
@@ -42,58 +44,7 @@ public sealed class AgentSettingsStore
         }
     }
 
-    /// <summary>
-    /// Applies a full settings snapshot (used by the local HTTP API when session processes cannot write HKLM).
-    /// </summary>
-    public void ImportRuntimeSettings(AgentRuntimeSettings snapshot)
-    {
-        lock (_sync)
-        {
-            _current = Normalize(Clone(snapshot), _defaults);
-            if (_useRegistry)
-            {
-                if (_canWriteHklm)
-                {
-                    WriteAllValuesToHklm(_current);
-                }
-            }
-        }
-
-        SettingsChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private static bool TryCanCreateMachineAgentRegistryKey()
-    {
-        try
-        {
-            Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true)?.Dispose();
-            return true;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-        catch (SecurityException)
-        {
-            return false;
-        }
-    }
-
-    private void PersistSettings(AgentRuntimeSettings settings, string authorizationSharedSecretForHttp)
-    {
-        if (!_useRegistry)
-        {
-            return;
-        }
-
-        if (_canWriteHklm)
-        {
-            WriteAllValuesToHklm(settings);
-            return;
-        }
-
-        PushRuntimeSettingsToLocalAgent(settings, authorizationSharedSecretForHttp);
-    }
+    public event EventHandler? SettingsChanged;
 
     public AgentRuntimeSettings Current
     {
@@ -118,6 +69,26 @@ public sealed class AgentSettingsStore
                 return snapshot;
             }
         }
+    }
+
+    /// <summary>
+    /// Applies a full settings snapshot (used by the local HTTP API when session processes cannot write HKLM).
+    /// </summary>
+    public void ImportRuntimeSettings(AgentRuntimeSettings snapshot)
+    {
+        lock (_sync)
+        {
+            _current = Normalize(Clone(snapshot), _defaults);
+            if (_useRegistry)
+            {
+                if (_canWriteHklm)
+                {
+                    WriteAllValuesToHklm(_current);
+                }
+            }
+        }
+
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public bool VerifyPassword(string password)
@@ -266,20 +237,18 @@ public sealed class AgentSettingsStore
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private bool ReloadFromRegistryIfChanged()
+    private static bool TryCanCreateMachineAgentRegistryKey()
     {
         try
         {
-            var loaded = LoadFromRegistry(_defaults);
-            if (AreEquivalent(_current, loaded))
-            {
-                return false;
-            }
-
-            _current = loaded;
+            Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true)?.Dispose();
             return true;
         }
-        catch
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (SecurityException)
         {
             return false;
         }
@@ -310,7 +279,7 @@ public sealed class AgentSettingsStore
             defaults);
     }
 
-    private AgentRuntimeSettings LoadFromRegistry(AgentOptions defaults)
+    private static AgentRuntimeSettings LoadFromRegistry(AgentOptions defaults)
     {
         using var key = Registry.LocalMachine.OpenSubKey(RegistryKeyPath, writable: false);
         if (key is null)
@@ -342,7 +311,7 @@ public sealed class AgentSettingsStore
         return Normalize(loaded, defaults);
     }
 
-    private void PushRuntimeSettingsToLocalAgent(AgentRuntimeSettings settings, string authorizationSharedSecret)
+    private static void PushRuntimeSettingsToLocalAgent(AgentRuntimeSettings settings, string authorizationSharedSecret)
     {
         var url = $"http://127.0.0.1:{Math.Max(1, settings.Port)}/api/agent/runtime-settings";
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(25) };
@@ -454,10 +423,6 @@ public sealed class AgentSettingsStore
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private const string RegistryKeyPath = @"Software\TeacherServer\StudentAgent";
-    private const string ValueNameSharedSecretProtected = "SharedSecretProtected";
-    private const string ValueNameVncPasswordProtected = "VncPasswordProtected";
-
     private static int ReadInt(RegistryKey key, string name, int defaultValue)
     {
         try
@@ -543,6 +508,41 @@ public sealed class AgentSettingsStore
         }
         catch
         {
+        }
+    }
+
+    private void PersistSettings(AgentRuntimeSettings settings, string authorizationSharedSecretForHttp)
+    {
+        if (!_useRegistry)
+        {
+            return;
+        }
+
+        if (_canWriteHklm)
+        {
+            WriteAllValuesToHklm(settings);
+            return;
+        }
+
+        PushRuntimeSettingsToLocalAgent(settings, authorizationSharedSecretForHttp);
+    }
+
+    private bool ReloadFromRegistryIfChanged()
+    {
+        try
+        {
+            var loaded = LoadFromRegistry(_defaults);
+            if (AreEquivalent(_current, loaded))
+            {
+                return false;
+            }
+
+            _current = loaded;
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 }

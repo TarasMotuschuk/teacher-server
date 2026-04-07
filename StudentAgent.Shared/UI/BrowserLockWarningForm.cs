@@ -46,14 +46,6 @@ public sealed class BrowserLockWarningForm : Form
         _timer.Start();
     }
 
-    private void PositionCountdownLabel()
-    {
-        const int margin = 24;
-        _countdownLabel.Location = new Point(
-            margin,
-            ClientSize.Height - _countdownLabel.Height - margin);
-    }
-
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
@@ -68,6 +60,14 @@ public sealed class BrowserLockWarningForm : Form
         }
 
         base.Dispose(disposing);
+    }
+
+    private void PositionCountdownLabel()
+    {
+        const int margin = 24;
+        _countdownLabel.Location = new Point(
+            margin,
+            ClientSize.Height - _countdownLabel.Height - margin);
     }
 
     private void UpdateCountdown()

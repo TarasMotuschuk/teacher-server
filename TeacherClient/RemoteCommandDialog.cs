@@ -178,12 +178,12 @@ public sealed class RemoteCommandDialog : Form
 
         layout.Controls.Add(
             new Label
-        {
-            Dock = DockStyle.Fill,
-            Text = TeacherClientText.RemoteCommandScript,
-            Font = new Font(Font, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft,
-        }, 0, 0);
+            {
+                Dock = DockStyle.Fill,
+                Text = TeacherClientText.RemoteCommandScript,
+                Font = new Font(Font, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+            }, 0, 0);
         layout.Controls.Add(hintLabel, 0, 1);
         layout.Controls.Add(commandLayout, 0, 3);
         layout.Controls.Add(bottomButtons, 0, 4);

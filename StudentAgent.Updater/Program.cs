@@ -31,7 +31,9 @@ try
         Directory.Delete(backupDirectory, recursive: true);
     }
 
-    CopyDirectory(options.InstallDirectory, backupDirectory, skipPredicate: static path => Path.GetFileName(path).Equals("appsettings.json", StringComparison.OrdinalIgnoreCase));
+    CopyDirectory(options.InstallDirectory, backupDirectory,
+        skipPredicate: static path =>
+            Path.GetFileName(path).Equals("appsettings.json", StringComparison.OrdinalIgnoreCase));
     try
     {
         CopyDirectory(
@@ -41,24 +43,27 @@ try
             {
                 var fileName = Path.GetFileName(path);
                 return fileName.Equals("appsettings.json", StringComparison.OrdinalIgnoreCase)
-                    || fileName.StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase);
+                       || fileName.StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase);
             });
 
         EnsureFirewallRules(options.InstallDirectory, logPath);
         StartService(options.ServiceName, logPath);
         Directory.Delete(stagingDirectory, recursive: true);
         Log(logPath, $"Update to {options.TargetVersion} completed successfully.");
-        WriteStatus(options, AgentUpdateStateKind.Succeeded, $"Updated to {options.TargetVersion}.", rollbackPerformed: false);
+        WriteStatus(options, AgentUpdateStateKind.Succeeded, $"Updated to {options.TargetVersion}.",
+            rollbackPerformed: false);
         return 0;
     }
     catch (Exception installEx)
     {
         Log(logPath, $"Update install failed. Starting rollback: {installEx}");
-        WriteStatus(options, AgentUpdateStateKind.Failed, $"Install failed: {installEx.Message}", rollbackPerformed: false);
+        WriteStatus(options, AgentUpdateStateKind.Failed, $"Install failed: {installEx.Message}",
+            rollbackPerformed: false);
         RestoreBackup(backupDirectory, options.InstallDirectory, logPath);
         EnsureFirewallRules(options.InstallDirectory, logPath);
         StartService(options.ServiceName, logPath);
-        WriteStatus(options, AgentUpdateStateKind.RolledBack, $"Rolled back after failed update to {options.TargetVersion}.", rollbackPerformed: true);
+        WriteStatus(options, AgentUpdateStateKind.RolledBack,
+            $"Rolled back after failed update to {options.TargetVersion}.", rollbackPerformed: true);
         return 1;
     }
 }
@@ -176,7 +181,8 @@ static void RestoreBackup(string backupDirectory, string installDirectory, strin
     CopyDirectory(
         backupDirectory,
         installDirectory,
-        skipPredicate: static path => Path.GetFileName(path).StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase));
+        skipPredicate: static path =>
+            Path.GetFileName(path).StartsWith("StudentAgent.Updater", StringComparison.OrdinalIgnoreCase));
 }
 
 static void EnsureFirewallRules(string installDirectory, string logPath)
@@ -202,7 +208,8 @@ static void EnsureFirewallRule(string ruleName, string programPath, string descr
         return;
     }
 
-    RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}\" program=\"{programPath}\"", logPath, ignoreFailure: true);
+    RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}\" program=\"{programPath}\"", logPath,
+        ignoreFailure: true);
     RunNetsh(
         $"advfirewall firewall add rule name=\"{ruleName}\" dir=in action=allow profile=any program=\"{programPath}\" enable=yes description=\"{description}\"",
         logPath);
@@ -241,7 +248,8 @@ static void RunNetsh(string arguments, string logPath, bool ignoreFailure = fals
 
     if (process.ExitCode != 0 && !ignoreFailure)
     {
-        throw new Win32Exception(process.ExitCode, $"netsh exited with code {process.ExitCode} while running '{arguments}'.");
+        throw new Win32Exception(process.ExitCode,
+            $"netsh exited with code {process.ExitCode} while running '{arguments}'.");
     }
 }
 
@@ -276,7 +284,8 @@ static void StopHostedProcesses(string installDirectory, string logPath, params 
                     if (!string.IsNullOrWhiteSpace(processPath))
                     {
                         var normalizedProcessPath = Path.GetFullPath(processPath);
-                        if (!normalizedProcessPath.StartsWith(normalizedInstallDirectory, StringComparison.OrdinalIgnoreCase))
+                        if (!normalizedProcessPath.StartsWith(normalizedInstallDirectory,
+                                StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }
