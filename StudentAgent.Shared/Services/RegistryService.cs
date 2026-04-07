@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Globalization;
 using Microsoft.Win32;
 using Teacher.Common.Contracts;
 
