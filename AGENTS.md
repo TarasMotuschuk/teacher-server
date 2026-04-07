@@ -60,3 +60,14 @@ This repository contains a Windows-oriented classroom administration solution bu
 - Keep `README.md` accurate when capabilities, setup steps, or security assumptions change.
 - Append user-visible milestones to `CHANGELOG.md`.
 - When making functional or UX changes, explicitly describe those changes in documentation and update `README.md` if user-visible behavior, setup, configuration, or workflows changed.
+
+## Saved commands
+
+- `migrate agent settings to registry`:
+  - Replace `StudentAgent.Shared/Services/AgentSettingsStore.cs` file-backed runtime settings with a Windows Registry-backed store under `HKLM\Software\TeacherServer\StudentAgent`.
+  - Keep non-secret machine settings in normal registry values, but protect secrets such as `SharedSecret` and `VncPassword` with DPAPI `ProtectedData` using `DataProtectionScope.LocalMachine`.
+  - Add one-time migration support from the legacy `C:\ProgramData\TeacherServer\StudentAgent\agentsettings.json` file into the registry, then stop using the JSON file as the primary runtime source.
+  - Prefer renaming the migrated JSON file to a backup form such as `agentsettings.json.migrated` instead of continuing to read it on every access.
+  - Remove or narrow the broad `Builtin Users` modify ACL logic in `StudentAgent.Shared/Services/StudentAgentPathHelper.cs` for settings storage; keep filesystem use only for logs, updates, and desktop-layout files.
+  - Preserve backward compatibility for existing installed student agents and avoid losing custom `SharedSecret`, VNC settings, or admin-password data during migration.
+  - Validate with `dotnet build` for at least `StudentAgent.Service`, `StudentAgent.UIHost`, and `StudentAgent.VncHost`, then note that Windows runtime verification is still required for DPAPI, ACLs, and first-run migration behavior.

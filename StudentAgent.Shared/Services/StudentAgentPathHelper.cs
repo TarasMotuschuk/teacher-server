@@ -12,7 +12,6 @@ internal static class StudentAgentPathHelper
         {
             var root = Path.Combine(commonAppData, "TeacherServer", "StudentAgent");
             EnsureDirectoryExists(root);
-            TryGrantUsersModifyAccess(root);
             return root;
         }
 
@@ -30,13 +29,28 @@ internal static class StudentAgentPathHelper
     }
 
     public static string GetLogsDirectory()
-        => Path.Combine(GetRootDirectory(), "logs");
+    {
+        var path = Path.Combine(GetRootDirectory(), "logs");
+        EnsureDirectoryExists(path);
+        TryGrantUsersModifyAccess(path);
+        return path;
+    }
 
     public static string GetUpdatesDirectory()
-        => Path.Combine(GetRootDirectory(), "updates");
+    {
+        var path = Path.Combine(GetRootDirectory(), "updates");
+        EnsureDirectoryExists(path);
+        TryGrantUsersModifyAccess(path);
+        return path;
+    }
 
     public static string GetDesktopLayoutsDirectory()
-        => Path.Combine(GetRootDirectory(), "desktop-layouts");
+    {
+        var path = Path.Combine(GetRootDirectory(), "desktop-layouts");
+        EnsureDirectoryExists(path);
+        TryGrantUsersModifyAccess(path);
+        return path;
+    }
 
     public static string GetDesktopLayoutResultsDirectory()
         => Path.Combine(GetDesktopLayoutsDirectory(), "results");
