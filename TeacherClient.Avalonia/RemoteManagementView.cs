@@ -181,6 +181,13 @@ public partial class MainWindow
             return;
         }
 
+        // Do not start tile preview while a fullscreen viewer is open for this agent: preview would open a second
+        // VNC client and races teardown when the tile session is stopped/refreshed.
+        if (tile.FullscreenViewerCount > 0)
+        {
+            return;
+        }
+
         if (tile.LastFailureUtc is { } lastFailure &&
             DateTimeOffset.UtcNow - lastFailure < TimeSpan.FromSeconds(5))
         {
@@ -384,33 +391,27 @@ public partial class MainWindow
         }
 
         var tile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
-        TeacherVncSession? sharedSession = null;
         if (tile is not null)
         {
-            if (tile.Session?.IsConnected == true)
-            {
-                sharedSession = tile.Session;
-                sharedSession.ControlEnabled = false;
-            }
-            else
-            {
-                await StopRemoteManagementPreviewAsync(tile);
-            }
+            // Always stop the tile preview before opening the viewer. Sharing one TeacherVncSession between the
+            // preview loop and RemoteVncViewerWindow caused use-after-dispose when the preview was stopped or
+            // refreshed while the viewer was still open.
+            await StopRemoteManagementPreviewAsync(tile);
+            tile.FullscreenViewerCount++;
         }
 
-        var viewer = sharedSession is not null
-            ? new Dialogs.RemoteVncViewerWindow(agent.MachineName, sharedSession)
-            : new Dialogs.RemoteVncViewerWindow(
-                agent.MachineName,
-                agent.RespondingAddress,
-                agent.VncPort,
-                _clientSettings.SharedSecret,
-                controlEnabled: false);
+        var viewer = new Dialogs.RemoteVncViewerWindow(
+            agent.MachineName,
+            agent.RespondingAddress,
+            agent.VncPort,
+            _clientSettings.SharedSecret,
+            controlEnabled: false);
 
         if (tile is not null)
         {
             viewer.Closed += async (_, _) =>
             {
+                tile.FullscreenViewerCount = Math.Max(0, tile.FullscreenViewerCount - 1);
                 if (_isClosing || !agent.VncRunning)
                 {
                     return;
@@ -426,7 +427,20 @@ public partial class MainWindow
             };
         }
 
-        viewer.Show(this);
+        try
+        {
+            viewer.Show(this);
+        }
+        catch
+        {
+            if (tile is not null)
+            {
+                tile.FullscreenViewerCount = Math.Max(0, tile.FullscreenViewerCount - 1);
+            }
+
+            throw;
+        }
+
         await Task.CompletedTask;
     }
 
@@ -547,6 +561,9 @@ public partial class MainWindow
         public Task? PreviewTask { get; set; }
         public DateTimeOffset? LastFailureUtc { get; set; }
         public bool IsDisposed { get; private set; }
+
+        /// <summary>Fullscreen <see cref="Dialogs.RemoteVncViewerWindow"/> instances open for this agent (tile preview is paused while &gt; 0).</summary>
+        public int FullscreenViewerCount { get; set; }
 
         public void SetPreview(PinnedPreviewBitmap? previewBitmap)
         {
