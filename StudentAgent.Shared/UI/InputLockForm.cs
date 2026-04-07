@@ -7,6 +7,7 @@ public sealed class InputLockForm : Form
     private readonly System.Windows.Forms.Timer _focusTimer;
     private bool _allowClose;
     private bool _disposed;
+    private bool _bringPosted;
 
     public InputLockForm(Screen screen)
     {
@@ -60,11 +61,10 @@ public sealed class InputLockForm : Form
         Controls.Add(layout);
 
         _focusTimer = new System.Windows.Forms.Timer { Interval = 750 };
-        _focusTimer.Tick += (_, _) => BringBackToFront();
+        _focusTimer.Tick += (_, _) => ScheduleBringToFront();
         _focusTimer.Start();
 
-        Shown += (_, _) => BringBackToFront();
-        Activated += (_, _) => BringBackToFront();
+        Shown += (_, _) => ScheduleBringToFront();
     }
 
     public void ForceClose()
@@ -78,7 +78,7 @@ public sealed class InputLockForm : Form
         if (!_allowClose)
         {
             e.Cancel = true;
-            BringBackToFront();
+            ScheduleBringToFront();
             return;
         }
 
@@ -123,15 +123,49 @@ public sealed class InputLockForm : Form
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
-        BringBackToFront();
+        ScheduleBringToFront();
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        BringBackToFront();
+        ScheduleBringToFront();
     }
 
-    private void BringBackToFront()
+    // Deferred z-order only: synchronous Activate/Focus from mouse/timer + Activated caused UI-thread hangs.
+    private void ScheduleBringToFront()
+    {
+        if (_disposed || IsDisposed || Disposing || !IsHandleCreated || !Visible)
+        {
+            return;
+        }
+
+        if (_bringPosted)
+        {
+            return;
+        }
+
+        _bringPosted = true;
+        try
+        {
+            BeginInvoke(() =>
+            {
+                try
+                {
+                    BringToFrontCore();
+                }
+                finally
+                {
+                    _bringPosted = false;
+                }
+            });
+        }
+        catch
+        {
+            _bringPosted = false;
+        }
+    }
+
+    private void BringToFrontCore()
     {
         if (_disposed || IsDisposed || Disposing || !Visible)
         {
@@ -146,11 +180,6 @@ public sealed class InputLockForm : Form
             }
 
             BringToFront();
-            if (!ContainsFocus)
-            {
-                Activate();
-                Focus();
-            }
         }
         catch
         {

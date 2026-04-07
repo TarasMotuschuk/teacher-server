@@ -236,7 +236,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             {
                 form.TopMost = true;
                 form.Show();
-                form.Activate();
                 form.BringToFront();
             }
 
