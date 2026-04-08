@@ -10,6 +10,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - Group Commands in both teacher clients now include a `Windows Restrictions` submenu with on/off actions for `Task Manager`, `Run dialog`, `Control Panel and Settings`, `Lock workstation`, `Change password`, and `Log off`
 
+### Changed
+
+- Runtime projects, local build guidance, and GitHub Actions workflows now target `.NET 10`; `Teacher.Common` also switches from `MarcusW.VncClient 1.0.0-alpha4` to the community-maintained `Community.MarcusW.VncClient 2.0.3` package as the base for further remote-management stability work
+
 ### Fixed
 
 - Student service now applies Windows classroom restrictions through a dedicated `WindowsRestrictionsService`, using machine-wide policy registry keys and a policy refresh broadcast instead of requiring manual registry edits on each student PC
