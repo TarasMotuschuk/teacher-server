@@ -35,6 +35,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _machineName;
     private int _captureInProgress;
+    private int _connectInProgress;
     private PinnedBitmap? _currentBitmap;
     private int _frameWidth;
     private int _frameHeight;
@@ -58,17 +59,21 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
 
-        // CenterOwner in XAML conflicts with fullscreen/maximized transitions on some builds; apply the
-        // preferred state after the window is opened.
-        WindowStartupLocation = WindowStartupLocation.Manual;
+        ConfigureWindowForCurrentPlatform();
 
         _refreshTimer.Interval = TimeSpan.FromMilliseconds(500);
         _refreshTimer.Tick += async (_, _) => await CaptureFrameAsync();
 
         Opened += async (_, _) =>
         {
-            WindowState = GetPreferredFullscreenState();
+            ApplyPreferredInitialLayout();
             await ConnectAsync();
+
+            if (_cancellation.IsCancellationRequested || _disposed)
+            {
+                return;
+            }
+
             _refreshTimer.Start();
 
             // Defer: focus before layout can fail on macOS; keyboard/TextInput attach to ViewerInputRoot, not the window chrome.
@@ -95,26 +100,52 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         UpdateControlUi();
     }
 
-    private static WindowState GetPreferredFullscreenState()
-        => RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-            ? WindowState.FullScreen
-            : WindowState.Maximized;
+    private void ConfigureWindowForCurrentPlatform()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            SystemDecorations = SystemDecorations.None;
+            ExtendClientAreaToDecorationsHint = true;
+            ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
+            return;
+        }
+
+        // CenterOwner in XAML conflicts with maximize transitions on some builds; apply the
+        // preferred state after the window is opened.
+        WindowStartupLocation = WindowStartupLocation.Manual;
+    }
+
+    private void ApplyPreferredInitialLayout() => WindowState = WindowState.Maximized;
 
     private async Task ConnectAsync()
     {
+        Interlocked.Increment(ref _connectInProgress);
         try
         {
             StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnecting(_machineName);
             if (!_session.IsConnected)
             {
-                await _session.ConnectAsync(_cancellation.Token);
+                await Task.Run(async () => await _session.ConnectAsync(_cancellation.Token));
+            }
+
+            if (_disposed || _cancellation.IsCancellationRequested)
+            {
+                return;
             }
 
             UpdateControlUi();
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            if (ex is not OperationCanceledException and not ObjectDisposedException && !_disposed)
+            {
+                StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            }
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _connectInProgress);
         }
     }
 
@@ -132,31 +163,43 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
 
         try
         {
-            var frame = await _session.CaptureFrameAsync(_cancellation.Token);
-            if (frame is null)
+            var capture = await Task.Run(
+                async () =>
+                {
+                    var frame = await _session.CaptureFrameAsync(_cancellation.Token);
+                    if (frame is null)
+                    {
+                        return (Frame: (VncFrameCapture?)null, FrameWidth: 0, FrameHeight: 0);
+                    }
+
+                    var resized = ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight);
+                    return (Frame: resized, FrameWidth: frame.Width, FrameHeight: frame.Height);
+                },
+                _cancellation.Token);
+
+            if (capture.Frame is null || _disposed)
             {
                 return;
             }
 
-            _frameWidth = frame.Width;
-            _frameHeight = frame.Height;
+            _frameWidth = capture.FrameWidth;
+            _frameHeight = capture.FrameHeight;
 
-            var bitmap = CreatePinnedBitmap(ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight));
-            if (Dispatcher.UIThread.CheckAccess())
-            {
-                SetBitmap(bitmap);
-            }
-            else
-            {
-                await Dispatcher.UIThread.InvokeAsync(() => SetBitmap(bitmap));
-            }
+            var bitmap = CreatePinnedBitmap(capture.Frame);
+            SetBitmap(bitmap);
         }
         catch (OperationCanceledException)
         {
         }
+        catch (ObjectDisposedException)
+        {
+        }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            if (!_disposed)
+            {
+                StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            }
         }
         finally
         {
@@ -181,6 +224,14 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         _disposed = true;
         _refreshTimer.Stop();
         _cancellation.Cancel();
+
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while ((Volatile.Read(ref _captureInProgress) != 0 || Volatile.Read(ref _connectInProgress) != 0) &&
+               DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(20);
+        }
+
         if (_ownsSession)
         {
             _session.Dispose();
