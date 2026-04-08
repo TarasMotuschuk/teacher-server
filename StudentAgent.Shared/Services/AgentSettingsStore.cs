@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
@@ -317,7 +316,7 @@ public sealed class AgentSettingsStore
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(25) };
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.TryAddWithoutValidation("X-Teacher-Secret", authorizationSharedSecret);
-        request.Content = JsonContent.Create(settings);
+        request.Content = System.Net.Http.Json.JsonContent.Create(settings);
         using var response = client.Send(request);
         if (!response.IsSuccessStatusCode)
         {
