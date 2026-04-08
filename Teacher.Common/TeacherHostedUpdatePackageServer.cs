@@ -98,6 +98,17 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
         }
     }
 
+    private static void ValidateSha256(string packagePath, string expectedSha256)
+    {
+        using var stream = File.OpenRead(packagePath);
+        var hash = System.Security.Cryptography.SHA256.HashData(stream);
+        var actual = Convert.ToHexString(hash).ToLowerInvariant();
+        if (!string.Equals(actual, expectedSha256.Trim().ToLowerInvariant(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Cached update package checksum does not match the manifest.");
+        }
+    }
+
     private void EnsureStarted()
     {
         lock (_sync)
@@ -185,17 +196,6 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
             catch
             {
             }
-        }
-    }
-
-    private static void ValidateSha256(string packagePath, string expectedSha256)
-    {
-        using var stream = File.OpenRead(packagePath);
-        var hash = System.Security.Cryptography.SHA256.HashData(stream);
-        var actual = Convert.ToHexString(hash).ToLowerInvariant();
-        if (!string.Equals(actual, expectedSha256.Trim().ToLowerInvariant(), StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Cached update package checksum does not match the manifest.");
         }
     }
 

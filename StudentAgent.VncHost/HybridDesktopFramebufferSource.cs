@@ -83,6 +83,16 @@ internal sealed class HybridDesktopFramebufferSource : IVncFramebufferSource, ID
         }
     }
 
+    private static TimeSpan GetRetryDelay(int failureCount)
+    {
+        if (failureCount < 0)
+        {
+            return DxgiRetryBackoff[0];
+        }
+
+        return DxgiRetryBackoff[Math.Min(failureCount, DxgiRetryBackoff.Length - 1)];
+    }
+
     private bool TryCaptureDxgi(out VncFramebuffer framebuffer)
     {
         framebuffer = null!;
@@ -216,15 +226,5 @@ internal sealed class HybridDesktopFramebufferSource : IVncFramebufferSource, ID
             _nextDxgiRetryUtc = DateTimeOffset.UtcNow;
             _logService.LogInfo($"VNC: scheduling DXGI reinitialization after {reason}.");
         }
-    }
-
-    private static TimeSpan GetRetryDelay(int failureCount)
-    {
-        if (failureCount < 0)
-        {
-            return DxgiRetryBackoff[0];
-        }
-
-        return DxgiRetryBackoff[Math.Min(failureCount, DxgiRetryBackoff.Length - 1)];
     }
 }

@@ -8,6 +8,10 @@ namespace Teacher.Common;
 public sealed class TeacherClientUpdateService : IDisposable
 {
     public const string DefaultManifestUrl = "https://github.com/TarasMotuschuk/teacher-server/releases/latest/download/classcommander-client-version.json";
+    private static readonly JsonSerializerOptions InstallerInfoJsonOptions = new()
+    {
+        WriteIndented = true,
+    };
 
     private readonly HttpClient _httpClient = new();
     private readonly string _rootDirectory;
@@ -33,6 +37,37 @@ public sealed class TeacherClientUpdateService : IDisposable
     public string CurrentVersion => _currentVersion;
 
     public string DownloadsDirectory => _downloadsDirectory;
+
+    public static void LaunchInstaller(TeacherClientInstallerInfo installerInfo)
+    {
+        if (!File.Exists(installerInfo.LocalInstallerPath))
+        {
+            throw new FileNotFoundException("Downloaded installer was not found.", installerInfo.LocalInstallerPath);
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = installerInfo.LocalInstallerPath,
+                UseShellExecute = true,
+            });
+            return;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+                ArgumentList = { installerInfo.LocalInstallerPath },
+            });
+            return;
+        }
+
+        throw new PlatformNotSupportedException("Client installer launching is only supported on Windows and macOS.");
+    }
 
     public TeacherClientInstallerInfo? GetReadyInstaller()
     {
@@ -123,44 +158,10 @@ public sealed class TeacherClientUpdateService : IDisposable
             checkResult.PlatformLabel,
             DateTime.UtcNow);
 
-        File.WriteAllText(_statePath, JsonSerializer.Serialize(installerInfo, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-        }));
+        File.WriteAllText(_statePath, JsonSerializer.Serialize(installerInfo, InstallerInfoJsonOptions));
 
         Report(progress, TeacherClientUpdateStage.ReadyToInstall, $"Installer {checkResult.AssetFileName} is ready.", 100, null, null);
         return installerInfo;
-    }
-
-    public void LaunchInstaller(TeacherClientInstallerInfo installerInfo)
-    {
-        if (!File.Exists(installerInfo.LocalInstallerPath))
-        {
-            throw new FileNotFoundException("Downloaded installer was not found.", installerInfo.LocalInstallerPath);
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = installerInfo.LocalInstallerPath,
-                UseShellExecute = true,
-            });
-            return;
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "open",
-                UseShellExecute = false,
-                ArgumentList = { installerInfo.LocalInstallerPath },
-            });
-            return;
-        }
-
-        throw new PlatformNotSupportedException("Client installer launching is only supported on Windows and macOS.");
     }
 
     public void Dispose()
@@ -257,17 +258,6 @@ public sealed class TeacherClientUpdateService : IDisposable
             : parsed.ToString();
     }
 
-    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
-    {
-        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength;
-        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var destination = File.Create(destinationPath);
-        await CopyStreamWithProgressAsync(source, destination, progress, totalBytes, cancellationToken);
-    }
-
     private static async Task CopyStreamWithProgressAsync(Stream source, Stream destination, IProgress<TeacherClientUpdateProgress>? progress, long? totalBytes, CancellationToken cancellationToken)
     {
         var buffer = new byte[81920];
@@ -313,5 +303,16 @@ public sealed class TeacherClientUpdateService : IDisposable
         {
             Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", 100, transferred, totalBytes);
         }
+    }
+
+    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var destination = File.Create(destinationPath);
+        await CopyStreamWithProgressAsync(source, destination, progress, totalBytes, cancellationToken);
     }
 }
