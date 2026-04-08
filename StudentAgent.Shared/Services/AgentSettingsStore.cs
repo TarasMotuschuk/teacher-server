@@ -73,6 +73,7 @@ public sealed class AgentSettingsStore
     /// <summary>
     /// Applies a full settings snapshot (used by the local HTTP API when session processes cannot write HKLM).
     /// </summary>
+    /// <param name="snapshot">The full runtime settings snapshot to persist and broadcast.</param>
     public void ImportRuntimeSettings(AgentRuntimeSettings snapshot)
     {
         lock (_sync)

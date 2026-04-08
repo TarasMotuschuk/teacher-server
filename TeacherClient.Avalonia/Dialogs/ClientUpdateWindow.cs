@@ -179,7 +179,7 @@ public sealed class ClientUpdateWindow : Window
 
         try
         {
-            _service.LaunchInstaller(_installerInfo);
+            TeacherClientUpdateService.LaunchInstaller(_installerInfo);
             AppendLog(CrossPlatformText.ClientUpdateInstallerOpened(_installerInfo.LocalInstallerPath));
             _statusTextBlock.Text = CrossPlatformText.ClientUpdateInstallStarted;
         }
@@ -188,6 +188,40 @@ public sealed class ClientUpdateWindow : Window
             _statusTextBlock.Text = ex.Message;
             AppendLog(ex.Message);
         }
+    }
+
+    private static string BuildProgressDetails(TeacherClientUpdateProgress progress)
+    {
+        if (progress.TotalBytes.HasValue && progress.BytesTransferred.HasValue)
+        {
+            var percent = progress.Percent is >= 0 and <= 100 ? $" ({progress.Percent.Value}%)" : string.Empty;
+            return $"{FormatByteSize(progress.BytesTransferred.Value)} / {FormatByteSize(progress.TotalBytes.Value)}{percent}";
+        }
+
+        return progress.Percent is >= 0 and <= 100
+            ? $"{progress.Percent.Value}%"
+            : string.Empty;
+    }
+
+    private static string FormatByteSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double value = bytes;
+        var unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return unitIndex == 0 ? $"{value:0} {units[unitIndex]}" : $"{value:0.##} {units[unitIndex]}";
+    }
+
+    private static string BuildLogMessage(TeacherClientUpdateProgress progress)
+    {
+        var details = BuildProgressDetails(progress);
+        return string.IsNullOrWhiteSpace(details) ? progress.Message : $"{progress.Message} {details}";
     }
 
     private async Task RunAsync(Func<IProgress<TeacherClientUpdateProgress>, Task> action)
@@ -243,25 +277,6 @@ public sealed class ClientUpdateWindow : Window
         AppendLog(message);
     }
 
-    private string BuildLogMessage(TeacherClientUpdateProgress progress)
-    {
-        var details = BuildProgressDetails(progress);
-        return string.IsNullOrWhiteSpace(details) ? progress.Message : $"{progress.Message} {details}";
-    }
-
-    private static string BuildProgressDetails(TeacherClientUpdateProgress progress)
-    {
-        if (progress.TotalBytes.HasValue && progress.BytesTransferred.HasValue)
-        {
-            var percent = progress.Percent is >= 0 and <= 100 ? $" ({progress.Percent.Value}%)" : string.Empty;
-            return $"{FormatByteSize(progress.BytesTransferred.Value)} / {FormatByteSize(progress.TotalBytes.Value)}{percent}";
-        }
-
-        return progress.Percent is >= 0 and <= 100
-            ? $"{progress.Percent.Value}%"
-            : string.Empty;
-    }
-
     private void AppendLog(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -271,20 +286,5 @@ public sealed class ClientUpdateWindow : Window
 
         _logTextBox.Text = string.Concat(_logTextBox.Text, $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
         _logTextBox.CaretIndex = _logTextBox.Text?.Length ?? 0;
-    }
-
-    private static string FormatByteSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double value = bytes;
-        var unitIndex = 0;
-
-        while (value >= 1024 && unitIndex < units.Length - 1)
-        {
-            value /= 1024;
-            unitIndex++;
-        }
-
-        return unitIndex == 0 ? $"{value:0} {units[unitIndex]}" : $"{value:0.##} {units[unitIndex]}";
     }
 }

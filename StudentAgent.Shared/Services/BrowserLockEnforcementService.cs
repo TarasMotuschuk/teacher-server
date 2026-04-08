@@ -7,16 +7,13 @@ public sealed class BrowserLockEnforcementService : BackgroundService
 {
     private readonly AgentSettingsStore _settingsStore;
     private readonly AgentLogService _logService;
-    private readonly ProcessService _processService;
 
     public BrowserLockEnforcementService(
         AgentSettingsStore settingsStore,
-        AgentLogService logService,
-        ProcessService processService)
+        AgentLogService logService)
     {
         _settingsStore = settingsStore;
         _logService = logService;
-        _processService = processService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,7 +42,7 @@ public sealed class BrowserLockEnforcementService : BackgroundService
 
             try
             {
-                var killedCount = _processService.KillRunningBrowsers();
+                var killedCount = ProcessService.KillRunningBrowsers();
                 if (killedCount > 0)
                 {
                     StudentAgentText.SetLanguage(_settingsStore.Current.Language);

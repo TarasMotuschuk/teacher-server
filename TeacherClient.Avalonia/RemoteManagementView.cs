@@ -156,7 +156,7 @@ public partial class MainWindow
         tile.SetPreview(CreatePlaceholderBitmap(200, 140));
     }
 
-    private string BuildRemoteManagementStatusText(DiscoveredAgentRow agent)
+    private static string BuildRemoteManagementStatusText(DiscoveredAgentRow agent)
     {
         var baseStatus = !string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)
             ? CrossPlatformText.RemoteManagementStopped(agent.MachineName)
@@ -306,7 +306,15 @@ public partial class MainWindow
     /// Cancels the preview loop and waits for the background task to finish teardown.
     /// Does not call <see cref="TeacherVncSession.Close"/> on the UI thread (that blocked and raced the preview task).
     /// </summary>
-    private async Task StopRemoteManagementPreviewAsync(RemoteManagementTileViewModel tile)
+    private static void StopRemoteManagementPreviewNoWait(RemoteManagementTileViewModel tile)
+    {
+        tile.PreviewCancellation?.Cancel();
+        tile.Session = null;
+        tile.PreviewCancellation = null;
+        tile.PreviewTask = null;
+    }
+
+    private static async Task StopRemoteManagementPreviewAsync(RemoteManagementTileViewModel tile)
     {
         var wait = tile.PreviewTask;
         tile.PreviewCancellation?.Cancel();
@@ -323,14 +331,6 @@ public partial class MainWindow
             {
             }
         }
-    }
-
-    private static void StopRemoteManagementPreviewNoWait(RemoteManagementTileViewModel tile)
-    {
-        tile.PreviewCancellation?.Cancel();
-        tile.Session = null;
-        tile.PreviewCancellation = null;
-        tile.PreviewTask = null;
     }
 
     private async Task StartVncForRemoteManagementAsync(DiscoveredAgentRow agent, bool viewOnly)

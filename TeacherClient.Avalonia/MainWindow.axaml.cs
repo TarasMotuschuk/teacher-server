@@ -1522,7 +1522,7 @@ public partial class MainWindow : Window
             async () =>
         {
             var client = CreateClient();
-            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+            var progress = new Progress<TransferProgress>(value =>
                 SetStatus(BuildTransferStatus(CrossPlatformText.UploadArrow, entry.Name, value)));
             await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty, progress);
             await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
@@ -1860,7 +1860,7 @@ public partial class MainWindow : Window
             async () =>
         {
             var client = CreateClient();
-            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+            var progress = new Progress<TransferProgress>(value =>
                 SetStatus(BuildTransferStatus(CrossPlatformText.DownloadArrow, entry.Name, value)));
             await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath(), progress);
             await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
@@ -2664,7 +2664,7 @@ public partial class MainWindow : Window
                 agentCount,
                 fileIndex + 1,
                 plan.Files.Count));
-            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+            var progress = new Progress<TransferProgress>(value =>
                 reportStatus(BuildBulkTransferStatus(
                     CrossPlatformText.UploadArrow,
                     agent.MachineName,
@@ -2701,7 +2701,7 @@ public partial class MainWindow : Window
             {
                 var progress = reportStatus is null
                     ? null
-                    : new Progress<TeacherApiClient.TransferProgress>(value =>
+                    : new Progress<TransferProgress>(value =>
                         reportStatus(BuildBulkTransferStatus(
                             CrossPlatformText.DownloadArrow,
                             agentName ?? string.Empty,
@@ -3044,7 +3044,7 @@ public partial class MainWindow : Window
         return string.IsNullOrWhiteSpace(sanitized) ? "StudentMachine" : sanitized;
     }
 
-    private static string BuildTransferStatus(string operation, string fileName, TeacherApiClient.TransferProgress progress)
+    private static string BuildTransferStatus(string operation, string fileName, TransferProgress progress)
     {
         var transferred = FormatByteSize(progress.BytesTransferred);
         if (!progress.HasTotal)
@@ -3059,7 +3059,7 @@ public partial class MainWindow : Window
         string operation,
         string agentName,
         string fileName,
-        TeacherApiClient.TransferProgress progress,
+        TransferProgress progress,
         int? agentIndex = null,
         int? agentCount = null,
         int? fileIndex = null,

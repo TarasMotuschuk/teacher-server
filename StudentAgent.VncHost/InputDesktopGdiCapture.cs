@@ -4,7 +4,7 @@ namespace StudentAgent.VncHost;
 
 /// <summary>
 /// GDI screen capture on the current <see cref="OpenInputDesktop"/> so Winlogon / UAC secure UI is visible.
-/// <see cref="Graphics.CopyFromScreen"/> without switching desktops reads the thread's default desktop, which is
+/// <see cref="Graphics.CopyFromScreen(int, int, int, int, Size, CopyPixelOperation)"/> without switching desktops reads the thread's default desktop, which is
 /// not the login or elevation surface. Uses a dedicated thread with no HWNDs so <see cref="SetThreadDesktop"/> succeeds.
 /// </summary>
 internal static class InputDesktopGdiCapture
@@ -19,6 +19,10 @@ internal static class InputDesktopGdiCapture
     /// <summary>
     /// Copies the virtual-screen rectangle into <paramref name="bitmap"/> (32bpp RGB).
     /// </summary>
+    /// <param name="bounds">The virtual-screen bounds to capture.</param>
+    /// <param name="width">The destination bitmap width in pixels.</param>
+    /// <param name="height">The destination bitmap height in pixels.</param>
+    /// <param name="bitmap">The destination bitmap that receives the captured pixels.</param>
     public static void CopyVirtualScreenToBitmap(Rectangle bounds, int width, int height, Bitmap bitmap)
     {
         Run(() =>

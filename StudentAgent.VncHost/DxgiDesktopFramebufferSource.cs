@@ -49,7 +49,7 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
     /// True when <see cref="IDXGIOutputDuplication.AcquireNextFrame"/> returned WAIT_TIMEOUT — the framebuffer is stale.
     /// Callers should fall back to GDI capture (e.g. <see cref="InputDesktopGdiCapture"/>) so Winlogon / UAC is visible.
     /// </param>
-    /// <returns></returns>
+    /// <returns>The captured framebuffer, or the last DXGI framebuffer when the duplication API timed out.</returns>
     public VncFramebuffer Capture(out bool timedOut)
     {
         timedOut = false;

@@ -65,12 +65,12 @@ public static class StudentAgentHostExtensions
         });
 
         app.MapGet("/api/info", (ServerInfoService service) => Results.Ok(service.GetInfo()));
-        app.MapGet("/api/processes", (ProcessService service) => Results.Ok(service.GetProcesses()));
-        app.MapGet("/api/processes/{processId:int}", (int processId, ProcessService service) =>
+        app.MapGet("/api/processes", () => Results.Ok(ProcessService.GetProcesses()));
+        app.MapGet("/api/processes/{processId:int}", (int processId) =>
         {
             try
             {
-                return Results.Ok(service.GetProcessDetails(processId));
+                return Results.Ok(ProcessService.GetProcessDetails(processId));
             }
             catch (Exception ex)
             {
@@ -78,11 +78,11 @@ public static class StudentAgentHostExtensions
             }
         });
 
-        app.MapPost("/api/processes/kill", ([FromBody] KillProcessRequest request, [FromServices] ProcessService service) =>
+        app.MapPost("/api/processes/kill", ([FromBody] KillProcessRequest request) =>
         {
             try
             {
-                service.KillProcess(request.ProcessId);
+                ProcessService.KillProcess(request.ProcessId);
                 return Results.NoContent();
             }
             catch (Exception ex)
@@ -91,11 +91,11 @@ public static class StudentAgentHostExtensions
             }
         });
 
-        app.MapPost("/api/processes/restart", ([FromBody] RestartProcessRequest request, [FromServices] ProcessService service) =>
+        app.MapPost("/api/processes/restart", ([FromBody] RestartProcessRequest request) =>
         {
             try
             {
-                return Results.Ok(service.RestartProcess(request.ProcessId));
+                return Results.Ok(ProcessService.RestartProcess(request.ProcessId));
             }
             catch (Exception ex)
             {
@@ -145,7 +145,7 @@ public static class StudentAgentHostExtensions
             }
         });
 
-        app.MapPost("/api/power", ([FromBody] PowerActionRequest request, [FromServices] ProcessService service, [FromServices] AgentLogService agentLog) =>
+        app.MapPost("/api/power", ([FromBody] PowerActionRequest request, [FromServices] AgentLogService agentLog) =>
         {
             try
             {
@@ -158,7 +158,7 @@ public static class StudentAgentHostExtensions
                 };
 
                 agentLog.LogWarning(logMessage);
-                service.ExecutePowerAction(request.Action);
+                ProcessService.ExecutePowerAction(request.Action);
                 return Results.NoContent();
             }
             catch (Exception ex)

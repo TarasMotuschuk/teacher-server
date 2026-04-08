@@ -219,7 +219,7 @@ public partial class MainForm : Form
         await ApplyStudentPolicySettingsToOnlineAgentsAsync(reportSummary: true);
     }
 
-    private async void RefreshProcessesButton_Click(object sender, EventArgs e) => await LoadProcessesAsync();
+    private async void RefreshProcessesButton_Click(object? sender, EventArgs e) => await LoadProcessesAsync();
 
     private void RefreshRegistryButton_Click(object? sender, EventArgs e) => InitializeRegistryTree();
 
@@ -628,7 +628,7 @@ public partial class MainForm : Form
         SetStatus(TeacherClientText.FormatRemovedManualAgent(agent.MachineName));
     }
 
-    private async void KillProcessButton_Click(object sender, EventArgs e)
+    private async void KillProcessButton_Click(object? sender, EventArgs e)
     {
         if (processesGrid.CurrentRow?.DataBoundItem is not ProcessInfoDto process)
         {
@@ -1150,7 +1150,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
     }
 
-    private async void RefreshFilesButton_Click(object sender, EventArgs e)
+    private async void RefreshFilesButton_Click(object? sender, EventArgs e)
     {
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
@@ -1391,7 +1391,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void LocalFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    private async void LocalFilesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || localFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1407,7 +1407,7 @@ public partial class MainForm : Form
         OpenLocalEntry(entry);
     }
 
-    private async void RemoteFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    private async void RemoteFilesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || remoteFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1423,7 +1423,7 @@ public partial class MainForm : Form
         OpenRemoteButton_Click(sender, EventArgs.Empty);
     }
 
-    private async void UpLocalButton_Click(object sender, EventArgs e)
+    private async void UpLocalButton_Click(object? sender, EventArgs e)
     {
         var parent = Directory.GetParent(localPathTextBox.Text)?.FullName;
         if (!string.IsNullOrWhiteSpace(parent))
@@ -1432,7 +1432,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void UpRemoteButton_Click(object sender, EventArgs e)
+    private async void UpRemoteButton_Click(object? sender, EventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(_remoteParentPath))
         {
@@ -1470,7 +1470,7 @@ public partial class MainForm : Form
         await ConnectSelectedAgentAsync();
     }
 
-    private async void UploadButton_Click(object sender, EventArgs e)
+    private async void UploadButton_Click(object? sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
@@ -1584,7 +1584,7 @@ public partial class MainForm : Form
         await ClearConfiguredStudentWorkDirectoryAsync(targetAgents);
     }
 
-    private async void DownloadButton_Click(object sender, EventArgs e)
+    private async void DownloadButton_Click(object? sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
@@ -1695,7 +1695,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void DeleteLocalButton_Click(object sender, EventArgs e)
+    private async void DeleteLocalButton_Click(object? sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1733,7 +1733,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void DeleteRemoteButton_Click(object sender, EventArgs e)
+    private async void DeleteRemoteButton_Click(object? sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1764,7 +1764,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void NewRemoteFolderButton_Click(object sender, EventArgs e)
+    private async void NewRemoteFolderButton_Click(object? sender, EventArgs e)
     {
         using var dialog = new InputDialog(TeacherClientText.CreateRemoteFolderTitle, TeacherClientText.FolderName, TeacherClientText.NewFolderDefaultName);
         if (dialog.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(dialog.Value))

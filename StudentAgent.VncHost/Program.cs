@@ -1,7 +1,4 @@
-using System.Diagnostics;
-using System.Drawing.Imaging;
 using System.Net;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +11,6 @@ using StudentAgent;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
 using StudentAgent.VncHost;
-using KeySym = RemoteViewing.Vnc.KeySym;
 
 try
 {
