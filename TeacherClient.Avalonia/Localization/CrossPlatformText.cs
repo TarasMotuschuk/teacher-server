@@ -371,6 +371,7 @@ internal static partial class CrossPlatformText
     public static string ClientUpdateInstallMissing => IsUk ? "Спочатку завантажте інсталятор клієнта." : "Download the client installer first.";
 
     public static string ClientUpdateInstallStarted => IsUk ? "Інсталятор оновлення відкрито." : "Update installer has been opened.";
+
     public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
 
     public static string RegistryValueType => IsUk ? "Тип" : "Type";

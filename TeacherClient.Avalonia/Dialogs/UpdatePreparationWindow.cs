@@ -149,40 +149,6 @@ public sealed class UpdatePreparationWindow : Window
         });
     }
 
-    private static string BuildProgressDetails(TeacherUpdatePreparationProgress progress)
-    {
-        if (progress.TotalBytes.HasValue && progress.BytesTransferred.HasValue)
-        {
-            var percent = progress.Percent is >= 0 and <= 100 ? $" ({progress.Percent.Value}%)" : string.Empty;
-            return $"{FormatByteSize(progress.BytesTransferred.Value)} / {FormatByteSize(progress.TotalBytes.Value)}{percent}";
-        }
-
-        return progress.Percent is >= 0 and <= 100
-            ? $"{progress.Percent.Value}%"
-            : string.Empty;
-    }
-
-    private static string FormatByteSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double value = bytes;
-        var unitIndex = 0;
-
-        while (value >= 1024 && unitIndex < units.Length - 1)
-        {
-            value /= 1024;
-            unitIndex++;
-        }
-
-        return unitIndex == 0 ? $"{value:0} {units[unitIndex]}" : $"{value:0.##} {units[unitIndex]}";
-    }
-
-    private static string BuildLogMessage(TeacherUpdatePreparationProgress progress)
-    {
-        var details = BuildProgressDetails(progress);
-        return string.IsNullOrWhiteSpace(details) ? progress.Message : $"{progress.Message} {details}";
-    }
-
     private async Task RunAsync(Func<IProgress<TeacherUpdatePreparationProgress>, Task> action)
     {
         _checkButton.IsEnabled = false;
@@ -218,13 +184,13 @@ public sealed class UpdatePreparationWindow : Window
             _progressBar.IsIndeterminate = true;
         }
 
-        _progressDetailsTextBlock.Text = BuildProgressDetails(progress);
+        _progressDetailsTextBlock.Text = UpdatePreparationWindowTextFormatter.BuildProgressDetails(progress);
         AppendMeaningfulLog(progress);
     }
 
     private void AppendMeaningfulLog(TeacherUpdatePreparationProgress progress)
     {
-        var message = BuildLogMessage(progress);
+        var message = UpdatePreparationWindowTextFormatter.BuildLogMessage(progress);
         if (string.Equals(_lastLoggedMessage, message, StringComparison.Ordinal))
         {
             return;

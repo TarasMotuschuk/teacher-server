@@ -14,7 +14,7 @@ using TeacherClient.CrossPlatform.Services;
 
 namespace TeacherClient.CrossPlatform;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IDisposable
 {
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
@@ -48,6 +48,7 @@ public partial class MainWindow : Window
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
     private string? _remoteManagementSelectedAgentId;
+    private bool _disposed;
 
     public MainWindow()
     {
@@ -97,8 +98,7 @@ public partial class MainWindow : Window
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
             DisposeRemoteManagementTiles();
-            _updatePreparationService.Dispose();
-            _clientUpdateService.Dispose();
+            Dispose();
         };
     }
 
@@ -120,6 +120,19 @@ public partial class MainWindow : Window
             : Path.Combine(localAppData, "TeacherServer", "TeacherClient.Avalonia", "client-updates");
         Directory.CreateDirectory(baseDirectory);
         return baseDirectory;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _updatePreparationService.Dispose();
+        _clientUpdateService.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
@@ -3098,7 +3111,7 @@ public partial class MainWindow : Window
             : $"{value:0.##} {units[unitIndex]}";
     }
 
-    private sealed record DiscoveredAgentRow(
+    internal sealed record DiscoveredAgentRow(
         string AgentId,
         string Source,
         string Status,

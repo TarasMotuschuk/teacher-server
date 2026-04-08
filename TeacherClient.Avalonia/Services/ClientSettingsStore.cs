@@ -7,6 +7,11 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class ClientSettingsStore
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+    };
+
     private readonly object _sync = new();
     private readonly string _storagePath;
 
@@ -47,10 +52,7 @@ public sealed class ClientSettingsStore
     {
         lock (_sync)
         {
-            var json = JsonSerializer.Serialize(Normalize(settings), new JsonSerializerOptions
-            {
-                WriteIndented = true,
-            });
+            var json = JsonSerializer.Serialize(Normalize(settings), JsonOptions);
 
             File.WriteAllText(_storagePath, json);
         }

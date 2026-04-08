@@ -12,7 +12,7 @@ using TeacherClient.CrossPlatform.Localization;
 
 namespace TeacherClient.CrossPlatform.Dialogs;
 
-public partial class RemoteVncViewerWindow : Window
+public partial class RemoteVncViewerWindow : Window, IDisposable
 {
     private static readonly IReadOnlyList<KeyboardShortcutOption> ShortcutOptions =
     [
@@ -40,6 +40,7 @@ public partial class RemoteVncViewerWindow : Window
     private int _frameHeight;
     private bool _updatingShortcutSelection;
     private int _pointerButtonsMask;
+    private bool _disposed;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
@@ -78,15 +79,7 @@ public partial class RemoteVncViewerWindow : Window
 
         Closing += (_, _) =>
         {
-            _refreshTimer.Stop();
-            _cancellation.Cancel();
-            if (_ownsSession)
-            {
-                _session.Dispose();
-            }
-
-            _cancellation.Dispose();
-            DisposeBitmap();
+            Dispose();
         };
 
         ViewerInputRoot.PointerPressed += ScreenImage_OnPointerPressed;
@@ -171,6 +164,26 @@ public partial class RemoteVncViewerWindow : Window
         ScreenImage.Source = null;
         _currentBitmap?.Dispose();
         _currentBitmap = null;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _refreshTimer.Stop();
+        _cancellation.Cancel();
+        if (_ownsSession)
+        {
+            _session.Dispose();
+        }
+
+        _cancellation.Dispose();
+        DisposeBitmap();
+        GC.SuppressFinalize(this);
     }
 
     private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

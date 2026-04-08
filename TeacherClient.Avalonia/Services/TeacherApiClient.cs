@@ -7,9 +7,10 @@ using Teacher.Common.Contracts;
 
 namespace TeacherClient.CrossPlatform.Services;
 
-public sealed class TeacherApiClient
+public sealed class TeacherApiClient : IDisposable
 {
     private readonly HttpClient _httpClient;
+    private bool _disposed;
 
     public TeacherApiClient(string baseAddress, string sharedSecret)
     {
@@ -350,6 +351,17 @@ public sealed class TeacherApiClient
 
         using var response = await _httpClient.PostAsync("api/files/upload", content, cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _httpClient.Dispose();
     }
 
     private static string AppendTrailingSlash(string baseAddress)
