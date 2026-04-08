@@ -28,7 +28,7 @@ internal static class RemoteManagementViewHelpers
             : $"{baseStatus} - {vncStatusMessage}";
     }
 
-    internal static void StopRemoteManagementPreviewNoWait(MainWindow.RemoteManagementTileViewModel tile)
+    internal static void StopRemoteManagementPreviewNoWait(RemoteManagementTileViewModel tile)
     {
         tile.PreviewCancellation?.Cancel();
         tile.Session = null;
@@ -36,7 +36,7 @@ internal static class RemoteManagementViewHelpers
         tile.PreviewTask = null;
     }
 
-    internal static async Task StopRemoteManagementPreviewAsync(MainWindow.RemoteManagementTileViewModel tile)
+    internal static async Task StopRemoteManagementPreviewAsync(RemoteManagementTileViewModel tile)
     {
         var wait = tile.PreviewTask;
         tile.PreviewCancellation?.Cancel();
@@ -55,10 +55,10 @@ internal static class RemoteManagementViewHelpers
         }
     }
 
-    internal static MainWindow.PinnedPreviewBitmap CreatePreviewBitmap(VncFrameCapture frame)
-        => MainWindow.PinnedPreviewBitmap.Create(frame.Pixels, frame.Width, frame.Height, frame.Stride);
+    internal static PinnedPreviewBitmap CreatePreviewBitmap(VncFrameCapture frame)
+        => PinnedPreviewBitmap.Create(frame.Pixels, frame.Width, frame.Height, frame.Stride);
 
-    internal static MainWindow.PinnedPreviewBitmap CreatePlaceholderBitmap(int width, int height)
+    internal static PinnedPreviewBitmap CreatePlaceholderBitmap(int width, int height)
     {
         var pixels = new byte[width * height * 4];
         for (var index = 0; index < pixels.Length; index += 4)
@@ -69,6 +69,6 @@ internal static class RemoteManagementViewHelpers
             pixels[index + 3] = 255;
         }
 
-        return MainWindow.PinnedPreviewBitmap.Create(pixels, width, height, width * 4);
+        return PinnedPreviewBitmap.Create(pixels, width, height, width * 4);
     }
 }

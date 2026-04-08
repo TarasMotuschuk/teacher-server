@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
-using Avalonia;
 using Avalonia.Controls;
-using Teacher.Common.Contracts;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
 
@@ -90,74 +88,5 @@ public partial class FrequentProgramsWindow : Window
         {
             _entries.Add(item);
         }
-    }
-}
-
-file sealed class FrequentProgramEditWindow : Window
-{
-    private readonly TextBox _nameTextBox;
-    private readonly TextBox _commandTextBox;
-    private readonly ComboBox _runAsComboBox;
-
-    public FrequentProgramEditWindow()
-    {
-        Width = 760;
-        Height = 360;
-        MinWidth = 680;
-        MinHeight = 320;
-        Title = CrossPlatformText.AddProgram;
-
-        var grid = new Grid
-        {
-            Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"),
-            ColumnDefinitions = new ColumnDefinitions("160,*"),
-        };
-
-        grid.Children.Add(new TextBlock { Text = CrossPlatformText.ProgramName, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
-        _nameTextBox = new TextBox();
-        Grid.SetColumn(_nameTextBox, 1);
-        grid.Children.Add(_nameTextBox);
-
-        var commandLabel = new TextBlock { Text = CrossPlatformText.CommandText, Margin = new Thickness(0, 14, 0, 0), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
-        Grid.SetRow(commandLabel, 1);
-        grid.Children.Add(commandLabel);
-        _commandTextBox = new TextBox { AcceptsReturn = true, Height = 120, Margin = new Thickness(0, 14, 0, 0) };
-        Grid.SetRow(_commandTextBox, 1);
-        Grid.SetColumn(_commandTextBox, 1);
-        grid.Children.Add(_commandTextBox);
-
-        var runAsLabel = new TextBlock { Text = CrossPlatformText.RunAs, Margin = new Thickness(0, 14, 0, 0), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
-        Grid.SetRow(runAsLabel, 2);
-        grid.Children.Add(runAsLabel);
-        _runAsComboBox = new ComboBox { Margin = new Thickness(0, 14, 0, 0), ItemsSource = new[] { CrossPlatformText.RunAsCurrentUser, CrossPlatformText.RunAsAdministrator }, SelectedIndex = 0 };
-        Grid.SetRow(_runAsComboBox, 2);
-        Grid.SetColumn(_runAsComboBox, 1);
-        grid.Children.Add(_runAsComboBox);
-
-        var buttons = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Spacing = 12, Margin = new Thickness(0, 20, 0, 0) };
-        var cancelButton = new Button { Content = CrossPlatformText.Cancel, MinWidth = 120 };
-        cancelButton.Click += (_, _) => Close(null);
-        var okButton = new Button { Content = CrossPlatformText.Ok, MinWidth = 120 };
-        okButton.Click += async (_, _) =>
-        {
-            if (string.IsNullOrWhiteSpace(_nameTextBox.Text) || string.IsNullOrWhiteSpace(_commandTextBox.Text))
-            {
-                await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.CommandScriptRequired);
-                return;
-            }
-
-            Close(FrequentProgramEntry.Create(
-                _nameTextBox.Text.Trim(),
-                _commandTextBox.Text.Trim(),
-                _runAsComboBox.SelectedIndex == 1 ? RemoteCommandRunAs.Administrator : RemoteCommandRunAs.CurrentUser));
-        };
-        buttons.Children.Add(cancelButton);
-        buttons.Children.Add(okButton);
-        Grid.SetRow(buttons, 3);
-        Grid.SetColumn(buttons, 1);
-        grid.Children.Add(buttons);
-
-        Content = grid;
     }
 }

@@ -68,5 +68,3 @@ public partial class RemoteCommandWindow : Window
         RunAsComboBox.SelectedIndex = entry.RunAs == RemoteCommandRunAs.Administrator ? 1 : 0;
     }
 }
-
-public sealed record RemoteCommandSubmission(string Script, RemoteCommandRunAs RunAs);

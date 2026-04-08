@@ -503,26 +503,4 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
     }
 
-    private sealed class PinnedBitmap(Bitmap bitmap, GCHandle handle) : IDisposable
-    {
-        public Bitmap Bitmap { get; } = bitmap;
-
-        private GCHandle Handle { get; } = handle;
-
-        public void Dispose()
-        {
-            Bitmap.Dispose();
-            if (Handle.IsAllocated)
-            {
-                Handle.Free();
-            }
-        }
-    }
-
-    private sealed record KeyboardShortcutOption(string Label, params KeySymbol[] ShortcutKeys)
-    {
-        public IReadOnlyList<KeySymbol> Keys { get; } = ShortcutKeys;
-
-        public override string ToString() => Label;
-    }
 }
