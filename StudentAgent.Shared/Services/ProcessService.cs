@@ -134,7 +134,7 @@ public sealed class ProcessService
                 Arguments = arguments,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                WindowStyle = ProcessWindowStyle.Hidden,
             },
         };
 

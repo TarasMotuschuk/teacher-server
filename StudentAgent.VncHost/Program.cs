@@ -434,7 +434,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
                     WScan = scanCode,
                     DwFlags = keyFlags | (pressed ? 0u : KEYEVENTFKEYUP),
                     DwExtraInfo = UIntPtr.Zero
-                }
+                },
             },
         };
 
@@ -454,7 +454,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
                     WScan = character,
                     DwFlags = KEYEVENTFUNICODE | (pressed ? 0u : KEYEVENTFKEYUP),
                     DwExtraInfo = UIntPtr.Zero
-                }
+                },
             },
         };
 

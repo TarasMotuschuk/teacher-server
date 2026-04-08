@@ -1293,7 +1293,7 @@ public partial class MainWindow : Window
             [
                 new FilePickerFileType("Registry files")
                 {
-                    Patterns = ["*.reg"]
+                    Patterns = ["*.reg"],
                 }
             ],
         });

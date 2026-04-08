@@ -247,7 +247,7 @@ internal static class SessionProcessLauncher
                 Privileges = new LUID_AND_ATTRIBUTES
                 {
                     Luid = luid,
-                    Attributes = SEPRIVILEGEENABLED
+                    Attributes = SEPRIVILEGEENABLED,
                 },
             };
 

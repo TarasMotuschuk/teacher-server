@@ -248,7 +248,8 @@ static void RunNetsh(string arguments, string logPath, bool ignoreFailure = fals
 
     if (process.ExitCode != 0 && !ignoreFailure)
     {
-        throw new Win32Exception(process.ExitCode,
+        throw new Win32Exception(
+            process.ExitCode,
             $"netsh exited with code {process.ExitCode} while running '{arguments}'.");
     }
 }
@@ -284,7 +285,8 @@ static void StopHostedProcesses(string installDirectory, string logPath, params 
                     if (!string.IsNullOrWhiteSpace(processPath))
                     {
                         var normalizedProcessPath = Path.GetFullPath(processPath);
-                        if (!normalizedProcessPath.StartsWith(normalizedInstallDirectory,
+                        if (!normalizedProcessPath.StartsWith(
+                            normalizedInstallDirectory,
                                 StringComparison.OrdinalIgnoreCase))
                         {
                             continue;

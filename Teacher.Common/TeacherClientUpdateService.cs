@@ -163,6 +163,11 @@ public sealed class TeacherClientUpdateService : IDisposable
         throw new PlatformNotSupportedException("Client installer launching is only supported on Windows and macOS.");
     }
 
+    public void Dispose()
+    {
+        _httpClient.Dispose();
+    }
+
     private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -309,56 +314,4 @@ public sealed class TeacherClientUpdateService : IDisposable
             ? $"{parsed.Major}.{parsed.Minor}.{parsed.Build}"
             : parsed.ToString();
     }
-
-    public void Dispose()
-    {
-        _httpClient.Dispose();
-    }
-
-    private sealed record TeacherClientUpdateManifest(
-        string Version,
-        string? WindowsMsiUrl,
-        string? WindowsMsiSha256,
-        string? MacPkgUrl,
-        string? MacPkgSha256);
-
-    private sealed record TeacherClientPlatformAsset(
-        string PlatformLabel,
-        string PackageUrl,
-        string? PackageSha256,
-        string FileName);
 }
-
-public enum TeacherClientUpdateStage
-{
-    Idle = 0,
-    Checking = 1,
-    Available = 2,
-    UpToDate = 3,
-    Downloading = 4,
-    ReadyToInstall = 5,
-    Failed = 6,
-}
-
-public sealed record TeacherClientUpdateProgress(
-    TeacherClientUpdateStage Stage,
-    string Message,
-    int? Percent,
-    long? BytesTransferred,
-    long? TotalBytes);
-
-public sealed record TeacherClientUpdateCheckResult(
-    string CurrentVersion,
-    string AvailableVersion,
-    bool UpdateAvailable,
-    string PlatformLabel,
-    string PackageUrl,
-    string? PackageSha256,
-    string AssetFileName,
-    string Message);
-
-public sealed record TeacherClientInstallerInfo(
-    string Version,
-    string LocalInstallerPath,
-    string PlatformLabel,
-    DateTime DownloadedAtUtc);

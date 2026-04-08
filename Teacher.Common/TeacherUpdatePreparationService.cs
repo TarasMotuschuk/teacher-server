@@ -159,6 +159,12 @@ public sealed class TeacherUpdatePreparationService : IDisposable
             hosted.PackageSha256);
     }
 
+    public void Dispose()
+    {
+        _packageServer.Dispose();
+        _httpClient.Dispose();
+    }
+
     private async Task<TeacherUpdateManifest> ReadManifestAsync(string source, bool isLocalFile, CancellationToken cancellationToken)
     {
         TeacherUpdateManifest? manifest;
@@ -284,45 +290,4 @@ public sealed class TeacherUpdatePreparationService : IDisposable
             throw new InvalidOperationException("Prepared update package checksum does not match the manifest.");
         }
     }
-
-    public void Dispose()
-    {
-        _packageServer.Dispose();
-        _httpClient.Dispose();
-    }
-
-    private sealed record TeacherUpdateManifest(string Version, string? Url, string? Sha256);
 }
-
-public enum TeacherUpdatePreparationStage
-{
-    Idle = 0,
-    Checking = 1,
-    ReadyToDownload = 2,
-    Downloading = 3,
-    Prepared = 4,
-    Failed = 5,
-}
-
-public sealed record TeacherUpdatePreparationProgress(
-    TeacherUpdatePreparationStage Stage,
-    string? Version,
-    string Message,
-    int? Percent,
-    long? BytesTransferred,
-    long? TotalBytes);
-
-public sealed record TeacherUpdateCheckResult(
-    string Version,
-    string? PackageSha256,
-    string? LocalPackagePath,
-    string? PackageUrl,
-    bool IsManualSource,
-    string SourceDescription);
-
-public sealed record TeacherPreparedUpdateInfo(
-    string Version,
-    string LocalZipPath,
-    string? PackageSha256,
-    DateTime PreparedAtUtc,
-    bool IsManualSource);

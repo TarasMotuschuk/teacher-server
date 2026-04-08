@@ -33,7 +33,7 @@ public partial class ProcessDetailsDialog : Form
     {
         return string.Join(
             Environment.NewLine,
-        [
+            [
             $"PID: {details.Id}",
             $"{TeacherClientText.Process}: {details.Name}",
             $"{TeacherClientText.Window}: {ValueOrFallback(details.MainWindowTitle)}",

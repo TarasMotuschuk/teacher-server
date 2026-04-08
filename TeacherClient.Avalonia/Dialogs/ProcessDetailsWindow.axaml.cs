@@ -52,7 +52,7 @@ public partial class ProcessDetailsWindow : Window
     {
         return string.Join(
             Environment.NewLine,
-        [
+            [
             $"PID: {details.Id}",
             $"{CrossPlatformText.ProcessLabel}: {details.Name}",
             $"{CrossPlatformText.Window}: {ValueOrFallback(details.MainWindowTitle)}",
