@@ -39,6 +39,10 @@ public sealed class RemoteVncViewerForm : Form
     private int _frameWidth;
     private int _frameHeight;
     private bool _updatingShortcutSelection;
+    private int _pointerButtonsMask;
+    private int _lastPointerX;
+    private int _lastPointerY;
+    private bool _hasPointerPosition;
 
     public RemoteVncViewerForm(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
@@ -195,6 +199,7 @@ public sealed class RemoteVncViewerForm : Form
         _imagePanel.KeyDown += ImagePanel_KeyDown;
         _imagePanel.KeyUp += ImagePanel_KeyUp;
         _imagePanel.KeyPress += ImagePanel_KeyPress;
+        Deactivate += (_, _) => ReleasePointerCapture();
         UpdateControlUi();
     }
 
@@ -341,6 +346,7 @@ public sealed class RemoteVncViewerForm : Form
             return;
         }
 
+        _pictureBox.Capture = true;
         if (!TryMapPointerToRemote(e.X, e.Y, out var rx, out var ry))
         {
             return;
@@ -348,7 +354,11 @@ public sealed class RemoteVncViewerForm : Form
 
         try
         {
-            _session.SendPointer(rx, ry, ButtonsMask(e.Button, true));
+            _lastPointerX = rx;
+            _lastPointerY = ry;
+            _hasPointerPosition = true;
+            _pointerButtonsMask = ButtonsMask(e.Button, true);
+            _session.SendPointer(rx, ry, _pointerButtonsMask);
         }
         catch (ObjectDisposedException)
         {
@@ -367,12 +377,17 @@ public sealed class RemoteVncViewerForm : Form
 
         if (!TryMapPointerToRemote(e.X, e.Y, out var rx, out var ry))
         {
+            ReleasePointerCapture();
             return;
         }
 
         try
         {
-            _session.SendPointer(rx, ry, ButtonsMask(e.Button, false));
+            _lastPointerX = rx;
+            _lastPointerY = ry;
+            _hasPointerPosition = true;
+            _pointerButtonsMask = ButtonsMask(e.Button, false);
+            _session.SendPointer(rx, ry, _pointerButtonsMask);
         }
         catch (ObjectDisposedException)
         {
@@ -380,6 +395,8 @@ public sealed class RemoteVncViewerForm : Form
         catch (InvalidOperationException)
         {
         }
+
+        ReleasePointerCapture();
     }
 
     private void PictureBox_MouseMove(object? sender, MouseEventArgs e)
@@ -396,15 +413,21 @@ public sealed class RemoteVncViewerForm : Form
 
         try
         {
+            _lastPointerX = rx;
+            _lastPointerY = ry;
+            _hasPointerPosition = true;
+
             if ((e.Button & MouseButtons.Left) == 0 &&
                 (e.Button & MouseButtons.Right) == 0 &&
                 (e.Button & MouseButtons.Middle) == 0)
             {
+                _pointerButtonsMask = 0;
                 _session.SendPointer(rx, ry, 0);
                 return;
             }
 
-            _session.SendPointer(rx, ry, ButtonsMask(e.Button, true));
+            _pointerButtonsMask = ButtonsMask(e.Button, true);
+            _session.SendPointer(rx, ry, _pointerButtonsMask);
         }
         catch (ObjectDisposedException)
         {
@@ -428,6 +451,9 @@ public sealed class RemoteVncViewerForm : Form
 
         try
         {
+            _lastPointerX = rx;
+            _lastPointerY = ry;
+            _hasPointerPosition = true;
             var buttons = e.Delta > 0 ? 8 : 16;
             _session.SendPointer(rx, ry, buttons);
             _session.SendPointer(rx, ry, 0);
@@ -546,6 +572,35 @@ public sealed class RemoteVncViewerForm : Form
         };
 
         return pressed ? mask : 0;
+    }
+
+    private void ReleasePointerCapture()
+    {
+        if (_pictureBox.Capture)
+        {
+            _pictureBox.Capture = false;
+        }
+
+        if (!_session.ControlEnabled || !_session.IsConnected || !_hasPointerPosition || _pointerButtonsMask == 0)
+        {
+            _pointerButtonsMask = 0;
+            return;
+        }
+
+        try
+        {
+            _session.SendPointer(_lastPointerX, _lastPointerY, 0);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        finally
+        {
+            _pointerButtonsMask = 0;
+        }
     }
 
     private static KeySym? MapSpecialKey(Keys key)

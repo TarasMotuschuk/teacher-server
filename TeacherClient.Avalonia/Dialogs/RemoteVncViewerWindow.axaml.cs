@@ -58,16 +58,16 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
 
-        // CenterOwner in XAML conflicts with Maximized on some Windows builds; maximize after open.
+        // CenterOwner in XAML conflicts with fullscreen/maximized transitions on some builds; apply the
+        // preferred state after the window is opened.
         WindowStartupLocation = WindowStartupLocation.Manual;
-        WindowState = WindowState.Maximized;
 
         _refreshTimer.Interval = TimeSpan.FromMilliseconds(500);
         _refreshTimer.Tick += async (_, _) => await CaptureFrameAsync();
 
         Opened += async (_, _) =>
         {
-            WindowState = WindowState.Maximized;
+            WindowState = GetPreferredFullscreenState();
             await ConnectAsync();
             _refreshTimer.Start();
 
@@ -82,10 +82,10 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             Dispose();
         };
 
-        ViewerInputRoot.PointerPressed += ScreenImage_OnPointerPressed;
-        ViewerInputRoot.PointerReleased += ScreenImage_OnPointerReleased;
-        ViewerInputRoot.PointerMoved += ScreenImage_OnPointerMoved;
-        ViewerInputRoot.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
+        ScreenImage.PointerPressed += ScreenImage_OnPointerPressed;
+        ScreenImage.PointerReleased += ScreenImage_OnPointerReleased;
+        ScreenImage.PointerMoved += ScreenImage_OnPointerMoved;
+        ScreenImage.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
         ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
         ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
         ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
@@ -94,6 +94,11 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         EnableControlButton.Content = CrossPlatformText.EnableFullscreenControl;
         UpdateControlUi();
     }
+
+    private static WindowState GetPreferredFullscreenState()
+        => RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? WindowState.FullScreen
+            : WindowState.Maximized;
 
     private async Task ConnectAsync()
     {
@@ -232,9 +237,10 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             return;
         }
 
-        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ViewerInputRoot).Properties);
+        e.Pointer.Capture(ScreenImage);
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
 
-        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
             _session.SendPointer(x, y, _pointerButtonsMask);
         }
@@ -247,13 +253,14 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             return;
         }
 
-        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ViewerInputRoot).Properties);
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
 
-        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
             _session.SendPointer(x, y, 0);
         }
 
+        e.Pointer.Capture(null);
         _pointerButtonsMask = 0;
     }
 
@@ -264,9 +271,9 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             return;
         }
 
-        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ViewerInputRoot).Properties);
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
 
-        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
             _session.SendPointer(x, y, _pointerButtonsMask);
         }
@@ -279,7 +286,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             return;
         }
 
-        if (TryMapPointer(e.GetPosition(ViewerInputRoot), out var x, out var y))
+        if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
             var buttons = e.Delta.Y > 0 ? 8 : 16;
             _session.SendPointer(x, y, buttons);
