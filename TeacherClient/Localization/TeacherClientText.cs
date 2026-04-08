@@ -7,11 +7,6 @@ internal static class TeacherClientText
 {
     public static UiLanguage CurrentLanguage { get; private set; } = UiLanguageExtensions.GetDefault();
 
-    public static void SetLanguage(UiLanguage language)
-    {
-        CurrentLanguage = language.Normalize();
-    }
-
     public static bool IsUk => CurrentLanguage == UiLanguage.Ukrainian;
 
     public static string MainTitle => "ClassCommander";
@@ -786,8 +781,9 @@ internal static class TeacherClientText
         ? $"Оновлення запущено: успішно {succeeded}, з помилками {failures}"
         : $"Started updates: {succeeded} succeeded, {failures} failed";
 
-    /// <summary>Full error text from the student agent when an update fails (shown in the Update details column).</summary>
-    /// <returns></returns>
+    /// <summary>Returns the full error text from the student agent when an update fails (shown in the Update details column).</summary>
+    /// <param name="status">The current update status snapshot for the agent.</param>
+    /// <returns>The trimmed error message for failed updates; otherwise an empty string.</returns>
     public static string FormatUpdateStatusDetail(AgentUpdateStatusDto? status)
     {
         if (status is null || status.State != AgentUpdateStateKind.Failed)
@@ -954,4 +950,9 @@ internal static class TeacherClientText
         PowerActionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
         _ => IsUk ? "Команда живлення" : "Power command",
     };
+
+    public static void SetLanguage(UiLanguage language)
+    {
+        CurrentLanguage = language.Normalize();
+    }
 }

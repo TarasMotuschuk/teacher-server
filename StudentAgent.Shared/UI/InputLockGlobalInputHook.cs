@@ -22,6 +22,8 @@ internal static class InputLockGlobalInputHook
     private static HookProc? _keyboardProc;
     private static HookProc? _mouseProc;
 
+    private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
+
     public static void AddRef()
     {
         lock (Sync)
@@ -145,8 +147,6 @@ internal static class InputLockGlobalInputHook
             return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
         }
     }
-
-    private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);

@@ -16,33 +16,6 @@ internal static class DesktopListView
     private const uint MEMRELEASE = 0x8000;
     private const uint PAGEREADWRITE = 0x04;
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct LVITEM
-    {
-        public uint Mask;
-        public int IItem;
-        public int ISubItem;
-        public uint State;
-        public uint StateMask;
-        public IntPtr PszText;
-        public int CchTextMax;
-        public int IImage;
-        public IntPtr LParam;
-        public int IIndent;
-        public int IGroupId;
-        public uint CColumns;
-        public IntPtr PuColumns;
-        public IntPtr PiColFmt;
-        public int IGroup;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT
-    {
-        public int X;
-        public int Y;
-    }
-
     [Flags]
     private enum ProcessAccess : uint
     {
@@ -327,4 +300,31 @@ internal static class DesktopListView
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr baseAddr, byte[] buffer, UIntPtr size, out UIntPtr written);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct LVITEM
+    {
+        public uint Mask;
+        public int IItem;
+        public int ISubItem;
+        public uint State;
+        public uint StateMask;
+        public IntPtr PszText;
+        public int CchTextMax;
+        public int IImage;
+        public IntPtr LParam;
+        public int IIndent;
+        public int IGroupId;
+        public uint CColumns;
+        public IntPtr PuColumns;
+        public IntPtr PiColFmt;
+        public int IGroup;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
 }

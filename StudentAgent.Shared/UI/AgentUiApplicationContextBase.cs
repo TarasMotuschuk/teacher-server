@@ -8,7 +8,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 {
     private readonly AgentSettingsStore _settingsStore;
     private readonly AgentLogService _logService;
-    private readonly ProcessService _processService;
     private readonly NotifyIcon _notifyIcon;
     private readonly System.Windows.Forms.Timer _browserLockTimer;
     private readonly System.Windows.Forms.Timer _inputLockRefreshTimer;
@@ -27,7 +26,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         _settingsStore = settingsStore;
         _logService = logService;
-        _processService = processService;
         StudentAgentText.SetLanguage(_settingsStore.Current.Language);
 
         var menu = new ContextMenuStrip();
@@ -78,6 +76,13 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
     protected AgentLogService LogService => _logService;
 
+    protected static bool IsAdministrator()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
     protected override void ExitThreadCore()
     {
         _browserLockTimer.Stop();
@@ -120,11 +125,10 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         return isValid;
     }
 
-    protected static bool IsAdministrator()
+    private static void OpenAbout()
     {
-        using var identity = WindowsIdentity.GetCurrent();
-        var principal = new WindowsPrincipal(identity);
-        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        using var form = new AboutForm();
+        form.ShowDialog();
     }
 
     private void OpenSettings()
@@ -147,12 +151,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         }
 
         using var form = new LogsForm(_logService);
-        form.ShowDialog();
-    }
-
-    private void OpenAbout()
-    {
-        using var form = new AboutForm();
         form.ShowDialog();
     }
 
@@ -182,7 +180,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             return;
         }
 
-        var browsers = _processService.GetRunningBrowsers();
+        var browsers = ProcessService.GetRunningBrowsers();
         if (browsers.Count == 0)
         {
             return;
@@ -202,7 +200,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
                 return;
             }
 
-            var killedCount = _processService.KillRunningBrowsers();
+            var killedCount = ProcessService.KillRunningBrowsers();
             _logService.LogWarning(StudentAgentText.BrowserLockKilledBrowsersLog(killedCount));
             warningForm.Close();
         }

@@ -188,14 +188,6 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
         }
     }
 
-    private string BuildPackageUrlForAgent(string agentAddress, string version)
-    {
-        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        socket.Connect(agentAddress, 9);
-        var localIp = ((IPEndPoint)socket.LocalEndPoint!).Address;
-        return $"http://{localIp}:{_port}/updates/{version}/student-agent-update.zip";
-    }
-
     private static void ValidateSha256(string packagePath, string expectedSha256)
     {
         using var stream = File.OpenRead(packagePath);
@@ -205,5 +197,13 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
         {
             throw new InvalidOperationException("Cached update package checksum does not match the manifest.");
         }
+    }
+
+    private string BuildPackageUrlForAgent(string agentAddress, string version)
+    {
+        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        socket.Connect(agentAddress, 9);
+        var localIp = ((IPEndPoint)socket.LocalEndPoint!).Address;
+        return $"http://{localIp}:{_port}/updates/{version}/student-agent-update.zip";
     }
 }

@@ -168,64 +168,6 @@ public sealed class TeacherClientUpdateService : IDisposable
         _httpClient.Dispose();
     }
 
-    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
-    {
-        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength;
-        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var destination = File.Create(destinationPath);
-        await CopyStreamWithProgressAsync(source, destination, progress, totalBytes, cancellationToken);
-    }
-
-    private static async Task CopyStreamWithProgressAsync(Stream source, Stream destination, IProgress<TeacherClientUpdateProgress>? progress, long? totalBytes, CancellationToken cancellationToken)
-    {
-        var buffer = new byte[81920];
-        long transferred = 0;
-        var lastReportedPercent = -1;
-        var stopwatch = Stopwatch.StartNew();
-        long lastReportedMilliseconds = 0;
-
-        while (true)
-        {
-            var read = await source.ReadAsync(buffer, cancellationToken);
-            if (read == 0)
-            {
-                break;
-            }
-
-            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-            transferred += read;
-
-            int? percent = totalBytes.HasValue && totalBytes > 0
-                ? (int)Math.Min(100, transferred * 100 / totalBytes.Value)
-                : null;
-            var reportNow = transferred == totalBytes;
-
-            if (percent.HasValue)
-            {
-                reportNow |= percent.Value >= 100 || percent.Value > lastReportedPercent;
-            }
-            else
-            {
-                reportNow |= stopwatch.ElapsedMilliseconds - lastReportedMilliseconds >= 250;
-            }
-
-            if (reportNow)
-            {
-                Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", percent, transferred, totalBytes);
-                lastReportedPercent = percent ?? lastReportedPercent;
-                lastReportedMilliseconds = stopwatch.ElapsedMilliseconds;
-            }
-        }
-
-        if (totalBytes.HasValue && totalBytes.Value > 0 && lastReportedPercent < 100)
-        {
-            Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", 100, transferred, totalBytes);
-        }
-    }
-
     private static void Report(IProgress<TeacherClientUpdateProgress>? progress, TeacherClientUpdateStage stage, string message, int? percent, long? bytesTransferred, long? totalBytes)
         => progress?.Report(new TeacherClientUpdateProgress(stage, message, percent, bytesTransferred, totalBytes));
 
@@ -313,5 +255,63 @@ public sealed class TeacherClientUpdateService : IDisposable
         return parsed.Revision == 0
             ? $"{parsed.Major}.{parsed.Minor}.{parsed.Build}"
             : parsed.ToString();
+    }
+
+    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var destination = File.Create(destinationPath);
+        await CopyStreamWithProgressAsync(source, destination, progress, totalBytes, cancellationToken);
+    }
+
+    private static async Task CopyStreamWithProgressAsync(Stream source, Stream destination, IProgress<TeacherClientUpdateProgress>? progress, long? totalBytes, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[81920];
+        long transferred = 0;
+        var lastReportedPercent = -1;
+        var stopwatch = Stopwatch.StartNew();
+        long lastReportedMilliseconds = 0;
+
+        while (true)
+        {
+            var read = await source.ReadAsync(buffer, cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            transferred += read;
+
+            int? percent = totalBytes.HasValue && totalBytes > 0
+                ? (int)Math.Min(100, transferred * 100 / totalBytes.Value)
+                : null;
+            var reportNow = transferred == totalBytes;
+
+            if (percent.HasValue)
+            {
+                reportNow |= percent.Value >= 100 || percent.Value > lastReportedPercent;
+            }
+            else
+            {
+                reportNow |= stopwatch.ElapsedMilliseconds - lastReportedMilliseconds >= 250;
+            }
+
+            if (reportNow)
+            {
+                Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", percent, transferred, totalBytes);
+                lastReportedPercent = percent ?? lastReportedPercent;
+                lastReportedMilliseconds = stopwatch.ElapsedMilliseconds;
+            }
+        }
+
+        if (totalBytes.HasValue && totalBytes.Value > 0 && lastReportedPercent < 100)
+        {
+            Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", 100, transferred, totalBytes);
+        }
     }
 }

@@ -16,6 +16,8 @@ internal static class SessionProcessLauncher
     private const int NormalPriorityClass = 0x00000020;
     private const int CreateUnicodeEnvironment = 0x00000400;
     private const int CreateNoWindow = 0x08000000;
+    private const uint SePrivilegeEnabled = 0x00000002;
+    private const uint WaitTimeout = 0x00000102;
 
     internal enum SessionProcessLaunchMode
     {
@@ -54,6 +56,60 @@ internal static class SessionProcessLauncher
 
     public static int StartProcessInSessionAndWait(string applicationPath, string arguments, int sessionId, bool hideWindow, TimeSpan timeout)
         => StartProcessInSessionInternal(applicationPath, arguments, sessionId, hideWindow, waitForExit: true, timeout);
+
+    public static void StartShellOpenInSession(string targetPath, int sessionId)
+    {
+        if (Directory.Exists(targetPath))
+        {
+            StartProcessInSession(Path.Combine(Environment.SystemDirectory, "explorer.exe"), QuoteArgument(targetPath), sessionId);
+            return;
+        }
+
+        if (File.Exists(targetPath))
+        {
+            StartProcessInSession(
+                Path.Combine(Environment.SystemDirectory, "rundll32.exe"),
+                $"shell32.dll,ShellExec_RunDLL {QuoteArgument(targetPath)}",
+                sessionId);
+            return;
+        }
+
+        throw new FileNotFoundException("Entry not found.", targetPath);
+    }
+
+    public static void StartCmdScriptInSession(string scriptPath, int sessionId)
+    {
+        if (!File.Exists(scriptPath))
+        {
+            throw new FileNotFoundException("Script not found.", scriptPath);
+        }
+
+        StartProcessInSession(
+            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            $"/c {QuoteArgument(scriptPath)}",
+            sessionId,
+            hideWindow: true);
+    }
+
+    public static void StartCmdScriptAsAdministrator(string scriptPath)
+    {
+        if (!File.Exists(scriptPath))
+        {
+            throw new FileNotFoundException("Script not found.", scriptPath);
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            Arguments = $"/c {QuoteArgument(scriptPath)}",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(scriptPath),
+        };
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start command process.");
+    }
 
     private static bool TryFindWinlogonProcessId(int sessionId, out int processId)
     {
@@ -179,7 +235,7 @@ internal static class SessionProcessLauncher
                                 : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
 
                             var waitResult = WaitForSingleObject(processInformation.HProcess, waitMilliseconds);
-                            if (waitResult == WAITTIMEOUT)
+                            if (waitResult == WaitTimeout)
                             {
                                 throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
                             }
@@ -247,7 +303,7 @@ internal static class SessionProcessLauncher
                 Privileges = new LUID_AND_ATTRIBUTES
                 {
                     Luid = luid,
-                    Attributes = SEPRIVILEGEENABLED,
+                    Attributes = SePrivilegeEnabled,
                 },
             };
 
@@ -328,7 +384,7 @@ internal static class SessionProcessLauncher
                             : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
 
                         var waitResult = WaitForSingleObject(processInformation.HProcess, waitMilliseconds);
-                        if (waitResult == WAITTIMEOUT)
+                        if (waitResult == WaitTimeout)
                         {
                             throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
                         }
@@ -362,94 +418,8 @@ internal static class SessionProcessLauncher
         }
     }
 
-    public static void StartShellOpenInSession(string targetPath, int sessionId)
-    {
-        if (Directory.Exists(targetPath))
-        {
-            StartProcessInSession(Path.Combine(Environment.SystemDirectory, "explorer.exe"), QuoteArgument(targetPath), sessionId);
-            return;
-        }
-
-        if (File.Exists(targetPath))
-        {
-            StartProcessInSession(
-                Path.Combine(Environment.SystemDirectory, "rundll32.exe"),
-                $"shell32.dll,ShellExec_RunDLL {QuoteArgument(targetPath)}",
-                sessionId);
-            return;
-        }
-
-        throw new FileNotFoundException("Entry not found.", targetPath);
-    }
-
-    public static void StartCmdScriptInSession(string scriptPath, int sessionId)
-    {
-        if (!File.Exists(scriptPath))
-        {
-            throw new FileNotFoundException("Script not found.", scriptPath);
-        }
-
-        StartProcessInSession(
-            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            $"/c {QuoteArgument(scriptPath)}",
-            sessionId,
-            hideWindow: true);
-    }
-
-    public static void StartCmdScriptAsAdministrator(string scriptPath)
-    {
-        if (!File.Exists(scriptPath))
-        {
-            throw new FileNotFoundException("Script not found.", scriptPath);
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            Arguments = $"/c {QuoteArgument(scriptPath)}",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = Path.GetDirectoryName(scriptPath),
-        };
-
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start command process.");
-    }
-
     private static string QuoteArgument(string value)
         => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct STARTUPINFO
-    {
-        public int Cb;
-        public string? LpReserved;
-        public string? LpDesktop;
-        public string? LpTitle;
-        public int DwX;
-        public int DwY;
-        public int DwXSize;
-        public int DwYSize;
-        public int DwXCountChars;
-        public int DwYCountChars;
-        public int DwFillAttribute;
-        public int DwFlags;
-        public short WShowWindow;
-        public short CbReserved2;
-        public IntPtr LpReserved2;
-        public IntPtr HStdInput;
-        public IntPtr HStdOutput;
-        public IntPtr HStdError;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_INFORMATION
-    {
-        public IntPtr HProcess;
-        public IntPtr HThread;
-        public int DwProcessId;
-        public int DwThreadId;
-    }
 
     [DllImport("kernel32.dll")]
     private static extern uint WTSGetActiveConsoleSessionId();
@@ -537,6 +507,35 @@ internal static class SessionProcessLauncher
         public LUID_AND_ATTRIBUTES Privileges;
     }
 
-    private const uint SEPRIVILEGEENABLED = 0x00000002;
-    private const uint WAITTIMEOUT = 0x00000102;
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct STARTUPINFO
+    {
+        public int Cb;
+        public string? LpReserved;
+        public string? LpDesktop;
+        public string? LpTitle;
+        public int DwX;
+        public int DwY;
+        public int DwXSize;
+        public int DwYSize;
+        public int DwXCountChars;
+        public int DwYCountChars;
+        public int DwFillAttribute;
+        public int DwFlags;
+        public short WShowWindow;
+        public short CbReserved2;
+        public IntPtr LpReserved2;
+        public IntPtr HStdInput;
+        public IntPtr HStdOutput;
+        public IntPtr HStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_INFORMATION
+    {
+        public IntPtr HProcess;
+        public IntPtr HThread;
+        public int DwProcessId;
+        public int DwThreadId;
+    }
 }

@@ -145,14 +145,15 @@ public sealed class FileService
         {
             var security = directory.GetAccessControl();
             var everyoneSid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
-            var accessRule = new FileSystemAccessRule(
-                everyoneSid,
-                FileSystemRights.CreateFiles |
+            var rights = FileSystemRights.CreateFiles |
                 FileSystemRights.CreateDirectories |
                 FileSystemRights.Write |
                 FileSystemRights.ReadAndExecute |
                 FileSystemRights.Modify |
-                FileSystemRights.DeleteSubdirectoriesAndFiles,
+                FileSystemRights.DeleteSubdirectoriesAndFiles;
+            var accessRule = new FileSystemAccessRule(
+                everyoneSid,
+                rights,
                 InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
                 PropagationFlags.None,
                 AccessControlType.Allow);

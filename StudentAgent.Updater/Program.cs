@@ -31,7 +31,9 @@ try
         Directory.Delete(backupDirectory, recursive: true);
     }
 
-    CopyDirectory(options.InstallDirectory, backupDirectory,
+    CopyDirectory(
+        options.InstallDirectory,
+        backupDirectory,
         skipPredicate: static path =>
             Path.GetFileName(path).Equals("appsettings.json", StringComparison.OrdinalIgnoreCase));
     try
@@ -50,20 +52,29 @@ try
         StartService(options.ServiceName, logPath);
         Directory.Delete(stagingDirectory, recursive: true);
         Log(logPath, $"Update to {options.TargetVersion} completed successfully.");
-        WriteStatus(options, AgentUpdateStateKind.Succeeded, $"Updated to {options.TargetVersion}.",
+        WriteStatus(
+            options,
+            AgentUpdateStateKind.Succeeded,
+            $"Updated to {options.TargetVersion}.",
             rollbackPerformed: false);
         return 0;
     }
     catch (Exception installEx)
     {
         Log(logPath, $"Update install failed. Starting rollback: {installEx}");
-        WriteStatus(options, AgentUpdateStateKind.Failed, $"Install failed: {installEx.Message}",
+        WriteStatus(
+            options,
+            AgentUpdateStateKind.Failed,
+            $"Install failed: {installEx.Message}",
             rollbackPerformed: false);
         RestoreBackup(backupDirectory, options.InstallDirectory, logPath);
         EnsureFirewallRules(options.InstallDirectory, logPath);
         StartService(options.ServiceName, logPath);
-        WriteStatus(options, AgentUpdateStateKind.RolledBack,
-            $"Rolled back after failed update to {options.TargetVersion}.", rollbackPerformed: true);
+        WriteStatus(
+            options,
+            AgentUpdateStateKind.RolledBack,
+            $"Rolled back after failed update to {options.TargetVersion}.",
+            rollbackPerformed: true);
         return 1;
     }
 }
@@ -208,7 +219,9 @@ static void EnsureFirewallRule(string ruleName, string programPath, string descr
         return;
     }
 
-    RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}\" program=\"{programPath}\"", logPath,
+    RunNetsh(
+        $"advfirewall firewall delete rule name=\"{ruleName}\" program=\"{programPath}\"",
+        logPath,
         ignoreFailure: true);
     RunNetsh(
         $"advfirewall firewall add rule name=\"{ruleName}\" dir=in action=allow profile=any program=\"{programPath}\" enable=yes description=\"{description}\"",
@@ -287,7 +300,7 @@ static void StopHostedProcesses(string installDirectory, string logPath, params 
                         var normalizedProcessPath = Path.GetFullPath(processPath);
                         if (!normalizedProcessPath.StartsWith(
                             normalizedInstallDirectory,
-                                StringComparison.OrdinalIgnoreCase))
+                            StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }
@@ -341,10 +354,14 @@ static void WriteStatus(UpdaterOptions options, AgentUpdateStateKind state, stri
         message,
         rollbackPerformed,
         DateTime.UtcNow);
-    File.WriteAllText(options.StatusPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions
-    {
-        WriteIndented = true,
-    }));
+    File.WriteAllText(
+        options.StatusPath,
+        JsonSerializer.Serialize(
+            payload,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            }));
 }
 
 internal sealed record UpdaterOptions(
@@ -356,10 +373,3 @@ internal sealed record UpdaterOptions(
 {
     public string StatusPath => Path.Combine(Path.GetDirectoryName(BackupDirectory)!, "update-status.json");
 }
-
-internal sealed record UpdaterStatusFile(
-    AgentUpdateStateKind State,
-    string TargetVersion,
-    string Message,
-    bool RollbackPerformed,
-    DateTime UpdatedAtUtc);

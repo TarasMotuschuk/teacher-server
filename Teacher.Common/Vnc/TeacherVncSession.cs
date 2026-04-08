@@ -30,15 +30,15 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         _renderTarget.FrameUpdated += (_, _) => StatusChanged?.Invoke(this, "Frame updated");
     }
 
-    public bool ControlEnabled { get; set; }
-
-    public bool IsConnected => _connection?.ConnectionState == ConnectionState.Connected;
-
     public event EventHandler<string>? StatusChanged;
 
     public event EventHandler? Connected;
 
     public event EventHandler? Closed;
+
+    public bool ControlEnabled { get; set; }
+
+    public bool IsConnected => _connection?.ConnectionState == ConnectionState.Connected;
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
@@ -186,31 +186,15 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         _renderTarget.Dispose();
     }
 
-    private void ConnectionOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    public void Dispose()
     {
-        if (sender is not RfbConnection connection)
-        {
-            return;
-        }
+        Close();
+    }
 
-        if (string.Equals(e.PropertyName, nameof(RfbConnection.ConnectionState), StringComparison.Ordinal))
-        {
-            switch (connection.ConnectionState)
-            {
-                case ConnectionState.Connected:
-                    StatusChanged?.Invoke(this, "Connected");
-                    break;
-                case ConnectionState.Interrupted:
-                case ConnectionState.ReconnectFailed:
-                case ConnectionState.Reconnecting:
-                    StatusChanged?.Invoke(this, connection.InterruptionCause?.Message ?? connection.ConnectionState.ToString());
-                    break;
-                case ConnectionState.Closed:
-                    StatusChanged?.Invoke(this, connection.InterruptionCause?.Message ?? "Closed");
-                    Closed?.Invoke(this, EventArgs.Empty);
-                    break;
-            }
-        }
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 
     private static MouseButtons ToMouseButtons(int pressedButtons)
@@ -244,15 +228,31 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         return buttons;
     }
 
-    public void Dispose()
+    private void ConnectionOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        Close();
-    }
+        if (sender is not RfbConnection connection)
+        {
+            return;
+        }
 
-    public ValueTask DisposeAsync()
-    {
-        Dispose();
-        return ValueTask.CompletedTask;
+        if (string.Equals(e.PropertyName, nameof(RfbConnection.ConnectionState), StringComparison.Ordinal))
+        {
+            switch (connection.ConnectionState)
+            {
+                case ConnectionState.Connected:
+                    StatusChanged?.Invoke(this, "Connected");
+                    break;
+                case ConnectionState.Interrupted:
+                case ConnectionState.ReconnectFailed:
+                case ConnectionState.Reconnecting:
+                    StatusChanged?.Invoke(this, connection.InterruptionCause?.Message ?? connection.ConnectionState.ToString());
+                    break;
+                case ConnectionState.Closed:
+                    StatusChanged?.Invoke(this, connection.InterruptionCause?.Message ?? "Closed");
+                    Closed?.Invoke(this, EventArgs.Empty);
+                    break;
+            }
+        }
     }
 
     private sealed class StaticAuthenticationHandler(string password) : IAuthenticationHandler

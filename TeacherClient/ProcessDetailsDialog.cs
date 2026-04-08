@@ -5,28 +5,25 @@ namespace TeacherClient;
 
 public partial class ProcessDetailsDialog : Form
 {
-    public ProcessActionRequested ActionRequested { get; private set; }
+    private static string ValueOrFallback(string? value)
+        => string.IsNullOrWhiteSpace(value) ? TeacherClientText.NotAvailable : value;
 
-    public ProcessDetailsDialog(ProcessDetailsDto details)
-    {
-        InitializeComponent();
-        Icon = AppIconLoader.Load();
-        Text = TeacherClientText.ProcessDetailsTitle;
-        detailsTextBox.Text = BuildText(details);
-    }
+    private static string FormatBool(bool value)
+        => value ? TeacherClientText.Yes : TeacherClientText.No;
 
-    private void KillButton_Click(object? sender, EventArgs e)
+    private static string FormatBytes(long bytes)
     {
-        ActionRequested = ProcessActionRequested.Kill;
-        DialogResult = DialogResult.OK;
-        Close();
-    }
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double size = bytes;
+        var unitIndex = 0;
 
-    private void RestartButton_Click(object? sender, EventArgs e)
-    {
-        ActionRequested = ProcessActionRequested.Restart;
-        DialogResult = DialogResult.OK;
-        Close();
+        while (size >= 1024 && unitIndex < units.Length - 1)
+        {
+            size /= 1024;
+            unitIndex++;
+        }
+
+        return $"{size:0.##} {units[unitIndex]}";
     }
 
     private static string BuildText(ProcessDetailsDto details)
@@ -54,26 +51,30 @@ public partial class ProcessDetailsDialog : Form
         ]);
     }
 
-    private static string ValueOrFallback(string? value)
-        => string.IsNullOrWhiteSpace(value) ? TeacherClientText.NotAvailable : value;
+    public ProcessActionRequested ActionRequested { get; private set; }
 
-    private static string FormatBool(bool value)
-        => value ? TeacherClientText.Yes : TeacherClientText.No;
-
-    private static string FormatBytes(long bytes)
+    public ProcessDetailsDialog(ProcessDetailsDto details)
     {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double size = bytes;
-        var unitIndex = 0;
-
-        while (size >= 1024 && unitIndex < units.Length - 1)
-        {
-            size /= 1024;
-            unitIndex++;
-        }
-
-        return $"{size:0.##} {units[unitIndex]}";
+        InitializeComponent();
+        Icon = AppIconLoader.Load();
+        Text = TeacherClientText.ProcessDetailsTitle;
+        detailsTextBox.Text = BuildText(details);
     }
+
+    private void KillButton_Click(object? sender, EventArgs e)
+    {
+        ActionRequested = ProcessActionRequested.Kill;
+        DialogResult = DialogResult.OK;
+        Close();
+    }
+
+    private void RestartButton_Click(object? sender, EventArgs e)
+    {
+        ActionRequested = ProcessActionRequested.Restart;
+        DialogResult = DialogResult.OK;
+        Close();
+    }
+
 }
 
 public enum ProcessActionRequested

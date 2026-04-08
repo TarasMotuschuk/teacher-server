@@ -7,11 +7,6 @@ internal static class CrossPlatformText
 {
     public static UiLanguage CurrentLanguage { get; private set; } = UiLanguageExtensions.GetDefault();
 
-    public static void SetLanguage(UiLanguage language)
-    {
-        CurrentLanguage = language.Normalize();
-    }
-
     public static bool IsUk => CurrentLanguage == UiLanguage.Ukrainian;
 
     public static string MainTitle => "ClassCommander";
@@ -944,4 +939,9 @@ internal static class CrossPlatformText
         PowerActionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
         _ => IsUk ? "Команда живлення" : "Power command",
     };
+
+    public static void SetLanguage(UiLanguage language)
+    {
+        CurrentLanguage = language.Normalize();
+    }
 }

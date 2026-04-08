@@ -165,6 +165,20 @@ public sealed class TeacherUpdatePreparationService : IDisposable
         _httpClient.Dispose();
     }
 
+    private static void Report(IProgress<TeacherUpdatePreparationProgress>? progress, TeacherUpdatePreparationStage stage, string? version, string message, int? percent, long? bytesTransferred = null, long? totalBytes = null)
+        => progress?.Report(new TeacherUpdatePreparationProgress(stage, version, message, percent, bytesTransferred, totalBytes));
+
+    private static void ValidateSha256(string packagePath, string expectedSha256)
+    {
+        using var stream = File.OpenRead(packagePath);
+        var hash = SHA256.HashData(stream);
+        var actual = Convert.ToHexString(hash).ToLowerInvariant();
+        if (!string.Equals(actual, expectedSha256.Trim().ToLowerInvariant(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Prepared update package checksum does not match the manifest.");
+        }
+    }
+
     private async Task<TeacherUpdateManifest> ReadManifestAsync(string source, bool isLocalFile, CancellationToken cancellationToken)
     {
         TeacherUpdateManifest? manifest;
@@ -274,20 +288,6 @@ public sealed class TeacherUpdatePreparationService : IDisposable
         if (totalBytes.HasValue && totalBytes.Value > 0 && lastReportedPercent < 100)
         {
             Report(progress, TeacherUpdatePreparationStage.Downloading, version, "Preparing update package...", 100, transferred, totalBytes);
-        }
-    }
-
-    private static void Report(IProgress<TeacherUpdatePreparationProgress>? progress, TeacherUpdatePreparationStage stage, string? version, string message, int? percent, long? bytesTransferred = null, long? totalBytes = null)
-        => progress?.Report(new TeacherUpdatePreparationProgress(stage, version, message, percent, bytesTransferred, totalBytes));
-
-    private static void ValidateSha256(string packagePath, string expectedSha256)
-    {
-        using var stream = File.OpenRead(packagePath);
-        var hash = SHA256.HashData(stream);
-        var actual = Convert.ToHexString(hash).ToLowerInvariant();
-        if (!string.Equals(actual, expectedSha256.Trim().ToLowerInvariant(), StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Prepared update package checksum does not match the manifest.");
         }
     }
 }

@@ -154,7 +154,7 @@ public static class StudentAgentHostExtensions
                     PowerActionKind.Shutdown => StudentAgentText.ShutdownRequestedLog,
                     PowerActionKind.Restart => StudentAgentText.RestartRequestedLog,
                     PowerActionKind.LogOff => StudentAgentText.LogOffRequestedLog,
-                    _ => throw new ArgumentOutOfRangeException(nameof(request.Action), request.Action, "Unsupported power action."),
+                    _ => throw new ArgumentOutOfRangeException(nameof(request), request.Action, "Unsupported power action."),
                 };
 
                 agentLog.LogWarning(logMessage);

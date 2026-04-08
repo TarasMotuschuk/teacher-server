@@ -6,11 +6,6 @@ internal static class StudentAgentText
 {
     public static UiLanguage CurrentLanguage { get; private set; } = UiLanguageExtensions.GetDefault();
 
-    public static void SetLanguage(UiLanguage language)
-    {
-        CurrentLanguage = language.Normalize();
-    }
-
     public static bool IsUk => CurrentLanguage == UiLanguage.Ukrainian;
 
     public static string AgentName => "StudentAgent";
@@ -104,8 +99,6 @@ internal static class StudentAgentText
 
     public static string BrowserLockDisabledLog => IsUk ? "Викладач вимкнув блокування браузера." : "Teacher disabled browser lock.";
 
-    public static string BrowserLockKilledBrowsersLog(int count) => IsUk ? $"Завершено браузерів: {count}." : $"Closed browser processes: {count}.";
-
     public static string InputLockEnabledLog => IsUk ? "Викладач увімкнув блокування клавіатури і миші." : "Teacher enabled keyboard and mouse lock.";
 
     public static string InputLockDisabledLog => IsUk ? "Викладач вимкнув блокування клавіатури і миші." : "Teacher disabled keyboard and mouse lock.";
@@ -117,4 +110,11 @@ internal static class StudentAgentText
     public static string LogOffRequestedLog => IsUk ? "Викладач надіслав команду виходу з облікового запису." : "Teacher requested user log off.";
 
     public static string InputLockStatusLine => IsUk ? "Клавіатуру і мишу заблоковано." : "Keyboard and mouse are blocked.";
+
+    public static string BrowserLockKilledBrowsersLog(int count) => IsUk ? $"Завершено браузерів: {count}." : $"Closed browser processes: {count}.";
+
+    public static void SetLanguage(UiLanguage language)
+    {
+        CurrentLanguage = language.Normalize();
+    }
 }

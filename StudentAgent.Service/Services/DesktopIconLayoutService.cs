@@ -6,12 +6,13 @@ namespace StudentAgent.Service.Services;
 
 public sealed class DesktopIconLayoutService
 {
-    private readonly AgentLogService _logService;
-    private readonly string _uiHostPath;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
     };
+
+    private readonly AgentLogService _logService;
+    private readonly string _uiHostPath;
 
     public DesktopIconLayoutService(AgentLogService logService)
     {
@@ -82,6 +83,39 @@ public sealed class DesktopIconLayoutService
 
         return Execute("restore", targetLayoutName);
     }
+
+    private static DesktopIconLayoutSummaryDto? TryReadSummary(string path)
+    {
+        try
+        {
+            var snapshot = JsonSerializer.Deserialize<DesktopIconLayoutSnapshotDto>(File.ReadAllText(path), JsonOptions);
+            return snapshot is null
+                ? null
+                : new DesktopIconLayoutSummaryDto(snapshot.Name, snapshot.SavedAtUtc, snapshot.Icons.Count);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void TryDeleteResultFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Ignore temp file cleanup failures.
+        }
+    }
+
+    private static string QuoteArgument(string value)
+        => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
     private DesktopIconLayoutOperationResultDto Execute(string operation, string? layoutName)
     {
@@ -154,37 +188,4 @@ public sealed class DesktopIconLayoutService
             TryDeleteResultFile(resultPath);
         }
     }
-
-    private static DesktopIconLayoutSummaryDto? TryReadSummary(string path)
-    {
-        try
-        {
-            var snapshot = JsonSerializer.Deserialize<DesktopIconLayoutSnapshotDto>(File.ReadAllText(path), JsonOptions);
-            return snapshot is null
-                ? null
-                : new DesktopIconLayoutSummaryDto(snapshot.Name, snapshot.SavedAtUtc, snapshot.Icons.Count);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static void TryDeleteResultFile(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch
-        {
-            // Ignore temp file cleanup failures.
-        }
-    }
-
-    private static string QuoteArgument(string value)
-        => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 }

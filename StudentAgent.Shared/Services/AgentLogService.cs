@@ -38,6 +38,9 @@ public sealed class AgentLogService
         }
     }
 
+    private static string GetLogDirectory()
+        => StudentAgentPathHelper.GetLogsDirectory();
+
     private void Write(string level, string message)
     {
         var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}{Environment.NewLine}";
@@ -54,7 +57,4 @@ public sealed class AgentLogService
             }
         }
     }
-
-    private static string GetLogDirectory()
-        => StudentAgentPathHelper.GetLogsDirectory();
 }

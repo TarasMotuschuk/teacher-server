@@ -350,7 +350,7 @@ public sealed class RegistryService
         })];
     }
 
-    private static (string hiveName, string subPath) SplitPath(string path)
+    private static (string HiveName, string SubPath) SplitPath(string path)
     {
         var idx = path.IndexOf('\\');
         return idx < 0
@@ -553,7 +553,7 @@ public sealed class RegistryService
             .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("\"", "\\\"", StringComparison.Ordinal);
 
-    private static IReadOnlyList<string> CombineMultilineEntries(string content)
+    private static List<string> CombineMultilineEntries(string content)
     {
         using var reader = new StringReader(content.Replace("\r\n", "\n", StringComparison.Ordinal));
         var lines = new List<string>();
@@ -599,30 +599,6 @@ public sealed class RegistryService
         return index >= 0 && builder[index] == '\\';
     }
 
-    private void ApplyImportValue(string path, string line)
-    {
-        line = SanitizeRegLine(line);
-        var separatorIndex = line.IndexOf('=');
-        if (separatorIndex < 0)
-        {
-            throw new InvalidOperationException($"Malformed registry value entry: {line}");
-        }
-
-        var left = line[..separatorIndex].Trim();
-        var right = line[(separatorIndex + 1)..].Trim();
-        var valueName = ParseRegValueName(left);
-
-        if (right == "-")
-        {
-            DeleteValue(path, valueName);
-            return;
-        }
-
-        var (kind, value) = ParseRegValueData(right);
-        using var key = OpenKey(path, writable: true) ?? throw new InvalidOperationException($"Cannot open key: {path}");
-        key.SetValue(valueName, value, kind);
-    }
-
     private static string ParseRegValueName(string token)
     {
         if (token == "@")
@@ -638,7 +614,7 @@ public sealed class RegistryService
         throw new InvalidOperationException($"Unsupported registry value name token: {token}");
     }
 
-    private static (RegistryValueKind kind, object value) ParseRegValueData(string token)
+    private static (RegistryValueKind Kind, object Value) ParseRegValueData(string token)
     {
         if (token.Length >= 2 && token[0] == '"' && token[^1] == '"')
         {
@@ -767,5 +743,29 @@ public sealed class RegistryService
         }
 
         return sanitized;
+    }
+
+    private void ApplyImportValue(string path, string line)
+    {
+        line = SanitizeRegLine(line);
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex < 0)
+        {
+            throw new InvalidOperationException($"Malformed registry value entry: {line}");
+        }
+
+        var left = line[..separatorIndex].Trim();
+        var right = line[(separatorIndex + 1)..].Trim();
+        var valueName = ParseRegValueName(left);
+
+        if (right == "-")
+        {
+            DeleteValue(path, valueName);
+            return;
+        }
+
+        var (kind, value) = ParseRegValueData(right);
+        using var key = OpenKey(path, writable: true) ?? throw new InvalidOperationException($"Cannot open key: {path}");
+        key.SetValue(valueName, value, kind);
     }
 }

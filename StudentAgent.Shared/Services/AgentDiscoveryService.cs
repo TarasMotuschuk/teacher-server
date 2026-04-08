@@ -74,7 +74,7 @@ public sealed class AgentDiscoveryService : BackgroundService
                     settings.Port,
                     settings.DiscoveryPort,
                     info.IsVisibleModeEnabled,
-                    ipAddresses.FirstOrDefault() ?? received.RemoteEndPoint.Address.ToString(),
+                    ipAddresses.Count > 0 ? ipAddresses[0] : received.RemoteEndPoint.Address.ToString(),
                     ipAddresses,
                     macAddresses,
                     DateTime.UtcNow);

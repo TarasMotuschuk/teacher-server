@@ -23,7 +23,7 @@ public sealed class ProcessService
         "yandex"
     ];
 
-    public IReadOnlyList<ProcessInfoDto> GetProcesses()
+    public static IReadOnlyList<ProcessInfoDto> GetProcesses()
     {
         return Process.GetProcesses()
             .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
@@ -31,20 +31,20 @@ public sealed class ProcessService
             .ToList();
     }
 
-    public bool KillProcess(int processId)
+    public static bool KillProcess(int processId)
     {
         using var process = Process.GetProcessById(processId);
         process.Kill(entireProcessTree: true);
         return true;
     }
 
-    public ProcessDetailsDto GetProcessDetails(int processId)
+    public static ProcessDetailsDto GetProcessDetails(int processId)
     {
         using var process = Process.GetProcessById(processId);
         return MapProcessDetails(process);
     }
 
-    public ProcessDetailsDto RestartProcess(int processId)
+    public static ProcessDetailsDto RestartProcess(int processId)
     {
         using var process = Process.GetProcessById(processId);
         var details = MapProcessDetails(process);
@@ -75,7 +75,7 @@ public sealed class ProcessService
         return details;
     }
 
-    public IReadOnlyList<ProcessInfoDto> GetRunningBrowsers()
+    public static IReadOnlyList<ProcessInfoDto> GetRunningBrowsers()
     {
         return Process.GetProcesses()
             .Where(p => BrowserProcessNames.Contains(p.ProcessName))
@@ -84,7 +84,7 @@ public sealed class ProcessService
             .ToList();
     }
 
-    public int KillRunningBrowsers()
+    public static int KillRunningBrowsers()
     {
         var killed = 0;
 
@@ -106,7 +106,7 @@ public sealed class ProcessService
         return killed;
     }
 
-    public void ExecutePowerAction(PowerActionKind action)
+    public static void ExecutePowerAction(PowerActionKind action)
     {
         if (!OperatingSystem.IsWindows())
         {
