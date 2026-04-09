@@ -14,6 +14,7 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     private const uint KeyeventfUnicode = 0x0004;
 
     private readonly AgentLogService _logService;
+    private readonly object _sync = new();
     private int _sendInputFailureLogBudget = 8;
     private int _ctrlDownCount;
     private int _altDownCount;
@@ -28,33 +29,9 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     {
         try
         {
-            var keysymU = (uint)e.Keysym;
-            UpdateModifierTally(keysymU, e.Pressed);
-
-            // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
-            if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
-                TryLaunchTaskManagerFromCadShortcut())
+            lock (_sync)
             {
-                _skipNextDeleteKeyUp = true;
-                return;
-            }
-
-            if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
-            {
-                _skipNextDeleteKeyUp = false;
-                return;
-            }
-
-            if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
-            {
-                SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
-                return;
-            }
-
-            var keysymValue = (uint)e.Keysym;
-            if (keysymValue is >= 0x20 and <= 0xFFFF)
-            {
-                SendUnicode((char)keysymValue, e.Pressed);
+                InputDesktopThreadDispatcher.Run(() => HandleKeyEventCore(e));
             }
         }
         catch (Exception ex)
@@ -65,6 +42,38 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    private void HandleKeyEventCore(KeyChangedEventArgs e)
+    {
+        var keysymU = (uint)e.Keysym;
+        UpdateModifierTally(keysymU, e.Pressed);
+
+        // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
+        if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
+            TryLaunchTaskManagerFromCadShortcut())
+        {
+            _skipNextDeleteKeyUp = true;
+            return;
+        }
+
+        if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
+        {
+            _skipNextDeleteKeyUp = false;
+            return;
+        }
+
+        if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
+        {
+            SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
+            return;
+        }
+
+        var keysymValue = (uint)e.Keysym;
+        if (keysymValue is >= 0x20 and <= 0xFFFF)
+        {
+            SendUnicode((char)keysymValue, e.Pressed);
+        }
+    }
 
     private static bool TryMapVirtualKey(KeySym keySym, out ushort virtualKey, out ushort scanCode, out uint keyFlags)
     {
