@@ -43,6 +43,7 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (IsConnected)
         {
@@ -67,7 +68,11 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             JpegSubsamplingLevel = JpegSubsamplingLevel.None,
         };
 
-        var connection = await client.ConnectAsync(parameters, cancellationToken);
+        // MarcusW.VncClient keeps using the connect token for its internal background receiver loop.
+        // If a UI/window CTS is later canceled during normal viewer shutdown, the library can surface
+        // OperationCanceledException on a background thread and abort the whole process on macOS.
+        // Use the caller token only as a pre-check; lifetime is controlled by CloseAsync/Dispose instead.
+        var connection = await client.ConnectAsync(parameters, CancellationToken.None);
         connection.PropertyChanged += ConnectionOnPropertyChanged;
         _connection = connection;
         StatusChanged?.Invoke(this, "Connected");

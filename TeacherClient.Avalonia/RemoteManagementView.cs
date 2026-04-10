@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Teacher.Common;
@@ -406,7 +407,15 @@ public partial class MainWindow
 
         try
         {
-            viewer.Show(this);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                viewer.Show();
+                viewer.Activate();
+            }
+            else
+            {
+                viewer.Show(this);
+            }
         }
         catch
         {

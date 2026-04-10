@@ -1,6 +1,12 @@
 # ClassCommander
 
-`ClassCommander` is a .NET 8 classroom administration solution for a transparent, teacher-controlled environment. It includes:
+[![CI](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/ci.yml/badge.svg)](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/ci.yml)
+[![Release All](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/release-all.yml/badge.svg)](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/release-all.yml)
+[![Latest Release](https://img.shields.io/github/v/release/TarasMotuschuk/teacher-server?display_name=tag)](https://github.com/TarasMotuschuk/teacher-server/releases/latest)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-2EA44F)](/Users/taras/Projects/OWN-GITHUB/teacher-server/README.md)
+
+`ClassCommander` is a .NET 10 classroom administration solution for a transparent, teacher-controlled environment. It includes:
 
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
@@ -163,13 +169,13 @@ On macOS, quitting the app after using remote-management VNC should tear down se
 
 ## Architecture notes
 
-- Target framework: `.NET 8`
+- Target framework: `.NET 10`
 - UI: `Windows Forms`
 - Agent style: `ASP.NET Core Minimal API`
 - Transport: `HTTP`
 - Authentication: shared secret header
 
-The solution is Windows-oriented. `StudentAgent.Service`, `StudentAgent.UIHost`, and `TeacherClient` target `net8.0-windows`.
+The solution is Windows-oriented. `StudentAgent.Service`, `StudentAgent.UIHost`, `StudentAgent.VncHost`, and `TeacherClient` target `net10.0-windows`.
 
 ## Security and operational boundaries
 
@@ -188,14 +194,14 @@ Current constraints and risks:
 ### Prerequisites
 
 - Windows machine for `TeacherClient`
-- .NET 8 SDK
+- .NET 10 SDK
 - Visual Studio 2022 or `dotnet` CLI
 
 ### macOS prerequisites for Avalonia
 
 To build and run the Avalonia client on macOS, install:
 
-- `.NET 8 SDK`
+- `.NET 10 SDK`
 - an editor or IDE such as `JetBrains Rider` or `VS Code`
 - optionally, Avalonia templates if you want to scaffold new apps yourself:
 
@@ -213,7 +219,7 @@ For this repository specifically, templates are optional. The checked-in project
 4. Publish the service bundle and install the service.
 5. Ensure TCP port `5055` is reachable from the teacher machine.
 
-`StudentAgent.Service` and `StudentAgent.UIHost` target `net8.0-windows`, so they should be built and run on Windows.
+`StudentAgent.Service` and `StudentAgent.UIHost` target `net10.0-windows`, so they should be built and run on Windows.
 
 `StudentAgent.Service` listens for UDP discovery requests on port `5056` by default and responds with machine identity data that `TeacherClient` can use to build its agent list.
 
@@ -331,7 +337,7 @@ Tag-based GitHub releases now publish all major install/update assets together:
 
 ### Start ClassCommander on macOS
 
-1. Install the .NET 8 SDK on the Mac.
+1. Install the .NET 10 SDK on the Mac.
 2. Restore packages:
 
 ```bash

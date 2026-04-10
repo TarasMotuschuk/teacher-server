@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository contains a Windows-oriented classroom administration solution built with .NET 8. Agents working in this repo should preserve the project's explicit safety boundary: visible, authorized administration only.
+This repository contains a Windows-oriented classroom administration solution currently transitioning from .NET 8 to .NET 10. Agents working in this repo should preserve the project's explicit safety boundary: visible, authorized administration only.
 
 ## Repository map
 
@@ -19,7 +19,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 ## Working agreements
 
 - Keep the product transparent and classroom-safe. Do not add stealth behavior, hidden persistence, covert surveillance, or evasion features.
-- Preserve compatibility with `.NET 8` and the current Windows-oriented app model unless a task explicitly changes that direction.
+- Preserve compatibility with the current Windows-oriented app model. When the active task is the ongoing framework migration, prefer moving changed projects and shared dependencies forward to `.NET 10` together instead of mixing `.NET 8` and `.NET 10` targets unnecessarily.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
 - When changing API shapes, update the server implementation and both teacher clients together.
 - Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
