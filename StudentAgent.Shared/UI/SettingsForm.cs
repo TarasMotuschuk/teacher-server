@@ -27,7 +27,7 @@ public partial class SettingsForm : Form
         ApplyLocalization();
     }
 
-    private void clearLogsButton_Click(object? sender, EventArgs e)
+    private void ClearLogsButton_Click(object? sender, EventArgs e)
     {
         if (_logService is null)
         {
@@ -48,7 +48,7 @@ public partial class SettingsForm : Form
         MessageBox.Show(StudentAgentText.LogsCleared, StudentAgentText.AgentName, MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    private void saveButton_Click(object? sender, EventArgs e)
+    private void SaveButton_Click(object? sender, EventArgs e)
     {
         if (_settingsStore is null || _logService is null)
         {
@@ -76,7 +76,7 @@ public partial class SettingsForm : Form
         Close();
     }
 
-    private void cancelButton_Click(object? sender, EventArgs e)
+    private void CancelButton_Click(object? sender, EventArgs e)
     {
         Close();
     }

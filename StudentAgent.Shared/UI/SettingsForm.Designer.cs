@@ -123,19 +123,19 @@ public partial class SettingsForm : Form
         clearLogsButton.Width = 170;
         clearLogsButton.Height = 45;
         clearLogsButton.Margin = new Padding(12, 0, 0, 0);
-        clearLogsButton.Click += clearLogsButton_Click;
+        clearLogsButton.Click += ClearLogsButton_Click;
 
         saveButton.Text = "Save";
         saveButton.Width = 170;
         saveButton.Height = 45;
         saveButton.Margin = new Padding(12, 0, 0, 0);
-        saveButton.Click += saveButton_Click;
+        saveButton.Click += SaveButton_Click;
 
         cancelButton.Text = "Cancel";
         cancelButton.Width = 170;
         cancelButton.Height = 45;
         cancelButton.Margin = new Padding(12, 0, 0, 0);
-        cancelButton.Click += cancelButton_Click;
+        cancelButton.Click += CancelButton_Click;
 
         buttonsLayout.Controls.Add(cancelButton);
         buttonsLayout.Controls.Add(saveButton);

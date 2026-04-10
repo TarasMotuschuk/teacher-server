@@ -6,6 +6,32 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- Group Commands in both teacher clients now include a `Windows Restrictions` submenu with on/off actions for `Task Manager`, `Run dialog`, `Control Panel and Settings`, `Lock workstation`, `Change password`, and `Log off`
+
+### Changed
+
+- Runtime projects, local build guidance, and GitHub Actions workflows now target `.NET 10`; `Teacher.Common` also switches from `MarcusW.VncClient 1.0.0-alpha4` to the community-maintained `Community.MarcusW.VncClient 2.0.3` package as the base for further remote-management stability work
+
+### Fixed
+
+- Student service now applies Windows classroom restrictions through a dedicated `WindowsRestrictionsService`, using machine-wide policy registry keys and a policy refresh broadcast instead of requiring manual registry edits on each student PC
+
+## [1.0.15] - 2026-04-06
+
+### Added
+
+- Fullscreen remote-management viewers in both teacher clients now include a `Send keyboard shortcut` selector with common Windows combinations such as `Ctrl+Alt+Del`, `Alt+Tab`, `Alt+F4`, `Win`, `Win+Tab`, `Win+R`, `Win+D`, `Ctrl+Esc`, `Ctrl+Shift+Esc`, and `Print Screen`
+
+### Changed
+
+- Remote-management control enablement is now fullscreen-centric in both teacher clients: the remote-management tab starts or stops VNC, while mouse/keyboard control is enabled from inside the fullscreen viewer window
+
+### Fixed
+
+- Student-agent updates now launch `StudentAgent.Updater` from a temporary runner directory and stop both `StudentAgent.UIHost` and `StudentAgent.VncHost` before file replacement, preventing self-locked runtime files such as `clrjit.dll` from breaking install or rollback
+
 ## [1.0.14] - 2026-04-06
 
 ### Added

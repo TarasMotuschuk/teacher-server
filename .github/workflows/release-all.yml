@@ -9,18 +9,41 @@ permissions:
   contents: write
 
 jobs:
-  build-student-agent:
-    name: Build student-agent update bundle
+  code-quality:
+    name: Code quality
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
+
+      - name: Restore solution
+        run: dotnet restore TeacherServer.sln --nologo
+
+      - name: Verify formatting
+        run: dotnet format TeacherServer.sln --verify-no-changes --no-restore --severity error
+
+      - name: Build with analyzers
+        run: dotnet build TeacherServer.sln -c Release --no-restore --nologo -p:ContinuousIntegrationBuild=true
+
+  build-student-agent:
+    name: Build student-agent update bundle
+    runs-on: windows-latest
+    needs: code-quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
       - name: Read version from Directory.Build.props
         id: version
@@ -78,15 +101,16 @@ jobs:
   build-windows-installer:
     name: Build Windows MSI
     runs-on: windows-latest
+    needs: code-quality
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Build StudentAgent.VncHost
         run: dotnet build StudentAgent.VncHost/StudentAgent.VncHost.csproj -c Release --nologo
@@ -106,15 +130,16 @@ jobs:
   build-macos-installer:
     name: Build macOS PKG
     runs-on: macos-14
+    needs: code-quality
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Read version from Directory.Build.props
         id: version

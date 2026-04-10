@@ -1,0 +1,27 @@
+# Keep LF in the repo so `dotnet format` (ENDOFLINE) and CI stay consistent on all OSes.
+* text=auto
+
+*.cs text eol=lf
+*.csproj text eol=lf
+*.sln text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.config text eol=lf
+*.axaml text eol=lf
+*.xaml text eol=lf
+*.ps1 text eol=lf
+*.sh text eol=lf
+
+# Binary assets
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.snk binary
+*.pfx binary

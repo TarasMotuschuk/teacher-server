@@ -1,6 +1,6 @@
 using System.Text;
-using Teacher.Common.Contracts;
 using StudentAgent.Services;
+using Teacher.Common.Contracts;
 
 namespace StudentAgent.Service.Services;
 
@@ -49,6 +49,18 @@ public sealed class RemoteCommandService
         return "administrator";
     }
 
+    private static string NormalizeScript(string script)
+    {
+        var lines = script
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Split('\n')
+            .Select(line => line.TrimEnd())
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .ToArray();
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
     private string WriteScriptFile(string script)
     {
         var filePath = Path.Combine(_scriptsDirectory, $"remote-command-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}.cmd");
@@ -61,17 +73,5 @@ public sealed class RemoteCommandService
 
         File.WriteAllText(filePath, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         return filePath;
-    }
-
-    private static string NormalizeScript(string script)
-    {
-        var lines = script
-            .Replace("\r\n", "\n", StringComparison.Ordinal)
-            .Split('\n')
-            .Select(line => line.TrimEnd())
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .ToArray();
-
-        return string.Join(Environment.NewLine, lines);
     }
 }

@@ -8,6 +8,10 @@ namespace Teacher.Common;
 public sealed class TeacherClientUpdateService : IDisposable
 {
     public const string DefaultManifestUrl = "https://github.com/TarasMotuschuk/teacher-server/releases/latest/download/classcommander-client-version.json";
+    private static readonly JsonSerializerOptions InstallerInfoJsonOptions = new()
+    {
+        WriteIndented = true,
+    };
 
     private readonly HttpClient _httpClient = new();
     private readonly string _rootDirectory;
@@ -33,6 +37,37 @@ public sealed class TeacherClientUpdateService : IDisposable
     public string CurrentVersion => _currentVersion;
 
     public string DownloadsDirectory => _downloadsDirectory;
+
+    public static void LaunchInstaller(TeacherClientInstallerInfo installerInfo)
+    {
+        if (!File.Exists(installerInfo.LocalInstallerPath))
+        {
+            throw new FileNotFoundException("Downloaded installer was not found.", installerInfo.LocalInstallerPath);
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = installerInfo.LocalInstallerPath,
+                UseShellExecute = true,
+            });
+            return;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+                ArgumentList = { installerInfo.LocalInstallerPath },
+            });
+            return;
+        }
+
+        throw new PlatformNotSupportedException("Client installer launching is only supported on Windows and macOS.");
+    }
 
     public TeacherClientInstallerInfo? GetReadyInstaller()
     {
@@ -123,102 +158,15 @@ public sealed class TeacherClientUpdateService : IDisposable
             checkResult.PlatformLabel,
             DateTime.UtcNow);
 
-        File.WriteAllText(_statePath, JsonSerializer.Serialize(installerInfo, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        }));
+        File.WriteAllText(_statePath, JsonSerializer.Serialize(installerInfo, InstallerInfoJsonOptions));
 
         Report(progress, TeacherClientUpdateStage.ReadyToInstall, $"Installer {checkResult.AssetFileName} is ready.", 100, null, null);
         return installerInfo;
     }
 
-    public void LaunchInstaller(TeacherClientInstallerInfo installerInfo)
+    public void Dispose()
     {
-        if (!File.Exists(installerInfo.LocalInstallerPath))
-        {
-            throw new FileNotFoundException("Downloaded installer was not found.", installerInfo.LocalInstallerPath);
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = installerInfo.LocalInstallerPath,
-                UseShellExecute = true
-            });
-            return;
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "open",
-                UseShellExecute = false,
-                ArgumentList = { installerInfo.LocalInstallerPath }
-            });
-            return;
-        }
-
-        throw new PlatformNotSupportedException("Client installer launching is only supported on Windows and macOS.");
-    }
-
-    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
-    {
-        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength;
-        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var destination = File.Create(destinationPath);
-        await CopyStreamWithProgressAsync(source, destination, progress, totalBytes, cancellationToken);
-    }
-
-    private static async Task CopyStreamWithProgressAsync(Stream source, Stream destination, IProgress<TeacherClientUpdateProgress>? progress, long? totalBytes, CancellationToken cancellationToken)
-    {
-        var buffer = new byte[81920];
-        long transferred = 0;
-        var lastReportedPercent = -1;
-        var stopwatch = Stopwatch.StartNew();
-        long lastReportedMilliseconds = 0;
-
-        while (true)
-        {
-            var read = await source.ReadAsync(buffer, cancellationToken);
-            if (read == 0)
-            {
-                break;
-            }
-
-            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-            transferred += read;
-
-            int? percent = totalBytes.HasValue && totalBytes > 0
-                ? (int)Math.Min(100, transferred * 100 / totalBytes.Value)
-                : null;
-            var reportNow = transferred == totalBytes;
-
-            if (percent.HasValue)
-            {
-                reportNow |= percent.Value >= 100 || percent.Value > lastReportedPercent;
-            }
-            else
-            {
-                reportNow |= stopwatch.ElapsedMilliseconds - lastReportedMilliseconds >= 250;
-            }
-
-            if (reportNow)
-            {
-                Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", percent, transferred, totalBytes);
-                lastReportedPercent = percent ?? lastReportedPercent;
-                lastReportedMilliseconds = stopwatch.ElapsedMilliseconds;
-            }
-        }
-
-        if (totalBytes.HasValue && totalBytes.Value > 0 && lastReportedPercent < 100)
-        {
-            Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", 100, transferred, totalBytes);
-        }
+        _httpClient.Dispose();
     }
 
     private static void Report(IProgress<TeacherClientUpdateProgress>? progress, TeacherClientUpdateStage stage, string message, int? percent, long? bytesTransferred, long? totalBytes)
@@ -310,55 +258,61 @@ public sealed class TeacherClientUpdateService : IDisposable
             : parsed.ToString();
     }
 
-    public void Dispose()
+    private static async Task CopyStreamWithProgressAsync(Stream source, Stream destination, IProgress<TeacherClientUpdateProgress>? progress, long? totalBytes, CancellationToken cancellationToken)
     {
-        _httpClient.Dispose();
+        var buffer = new byte[81920];
+        long transferred = 0;
+        var lastReportedPercent = -1;
+        var stopwatch = Stopwatch.StartNew();
+        long lastReportedMilliseconds = 0;
+
+        while (true)
+        {
+            var read = await source.ReadAsync(buffer, cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            transferred += read;
+
+            int? percent = totalBytes.HasValue && totalBytes > 0
+                ? (int)Math.Min(100, transferred * 100 / totalBytes.Value)
+                : null;
+            var reportNow = transferred == totalBytes;
+
+            if (percent.HasValue)
+            {
+                reportNow |= percent.Value >= 100 || percent.Value > lastReportedPercent;
+            }
+            else
+            {
+                reportNow |= stopwatch.ElapsedMilliseconds - lastReportedMilliseconds >= 250;
+            }
+
+            if (reportNow)
+            {
+                Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", percent, transferred, totalBytes);
+                lastReportedPercent = percent ?? lastReportedPercent;
+                lastReportedMilliseconds = stopwatch.ElapsedMilliseconds;
+            }
+        }
+
+        if (totalBytes.HasValue && totalBytes.Value > 0 && lastReportedPercent < 100)
+        {
+            Report(progress, TeacherClientUpdateStage.Downloading, "Downloading installer...", 100, transferred, totalBytes);
+        }
     }
 
-    private sealed record TeacherClientUpdateManifest(
-        string Version,
-        string? WindowsMsiUrl,
-        string? WindowsMsiSha256,
-        string? MacPkgUrl,
-        string? MacPkgSha256);
+    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherClientUpdateProgress>? progress, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
 
-    private sealed record TeacherClientPlatformAsset(
-        string PlatformLabel,
-        string PackageUrl,
-        string? PackageSha256,
-        string FileName);
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var destination = File.Create(destinationPath);
+        await CopyStreamWithProgressAsync(source, destination, progress, totalBytes, cancellationToken);
+    }
 }
-
-public enum TeacherClientUpdateStage
-{
-    Idle = 0,
-    Checking = 1,
-    Available = 2,
-    UpToDate = 3,
-    Downloading = 4,
-    ReadyToInstall = 5,
-    Failed = 6
-}
-
-public sealed record TeacherClientUpdateProgress(
-    TeacherClientUpdateStage Stage,
-    string Message,
-    int? Percent,
-    long? BytesTransferred,
-    long? TotalBytes);
-
-public sealed record TeacherClientUpdateCheckResult(
-    string CurrentVersion,
-    string AvailableVersion,
-    bool UpdateAvailable,
-    string PlatformLabel,
-    string PackageUrl,
-    string? PackageSha256,
-    string AssetFileName,
-    string Message);
-
-public sealed record TeacherClientInstallerInfo(
-    string Version,
-    string LocalInstallerPath,
-    string PlatformLabel,
-    DateTime DownloadedAtUtc);

@@ -37,8 +37,8 @@ partial class AboutForm
         BackColor = Color.White;
         Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         Text = "About StudentAgent";
-        Width = 800;
-        Height = 480;
+        Width = 920;
+        Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -52,25 +52,26 @@ partial class AboutForm
             ColumnCount = 2,
             RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180F));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 172F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80F));
 
         titleLabel.Dock = DockStyle.Fill;
         titleLabel.AutoSize = false;
-        titleLabel.Font = new Font("Segoe UI", 15F, FontStyle.Bold, GraphicsUnit.Point);
+        titleLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold, GraphicsUnit.Point);
         titleLabel.Text = "StudentAgent";
         titleLabel.TextAlign = ContentAlignment.MiddleLeft;
+        titleLabel.Margin = new Padding(0, 0, 0, 6);
 
         descriptionLabel.Dock = DockStyle.Fill;
-        descriptionLabel.Text = "StudentAgent is the student-side classroom service. " +
-            "It exposes authorized management API and runs in the Windows system " +
-            "tray with protected settings and logs access.";
+        descriptionLabel.Text = "StudentAgent is the student-side classroom service. It exposes a visible, authorized " +
+            "management API and runs in the Windows system tray with protected settings and logs access.";
         descriptionLabel.TextAlign = ContentAlignment.TopLeft;
+        descriptionLabel.Margin = new Padding(0, 4, 0, 8);
 
         versionLabel.Dock = DockStyle.Fill;
         versionLabel.Text = "Version:";
@@ -80,14 +81,14 @@ partial class AboutForm
         versionValueLabel.Dock = DockStyle.Fill;
         versionValueLabel.Text = "0.0.0";
         versionValueLabel.TextAlign = ContentAlignment.MiddleLeft;
-        versionValueLabel.AutoEllipsis = true;
+        versionValueLabel.AutoEllipsis = false;
 
         copyrightLabel.Dock = DockStyle.Fill;
         copyrightLabel.Text = "© 2026 Taras Motuschuk. All rights reserved. Email: mtomekt@gmail.com";
         copyrightLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         closeButton.Text = "Close";
-        closeButton.Width = 140;
+        closeButton.Width = 160;
         closeButton.Height = 45;
         closeButton.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         closeButton.DialogResult = DialogResult.OK;

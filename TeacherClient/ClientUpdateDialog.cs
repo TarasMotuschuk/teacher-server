@@ -34,7 +34,7 @@ public sealed class ClientUpdateDialog : Form
             Dock = DockStyle.Top,
             Height = 28,
             TextAlign = ContentAlignment.MiddleLeft,
-            Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point)
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point),
         };
 
         _progressBar = new ProgressBar
@@ -42,7 +42,7 @@ public sealed class ClientUpdateDialog : Form
             Dock = DockStyle.Top,
             Height = 24,
             Margin = new Padding(0, 0, 0, 8),
-            Style = ProgressBarStyle.Continuous
+            Style = ProgressBarStyle.Continuous,
         };
 
         _progressDetailsLabel = new Label
@@ -50,7 +50,7 @@ public sealed class ClientUpdateDialog : Form
             Dock = DockStyle.Top,
             Height = 24,
             TextAlign = ContentAlignment.MiddleLeft,
-            ForeColor = Color.Gainsboro
+            ForeColor = Color.Gainsboro,
         };
 
         _logTextBox = new TextBox
@@ -60,7 +60,7 @@ public sealed class ClientUpdateDialog : Form
             ScrollBars = ScrollBars.Vertical,
             ReadOnly = true,
             WordWrap = true,
-            Font = new Font("Consolas", 10F, FontStyle.Regular, GraphicsUnit.Point)
+            Font = new Font("Consolas", 10F, FontStyle.Regular, GraphicsUnit.Point),
         };
 
         _hintLabel = new Label
@@ -68,14 +68,14 @@ public sealed class ClientUpdateDialog : Form
             Dock = DockStyle.Bottom,
             Height = 88,
             TextAlign = ContentAlignment.TopLeft,
-            AutoEllipsis = false
+            AutoEllipsis = false,
         };
 
         _checkButton = new Button
         {
             Text = TeacherClientText.ClientUpdateCheckButton,
             AutoSize = true,
-            MinimumSize = new Size(170, 42)
+            MinimumSize = new Size(170, 42),
         };
         _checkButton.Click += async (_, _) => await CheckForUpdatesAsync();
 
@@ -84,7 +84,7 @@ public sealed class ClientUpdateDialog : Form
             Text = TeacherClientText.ClientUpdateDownloadButton,
             AutoSize = true,
             MinimumSize = new Size(170, 42),
-            Enabled = false
+            Enabled = false,
         };
         _downloadButton.Click += async (_, _) => await DownloadUpdateAsync();
 
@@ -93,7 +93,7 @@ public sealed class ClientUpdateDialog : Form
             Text = TeacherClientText.ClientUpdateInstallButton,
             AutoSize = true,
             MinimumSize = new Size(170, 42),
-            Enabled = false
+            Enabled = false,
         };
         _installButton.Click += (_, _) => InstallUpdate();
 
@@ -102,7 +102,7 @@ public sealed class ClientUpdateDialog : Form
             Text = TeacherClientText.Close,
             AutoSize = true,
             MinimumSize = new Size(130, 42),
-            DialogResult = DialogResult.OK
+            DialogResult = DialogResult.OK,
         };
 
         var buttonsPanel = new FlowLayoutPanel
@@ -111,7 +111,7 @@ public sealed class ClientUpdateDialog : Form
             Height = 54,
             FlowDirection = FlowDirection.RightToLeft,
             Padding = new Padding(0),
-            WrapContents = false
+            WrapContents = false,
         };
         buttonsPanel.Controls.Add(closeButton);
         buttonsPanel.Controls.Add(_installButton);
@@ -121,7 +121,7 @@ public sealed class ClientUpdateDialog : Form
         var contentPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(12)
+            Padding = new Padding(12),
         };
         contentPanel.Controls.Add(_logTextBox);
         contentPanel.Controls.Add(buttonsPanel);
@@ -183,7 +183,7 @@ public sealed class ClientUpdateDialog : Form
 
         try
         {
-            _service.LaunchInstaller(_installerInfo);
+            TeacherClientUpdateService.LaunchInstaller(_installerInfo);
             AppendLog(TeacherClientText.ClientUpdateInstallerOpened(_installerInfo.LocalInstallerPath));
             _statusLabel.Text = TeacherClientText.ClientUpdateInstallStarted;
         }
@@ -220,6 +220,40 @@ public sealed class ClientUpdateDialog : Form
         }
     }
 
+    private static string BuildLogMessage(TeacherClientUpdateProgress progress)
+    {
+        var details = BuildProgressDetails(progress);
+        return string.IsNullOrWhiteSpace(details) ? progress.Message : $"{progress.Message} {details}";
+    }
+
+    private static string BuildProgressDetails(TeacherClientUpdateProgress progress)
+    {
+        if (progress.TotalBytes.HasValue && progress.BytesTransferred.HasValue)
+        {
+            var percent = progress.Percent is >= 0 and <= 100 ? $" ({progress.Percent.Value}%)" : string.Empty;
+            return $"{FormatByteSize(progress.BytesTransferred.Value)} / {FormatByteSize(progress.TotalBytes.Value)}{percent}";
+        }
+
+        return progress.Percent is >= 0 and <= 100
+            ? $"{progress.Percent.Value}%"
+            : string.Empty;
+    }
+
+    private static string FormatByteSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double value = bytes;
+        var unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return unitIndex == 0 ? $"{value:0} {units[unitIndex]}" : $"{value:0.##} {units[unitIndex]}";
+    }
+
     private void UpdateProgress(TeacherClientUpdateProgress progress)
     {
         _statusLabel.Text = progress.Message;
@@ -249,25 +283,6 @@ public sealed class ClientUpdateDialog : Form
         AppendLog(message);
     }
 
-    private string BuildLogMessage(TeacherClientUpdateProgress progress)
-    {
-        var details = BuildProgressDetails(progress);
-        return string.IsNullOrWhiteSpace(details) ? progress.Message : $"{progress.Message} {details}";
-    }
-
-    private static string BuildProgressDetails(TeacherClientUpdateProgress progress)
-    {
-        if (progress.TotalBytes.HasValue && progress.BytesTransferred.HasValue)
-        {
-            var percent = progress.Percent is >= 0 and <= 100 ? $" ({progress.Percent.Value}%)" : string.Empty;
-            return $"{FormatByteSize(progress.BytesTransferred.Value)} / {FormatByteSize(progress.TotalBytes.Value)}{percent}";
-        }
-
-        return progress.Percent is >= 0 and <= 100
-            ? $"{progress.Percent.Value}%"
-            : string.Empty;
-    }
-
     private void AppendLog(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -276,20 +291,5 @@ public sealed class ClientUpdateDialog : Form
         }
 
         _logTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
-    }
-
-    private static string FormatByteSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double value = bytes;
-        var unitIndex = 0;
-
-        while (value >= 1024 && unitIndex < units.Length - 1)
-        {
-            value /= 1024;
-            unitIndex++;
-        }
-
-        return unitIndex == 0 ? $"{value:0} {units[unitIndex]}" : $"{value:0.##} {units[unitIndex]}";
     }
 }

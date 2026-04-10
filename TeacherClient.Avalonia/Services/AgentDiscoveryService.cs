@@ -15,7 +15,7 @@ public sealed class AgentDiscoveryService
     {
         using var udpClient = new UdpClient(0)
         {
-            EnableBroadcast = true
+            EnableBroadcast = true,
         };
 
         var requestBytes = Encoding.UTF8.GetBytes(DiscoveryRequestMessage);
@@ -52,7 +52,7 @@ public sealed class AgentDiscoveryService
                 var normalized = parsed with
                 {
                     RespondingAddress = result.RemoteEndPoint.Address.ToString(),
-                    LastSeenUtc = DateTime.UtcNow
+                    LastSeenUtc = DateTime.UtcNow,
                 };
 
                 agents[normalized.AgentId] = normalized;

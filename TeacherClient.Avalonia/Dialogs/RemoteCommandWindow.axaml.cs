@@ -21,7 +21,7 @@ public partial class RemoteCommandWindow : Window
         RunAsComboBox.ItemsSource = new[]
         {
             CrossPlatformText.RunAsCurrentUser,
-            CrossPlatformText.RunAsAdministrator
+            CrossPlatformText.RunAsAdministrator,
         };
         RunAsComboBox.SelectedIndex = 0;
     }
@@ -68,5 +68,3 @@ public partial class RemoteCommandWindow : Window
         RunAsComboBox.SelectedIndex = entry.RunAs == RemoteCommandRunAs.Administrator ? 1 : 0;
     }
 }
-
-public sealed record RemoteCommandSubmission(string Script, RemoteCommandRunAs RunAs);

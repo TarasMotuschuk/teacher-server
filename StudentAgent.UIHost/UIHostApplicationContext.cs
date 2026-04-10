@@ -63,7 +63,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                 "desktop-icons",
                 "restore",
                 "default",
-                Path.Combine(StudentAgentPathHelper.GetDesktopLayoutResultsDirectory(), "timer-restore.json")
+                Path.Combine(StudentAgentPathHelper.GetDesktopLayoutResultsDirectory(), "timer-restore.json"),
             };
 
             _ = DesktopIcons.DesktopIconLayoutCommandRunner.TryExecute(args, _logService, out _, out var resultPath);

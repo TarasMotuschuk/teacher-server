@@ -47,12 +47,12 @@ partial class ProcessDetailsDialog
         killButton.Text = TeacherClientText.TerminateSelected;
         killButton.MinimumSize = new Size(140, 46);
         killButton.AutoSize = true;
-        killButton.Click += killButton_Click;
+        killButton.Click += KillButton_Click;
 
         restartButton.Text = TeacherClientText.RestartSelected;
         restartButton.MinimumSize = new Size(160, 46);
         restartButton.AutoSize = true;
-        restartButton.Click += restartButton_Click;
+        restartButton.Click += RestartButton_Click;
 
         closeButton.Text = TeacherClientText.Close;
         closeButton.MinimumSize = new Size(120, 46);

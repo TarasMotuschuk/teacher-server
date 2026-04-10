@@ -6,6 +6,11 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class FrequentProgramStore
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+    };
+
     private readonly object _sync = new();
     private readonly string _storagePath;
 
@@ -46,10 +51,7 @@ public sealed class FrequentProgramStore
     {
         lock (_sync)
         {
-            var json = JsonSerializer.Serialize(Normalize(entries?.ToList()), new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(Normalize(entries?.ToList()), JsonOptions);
 
             File.WriteAllText(_storagePath, json);
         }

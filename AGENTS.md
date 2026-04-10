@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository contains a Windows-oriented classroom administration solution built with .NET 8. Agents working in this repo should preserve the project's explicit safety boundary: visible, authorized administration only.
+This repository contains a Windows-oriented classroom administration solution currently transitioning from .NET 8 to .NET 10. Agents working in this repo should preserve the project's explicit safety boundary: visible, authorized administration only.
 
 ## Repository map
 
@@ -19,7 +19,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 ## Working agreements
 
 - Keep the product transparent and classroom-safe. Do not add stealth behavior, hidden persistence, covert surveillance, or evasion features.
-- Preserve compatibility with `.NET 8` and the current Windows-oriented app model unless a task explicitly changes that direction.
+- Preserve compatibility with the current Windows-oriented app model. When the active task is the ongoing framework migration, prefer moving changed projects and shared dependencies forward to `.NET 10` together instead of mixing `.NET 8` and `.NET 10` targets unnecessarily.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
 - When changing API shapes, update the server implementation and both teacher clients together.
 - Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
@@ -41,6 +41,7 @@ This repository contains a Windows-oriented classroom administration solution bu
 
 - Prefer validating changes with `dotnet build TeacherServer.sln`.
 - If a change affects runtime behavior, mention what was validated and what still needs manual testing on Windows.
+- Before pushing, fix formatting failures that break builds (e.g. `IDE0055`) by running `dotnet format TeacherServer.sln`.
 
 ## Release workflow
 
@@ -60,3 +61,13 @@ This repository contains a Windows-oriented classroom administration solution bu
 - Keep `README.md` accurate when capabilities, setup steps, or security assumptions change.
 - Append user-visible milestones to `CHANGELOG.md`.
 - When making functional or UX changes, explicitly describe those changes in documentation and update `README.md` if user-visible behavior, setup, configuration, or workflows changed.
+
+## Saved commands
+
+- `migrate agent settings to registry`:
+  - Replace `StudentAgent.Shared/Services/AgentSettingsStore.cs` file-backed runtime settings with a Windows Registry-backed store under `HKLM\Software\TeacherServer\StudentAgent`.
+  - Keep non-secret machine settings in normal registry values, but protect secrets such as `SharedSecret` and `VncPassword` with DPAPI `ProtectedData` using `DataProtectionScope.LocalMachine`.
+  - Do not use a legacy `agentsettings.json` file or filesystem fallbacks for runtime settings; store machine settings in `HKLM\Software\TeacherServer\StudentAgent` only (session hosts without HKLM write use localhost HTTP to the service).
+  - Remove or narrow the broad `Builtin Users` modify ACL logic in `StudentAgent.Shared/Services/StudentAgentPathHelper.cs` for settings storage; keep filesystem use only for logs, updates, and desktop-layout files.
+  - Preserve backward compatibility for existing installed student agents and avoid losing custom `SharedSecret`, VNC settings, or admin-password data during migration.
+  - Validate with `dotnet build` for at least `StudentAgent.Service`, `StudentAgent.UIHost`, and `StudentAgent.VncHost`, then note that Windows runtime verification is still required for DPAPI, ACLs, and first-run migration behavior.

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -98,6 +97,60 @@ public sealed class AgentUpdateService
             return Task.FromResult(_status with { });
         }
     }
+
+    private static bool IsVersionGreater(string candidate, string current)
+    {
+        if (!Version.TryParse(candidate, out var candidateVersion))
+        {
+            return false;
+        }
+
+        if (!Version.TryParse(current, out var currentVersion))
+        {
+            return true;
+        }
+
+        return candidateVersion > currentVersion;
+    }
+
+    private static void ValidateSha256(string packagePath, string expectedSha256)
+    {
+        using var stream = File.OpenRead(packagePath);
+        var hash = SHA256.HashData(stream);
+        var actual = Convert.ToHexString(hash).ToLowerInvariant();
+        var normalizedExpected = expectedSha256.Trim().ToLowerInvariant();
+        if (!string.Equals(actual, normalizedExpected, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Downloaded update package checksum does not match the manifest.");
+        }
+    }
+
+    private static void CopyDirectory(string sourceDirectory, string destinationDirectory, Func<string, bool> skipPredicate)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+
+        foreach (var directory in Directory.GetDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, directory);
+            Directory.CreateDirectory(Path.Combine(destinationDirectory, relativePath));
+        }
+
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            if (skipPredicate(file))
+            {
+                continue;
+            }
+
+            var relativePath = Path.GetRelativePath(sourceDirectory, file);
+            var destinationPath = Path.Combine(destinationDirectory, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            File.Copy(file, destinationPath, overwrite: true);
+        }
+    }
+
+    private static string Quote(string value)
+        => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
     private async Task RunUpdateAsync(StartAgentUpdateRequest request, CancellationToken cancellationToken)
     {
@@ -206,36 +259,12 @@ public sealed class AgentUpdateService
         await source.CopyToAsync(destination, cancellationToken);
     }
 
-    private static bool IsVersionGreater(string candidate, string current)
-    {
-        if (!Version.TryParse(candidate, out var candidateVersion))
-        {
-            return false;
-        }
-
-        if (!Version.TryParse(current, out var currentVersion))
-        {
-            return true;
-        }
-
-        return candidateVersion > currentVersion;
-    }
-
-    private static void ValidateSha256(string packagePath, string expectedSha256)
-    {
-        using var stream = File.OpenRead(packagePath);
-        var hash = SHA256.HashData(stream);
-        var actual = Convert.ToHexString(hash).ToLowerInvariant();
-        var normalizedExpected = expectedSha256.Trim().ToLowerInvariant();
-        if (!string.Equals(actual, normalizedExpected, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Downloaded update package checksum does not match the manifest.");
-        }
-    }
-
     private void LaunchUpdater(string updaterPath, string packagePath, string targetVersion)
     {
         var installDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var runnerDirectory = PrepareUpdaterRunnerDirectory(installDirectory);
+        var stagedUpdaterPath = Path.Combine(runnerDirectory, Path.GetFileName(updaterPath));
+
         var args = string.Join(' ', [
             "--service-name", Quote(ServiceName),
             "--zip", Quote(packagePath),
@@ -246,14 +275,40 @@ public sealed class AgentUpdateService
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = updaterPath,
+            FileName = stagedUpdaterPath,
             Arguments = args,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = installDirectory
+            WorkingDirectory = runnerDirectory,
         };
 
         Process.Start(startInfo);
+    }
+
+    private string PrepareUpdaterRunnerDirectory(string installDirectory)
+    {
+        var runnerRoot = StudentAgentPathHelper.GetUpdateRunnerDirectory();
+        Directory.CreateDirectory(runnerRoot);
+        CleanupStaleUpdaterRunnerDirectories(runnerRoot);
+
+        var runnerDirectory = Path.Combine(runnerRoot, Guid.NewGuid().ToString("N"));
+        CopyDirectory(installDirectory, runnerDirectory, static _ => false);
+        return runnerDirectory;
+    }
+
+    private void CleanupStaleUpdaterRunnerDirectories(string runnerRoot)
+    {
+        foreach (var directory in Directory.GetDirectories(runnerRoot))
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Failed to remove stale updater runner directory '{directory}': {ex.Message}");
+            }
+        }
     }
 
     private void UpdateState(
@@ -301,7 +356,7 @@ public sealed class AgentUpdateService
                 UpdateAvailable = persisted.State is AgentUpdateStateKind.Available or AgentUpdateStateKind.Downloading or AgentUpdateStateKind.Installing,
                 Message = persisted.Message,
                 RollbackPerformed = persisted.RollbackPerformed,
-                LastUpdatedUtc = persisted.UpdatedAtUtc
+                LastUpdatedUtc = persisted.UpdatedAtUtc,
             };
         }
         catch
@@ -309,9 +364,6 @@ public sealed class AgentUpdateService
             return current;
         }
     }
-
-    private static string Quote(string value)
-        => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
     private sealed record AgentUpdateManifest(
         [property: JsonPropertyName("version")] string Version,

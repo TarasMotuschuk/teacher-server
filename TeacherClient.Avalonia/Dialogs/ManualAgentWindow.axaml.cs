@@ -37,10 +37,10 @@ public partial class ManualAgentWindow : Window
             Id = existingId ?? Guid.NewGuid().ToString("N"),
             DisplayName = DisplayNameTextBox.Text?.Trim() ?? string.Empty,
             IpAddress = IpAddressTextBox.Text?.Trim() ?? string.Empty,
-            Port = Decimal.ToInt32(PortNumericUpDown.Value ?? 5055),
+            Port = decimal.ToInt32(PortNumericUpDown.Value ?? 5055),
             GroupName = GroupNameTextBox.Text?.Trim() ?? string.Empty,
             MacAddress = MacAddressTextBox.Text?.Trim() ?? string.Empty,
-            Notes = NotesTextBox.Text?.Trim() ?? string.Empty
+            Notes = NotesTextBox.Text?.Trim() ?? string.Empty,
         };
     }
 

@@ -147,13 +147,13 @@ partial class ManualAgentDialog
         saveButton.Width = 120;
         saveButton.Height = 45;
         saveButton.Margin = new Padding(12, 0, 0, 0);
-        saveButton.Click += saveButton_Click;
+        saveButton.Click += SaveButton_Click;
 
         cancelButton.Text = "Cancel";
         cancelButton.Width = 120;
         cancelButton.Height = 45;
         cancelButton.Margin = new Padding(12, 0, 0, 0);
-        cancelButton.Click += cancelButton_Click;
+        cancelButton.Click += CancelButton_Click;
 
         buttonsLayout.Controls.Add(cancelButton);
         buttonsLayout.Controls.Add(saveButton);

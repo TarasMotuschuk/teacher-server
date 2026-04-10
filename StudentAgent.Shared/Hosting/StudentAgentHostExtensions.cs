@@ -50,25 +50,12 @@ public static class StudentAgentHostExtensions
 
         app.MapGet("/health", () => Results.Ok(new { status = "ok", utc = DateTime.UtcNow }));
 
-        app.MapGet("/api/info", (ServerInfoService service) => Results.Ok(service.GetInfo()));
-        app.MapGet("/api/processes", (ProcessService service) => Results.Ok(service.GetProcesses()));
-        app.MapGet("/api/processes/{processId:int}", (int processId, ProcessService service) =>
+        // Lets session processes (UIHost, VncHost) persist settings via the Windows service when they cannot write HKLM.
+        app.MapPost("/api/agent/runtime-settings", ([FromBody] AgentRuntimeSettings snapshot, [FromServices] AgentSettingsStore store) =>
         {
             try
             {
-                return Results.Ok(service.GetProcessDetails(processId));
-            }
-            catch (Exception ex)
-            {
-                return Results.BadRequest(new { error = ex.Message });
-            }
-        });
-
-        app.MapPost("/api/processes/kill", ([FromBody] KillProcessRequest request, [FromServices] ProcessService service) =>
-        {
-            try
-            {
-                service.KillProcess(request.ProcessId);
+                store.ImportRuntimeSettings(snapshot);
                 return Results.NoContent();
             }
             catch (Exception ex)
@@ -77,11 +64,38 @@ public static class StudentAgentHostExtensions
             }
         });
 
-        app.MapPost("/api/processes/restart", ([FromBody] RestartProcessRequest request, [FromServices] ProcessService service) =>
+        app.MapGet("/api/info", (ServerInfoService service) => Results.Ok(service.GetInfo()));
+        app.MapGet("/api/processes", () => Results.Ok(ProcessService.GetProcesses()));
+        app.MapGet("/api/processes/{processId:int}", (int processId) =>
         {
             try
             {
-                return Results.Ok(service.RestartProcess(request.ProcessId));
+                return Results.Ok(ProcessService.GetProcessDetails(processId));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/processes/kill", ([FromBody] KillProcessRequest request) =>
+        {
+            try
+            {
+                ProcessService.KillProcess(request.ProcessId);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapPost("/api/processes/restart", ([FromBody] RestartProcessRequest request) =>
+        {
+            try
+            {
+                return Results.Ok(ProcessService.RestartProcess(request.ProcessId));
             }
             catch (Exception ex)
             {
@@ -131,7 +145,7 @@ public static class StudentAgentHostExtensions
             }
         });
 
-        app.MapPost("/api/power", ([FromBody] PowerActionRequest request, [FromServices] ProcessService service, [FromServices] AgentLogService agentLog) =>
+        app.MapPost("/api/power", ([FromBody] PowerActionRequest request, [FromServices] AgentLogService agentLog) =>
         {
             try
             {
@@ -140,11 +154,11 @@ public static class StudentAgentHostExtensions
                     PowerActionKind.Shutdown => StudentAgentText.ShutdownRequestedLog,
                     PowerActionKind.Restart => StudentAgentText.RestartRequestedLog,
                     PowerActionKind.LogOff => StudentAgentText.LogOffRequestedLog,
-                    _ => throw new ArgumentOutOfRangeException(nameof(request.Action), request.Action, "Unsupported power action.")
+                    _ => throw new ArgumentOutOfRangeException(nameof(request), request.Action, "Unsupported power action."),
                 };
 
                 agentLog.LogWarning(logMessage);
-                service.ExecutePowerAction(request.Action);
+                ProcessService.ExecutePowerAction(request.Action);
                 return Results.NoContent();
             }
             catch (Exception ex)
@@ -512,7 +526,7 @@ public static class StudentAgentHostExtensions
         var zeroHighBytes = 0;
         for (var pairIndex = 0; pairIndex < pairsToInspect; pairIndex++)
         {
-            if (bytes[pairIndex * 2 + 1] == 0)
+            if (bytes[(pairIndex * 2) + 1] == 0)
             {
                 zeroHighBytes++;
             }

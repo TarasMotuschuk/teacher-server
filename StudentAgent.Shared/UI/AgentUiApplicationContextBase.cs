@@ -8,7 +8,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 {
     private readonly AgentSettingsStore _settingsStore;
     private readonly AgentLogService _logService;
-    private readonly ProcessService _processService;
     private readonly NotifyIcon _notifyIcon;
     private readonly System.Windows.Forms.Timer _browserLockTimer;
     private readonly System.Windows.Forms.Timer _inputLockRefreshTimer;
@@ -18,6 +17,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     private readonly ToolStripMenuItem _exitMenuItem;
     private readonly List<InputLockForm> _inputLockForms = [];
     private bool _browserCheckInProgress;
+    private bool _inputLockHookHeld;
 
     protected AgentUiApplicationContextBase(
         AgentSettingsStore settingsStore,
@@ -26,7 +26,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         _settingsStore = settingsStore;
         _logService = logService;
-        _processService = processService;
         StudentAgentText.SetLanguage(_settingsStore.Current.Language);
 
         var menu = new ContextMenuStrip();
@@ -49,7 +48,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             Text = StudentAgentText.AgentName,
             Icon = BrandingResourceLoader.LoadIcon("ClassCommander-icon.ico") ?? SystemIcons.Shield,
             Visible = true,
-            ContextMenuStrip = menu
+            ContextMenuStrip = menu,
         };
 
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
@@ -59,14 +58,14 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
         _browserLockTimer = new System.Windows.Forms.Timer
         {
-            Interval = checked((int)TimeSpan.FromSeconds(Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds)).TotalMilliseconds)
+            Interval = checked((int)TimeSpan.FromSeconds(Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds)).TotalMilliseconds),
         };
         _browserLockTimer.Tick += async (_, _) => await EvaluateBrowserLockAsync();
         _browserLockTimer.Start();
 
         _inputLockRefreshTimer = new System.Windows.Forms.Timer
         {
-            Interval = 1000
+            Interval = 1000,
         };
         _inputLockRefreshTimer.Tick += (_, _) => EnsureInputLockForms();
         _inputLockRefreshTimer.Start();
@@ -76,6 +75,13 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     protected AgentSettingsStore SettingsStore => _settingsStore;
 
     protected AgentLogService LogService => _logService;
+
+    protected static bool IsAdministrator()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
 
     protected override void ExitThreadCore()
     {
@@ -119,11 +125,10 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         return isValid;
     }
 
-    protected static bool IsAdministrator()
+    private static void OpenAbout()
     {
-        using var identity = WindowsIdentity.GetCurrent();
-        var principal = new WindowsPrincipal(identity);
-        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        using var form = new AboutForm();
+        form.ShowDialog();
     }
 
     private void OpenSettings()
@@ -146,12 +151,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         }
 
         using var form = new LogsForm(_logService);
-        form.ShowDialog();
-    }
-
-    private void OpenAbout()
-    {
-        using var form = new AboutForm();
         form.ShowDialog();
     }
 
@@ -181,7 +180,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             return;
         }
 
-        var browsers = _processService.GetRunningBrowsers();
+        var browsers = ProcessService.GetRunningBrowsers();
         if (browsers.Count == 0)
         {
             return;
@@ -191,7 +190,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
         try
         {
-            using var warningForm = new BrowserLockWarningForm(StudentAgentText.BrowserUsageForbiddenMessage, 10);
+            using var warningForm = new BrowserLockWarningForm(10);
             warningForm.Show();
             await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -201,7 +200,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
                 return;
             }
 
-            var killedCount = _processService.KillRunningBrowsers();
+            var killedCount = ProcessService.KillRunningBrowsers();
             _logService.LogWarning(StudentAgentText.BrowserLockKilledBrowsersLog(killedCount));
             warningForm.Close();
         }
@@ -215,6 +214,12 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         if (_settingsStore.Current.InputLockEnabled)
         {
+            if (!_inputLockHookHeld)
+            {
+                InputLockGlobalInputHook.AddRef();
+                _inputLockHookHeld = true;
+            }
+
             if (_inputLockForms.Count == 0)
             {
                 foreach (var screen in Screen.AllScreens)
@@ -229,7 +234,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             {
                 form.TopMost = true;
                 form.Show();
-                form.Activate();
                 form.BringToFront();
             }
 
@@ -247,5 +251,10 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         }
 
         _inputLockForms.Clear();
+        if (_inputLockHookHeld)
+        {
+            InputLockGlobalInputHook.Release();
+            _inputLockHookHeld = false;
+        }
     }
 }

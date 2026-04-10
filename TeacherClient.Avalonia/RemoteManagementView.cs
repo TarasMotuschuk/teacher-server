@@ -1,12 +1,5 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Avalonia.Threading;
 using Teacher.Common;
 using Teacher.Common.Vnc;
@@ -32,18 +25,6 @@ public partial class MainWindow
         }
 
         await StartVncForRemoteManagementAsync(agent, viewOnly: true);
-    }
-
-    private async void StartVncControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var agent = GetSelectedRemoteManagementAgent();
-        if (agent is null)
-        {
-            SetStatus(CrossPlatformText.RemoteManagementNoSelection);
-            return;
-        }
-
-        await StartVncForRemoteManagementAsync(agent, viewOnly: false);
     }
 
     private async void StopVncButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -148,7 +129,15 @@ public partial class MainWindow
 
     private RemoteManagementTileViewModel CreateRemoteManagementTile(DiscoveredAgentRow agent)
     {
-        var tile = new RemoteManagementTileViewModel(agent);
+        var tile = new RemoteManagementTileViewModel(
+            agent,
+            RemoteManagementViewHelpers.BuildRemoteManagementStatusText(
+                agent.Status,
+                agent.MachineName,
+                agent.VncEnabled,
+                agent.VncRunning,
+                agent.VncViewOnly,
+                agent.VncStatusMessage));
         UpdateRemoteManagementTile(tile, agent);
         return tile;
     }
@@ -157,7 +146,13 @@ public partial class MainWindow
     {
         tile.Agent = agent;
         tile.MachineName = agent.MachineName;
-        tile.StatusText = BuildRemoteManagementStatusText(agent);
+        tile.StatusText = RemoteManagementViewHelpers.BuildRemoteManagementStatusText(
+            agent.Status,
+            agent.MachineName,
+            agent.VncEnabled,
+            agent.VncRunning,
+            agent.VncViewOnly,
+            agent.VncStatusMessage);
 
         if (agent.VncRunning && !string.IsNullOrWhiteSpace(agent.RespondingAddress) && agent.VncPort > 0)
         {
@@ -165,30 +160,20 @@ public partial class MainWindow
             return;
         }
 
-        StopRemoteManagementPreviewNoWait(tile);
-        tile.SetPreview(CreatePlaceholderBitmap(200, 140));
-    }
-
-    private static string BuildRemoteManagementStatusText(DiscoveredAgentRow agent)
-    {
-        var baseStatus = !string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)
-            ? CrossPlatformText.RemoteManagementStopped(agent.MachineName)
-            : !agent.VncEnabled
-                ? CrossPlatformText.RemoteManagementDisabled(agent.MachineName)
-                : agent.VncRunning
-                    ? (agent.VncViewOnly
-                        ? CrossPlatformText.RemoteManagementViewOnly(agent.MachineName)
-                        : CrossPlatformText.RemoteManagementControl(agent.MachineName))
-                    : CrossPlatformText.RemoteManagementStopped(agent.MachineName);
-
-        return string.IsNullOrWhiteSpace(agent.VncStatusMessage)
-            ? baseStatus
-            : $"{baseStatus} - {agent.VncStatusMessage}";
+        RemoteManagementViewHelpers.StopRemoteManagementPreviewNoWait(tile);
+        tile.SetPreview(RemoteManagementViewHelpers.CreatePlaceholderBitmap(200, 140));
     }
 
     private async Task EnsureRemoteManagementPreviewAsync(RemoteManagementTileViewModel tile)
     {
         if (!tile.Agent.VncRunning || string.IsNullOrWhiteSpace(tile.Agent.RespondingAddress) || tile.Agent.VncPort <= 0)
+        {
+            return;
+        }
+
+        // Do not start tile preview while a fullscreen viewer is open for this agent: preview would open a second
+        // VNC client and races teardown when the tile session is stopped/refreshed.
+        if (tile.FullscreenViewerCount > 0)
         {
             return;
         }
@@ -199,7 +184,7 @@ public partial class MainWindow
             return;
         }
 
-        var key = $"{tile.Agent.RespondingAddress}:{tile.Agent.VncPort}:{tile.Agent.VncViewOnly}:{_clientSettings.SharedSecret}";
+        var key = $"{tile.Agent.RespondingAddress}:{tile.Agent.VncPort}:False:{_clientSettings.SharedSecret}";
         if (string.Equals(tile.ConnectionKey, key, StringComparison.OrdinalIgnoreCase) &&
             tile.Session?.IsConnected == true &&
             tile.PreviewTask is { IsCompleted: false })
@@ -207,7 +192,7 @@ public partial class MainWindow
             return;
         }
 
-        await StopRemoteManagementPreviewAsync(tile);
+        await RemoteManagementViewHelpers.StopRemoteManagementPreviewAsync(tile);
         tile.ConnectionKey = key;
 
         var cancellation = new CancellationTokenSource();
@@ -215,7 +200,7 @@ public partial class MainWindow
             tile.Agent.RespondingAddress,
             tile.Agent.VncPort,
             _clientSettings.SharedSecret,
-            controlEnabled: !tile.Agent.VncViewOnly);
+            controlEnabled: false);
         tile.PreviewCancellation = cancellation;
         tile.Session = session;
         session.StatusChanged += (_, message) =>
@@ -226,7 +211,13 @@ public partial class MainWindow
                 {
                     if (!tile.IsDisposed)
                     {
-                        tile.StatusText = $"{BuildRemoteManagementStatusText(tile.Agent)}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" - {message}")}";
+                        tile.StatusText = $"{RemoteManagementViewHelpers.BuildRemoteManagementStatusText(
+                            tile.Agent.Status,
+                            tile.Agent.MachineName,
+                            tile.Agent.VncEnabled,
+                            tile.Agent.VncRunning,
+                            tile.Agent.VncViewOnly,
+                            tile.Agent.VncStatusMessage)}{(string.IsNullOrWhiteSpace(message) ? string.Empty : $" - {message}")}";
                     }
                 });
             }
@@ -239,13 +230,20 @@ public partial class MainWindow
                 {
                     if (!cancellation.IsCancellationRequested && !tile.IsDisposed)
                     {
-                        tile.StatusText = BuildRemoteManagementStatusText(tile.Agent);
+                        tile.StatusText = RemoteManagementViewHelpers.BuildRemoteManagementStatusText(
+                            tile.Agent.Status,
+                            tile.Agent.MachineName,
+                            tile.Agent.VncEnabled,
+                            tile.Agent.VncRunning,
+                            tile.Agent.VncViewOnly,
+                            tile.Agent.VncStatusMessage);
                     }
                 });
             }
         };
 
-        tile.PreviewTask = Task.Run(async () =>
+        tile.PreviewTask = Task.Run(
+            async () =>
         {
             try
             {
@@ -257,11 +255,17 @@ public partial class MainWindow
                     if (frame is not null)
                     {
                         tile.LastFailureUtc = null;
-                        var preview = CreatePreviewBitmap(frame);
+                        var preview = RemoteManagementViewHelpers.CreatePreviewBitmap(frame);
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
                             tile.SetPreview(preview);
-                            tile.StatusText = BuildRemoteManagementStatusText(tile.Agent);
+                            tile.StatusText = RemoteManagementViewHelpers.BuildRemoteManagementStatusText(
+                                tile.Agent.Status,
+                                tile.Agent.MachineName,
+                                tile.Agent.VncEnabled,
+                                tile.Agent.VncRunning,
+                                tile.Agent.VncViewOnly,
+                                tile.Agent.VncStatusMessage);
                         });
                     }
 
@@ -281,7 +285,7 @@ public partial class MainWindow
                         if (!tile.IsDisposed)
                         {
                             tile.StatusText = CrossPlatformText.RemoteManagementConnectionFailed(tile.Agent.MachineName, ex.Message);
-                            tile.SetPreview(CreatePlaceholderBitmap(200, 140));
+                            tile.SetPreview(RemoteManagementViewHelpers.CreatePlaceholderBitmap(200, 140));
                         }
                     });
                 }
@@ -304,38 +308,7 @@ public partial class MainWindow
             }
         }, cancellation.Token);
 
-        tile.SetPreview(CreatePlaceholderBitmap(200, 140));
-    }
-
-    /// <summary>
-    /// Cancels the preview loop and waits for the background task to finish teardown.
-    /// Does not call <see cref="TeacherVncSession.Close"/> on the UI thread (that blocked and raced the preview task).
-    /// </summary>
-    private async Task StopRemoteManagementPreviewAsync(RemoteManagementTileViewModel tile)
-    {
-        var wait = tile.PreviewTask;
-        tile.PreviewCancellation?.Cancel();
-        tile.Session = null;
-        tile.PreviewCancellation = null;
-        tile.PreviewTask = null;
-        if (wait is not null)
-        {
-            try
-            {
-                await wait.ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-        }
-    }
-
-    private static void StopRemoteManagementPreviewNoWait(RemoteManagementTileViewModel tile)
-    {
-        tile.PreviewCancellation?.Cancel();
-        tile.Session = null;
-        tile.PreviewCancellation = null;
-        tile.PreviewTask = null;
+        tile.SetPreview(RemoteManagementViewHelpers.CreatePlaceholderBitmap(200, 140));
     }
 
     private async Task StartVncForRemoteManagementAsync(DiscoveredAgentRow agent, bool viewOnly)
@@ -396,33 +369,27 @@ public partial class MainWindow
         }
 
         var tile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
-        TeacherVncSession? sharedSession = null;
         if (tile is not null)
         {
-            if (tile.Session?.IsConnected == true)
-            {
-                sharedSession = tile.Session;
-                sharedSession.ControlEnabled = !agent.VncViewOnly;
-            }
-            else
-            {
-                await StopRemoteManagementPreviewAsync(tile);
-            }
+            // Always stop the tile preview before opening the viewer. Sharing one TeacherVncSession between the
+            // preview loop and RemoteVncViewerWindow caused use-after-dispose when the preview was stopped or
+            // refreshed while the viewer was still open.
+            await RemoteManagementViewHelpers.StopRemoteManagementPreviewAsync(tile);
+            tile.FullscreenViewerCount++;
         }
 
-        var viewer = sharedSession is not null
-            ? new Dialogs.RemoteVncViewerWindow(agent.MachineName, sharedSession)
-            : new Dialogs.RemoteVncViewerWindow(
-                agent.MachineName,
-                agent.RespondingAddress,
-                agent.VncPort,
-                _clientSettings.SharedSecret,
-                controlEnabled: !agent.VncViewOnly);
+        var viewer = new Dialogs.RemoteVncViewerWindow(
+            agent.MachineName,
+            agent.RespondingAddress,
+            agent.VncPort,
+            _clientSettings.SharedSecret,
+            controlEnabled: false);
 
         if (tile is not null)
         {
             viewer.Closed += async (_, _) =>
             {
+                tile.FullscreenViewerCount = Math.Max(0, tile.FullscreenViewerCount - 1);
                 if (_isClosing || !agent.VncRunning)
                 {
                     return;
@@ -438,7 +405,28 @@ public partial class MainWindow
             };
         }
 
-        viewer.Show(this);
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                viewer.Show();
+                viewer.Activate();
+            }
+            else
+            {
+                viewer.Show(this);
+            }
+        }
+        catch
+        {
+            if (tile is not null)
+            {
+                tile.FullscreenViewerCount = Math.Max(0, tile.FullscreenViewerCount - 1);
+            }
+
+            throw;
+        }
+
         await Task.CompletedTask;
     }
 
@@ -470,7 +458,7 @@ public partial class MainWindow
     {
         foreach (var tile in _remoteManagementTiles.ToList())
         {
-            StopRemoteManagementPreviewNoWait(tile);
+            RemoteManagementViewHelpers.StopRemoteManagementPreviewNoWait(tile);
             tile.Dispose();
         }
 
@@ -485,165 +473,9 @@ public partial class MainWindow
             return;
         }
 
-        StopRemoteManagementPreviewNoWait(tile);
+        RemoteManagementViewHelpers.StopRemoteManagementPreviewNoWait(tile);
         tile.Dispose();
         _remoteManagementTiles.Remove(tile);
     }
 
-    private static PinnedPreviewBitmap CreatePreviewBitmap(VncFrameCapture frame)
-        => PinnedPreviewBitmap.Create(frame.Pixels, frame.Width, frame.Height, frame.Stride);
-
-    private static PinnedPreviewBitmap CreatePlaceholderBitmap(int width, int height)
-    {
-        var pixels = new byte[width * height * 4];
-        for (var index = 0; index < pixels.Length; index += 4)
-        {
-            pixels[index] = 36;
-            pixels[index + 1] = 29;
-            pixels[index + 2] = 24;
-            pixels[index + 3] = 255;
-        }
-
-        return PinnedPreviewBitmap.Create(pixels, width, height, width * 4);
-    }
-
-    private sealed class RemoteManagementTileViewModel : INotifyPropertyChanged, IDisposable
-    {
-        private PinnedPreviewBitmap? _previewBitmap;
-        private string _machineName = string.Empty;
-        private string _statusText = string.Empty;
-        private bool _isSelected;
-
-        public RemoteManagementTileViewModel(DiscoveredAgentRow agent)
-        {
-            AgentId = agent.AgentId;
-            Agent = agent;
-            MachineName = agent.MachineName;
-            StatusText = BuildRemoteManagementStatusText(agent);
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public string AgentId { get; }
-        public DiscoveredAgentRow Agent { get; set; }
-
-        public string MachineName
-        {
-            get => _machineName;
-            set => SetField(ref _machineName, value);
-        }
-
-        public string StatusText
-        {
-            get => _statusText;
-            set => SetField(ref _statusText, value);
-        }
-
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set
-            {
-                if (SetField(ref _isSelected, value))
-                {
-                    OnPropertyChanged(nameof(SelectionBrush));
-                }
-            }
-        }
-
-        public IBrush SelectionBrush => IsSelected ? Brushes.DodgerBlue : Brushes.Transparent;
-
-        public string? ConnectionKey { get; set; }
-        public TeacherVncSession? Session { get; set; }
-        public CancellationTokenSource? PreviewCancellation { get; set; }
-        public Task? PreviewTask { get; set; }
-        public DateTimeOffset? LastFailureUtc { get; set; }
-        public bool IsDisposed { get; private set; }
-
-        public void SetPreview(PinnedPreviewBitmap? previewBitmap)
-        {
-            if (ReferenceEquals(_previewBitmap, previewBitmap))
-            {
-                return;
-            }
-
-            _previewBitmap?.Dispose();
-            _previewBitmap = previewBitmap;
-            OnPropertyChanged(nameof(PreviewBitmap));
-        }
-
-        public Bitmap? PreviewBitmap => _previewBitmap?.Bitmap;
-
-        public void Dispose()
-        {
-            IsDisposed = true;
-            _previewBitmap?.Dispose();
-            _previewBitmap = null;
-            Session?.Dispose();
-            Session = null;
-            PreviewCancellation?.Dispose();
-            PreviewCancellation = null;
-        }
-
-        private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-            {
-                return false;
-            }
-
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-
-    private sealed class PinnedPreviewBitmap : IDisposable
-    {
-        private readonly GCHandle _handle;
-
-        private PinnedPreviewBitmap(Bitmap bitmap, GCHandle handle)
-        {
-            Bitmap = bitmap;
-            _handle = handle;
-        }
-
-        public Bitmap Bitmap { get; }
-
-        public static PinnedPreviewBitmap Create(byte[] pixels, int width, int height, int stride)
-        {
-            var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
-            try
-            {
-                var bitmap = new Bitmap(
-                    PixelFormat.Bgra8888,
-                    AlphaFormat.Opaque,
-                    handle.AddrOfPinnedObject(),
-                    new PixelSize(width, height),
-                    new Vector(96, 96),
-                    stride);
-
-                return new PinnedPreviewBitmap(bitmap, handle);
-            }
-            catch
-            {
-                handle.Free();
-                throw;
-            }
-        }
-
-        public void Dispose()
-        {
-            Bitmap.Dispose();
-            if (_handle.IsAllocated)
-            {
-                _handle.Free();
-            }
-        }
-    }
 }

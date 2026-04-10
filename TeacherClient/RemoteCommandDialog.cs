@@ -29,7 +29,7 @@ public sealed class RemoteCommandDialog : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(16),
             ColumnCount = 1,
-            RowCount = 5
+            RowCount = 5,
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
@@ -41,14 +41,14 @@ public sealed class RemoteCommandDialog : Form
         {
             Dock = DockStyle.Fill,
             Text = TeacherClientText.RemoteCommandHint,
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
         };
 
         var commandLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 1
+            RowCount = 1,
         };
         commandLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64F));
         commandLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36F));
@@ -61,7 +61,7 @@ public sealed class RemoteCommandDialog : Form
             AcceptsReturn = true,
             AcceptsTab = true,
             WordWrap = false,
-            Text = initialScript ?? string.Empty
+            Text = initialScript ?? string.Empty,
         };
 
         var sidePanel = new TableLayoutPanel
@@ -69,7 +69,7 @@ public sealed class RemoteCommandDialog : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 5,
-            Padding = new Padding(12, 0, 0, 0)
+            Padding = new Padding(12, 0, 0, 0),
         };
         sidePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
         sidePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
@@ -81,13 +81,13 @@ public sealed class RemoteCommandDialog : Form
         {
             Dock = DockStyle.Fill,
             Text = TeacherClientText.RunAs,
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
         };
 
         _runAsComboBox = new ComboBox
         {
             Dock = DockStyle.Fill,
-            DropDownStyle = ComboBoxStyle.DropDownList
+            DropDownStyle = ComboBoxStyle.DropDownList,
         };
         _runAsComboBox.Items.AddRange([
             TeacherClientText.RunAsCurrentUser,
@@ -99,12 +99,12 @@ public sealed class RemoteCommandDialog : Form
         {
             Dock = DockStyle.Fill,
             Text = TeacherClientText.FrequentProgramsTitle,
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
         };
 
         _frequentProgramsListBox = new ListBox
         {
-            Dock = DockStyle.Fill
+            Dock = DockStyle.Fill,
         };
         _frequentProgramsListBox.Items.AddRange(frequentPrograms.Cast<object>().ToArray());
         _frequentProgramsListBox.DisplayMember = nameof(FrequentProgramEntry.DisplayName);
@@ -113,7 +113,7 @@ public sealed class RemoteCommandDialog : Form
         {
             Dock = DockStyle.Right,
             Width = 180,
-            Text = TeacherClientText.InsertSelected
+            Text = TeacherClientText.InsertSelected,
         };
         insertButton.Click += (_, _) =>
         {
@@ -146,7 +146,7 @@ public sealed class RemoteCommandDialog : Form
         var bottomButtons = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.RightToLeft
+            FlowDirection = FlowDirection.RightToLeft,
         };
 
         var okButton = new Button
@@ -154,7 +154,7 @@ public sealed class RemoteCommandDialog : Form
             Text = TeacherClientText.Ok,
             DialogResult = DialogResult.OK,
             MinimumSize = new Size(120, 42),
-            AutoSize = true
+            AutoSize = true,
         };
         okButton.Click += (_, e) =>
         {
@@ -170,19 +170,20 @@ public sealed class RemoteCommandDialog : Form
             Text = TeacherClientText.Cancel,
             DialogResult = DialogResult.Cancel,
             MinimumSize = new Size(120, 42),
-            AutoSize = true
+            AutoSize = true,
         };
 
         bottomButtons.Controls.Add(okButton);
         bottomButtons.Controls.Add(cancelButton);
 
-        layout.Controls.Add(new Label
-        {
-            Dock = DockStyle.Fill,
-            Text = TeacherClientText.RemoteCommandScript,
-            Font = new Font(Font, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft
-        }, 0, 0);
+        layout.Controls.Add(
+            new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = TeacherClientText.RemoteCommandScript,
+                Font = new Font(Font, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+            }, 0, 0);
         layout.Controls.Add(hintLabel, 0, 1);
         layout.Controls.Add(commandLayout, 0, 3);
         layout.Controls.Add(bottomButtons, 0, 4);

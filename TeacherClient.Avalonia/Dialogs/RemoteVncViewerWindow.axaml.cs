@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Media;
 using Avalonia.Threading;
 using MarcusW.VncClient;
 using Teacher.Common.Vnc;
@@ -13,17 +12,36 @@ using TeacherClient.CrossPlatform.Localization;
 
 namespace TeacherClient.CrossPlatform.Dialogs;
 
-public partial class RemoteVncViewerWindow : Window
+public partial class RemoteVncViewerWindow : Window, IDisposable
 {
+    private static readonly IReadOnlyList<KeyboardShortcutOption> ShortcutOptions =
+    [
+        new(CrossPlatformText.SendKeyboardShortcut),
+        new("Ctrl+Alt+Del", KeySymbol.Control_L, KeySymbol.Alt_L, KeySymbol.Delete),
+        new("Ctrl+Shift+Esc", KeySymbol.Control_L, KeySymbol.Shift_L, KeySymbol.Escape),
+        new("Alt+Tab", KeySymbol.Alt_L, KeySymbol.Tab),
+        new("Alt+F4", KeySymbol.Alt_L, KeySymbol.F4),
+        new("Win", KeySymbol.Super_L),
+        new("Win+Tab", KeySymbol.Super_L, KeySymbol.Tab),
+        new("Win+R", KeySymbol.Super_L, KeySymbol.R),
+        new("Win+D", KeySymbol.Super_L, KeySymbol.D),
+        new("Ctrl+Esc", KeySymbol.Control_L, KeySymbol.Escape),
+        new("Print Screen", KeySymbol.Print)
+    ];
+
     private readonly TeacherVncSession _session;
     private readonly bool _ownsSession;
     private readonly DispatcherTimer _refreshTimer = new();
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _machineName;
     private int _captureInProgress;
+    private int _connectInProgress;
     private PinnedBitmap? _currentBitmap;
     private int _frameWidth;
     private int _frameHeight;
+    private bool _updatingShortcutSelection;
+    private int _pointerButtonsMask;
+    private bool _disposed;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
@@ -40,18 +58,24 @@ public partial class RemoteVncViewerWindow : Window
         RenderOptions.SetBitmapInterpolationMode(ScreenImage, BitmapInterpolationMode.HighQuality);
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
-        // CenterOwner in XAML conflicts with Maximized on some Windows builds; maximize after open.
-        WindowStartupLocation = WindowStartupLocation.Manual;
-        WindowState = WindowState.Maximized;
+
+        ConfigureWindowForCurrentPlatform();
 
         _refreshTimer.Interval = TimeSpan.FromMilliseconds(500);
         _refreshTimer.Tick += async (_, _) => await CaptureFrameAsync();
 
         Opened += async (_, _) =>
         {
-            WindowState = WindowState.Maximized;
+            ApplyPreferredInitialLayout();
             await ConnectAsync();
+
+            if (_cancellation.IsCancellationRequested || _disposed)
+            {
+                return;
+            }
+
             _refreshTimer.Start();
+
             // Defer: focus before layout can fail on macOS; keyboard/TextInput attach to ViewerInputRoot, not the window chrome.
             Dispatcher.UIThread.Post(
                 () => ViewerInputRoot.Focus(),
@@ -60,14 +84,7 @@ public partial class RemoteVncViewerWindow : Window
 
         Closing += (_, _) =>
         {
-            _refreshTimer.Stop();
-            _cancellation.Cancel();
-            if (_ownsSession)
-            {
-                _session.Dispose();
-            }
-            _cancellation.Dispose();
-            DisposeBitmap();
+            Dispose();
         };
 
         ScreenImage.PointerPressed += ScreenImage_OnPointerPressed;
@@ -77,28 +94,58 @@ public partial class RemoteVncViewerWindow : Window
         ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
         ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
         ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
-
-        StatusTextBlock.Text = _session.ControlEnabled
-            ? CrossPlatformText.RemoteManagementControl(machineName)
-            : CrossPlatformText.RemoteManagementViewOnly(machineName);
+        SendShortcutComboBox.ItemsSource = ShortcutOptions;
+        SendShortcutComboBox.SelectedIndex = 0;
+        EnableControlButton.Content = CrossPlatformText.EnableFullscreenControl;
+        UpdateControlUi();
     }
+
+    private void ConfigureWindowForCurrentPlatform()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            SystemDecorations = SystemDecorations.None;
+            ExtendClientAreaToDecorationsHint = true;
+            ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
+            return;
+        }
+
+        // CenterOwner in XAML conflicts with maximize transitions on some builds; apply the
+        // preferred state after the window is opened.
+        WindowStartupLocation = WindowStartupLocation.Manual;
+    }
+
+    private void ApplyPreferredInitialLayout() => WindowState = WindowState.Maximized;
 
     private async Task ConnectAsync()
     {
+        Interlocked.Increment(ref _connectInProgress);
         try
         {
             StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnecting(_machineName);
             if (!_session.IsConnected)
             {
-                await _session.ConnectAsync(_cancellation.Token);
+                await Task.Run(async () => await _session.ConnectAsync(_cancellation.Token));
             }
-            StatusTextBlock.Text = _session.ControlEnabled
-                ? CrossPlatformText.RemoteManagementControl(_machineName)
-                : CrossPlatformText.RemoteManagementViewOnly(_machineName);
+
+            if (_disposed || _cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+
+            UpdateControlUi();
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            if (ex is not OperationCanceledException and not ObjectDisposedException && !_disposed)
+            {
+                StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            }
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _connectInProgress);
         }
     }
 
@@ -116,31 +163,43 @@ public partial class RemoteVncViewerWindow : Window
 
         try
         {
-            var frame = await _session.CaptureFrameAsync(_cancellation.Token);
-            if (frame is null)
+            var capture = await Task.Run(
+                async () =>
+                {
+                    var frame = await _session.CaptureFrameAsync(_cancellation.Token);
+                    if (frame is null)
+                    {
+                        return (Frame: (VncFrameCapture?)null, FrameWidth: 0, FrameHeight: 0);
+                    }
+
+                    var resized = ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight);
+                    return (Frame: resized, FrameWidth: frame.Width, FrameHeight: frame.Height);
+                },
+                _cancellation.Token);
+
+            if (capture.Frame is null || _disposed)
             {
                 return;
             }
 
-            _frameWidth = frame.Width;
-            _frameHeight = frame.Height;
+            _frameWidth = capture.FrameWidth;
+            _frameHeight = capture.FrameHeight;
 
-            var bitmap = CreatePinnedBitmap(ResizeForViewer(frame, VncViewerDisplayLimits.MaxFrameWidth, VncViewerDisplayLimits.MaxFrameHeight));
-            if (Dispatcher.UIThread.CheckAccess())
-            {
-                SetBitmap(bitmap);
-            }
-            else
-            {
-                await Dispatcher.UIThread.InvokeAsync(() => SetBitmap(bitmap));
-            }
+            var bitmap = CreatePinnedBitmap(capture.Frame);
+            SetBitmap(bitmap);
         }
         catch (OperationCanceledException)
         {
         }
+        catch (ObjectDisposedException)
+        {
+        }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            if (!_disposed)
+            {
+                StatusTextBlock.Text = CrossPlatformText.RemoteManagementConnectionFailed(_machineName, ex.Message);
+            }
         }
         finally
         {
@@ -155,6 +214,72 @@ public partial class RemoteVncViewerWindow : Window
         _currentBitmap = null;
     }
 
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _refreshTimer.Stop();
+        _cancellation.Cancel();
+
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while ((Volatile.Read(ref _captureInProgress) != 0 || Volatile.Read(ref _connectInProgress) != 0) &&
+               DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(20);
+        }
+
+        if (_ownsSession)
+        {
+            _session.Dispose();
+        }
+
+        _cancellation.Dispose();
+        DisposeBitmap();
+        GC.SuppressFinalize(this);
+    }
+
+    private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        _session.ControlEnabled = true;
+        UpdateControlUi();
+        ViewerInputRoot.Focus();
+    }
+
+    private async void SendShortcutComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingShortcutSelection || SendShortcutComboBox.SelectedItem is not KeyboardShortcutOption option || option.Keys.Count == 0)
+        {
+            return;
+        }
+
+        _session.ControlEnabled = true;
+        UpdateControlUi();
+
+        try
+        {
+            await _session.SendKeyCombinationAsync(option.Keys.ToArray());
+        }
+        finally
+        {
+            _updatingShortcutSelection = true;
+            SendShortcutComboBox.SelectedIndex = 0;
+            _updatingShortcutSelection = false;
+            ViewerInputRoot.Focus();
+        }
+    }
+
+    private void UpdateControlUi()
+    {
+        StatusTextBlock.Text = _session.ControlEnabled
+            ? CrossPlatformText.RemoteManagementControl(_machineName)
+            : CrossPlatformText.RemoteManagementViewOnly(_machineName);
+        EnableControlButton.IsVisible = !_session.ControlEnabled;
+    }
+
     private void ScreenImage_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         ViewerInputRoot.Focus();
@@ -163,9 +288,12 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
+        e.Pointer.Capture(ScreenImage);
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
+
         if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
-            _session.SendPointer(x, y, ButtonsMask(e.GetCurrentPoint(ScreenImage).Properties));
+            _session.SendPointer(x, y, _pointerButtonsMask);
         }
     }
 
@@ -176,10 +304,15 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
+
         if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
             _session.SendPointer(x, y, 0);
         }
+
+        e.Pointer.Capture(null);
+        _pointerButtonsMask = 0;
     }
 
     private void ScreenImage_OnPointerMoved(object? sender, PointerEventArgs e)
@@ -189,11 +322,11 @@ public partial class RemoteVncViewerWindow : Window
             return;
         }
 
+        _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
+
         if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
         {
-            var properties = e.GetCurrentPoint(ScreenImage).Properties;
-            var pressed = ButtonsMask(properties);
-            _session.SendPointer(x, y, pressed);
+            _session.SendPointer(x, y, _pointerButtonsMask);
         }
     }
 
@@ -287,17 +420,35 @@ public partial class RemoteVncViewerWindow : Window
         return true;
     }
 
-    private static int ButtonsMask(PointerPointProperties properties)
+    private static int UpdateButtonsMask(int currentMask, PointerPointProperties properties)
     {
+        switch (properties.PointerUpdateKind)
+        {
+            case PointerUpdateKind.LeftButtonPressed:
+                return currentMask | 1;
+            case PointerUpdateKind.LeftButtonReleased:
+                return currentMask & ~1;
+            case PointerUpdateKind.MiddleButtonPressed:
+                return currentMask | 2;
+            case PointerUpdateKind.MiddleButtonReleased:
+                return currentMask & ~2;
+            case PointerUpdateKind.RightButtonPressed:
+                return currentMask | 4;
+            case PointerUpdateKind.RightButtonReleased:
+                return currentMask & ~4;
+        }
+
         var mask = 0;
         if (properties.IsLeftButtonPressed)
         {
             mask |= 1;
         }
+
         if (properties.IsMiddleButtonPressed)
         {
             mask |= 2;
         }
+
         if (properties.IsRightButtonPressed)
         {
             mask |= 4;
@@ -342,7 +493,7 @@ public partial class RemoteVncViewerWindow : Window
             Key.RightCtrl => KeySymbol.Control_R,
             Key.LeftAlt => KeySymbol.Alt_L,
             Key.RightAlt => KeySymbol.Alt_R,
-            _ => null
+            _ => null,
         };
     }
 
@@ -410,18 +561,4 @@ public partial class RemoteVncViewerWindow : Window
         return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
     }
 
-    private sealed class PinnedBitmap(Bitmap bitmap, GCHandle handle) : IDisposable
-    {
-        public Bitmap Bitmap { get; } = bitmap;
-        private GCHandle Handle { get; } = handle;
-
-        public void Dispose()
-        {
-            Bitmap.Dispose();
-            if (Handle.IsAllocated)
-            {
-                Handle.Free();
-            }
-        }
-    }
 }

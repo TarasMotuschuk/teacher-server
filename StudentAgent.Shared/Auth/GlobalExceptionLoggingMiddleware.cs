@@ -31,7 +31,7 @@ public sealed class GlobalExceptionLoggingMiddleware
                 await context.Response.WriteAsJsonAsync(new
                 {
                     error = "Internal server error.",
-                    detail = ex.Message
+                    detail = ex.Message,
                 });
             }
         }

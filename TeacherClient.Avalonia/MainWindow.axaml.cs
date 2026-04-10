@@ -1,16 +1,12 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Teacher.Common;
-using Teacher.Common.Localization;
 using Teacher.Common.Contracts;
-using Teacher.Common.Vnc;
 using TeacherClient.CrossPlatform.Dialogs;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
@@ -18,7 +14,7 @@ using TeacherClient.CrossPlatform.Services;
 
 namespace TeacherClient.CrossPlatform;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IDisposable
 {
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
@@ -26,8 +22,10 @@ public partial class MainWindow : Window
     private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly TeacherUpdatePreparationService _updatePreparationService =
         new(GetUpdatePreparationRootDirectory());
+
     private readonly TeacherClientUpdateService _clientUpdateService =
         new(GetClientUpdateRootDirectory(), typeof(MainWindow).Assembly.GetName().Version?.ToString() ?? "0.0.0");
+
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -50,6 +48,7 @@ public partial class MainWindow : Window
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
     private string? _remoteManagementSelectedAgentId;
+    private bool _disposed;
 
     public MainWindow()
     {
@@ -99,8 +98,7 @@ public partial class MainWindow : Window
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
             DisposeRemoteManagementTiles();
-            _updatePreparationService.Dispose();
-            _clientUpdateService.Dispose();
+            Dispose();
         };
     }
 
@@ -122,6 +120,19 @@ public partial class MainWindow : Window
             : Path.Combine(localAppData, "TeacherServer", "TeacherClient.Avalonia", "client-updates");
         Directory.CreateDirectory(baseDirectory);
         return baseDirectory;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _updatePreparationService.Dispose();
+        _clientUpdateService.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
@@ -316,7 +327,8 @@ public partial class MainWindow : Window
 
     private async Task LoadAgentsAsync()
     {
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
@@ -349,7 +361,8 @@ public partial class MainWindow : Window
         var collected = new List<FrequentProgramEntry>(_frequentPrograms);
         var failures = new List<string>();
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -403,7 +416,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -490,11 +504,13 @@ public partial class MainWindow : Window
                 SetStatus(CrossPlatformText.UpdatePreparationMissing);
                 return;
             }
+
             var status = await client.StartAgentUpdateAsync(request);
             if (status is not null)
             {
                 ReplaceAgentRow(ApplyUpdateStatus(agent, status));
             }
+
             SetStatus(CrossPlatformText.AgentUpdateStarted(agent.MachineName, status?.AvailableVersion ?? "?"));
         }
         catch (Exception ex)
@@ -513,7 +529,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             var result = await execute(client);
@@ -536,7 +553,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -599,7 +617,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -652,6 +671,7 @@ public partial class MainWindow : Window
         {
             // Best-effort policy sync on connect should not block regular teacher connection flow.
         }
+
         SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
@@ -774,6 +794,12 @@ public partial class MainWindow : Window
 
     private void ApplyAgentFilters()
     {
+        var selectedIds = GetSelectedAgents()
+            .Select(a => a.AgentId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var search = AgentSearchTextBox.Text?.Trim() ?? string.Empty;
         var selectedGroup = GroupFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.AllGroups;
         var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString() ?? CrossPlatformText.All;
@@ -794,6 +820,41 @@ public partial class MainWindow : Window
             .ToList();
 
         ReplaceItems(_agents, filtered);
+        RestoreAgentsGridSelection(selectedIds);
+    }
+
+    /// <summary>
+    /// Re-applies row selection after <see cref="ReplaceItems"/> rebuilds the grid source; otherwise
+    /// <see cref="GetSelectedAgents"/> is empty and "selected PCs" group commands appear to do nothing.
+    /// </summary>
+    private void RestoreAgentsGridSelection(HashSet<string> selectedIds)
+    {
+        if (selectedIds.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var selected = AgentsGrid.SelectedItems;
+            if (selected is null)
+            {
+                return;
+            }
+
+            selected.Clear();
+            foreach (var row in _agents)
+            {
+                if (selectedIds.Contains(row.AgentId))
+                {
+                    selected.Add(row);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Agents grid selection restore failed: {ex.Message}");
+        }
     }
 
     private void RefreshGroupFilterOptions()
@@ -853,7 +914,7 @@ public partial class MainWindow : Window
                             VncStatusMessage = vncStatus?.Message ?? string.Empty,
                             Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                                 ? updateStatus.AvailableVersion ?? info.AgentVersion
-                                : info.AgentVersion
+                                : info.AgentVersion,
                         });
                         continue;
                     }
@@ -889,7 +950,7 @@ public partial class MainWindow : Window
                         VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
                         Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                             ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
-                            : info?.AgentVersion ?? agent.Version
+                            : info?.AgentVersion ?? agent.Version,
                     });
                     continue;
                 }
@@ -900,7 +961,7 @@ public partial class MainWindow : Window
 
             updatedAgents.Add(agent with
             {
-                Status = isReachable ? CrossPlatformText.Online : CrossPlatformText.Offline
+                Status = isReachable ? CrossPlatformText.Online : CrossPlatformText.Offline,
             });
         }
 
@@ -946,12 +1007,18 @@ public partial class MainWindow : Window
     private void RegistryTreeView_NodeExpanded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (e.Source is TreeViewItem { DataContext: RegistryNode { IsLoaded: false } node })
+        {
             _ = LoadRegistrySubKeysAsync(node);
+        }
     }
 
     private async void RegistryTreeView_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (RegistryTreeView.SelectedItem is not RegistryNode node) return;
+        if (RegistryTreeView.SelectedItem is not RegistryNode node)
+        {
+            return;
+        }
+
         try
         {
             var client = CreateClient();
@@ -989,7 +1056,9 @@ public partial class MainWindow : Window
             var subKeys = await client.GetRegistrySubKeysAsync(node.Path);
             node.Children.Clear();
             foreach (var key in subKeys)
+            {
                 node.Children.Add(new RegistryNode(key.Name, key.Path, key.HasChildren));
+            }
         }
         catch (Exception ex)
         {
@@ -1004,7 +1073,9 @@ public partial class MainWindow : Window
         _registryValues.Clear();
         string[] hives = ["HKEY_LOCAL_MACHINE", "HKEY_CURRENT_USER", "HKEY_CLASSES_ROOT", "HKEY_USERS", "HKEY_CURRENT_CONFIG"];
         foreach (var hive in hives)
+        {
             _registryRoots.Add(new RegistryNode(hive, hive, hasChildren: true));
+        }
     }
 
     private async Task HandleNewValueAsync()
@@ -1016,7 +1087,10 @@ public partial class MainWindow : Window
 
         var dialog = new Dialogs.RegistryEditDialog();
         var result = await dialog.ShowDialog<bool?>(this);
-        if (result != true) return;
+        if (result != true)
+        {
+            return;
+        }
 
         try
         {
@@ -1024,7 +1098,9 @@ public partial class MainWindow : Window
             await client.SetRegistryValueAsync(node.Path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(CrossPlatformText.ValueCreated);
             if (RegistryTreeView.SelectedItem is RegistryNode selectedNode)
+            {
                 await LoadRegistrySubKeysAsync(selectedNode);
+            }
         }
         catch (Exception ex)
         {
@@ -1043,7 +1119,10 @@ public partial class MainWindow : Window
         }
 
         var result = await Dialogs.TextInputDialog.ShowAsync(this, CrossPlatformText.NewKey, CrossPlatformText.KeyName);
-        if (string.IsNullOrEmpty(result)) return;
+        if (string.IsNullOrEmpty(result))
+        {
+            return;
+        }
 
         try
         {
@@ -1082,7 +1161,10 @@ public partial class MainWindow : Window
 
             var dialog = new Dialogs.RegistryEditDialog(editableValue.Name, editableValue.RawType, editableValue.RawData);
             var result = await dialog.ShowDialog<bool?>(this);
-            if (result != true) return;
+            if (result != true)
+            {
+                return;
+            }
 
             await client.SetRegistryValueAsync(node.Path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(CrossPlatformText.ValueUpdated);
@@ -1176,10 +1258,10 @@ public partial class MainWindow : Window
             [
                 new FilePickerFileType("Registry files")
                 {
-                    Patterns = ["*.reg"]
+                    Patterns = ["*.reg"],
                 }
             ],
-            DefaultExtension = "reg"
+            DefaultExtension = "reg",
         });
 
         if (file is null)
@@ -1224,9 +1306,9 @@ public partial class MainWindow : Window
             [
                 new FilePickerFileType("Registry files")
                 {
-                    Patterns = ["*.reg"]
+                    Patterns = ["*.reg"],
                 }
-            ]
+            ],
         });
 
         var file = files.FirstOrDefault();
@@ -1274,7 +1356,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             var details = await client.GetProcessDetailsAsync(process.Id);
@@ -1334,7 +1417,8 @@ public partial class MainWindow : Window
 
     private async Task LoadProcessesAsync()
     {
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             var processes = await client.GetProcessesAsync();
@@ -1352,7 +1436,8 @@ public partial class MainWindow : Window
 
     private async Task LoadLocalDirectoryAsync(string? path)
     {
-        await RunBusyAsync(() =>
+        await RunBusyAsync(
+            () =>
         {
             var resolvedPath = string.IsNullOrWhiteSpace(path) ? GetDefaultLocalPath() : path!;
             var info = new DirectoryInfo(resolvedPath);
@@ -1372,7 +1457,8 @@ public partial class MainWindow : Window
 
     private async Task LoadRemoteDirectoryAsync(string? path)
     {
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             await PopulateRemoteRootsAsync(client);
@@ -1445,10 +1531,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
-            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+            var progress = new Progress<TransferProgress>(value =>
                 SetStatus(BuildTransferStatus(CrossPlatformText.UploadArrow, entry.Name, value)));
             await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty, progress);
             await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
@@ -1554,6 +1641,45 @@ public partial class MainWindow : Window
 
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
+
+    private Task ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind restriction, bool enabled)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return Task.CompletedTask;
+        }
+
+        return SetWindowsRestrictionOnAgentsAsync(targetAgents, restriction, enabled);
+    }
+
+    private async void EnableTaskManagerRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: true);
+
+    private async void DisableTaskManagerRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: false);
+
+    private async void EnableRunDialogRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: true);
+
+    private async void DisableRunDialogRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: false);
+
+    private async void EnableControlPanelRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: true);
+
+    private async void DisableControlPanelRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: false);
+
+    private async void EnableLockWorkstationRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: true);
+
+    private async void DisableLockWorkstationRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: false);
+
+    private async void EnableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
+
+    private async void DisableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
+
+    private async void EnableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
+
+    private async void DisableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
 
     private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -1699,19 +1825,7 @@ public partial class MainWindow : Window
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
     }
 
-    private async void CollectStudentWorkSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var selectedAgents = GetSelectedAgents();
-        if (selectedAgents.Count == 0)
-        {
-            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
-            return;
-        }
-
-        await CollectStudentWorkAsync(selectedAgents);
-    }
-
-    private async void CollectStudentWorkAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void CollectStudentWorkToTeacherPcMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1730,21 +1844,6 @@ public partial class MainWindow : Window
     {
         _preparedStudentWorkFolders.Clear();
         await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
-    }
-
-    private async void CollectStudentWorkToTeacherPcMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var targetAgents = _allAgents
-            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
-            return;
-        }
-
-        await CollectStudentWorkAsync(targetAgents);
     }
 
     private async void ClearStudentWorkFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -1770,10 +1869,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
-            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+            var progress = new Progress<TransferProgress>(value =>
                 SetStatus(BuildTransferStatus(CrossPlatformText.DownloadArrow, entry.Name, value)));
             await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath(), progress);
             await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
@@ -1789,7 +1889,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             await client.OpenRemoteEntryAsync(entry.FullPath);
@@ -1822,7 +1923,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             RenameLocalEntry(entry, newName);
             await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
@@ -1844,7 +1946,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             await client.RenameRemoteEntryAsync(entry.FullPath, newName.Trim());
@@ -1866,7 +1969,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             if (entry.IsDirectory)
             {
@@ -1895,7 +1999,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             await client.DeleteRemoteEntryAsync(entry.FullPath);
@@ -1912,7 +2017,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             var client = CreateClient();
             await client.CreateRemoteDirectoryAsync(RemotePathTextBox.Text ?? string.Empty, folderName);
@@ -2026,7 +2132,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2089,7 +2196,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2141,7 +2249,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2187,7 +2296,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2220,6 +2330,52 @@ public partial class MainWindow : Window
         }, CrossPlatformText.BulkInputLockError);
     }
 
+    private async Task SetWindowsRestrictionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, WindowsRestrictionKind restriction, bool enabled)
+    {
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.WindowsRestrictionPrompt(restriction, enabled, targetAgents.Count)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(
+            async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                try
+                {
+                    SetStatus(CrossPlatformText.WindowsRestrictionProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, restriction, enabled));
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.SetWindowsRestrictionEnabledAsync(restriction, enabled);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.WindowsRestrictionCompleted(restriction, enabled, succeeded)
+                : CrossPlatformText.WindowsRestrictionCompletedWithFailures(restriction, enabled, succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkCommandsResultTitle,
+                    string.Join(Environment.NewLine, failures));
+            }
+        }, CrossPlatformText.BulkWindowsRestrictionsError);
+    }
+
     private async Task ExecutePowerActionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, PowerActionKind action, bool selectedOnly)
     {
         if (!await ConfirmationDialog.ShowAsync(
@@ -2233,7 +2389,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2278,7 +2435,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2292,11 +2450,13 @@ public partial class MainWindow : Window
                     {
                         throw new InvalidOperationException(CrossPlatformText.UpdatePreparationMissing);
                     }
+
                     var status = await client.StartAgentUpdateAsync(request);
                     if (status is not null)
                     {
                         ReplaceAgentRow(ApplyUpdateStatus(agent, status));
                     }
+
                     succeeded++;
                 }
                 catch (Exception ex)
@@ -2456,7 +2616,8 @@ public partial class MainWindow : Window
         var failures = new List<string>();
         var succeeded = 0;
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
             {
@@ -2516,7 +2677,7 @@ public partial class MainWindow : Window
                 agentCount,
                 fileIndex + 1,
                 plan.Files.Count));
-            var progress = new Progress<TeacherApiClient.TransferProgress>(value =>
+            var progress = new Progress<TransferProgress>(value =>
                 reportStatus(BuildBulkTransferStatus(
                     CrossPlatformText.UploadArrow,
                     agent.MachineName,
@@ -2553,7 +2714,7 @@ public partial class MainWindow : Window
             {
                 var progress = reportStatus is null
                     ? null
-                    : new Progress<TeacherApiClient.TransferProgress>(value =>
+                    : new Progress<TransferProgress>(value =>
                         reportStatus(BuildBulkTransferStatus(
                             CrossPlatformText.DownloadArrow,
                             agentName ?? string.Empty,
@@ -2657,14 +2818,14 @@ public partial class MainWindow : Window
         var targetVersion = status.State switch
         {
             AgentUpdateStateKind.Succeeded => status.AvailableVersion ?? agent.Version,
-            _ => agent.Version
+            _ => agent.Version,
         };
 
         return agent with
         {
             Version = targetVersion,
             UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(status),
-            UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(status)
+            UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(status),
         };
     }
 
@@ -2699,7 +2860,7 @@ public partial class MainWindow : Window
                     UpdateStatusBadge = discovered.UpdateStatusBadge,
                     UpdateStatusDetail = discovered.UpdateStatusDetail,
                     Version = discovered.Version,
-                    LastSeenUtc = discovered.LastSeenUtc
+                    LastSeenUtc = discovered.LastSeenUtc,
                 };
                 continue;
             }
@@ -2721,7 +2882,7 @@ public partial class MainWindow : Window
             entry is FileInfo fileInfo ? fileInfo.Length : null,
             entry.LastWriteTimeUtc)
         {
-            AttributesDisplay = FormatAttributes(entry.Attributes)
+            AttributesDisplay = FormatAttributes(entry.Attributes),
         };
     }
 
@@ -2896,7 +3057,7 @@ public partial class MainWindow : Window
         return string.IsNullOrWhiteSpace(sanitized) ? "StudentMachine" : sanitized;
     }
 
-    private static string BuildTransferStatus(string operation, string fileName, TeacherApiClient.TransferProgress progress)
+    private static string BuildTransferStatus(string operation, string fileName, TransferProgress progress)
     {
         var transferred = FormatByteSize(progress.BytesTransferred);
         if (!progress.HasTotal)
@@ -2911,7 +3072,7 @@ public partial class MainWindow : Window
         string operation,
         string agentName,
         string fileName,
-        TeacherApiClient.TransferProgress progress,
+        TransferProgress progress,
         int? agentIndex = null,
         int? agentCount = null,
         int? fileIndex = null,
@@ -2948,83 +3109,6 @@ public partial class MainWindow : Window
         return unitIndex == 0
             ? $"{value:0} {units[unitIndex]}"
             : $"{value:0.##} {units[unitIndex]}";
-    }
-
-    private sealed record DiscoveredAgentRow(
-        string AgentId,
-        string Source,
-        string Status,
-        string GroupName,
-        string MachineName,
-        string CurrentUser,
-        string RespondingAddress,
-        int Port,
-        string MacAddressesDisplay,
-        string Notes,
-        string UpdateStatusBadge,
-        string UpdateStatusDetail,
-        string Version,
-        bool VncEnabled,
-        bool VncRunning,
-        bool VncViewOnly,
-        int VncPort,
-        string VncStatusMessage,
-        DateTime LastSeenUtc,
-        bool IsManual)
-    {
-        public bool BrowserLockEnabled { get; set; }
-        public bool InputLockEnabled { get; set; }
-        public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
-
-        public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
-        {
-            return new DiscoveredAgentRow(
-                dto.AgentId,
-                CrossPlatformText.AutoSource,
-                CrossPlatformText.Online,
-                string.Empty,
-                dto.MachineName,
-                NormalizeUserDisplay(dto.CurrentUser, dto.MachineName),
-                dto.RespondingAddress,
-                dto.Port,
-                string.Join(", ", dto.MacAddresses),
-                string.Empty,
-                string.Empty,
-                string.Empty,
-                dto.Version,
-                false,
-                false,
-                true,
-                0,
-                string.Empty,
-                dto.LastSeenUtc,
-                false);
-        }
-
-        public static DiscoveredAgentRow FromManualEntry(ManualAgentEntry entry)
-        {
-            return new DiscoveredAgentRow(
-                entry.Id,
-                CrossPlatformText.ManualSource,
-                CrossPlatformText.Unknown,
-                entry.GroupName,
-                entry.DisplayName,
-                string.Empty,
-                entry.IpAddress,
-                entry.Port,
-                entry.MacAddress,
-                entry.Notes,
-                string.Empty,
-                string.Empty,
-                CrossPlatformText.ManualVersion,
-                false,
-                false,
-                true,
-                0,
-                string.Empty,
-                DateTime.MinValue,
-                true);
-        }
     }
 
     private string BuildAgentAvailabilityStatus(int discoveredCount, int manualCount)
@@ -3071,6 +3155,25 @@ public partial class MainWindow : Window
         DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
         BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
         InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
+        WindowsRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionsMenu;
+        TaskManagerRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager);
+        EnableTaskManagerRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableTaskManagerRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        RunDialogRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.RunDialog);
+        EnableRunDialogRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableRunDialogRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        ControlPanelRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ControlPanelAndSettings);
+        EnableControlPanelRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableControlPanelRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        LockWorkstationRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.LockWorkstation);
+        EnableLockWorkstationRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableLockWorkstationRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        ChangePasswordRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword);
+        EnableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        LogOffRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.LogOff);
+        EnableLogOffRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableLogOffRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
@@ -3119,7 +3222,6 @@ public partial class MainWindow : Window
             : CrossPlatformText.RemoteManagementHint;
         RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
         StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StartVncControlButton.Content = CrossPlatformText.StartVncControl;
         StopVncButton.Content = CrossPlatformText.StopVnc;
         OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
         ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, "Toolbar/agents/pc-refresh-list.png", ToolbarGlyphKind.Refresh);
@@ -3169,6 +3271,7 @@ public partial class MainWindow : Window
         {
             RemoteDriveSpaceTextBlock.Text = CrossPlatformText.DriveFreeSpaceUnknown;
         }
+
         ApplyTabButtonContent(RefreshRegistryButton, CrossPlatformText.Refresh, "Toolbar/registry/refresh.png", ToolbarGlyphKind.Refresh);
         ApplyTabButtonContent(NewValueButton, CrossPlatformText.NewValue, "Toolbar/registry/new-value.png", ToolbarGlyphKind.Add);
         ApplyTabButtonContent(NewKeyButton, CrossPlatformText.NewKey, "Toolbar/registry/new-key.png", ToolbarGlyphKind.Add);
@@ -3234,7 +3337,6 @@ public partial class MainWindow : Window
 
         RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
         StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StartVncControlButton.Content = CrossPlatformText.StartVncControl;
         StopVncButton.Content = CrossPlatformText.StopVnc;
         OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
         RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
@@ -3258,7 +3360,7 @@ public partial class MainWindow : Window
         var contentGrid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,8,*"),
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
         };
 
         Control icon = CreateToolbarIcon(assetPath, glyphKind);
@@ -3271,7 +3373,7 @@ public partial class MainWindow : Window
             Foreground = Brushes.White,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            MaxWidth = 116
+            MaxWidth = 116,
         };
         Grid.SetColumn(textBlock, 2);
 
@@ -3290,7 +3392,7 @@ public partial class MainWindow : Window
                 Width = 16,
                 Height = 16,
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                Source = bitmap
+                Source = bitmap,
             };
         }
 
@@ -3300,7 +3402,7 @@ public partial class MainWindow : Window
             Height = 16,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             Foreground = GetGlyphBrush(glyphKind),
-            Data = Geometry.Parse(GetGlyphPath(glyphKind))
+            Data = Geometry.Parse(GetGlyphPath(glyphKind)),
         };
     }
 
@@ -3320,7 +3422,7 @@ public partial class MainWindow : Window
             ToolbarGlyphKind.OpenRemote => Color.Parse("#2563EB"),
             ToolbarGlyphKind.Broadcast => Color.Parse("#7C3AED"),
             ToolbarGlyphKind.NewFolder => Color.Parse("#CA8A04"),
-            _ => Color.Parse("#0F172A")
+            _ => Color.Parse("#0F172A"),
         });
 
     private static string GetGlyphPath(ToolbarGlyphKind glyphKind)
@@ -3339,7 +3441,7 @@ public partial class MainWindow : Window
             ToolbarGlyphKind.OpenRemote => "M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M5,5H12V7H5V19H17V12H19V19C19,20.1 18.1,21 17,21H5C3.9,21 3,20.1 3,19V7C3,5.9 3.9,5 5,5Z",
             ToolbarGlyphKind.Broadcast => "M3,10V14H7L12,19V5L7,10H3M16.5,12C16.5,10.23 15.73,8.63 14.5,7.5L13.08,8.92C13.95,9.69 14.5,10.79 14.5,12C14.5,13.21 13.95,14.31 13.08,15.08L14.5,16.5C15.73,15.37 16.5,13.77 16.5,12M14.5,3.97L13.09,5.38C15.47,7 17,9.83 17,13C17,16.17 15.47,19 13.09,20.62L14.5,22.03C17.3,20.04 19,16.73 19,13C19,9.27 17.3,5.96 14.5,3.97Z",
             ToolbarGlyphKind.NewFolder => "M10,4L12,6H20C21.1,6 22,6.9 22,8V10H20V8H4V18H11V20H4C2.9,20 2,19.1 2,18V6C2,4.9 2.9,4 4,4H10M19,12V15H22V17H19V20H17V17H14V15H17V12H19Z",
-            _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z"
+            _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z",
         };
 
     private void OpenLocalEntry(FileSystemEntryDto entry)
@@ -3349,7 +3451,7 @@ public partial class MainWindow : Window
             Process.Start(new ProcessStartInfo
             {
                 FileName = entry.FullPath,
-                UseShellExecute = true
+                UseShellExecute = true,
             });
             SetStatus(CrossPlatformText.OpenedLocal(entry.Name));
         }
@@ -3409,36 +3511,4 @@ public partial class MainWindow : Window
         return trimmed;
     }
 
-    private enum ToolbarGlyphKind
-    {
-        Settings,
-        Refresh,
-        Link,
-        Add,
-        Edit,
-        Remove,
-        Stop,
-        Upload,
-        UploadGroup,
-        Download,
-        OpenRemote,
-        Broadcast,
-        NewFolder
-    }
-}
-
-public sealed class RegistryNode
-{
-    public string Name { get; }
-    public string Path { get; }
-    public bool IsLoaded { get; set; }
-    public ObservableCollection<RegistryNode> Children { get; } = [];
-
-    public RegistryNode(string name, string path, bool hasChildren)
-    {
-        Name = name;
-        Path = path;
-        if (hasChildren)
-            Children.Add(new RegistryNode("...", path, hasChildren: false));
-    }
 }

@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Threading;
 using MarcusW.VncClient;
 using MarcusW.VncClient.Protocol.Implementation.MessageTypes.Outgoing;
 using MarcusW.VncClient.Protocol.Implementation.Services.Transports;
@@ -31,17 +30,20 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         _renderTarget.FrameUpdated += (_, _) => StatusChanged?.Invoke(this, "Frame updated");
     }
 
+    public event EventHandler<string>? StatusChanged;
+
+    public event EventHandler? Connected;
+
+    public event EventHandler? Closed;
+
     public bool ControlEnabled { get; set; }
 
     public bool IsConnected => _connection?.ConnectionState == ConnectionState.Connected;
 
-    public event EventHandler<string>? StatusChanged;
-    public event EventHandler? Connected;
-    public event EventHandler? Closed;
-
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (IsConnected)
         {
@@ -54,18 +56,23 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
             TransportParameters = new TcpTransportParameters
             {
                 Host = _host,
-                Port = _port
+                Port = _port,
             },
             AuthenticationHandler = new StaticAuthenticationHandler(VncPasswordHelper.Derive(_sharedSecret)),
             AllowSharedConnection = true,
             InitialRenderTarget = _renderTarget,
+
             // When the server uses Tight subencoding with JPEG, prefer high quality and full chroma (visually lossless for typical UI).
             // Lossless zlib/ZRLE rectangles ignore these; they are negotiated separately by the RFB stack.
             JpegQualityLevel = 95,
-            JpegSubsamplingLevel = JpegSubsamplingLevel.None
+            JpegSubsamplingLevel = JpegSubsamplingLevel.None,
         };
 
-        var connection = await client.ConnectAsync(parameters, cancellationToken);
+        // MarcusW.VncClient keeps using the connect token for its internal background receiver loop.
+        // If a UI/window CTS is later canceled during normal viewer shutdown, the library can surface
+        // OperationCanceledException on a background thread and abort the whole process on macOS.
+        // Use the caller token only as a pre-check; lifetime is controlled by CloseAsync/Dispose instead.
+        var connection = await client.ConnectAsync(parameters, CancellationToken.None);
         connection.PropertyChanged += ConnectionOnPropertyChanged;
         _connection = connection;
         StatusChanged?.Invoke(this, "Connected");
@@ -102,6 +109,47 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         _ = connection.SendMessageAsync(
             new KeyEventMessage(pressed, keySymbol),
             CancellationToken.None);
+    }
+
+    public async Task SendKeyCombinationAsync(params KeySymbol[] keySymbols)
+    {
+        if (keySymbols.Length == 0)
+        {
+            return;
+        }
+
+        var connection = _connection;
+        if (connection is null || connection.ConnectionState != ConnectionState.Connected || !ControlEnabled)
+        {
+            return;
+        }
+
+        for (var index = 0; index < keySymbols.Length - 1; index++)
+        {
+            await connection.SendMessageAsync(
+                new KeyEventMessage(true, keySymbols[index]),
+                CancellationToken.None);
+
+            // Brief pause so the remote OS (especially Windows) applies modifiers before the next key.
+            await Task.Delay(15, CancellationToken.None);
+        }
+
+        var finalKey = keySymbols[^1];
+        await connection.SendMessageAsync(
+            new KeyEventMessage(true, finalKey),
+            CancellationToken.None);
+        await Task.Delay(15, CancellationToken.None);
+        await connection.SendMessageAsync(
+            new KeyEventMessage(false, finalKey),
+            CancellationToken.None);
+
+        for (var index = keySymbols.Length - 2; index >= 0; index--)
+        {
+            await connection.SendMessageAsync(
+                new KeyEventMessage(false, keySymbols[index]),
+                CancellationToken.None);
+            await Task.Delay(10, CancellationToken.None);
+        }
     }
 
     public void Close()
@@ -143,6 +191,48 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
         _renderTarget.Dispose();
     }
 
+    public void Dispose()
+    {
+        Close();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    private static MouseButtons ToMouseButtons(int pressedButtons)
+    {
+        var buttons = MouseButtons.None;
+        if ((pressedButtons & 1) != 0)
+        {
+            buttons |= MouseButtons.Left;
+        }
+
+        if ((pressedButtons & 2) != 0)
+        {
+            buttons |= MouseButtons.Middle;
+        }
+
+        if ((pressedButtons & 4) != 0)
+        {
+            buttons |= MouseButtons.Right;
+        }
+
+        if ((pressedButtons & 8) != 0)
+        {
+            buttons |= MouseButtons.WheelUp;
+        }
+
+        if ((pressedButtons & 16) != 0)
+        {
+            buttons |= MouseButtons.WheelDown;
+        }
+
+        return buttons;
+    }
+
     private void ConnectionOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (sender is not RfbConnection connection)
@@ -168,44 +258,6 @@ public sealed class TeacherVncSession : IAsyncDisposable, IDisposable
                     break;
             }
         }
-    }
-
-    private static MouseButtons ToMouseButtons(int pressedButtons)
-    {
-        var buttons = MouseButtons.None;
-        if ((pressedButtons & 1) != 0)
-        {
-            buttons |= MouseButtons.Left;
-        }
-        if ((pressedButtons & 2) != 0)
-        {
-            buttons |= MouseButtons.Middle;
-        }
-        if ((pressedButtons & 4) != 0)
-        {
-            buttons |= MouseButtons.Right;
-        }
-        if ((pressedButtons & 8) != 0)
-        {
-            buttons |= MouseButtons.WheelUp;
-        }
-        if ((pressedButtons & 16) != 0)
-        {
-            buttons |= MouseButtons.WheelDown;
-        }
-
-        return buttons;
-    }
-
-    public void Dispose()
-    {
-        Close();
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        Dispose();
-        return ValueTask.CompletedTask;
     }
 
     private sealed class StaticAuthenticationHandler(string password) : IAuthenticationHandler

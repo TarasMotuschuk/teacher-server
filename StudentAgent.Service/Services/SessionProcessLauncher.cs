@@ -16,8 +16,14 @@ internal static class SessionProcessLauncher
     private const int NormalPriorityClass = 0x00000020;
     private const int CreateUnicodeEnvironment = 0x00000400;
     private const int CreateNoWindow = 0x08000000;
+    private const uint SePrivilegeEnabled = 0x00000002;
+    private const uint WaitTimeout = 0x00000102;
 
-    private static readonly Guid FolderIdProfile = new("5E6C858F-0E22-4760-9A6C-E0883C6723D4");
+    internal enum SessionProcessLaunchMode
+    {
+        WinlogonToken,
+        UserTokenFallback,
+    }
 
     public static int GetActiveSessionId()
     {
@@ -30,14 +36,16 @@ internal static class SessionProcessLauncher
     /// from <c>winlogon.exe</c> in that session so the child can run on the logon desktop before any
     /// user session token exists. Falls back to <c>WTSQueryUserToken</c> if winlogon-based launch fails.
     /// </summary>
-    public static void StartProcessInSessionPreferWinlogon(string applicationPath, string arguments, int sessionId, bool hideWindow = false)
+    /// <returns></returns>
+    public static SessionProcessLaunchMode StartProcessInSessionPreferWinlogon(string applicationPath, string arguments, int sessionId, bool hideWindow = false)
     {
         if (TryStartProcessUsingWinlogonToken(applicationPath, arguments, sessionId, hideWindow, waitForExit: false, timeout: null, out _))
         {
-            return;
+            return SessionProcessLaunchMode.WinlogonToken;
         }
 
         StartProcessInSession(applicationPath, arguments, sessionId, hideWindow);
+        return SessionProcessLaunchMode.UserTokenFallback;
     }
 
     public static void StartProcessInSession(string applicationPath, string arguments, int sessionId)
@@ -48,6 +56,60 @@ internal static class SessionProcessLauncher
 
     public static int StartProcessInSessionAndWait(string applicationPath, string arguments, int sessionId, bool hideWindow, TimeSpan timeout)
         => StartProcessInSessionInternal(applicationPath, arguments, sessionId, hideWindow, waitForExit: true, timeout);
+
+    public static void StartShellOpenInSession(string targetPath, int sessionId)
+    {
+        if (Directory.Exists(targetPath))
+        {
+            StartProcessInSession(Path.Combine(Environment.SystemDirectory, "explorer.exe"), QuoteArgument(targetPath), sessionId);
+            return;
+        }
+
+        if (File.Exists(targetPath))
+        {
+            StartProcessInSession(
+                Path.Combine(Environment.SystemDirectory, "rundll32.exe"),
+                $"shell32.dll,ShellExec_RunDLL {QuoteArgument(targetPath)}",
+                sessionId);
+            return;
+        }
+
+        throw new FileNotFoundException("Entry not found.", targetPath);
+    }
+
+    public static void StartCmdScriptInSession(string scriptPath, int sessionId)
+    {
+        if (!File.Exists(scriptPath))
+        {
+            throw new FileNotFoundException("Script not found.", scriptPath);
+        }
+
+        StartProcessInSession(
+            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            $"/c {QuoteArgument(scriptPath)}",
+            sessionId,
+            hideWindow: true);
+    }
+
+    public static void StartCmdScriptAsAdministrator(string scriptPath)
+    {
+        if (!File.Exists(scriptPath))
+        {
+            throw new FileNotFoundException("Script not found.", scriptPath);
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            Arguments = $"/c {QuoteArgument(scriptPath)}",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(scriptPath),
+        };
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start command process.");
+    }
 
     private static bool TryFindWinlogonProcessId(int sessionId, out int processId)
     {
@@ -114,120 +176,87 @@ internal static class SessionProcessLauncher
 
                 try
                 {
-                    var folderIdProfile = FolderIdProfile;
-                    if (SHGetKnownFolderPath(ref folderIdProfile, 0, userProcessToken, out var profileDirPtr) != 0)
+                    var startupInfo = new STARTUPINFO
+                    {
+                        Cb = Marshal.SizeOf<STARTUPINFO>(),
+                        LpDesktop = @"winsta0\default",
+                        DwFlags = hideWindow ? 0x00000001 : 0,
+                        WShowWindow = hideWindow ? (short)0 : (short)1,
+                    };
+
+                    var commandLine = string.IsNullOrWhiteSpace(arguments)
+                        ? $"\"{applicationPath}\""
+                        : $"\"{applicationPath}\" {arguments}";
+
+                    var creationFlags = CreateUnicodeEnvironment | NormalPriorityClass;
+                    if (hideWindow)
+                    {
+                        creationFlags |= CreateNoWindow;
+                    }
+
+                    if (!DuplicateTokenEx(
+                            userProcessToken,
+                            0x02000000 | 0x000F0000 | 0x00000008 | 0x00000002 | 0x00000001,
+                            IntPtr.Zero,
+                            2,
+                            1,
+                            out var newToken))
                     {
                         return false;
                     }
 
-                    string? profileDir;
                     try
                     {
-                        profileDir = Marshal.PtrToStringUni(profileDirPtr);
-                    }
-                    finally
-                    {
-                        CoTaskMemFree(profileDirPtr);
-                    }
-
-                    if (string.IsNullOrEmpty(profileDir))
-                    {
-                        return false;
-                    }
-
-                    if (!ImpersonateLoggedOnUser(userProcessToken))
-                    {
-                        return false;
-                    }
-
-                    try
-                    {
-                        var startupInfo = new STARTUPINFO
-                        {
-                            cb = Marshal.SizeOf<STARTUPINFO>(),
-                            lpDesktop = @"winsta0\default",
-                            dwFlags = hideWindow ? 0x00000001 : 0,
-                            wShowWindow = hideWindow ? (short)0 : (short)1
-                        };
-
-                        var commandLine = string.IsNullOrWhiteSpace(arguments)
-                            ? $"\"{applicationPath}\""
-                            : $"\"{applicationPath}\" {arguments}";
-
-                        var creationFlags = CreateUnicodeEnvironment | NormalPriorityClass;
-                        if (hideWindow)
-                        {
-                            creationFlags |= CreateNoWindow;
-                        }
-
-                        if (!DuplicateTokenEx(
-                                userProcessToken,
-                                0x02000000 | 0x000F0000 | 0x00000008 | 0x00000002 | 0x00000001,
+                        if (!CreateProcessAsUser(
+                                newToken,
+                                null,
+                                commandLine,
                                 IntPtr.Zero,
-                                2,
-                                1,
-                                out var newToken))
+                                IntPtr.Zero,
+                                false,
+                                creationFlags,
+                                userEnvironment,
+                                Path.GetDirectoryName(applicationPath),
+                                ref startupInfo,
+                                out var processInformation))
                         {
                             return false;
                         }
 
                         try
                         {
-                            if (!CreateProcessAsUser(
-                                    newToken,
-                                    null,
-                                    commandLine,
-                                    IntPtr.Zero,
-                                    IntPtr.Zero,
-                                    false,
-                                    creationFlags,
-                                    userEnvironment,
-                                    profileDir,
-                                    ref startupInfo,
-                                    out var processInformation))
+                            if (!waitForExit)
                             {
-                                return false;
-                            }
-
-                            try
-                            {
-                                if (!waitForExit)
-                                {
-                                    return true;
-                                }
-
-                                var waitMilliseconds = timeout is null
-                                    ? Timeout.Infinite
-                                    : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
-
-                                var waitResult = WaitForSingleObject(processInformation.hProcess, waitMilliseconds);
-                                if (waitResult == WAIT_TIMEOUT)
-                                {
-                                    throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
-                                }
-
-                                if (!GetExitCodeProcess(processInformation.hProcess, out var code))
-                                {
-                                    throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed.");
-                                }
-
-                                exitCode = unchecked((int)code);
                                 return true;
                             }
-                            finally
+
+                            var waitMilliseconds = timeout is null
+                                ? Timeout.Infinite
+                                : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
+
+                            var waitResult = WaitForSingleObject(processInformation.HProcess, waitMilliseconds);
+                            if (waitResult == WaitTimeout)
                             {
-                                CloseHandle(processInformation.hThread);
-                                CloseHandle(processInformation.hProcess);
+                                throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
                             }
+
+                            if (!GetExitCodeProcess(processInformation.HProcess, out var code))
+                            {
+                                throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed.");
+                            }
+
+                            exitCode = unchecked((int)code);
+                            return true;
                         }
                         finally
                         {
-                            CloseHandle(newToken);
+                            CloseHandle(processInformation.HThread);
+                            CloseHandle(processInformation.HProcess);
                         }
                     }
                     finally
                     {
-                        RevertToSelf();
+                        CloseHandle(newToken);
                     }
                 }
                 finally
@@ -274,8 +303,8 @@ internal static class SessionProcessLauncher
                 Privileges = new LUID_AND_ATTRIBUTES
                 {
                     Luid = luid,
-                    Attributes = SE_PRIVILEGE_ENABLED
-                }
+                    Attributes = SePrivilegeEnabled,
+                },
             };
 
             AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
@@ -317,10 +346,10 @@ internal static class SessionProcessLauncher
                 {
                     var startupInfo = new STARTUPINFO
                     {
-                        cb = Marshal.SizeOf<STARTUPINFO>(),
-                        lpDesktop = @"winsta0\default",
-                        dwFlags = hideWindow ? 0x00000001 : 0,
-                        wShowWindow = hideWindow ? (short)0 : (short)1
+                        Cb = Marshal.SizeOf<STARTUPINFO>(),
+                        LpDesktop = @"winsta0\default",
+                        DwFlags = hideWindow ? 0x00000001 : 0,
+                        WShowWindow = hideWindow ? (short)0 : (short)1,
                     };
 
                     var commandLine = string.IsNullOrWhiteSpace(arguments)
@@ -354,13 +383,13 @@ internal static class SessionProcessLauncher
                             ? Timeout.Infinite
                             : checked((int)Math.Clamp(timeout.Value.TotalMilliseconds, 1, int.MaxValue));
 
-                        var waitResult = WaitForSingleObject(processInformation.hProcess, waitMilliseconds);
-                        if (waitResult == WAIT_TIMEOUT)
+                        var waitResult = WaitForSingleObject(processInformation.HProcess, waitMilliseconds);
+                        if (waitResult == WaitTimeout)
                         {
                             throw new TimeoutException($"Process '{applicationPath}' did not finish within {timeout}.");
                         }
 
-                        if (!GetExitCodeProcess(processInformation.hProcess, out var exitCode))
+                        if (!GetExitCodeProcess(processInformation.HProcess, out var exitCode))
                         {
                             throw new Win32Exception(Marshal.GetLastWin32Error(), "GetExitCodeProcess failed.");
                         }
@@ -369,8 +398,8 @@ internal static class SessionProcessLauncher
                     }
                     finally
                     {
-                        CloseHandle(processInformation.hThread);
-                        CloseHandle(processInformation.hProcess);
+                        CloseHandle(processInformation.HThread);
+                        CloseHandle(processInformation.HProcess);
                     }
                 }
                 finally
@@ -389,94 +418,8 @@ internal static class SessionProcessLauncher
         }
     }
 
-    public static void StartShellOpenInSession(string targetPath, int sessionId)
-    {
-        if (Directory.Exists(targetPath))
-        {
-            StartProcessInSession(Path.Combine(Environment.SystemDirectory, "explorer.exe"), QuoteArgument(targetPath), sessionId);
-            return;
-        }
-
-        if (File.Exists(targetPath))
-        {
-            StartProcessInSession(
-                Path.Combine(Environment.SystemDirectory, "rundll32.exe"),
-                $"shell32.dll,ShellExec_RunDLL {QuoteArgument(targetPath)}",
-                sessionId);
-            return;
-        }
-
-        throw new FileNotFoundException("Entry not found.", targetPath);
-    }
-
-    public static void StartCmdScriptInSession(string scriptPath, int sessionId)
-    {
-        if (!File.Exists(scriptPath))
-        {
-            throw new FileNotFoundException("Script not found.", scriptPath);
-        }
-
-        StartProcessInSession(
-            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            $"/c {QuoteArgument(scriptPath)}",
-            sessionId,
-            hideWindow: true);
-    }
-
-    public static void StartCmdScriptAsAdministrator(string scriptPath)
-    {
-        if (!File.Exists(scriptPath))
-        {
-            throw new FileNotFoundException("Script not found.", scriptPath);
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            Arguments = $"/c {QuoteArgument(scriptPath)}",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = Path.GetDirectoryName(scriptPath)
-        };
-
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start command process.");
-    }
-
     private static string QuoteArgument(string value)
         => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct STARTUPINFO
-    {
-        public int cb;
-        public string? lpReserved;
-        public string? lpDesktop;
-        public string? lpTitle;
-        public int dwX;
-        public int dwY;
-        public int dwXSize;
-        public int dwYSize;
-        public int dwXCountChars;
-        public int dwYCountChars;
-        public int dwFillAttribute;
-        public int dwFlags;
-        public short wShowWindow;
-        public short cbReserved2;
-        public IntPtr lpReserved2;
-        public IntPtr hStdInput;
-        public IntPtr hStdOutput;
-        public IntPtr hStdError;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_INFORMATION
-    {
-        public IntPtr hProcess;
-        public IntPtr hThread;
-        public int dwProcessId;
-        public int dwThreadId;
-    }
 
     [DllImport("kernel32.dll")]
     private static extern uint WTSGetActiveConsoleSessionId();
@@ -531,12 +474,6 @@ internal static class SessionProcessLauncher
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern bool OpenProcessToken(IntPtr processHandle, uint dwDesiredAccess, out IntPtr tokenHandle);
 
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern bool ImpersonateLoggedOnUser(IntPtr hToken);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern bool RevertToSelf();
-
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern bool LookupPrivilegeValue(string? lpSystemName, string lpName, out LUID lpLuid);
 
@@ -548,12 +485,6 @@ internal static class SessionProcessLauncher
         int bufferLength,
         IntPtr previousState,
         IntPtr returnLength);
-
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    private static extern int SHGetKnownFolderPath(ref Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
-
-    [DllImport("ole32.dll")]
-    private static extern void CoTaskMemFree(IntPtr ptr);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct LUID
@@ -576,6 +507,35 @@ internal static class SessionProcessLauncher
         public LUID_AND_ATTRIBUTES Privileges;
     }
 
-    private const uint SE_PRIVILEGE_ENABLED = 0x00000002;
-    private const uint WAIT_TIMEOUT = 0x00000102;
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct STARTUPINFO
+    {
+        public int Cb;
+        public string? LpReserved;
+        public string? LpDesktop;
+        public string? LpTitle;
+        public int DwX;
+        public int DwY;
+        public int DwXSize;
+        public int DwYSize;
+        public int DwXCountChars;
+        public int DwYCountChars;
+        public int DwFillAttribute;
+        public int DwFlags;
+        public short WShowWindow;
+        public short CbReserved2;
+        public IntPtr LpReserved2;
+        public IntPtr HStdInput;
+        public IntPtr HStdOutput;
+        public IntPtr HStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_INFORMATION
+    {
+        public IntPtr HProcess;
+        public IntPtr HThread;
+        public int DwProcessId;
+        public int DwThreadId;
+    }
 }

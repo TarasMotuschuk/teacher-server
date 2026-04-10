@@ -1,12 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing.Imaging;
 using Teacher.Common;
 using Teacher.Common.Contracts;
-using Teacher.Common.Vnc;
+using TeacherClient.Localization;
 using TeacherClient.Models;
 using TeacherClient.Services;
-using TeacherClient.Localization;
 
 namespace TeacherClient;
 
@@ -20,8 +18,10 @@ public partial class MainForm : Form
     private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly TeacherUpdatePreparationService _updatePreparationService =
         new(GetUpdatePreparationRootDirectory());
+
     private readonly TeacherClientUpdateService _clientUpdateService =
         new(GetClientUpdateRootDirectory(), Application.ProductVersion);
+
     private readonly System.Windows.Forms.Timer _agentRefreshTimer = new();
     private readonly System.Windows.Forms.Timer _connectionMonitorTimer = new();
     private readonly System.Windows.Forms.Timer _updateStatusTimer = new();
@@ -54,10 +54,10 @@ public partial class MainForm : Form
         localFilesGrid.AutoGenerateColumns = false;
         remoteFilesGrid.AutoGenerateColumns = false;
         agentsGrid.AutoGenerateColumns = false;
-        agentsGrid.CurrentCellDirtyStateChanged += agentsGrid_CurrentCellDirtyStateChanged;
-        agentsGrid.CellValueChanged += agentsGrid_CellValueChanged;
+        agentsGrid.CurrentCellDirtyStateChanged += AgentsGrid_CurrentCellDirtyStateChanged;
+        agentsGrid.CellValueChanged += AgentsGrid_CellValueChanged;
         agentsGrid.ShowCellToolTips = true;
-        agentsGrid.CellToolTipTextNeeded += agentsGrid_CellToolTipTextNeeded;
+        agentsGrid.CellToolTipTextNeeded += AgentsGrid_CellToolTipTextNeeded;
         agentsGrid.DataSource = _agents;
         processesGrid.DataSource = _processes;
         localFilesGrid.DataSource = _localEntries;
@@ -93,6 +93,7 @@ public partial class MainForm : Form
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+
             // Remote management preview tears down shared TeacherVncSession instances. Close fullscreen
             // viewers first or their session is disposed under them and the process can fault.
             foreach (Form form in Application.OpenForms.Cast<Form>().ToArray())
@@ -137,7 +138,7 @@ public partial class MainForm : Form
 
     private TeacherApiClient CreateClient() => new(GetCurrentServerUrlOrThrow(), _clientSettings.SharedSecret);
 
-    private void agentsGrid_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+    private void AgentsGrid_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
     {
         if (agentsGrid.IsCurrentCellDirty)
         {
@@ -145,7 +146,7 @@ public partial class MainForm : Form
         }
     }
 
-    private void agentsGrid_CellToolTipTextNeeded(object? sender, DataGridViewCellToolTipTextNeededEventArgs e)
+    private void AgentsGrid_CellToolTipTextNeeded(object? sender, DataGridViewCellToolTipTextNeededEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
         {
@@ -172,7 +173,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void agentsGrid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+    private async void AgentsGrid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
     {
         if (_suppressBrowserLockEvents || e.RowIndex < 0)
         {
@@ -195,7 +196,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void settingsButton_Click(object? sender, EventArgs e)
+    private async void SettingsButton_Click(object? sender, EventArgs e)
     {
         using var dialog = new SettingsDialog(_clientSettings);
         if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -218,11 +219,11 @@ public partial class MainForm : Form
         await ApplyStudentPolicySettingsToOnlineAgentsAsync(reportSummary: true);
     }
 
-    private async void refreshProcessesButton_Click(object sender, EventArgs e) => await LoadProcessesAsync();
+    private async void RefreshProcessesButton_Click(object? sender, EventArgs e) => await LoadProcessesAsync();
 
-    private void refreshRegistryButton_Click(object? sender, EventArgs e) => InitializeRegistryTree();
+    private void RefreshRegistryButton_Click(object? sender, EventArgs e) => InitializeRegistryTree();
 
-    private void registryTreeView_BeforeExpand(object? sender, TreeViewCancelEventArgs e)
+    private void RegistryTreeView_BeforeExpand(object? sender, TreeViewCancelEventArgs e)
     {
         if (e.Node?.Nodes.Count == 1 && e.Node.Nodes[0].Tag is string dummyTag && dummyTag == "dummy")
         {
@@ -230,9 +231,13 @@ public partial class MainForm : Form
         }
     }
 
-    private async void registryTreeView_AfterSelect(object? sender, TreeViewEventArgs e)
+    private async void RegistryTreeView_AfterSelect(object? sender, TreeViewEventArgs e)
     {
-        if (e.Node?.Tag is not string path) return;
+        if (e.Node?.Tag is not string path)
+        {
+            return;
+        }
+
         await LoadRegistryValuesAsync(path);
     }
 
@@ -254,7 +259,11 @@ public partial class MainForm : Form
 
     private async Task LoadRegistrySubKeysAsync(TreeNode node)
     {
-        if (node.Tag is not string path) return;
+        if (node.Tag is not string path)
+        {
+            return;
+        }
+
         try
         {
             var client = CreateClient();
@@ -264,7 +273,10 @@ public partial class MainForm : Form
             {
                 var childNode = new TreeNode(key.Name) { Tag = key.Path };
                 if (key.HasChildren)
+                {
                     childNode.Nodes.Add(new TreeNode("...") { Tag = "dummy" });
+                }
+
                 node.Nodes.Add(childNode);
             }
         }
@@ -288,7 +300,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void newRegistryValueButton_Click(object? sender, EventArgs e)
+    private async void NewRegistryValueButton_Click(object? sender, EventArgs e)
     {
         if (registryTreeView.SelectedNode?.Tag is not string path)
         {
@@ -297,7 +309,10 @@ public partial class MainForm : Form
         }
 
         using var dialog = new RegistryEditDialog();
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
 
         try
         {
@@ -312,7 +327,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void newRegistryKeyButton_Click(object? sender, EventArgs e)
+    private async void NewRegistryKeyButton_Click(object? sender, EventArgs e)
     {
         if (registryTreeView.SelectedNode?.Tag is not string path)
         {
@@ -321,7 +336,10 @@ public partial class MainForm : Form
         }
 
         using var dialog = new InputDialog(TeacherClientText.NewKey, TeacherClientText.KeyName);
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
 
         try
         {
@@ -336,7 +354,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void editRegistryValueButton_Click(object? sender, EventArgs e)
+    private async void EditRegistryValueButton_Click(object? sender, EventArgs e)
     {
         if (registryValuesGrid.SelectedRows.Count == 0)
         {
@@ -366,7 +384,10 @@ public partial class MainForm : Form
             }
 
             using var dialog = new RegistryEditDialog(editableValue.Name, editableValue.RawType, editableValue.RawData);
-            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
 
             await client.SetRegistryValueAsync(path, dialog.ValueName, dialog.ValueType, dialog.ValueData);
             SetStatus(TeacherClientText.ValueUpdated);
@@ -378,7 +399,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void exportRegistryKeyButton_Click(object? sender, EventArgs e)
+    private async void ExportRegistryKeyButton_Click(object? sender, EventArgs e)
     {
         if (registryTreeView.SelectedNode?.Tag is not string path)
         {
@@ -390,7 +411,7 @@ public partial class MainForm : Form
         {
             Filter = TeacherClientText.RegFilesFilter,
             DefaultExt = "reg",
-            FileName = $"{path.Replace('\\', '_')}.reg"
+            FileName = $"{path.Replace('\\', '_')}.reg",
         };
 
         if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -410,12 +431,12 @@ public partial class MainForm : Form
         }
     }
 
-    private async void importRegistryFileButton_Click(object? sender, EventArgs e)
+    private async void ImportRegistryFileButton_Click(object? sender, EventArgs e)
     {
         using var dialog = new OpenFileDialog
         {
             Filter = TeacherClientText.RegFilesFilter,
-            Multiselect = false
+            Multiselect = false,
         };
 
         if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -445,7 +466,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void deleteRegistryValueButton_Click(object? sender, EventArgs e)
+    private async void DeleteRegistryValueButton_Click(object? sender, EventArgs e)
     {
         if (registryValuesGrid.SelectedRows.Count == 0)
         {
@@ -481,7 +502,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void deleteRegistryKeyButton_Click(object? sender, EventArgs e)
+    private async void DeleteRegistryKeyButton_Click(object? sender, EventArgs e)
     {
         if (registryTreeView.SelectedNode?.Tag is not string path)
         {
@@ -507,34 +528,34 @@ public partial class MainForm : Form
         }
     }
 
-    private async void refreshAgentsButton_Click(object? sender, EventArgs e) => await LoadDiscoveredAgentsAsync();
+    private async void RefreshAgentsButton_Click(object? sender, EventArgs e) => await LoadDiscoveredAgentsAsync();
 
-    private async void connectSelectedAgentButton_Click(object? sender, EventArgs e)
+    private async void ConnectSelectedAgentButton_Click(object? sender, EventArgs e)
     {
         await ConnectSelectedAgentAsync();
     }
 
-    private async void saveDesktopIconLayoutMenuItem_Click(object? sender, EventArgs e)
+    private async void SaveDesktopIconLayoutMenuItem_Click(object? sender, EventArgs e)
     {
         await SaveDesktopIconLayoutAsync();
     }
 
-    private async void restoreDesktopIconLayoutMenuItem_Click(object? sender, EventArgs e)
+    private async void RestoreDesktopIconLayoutMenuItem_Click(object? sender, EventArgs e)
     {
         await RestoreDesktopIconLayoutAsync();
     }
 
-    private async void checkSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
+    private async void CheckSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
     {
         await CheckSelectedAgentUpdateAsync();
     }
 
-    private async void startSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
+    private async void StartSelectedAgentUpdateButton_Click(object? sender, EventArgs e)
     {
         await StartSelectedAgentUpdateAsync();
     }
 
-    private async void addManualAgentButton_Click(object? sender, EventArgs e)
+    private async void AddManualAgentButton_Click(object? sender, EventArgs e)
     {
         using var dialog = new ManualAgentDialog();
         if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -549,7 +570,7 @@ public partial class MainForm : Form
         SetStatus(TeacherClientText.FormatAddedManualAgent(entry.DisplayName));
     }
 
-    private async void editManualAgentButton_Click(object? sender, EventArgs e)
+    private async void EditManualAgentButton_Click(object? sender, EventArgs e)
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent || !agent.IsManual)
         {
@@ -581,7 +602,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void removeManualAgentButton_Click(object? sender, EventArgs e)
+    private async void RemoveManualAgentButton_Click(object? sender, EventArgs e)
     {
         if (agentsGrid.CurrentRow?.DataBoundItem is not DiscoveredAgentRow agent || !agent.IsManual)
         {
@@ -607,7 +628,7 @@ public partial class MainForm : Form
         SetStatus(TeacherClientText.FormatRemovedManualAgent(agent.MachineName));
     }
 
-    private async void killProcessButton_Click(object sender, EventArgs e)
+    private async void KillProcessButton_Click(object? sender, EventArgs e)
     {
         if (processesGrid.CurrentRow?.DataBoundItem is not ProcessInfoDto process)
         {
@@ -638,7 +659,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void processesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+    private async void ProcessesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || processesGrid.Rows[e.RowIndex].DataBoundItem is not ProcessInfoDto process)
         {
@@ -859,7 +880,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void lockBrowsersOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void LockBrowsersOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -874,7 +895,7 @@ public partial class MainForm : Form
         await SetBrowserLockOnAgentsAsync(targetAgents, enabled: true);
     }
 
-    private async void lockInputOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void LockInputOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -889,7 +910,7 @@ public partial class MainForm : Form
         await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
     }
 
-    private async void unlockInputOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void UnlockInputOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -904,7 +925,46 @@ public partial class MainForm : Form
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
-    private async void runCommandOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private Task ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind restriction, bool enabled)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return Task.CompletedTask;
+        }
+
+        return SetWindowsRestrictionOnAgentsAsync(targetAgents, restriction, enabled);
+    }
+
+    private async void EnableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: true);
+
+    private async void DisableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.TaskManager, enabled: false);
+
+    private async void EnableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: true);
+
+    private async void DisableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.RunDialog, enabled: false);
+
+    private async void EnableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: true);
+
+    private async void DisableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ControlPanelAndSettings, enabled: false);
+
+    private async void EnableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: true);
+
+    private async void DisableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LockWorkstation, enabled: false);
+
+    private async void EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
+
+    private async void DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
+
+    private async void EnableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
+
+    private async void DisableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
+
+    private async void RunCommandOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -916,7 +976,7 @@ public partial class MainForm : Form
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: true);
     }
 
-    private async void runCommandOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void RunCommandOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -931,7 +991,7 @@ public partial class MainForm : Form
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
-    private async void updateSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void UpdateSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -943,7 +1003,7 @@ public partial class MainForm : Form
         await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: true);
     }
 
-    private async void updateAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void UpdateAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -958,7 +1018,7 @@ public partial class MainForm : Form
         await StartAgentUpdateOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
-    private async void restoreDesktopIconsOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void RestoreDesktopIconsOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -970,7 +1030,7 @@ public partial class MainForm : Form
         await RestoreDesktopIconsOnAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: true);
     }
 
-    private async void restoreDesktopIconsOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void RestoreDesktopIconsOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -979,7 +1039,7 @@ public partial class MainForm : Form
         await RestoreDesktopIconsOnAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: false);
     }
 
-    private async void applyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ApplyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -991,7 +1051,7 @@ public partial class MainForm : Form
         await ApplyCurrentDesktopLayoutToAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: true);
     }
 
-    private async void applyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ApplyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1000,12 +1060,12 @@ public partial class MainForm : Form
         await ApplyCurrentDesktopLayoutToAgentsAsync(FilterOutCurrentConnectedAgent(targetAgents), selectedOnly: false);
     }
 
-    private async void refreshFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
+    private async void RefreshFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
     {
         await RefreshFrequentProgramsAsync();
     }
 
-    private void manageFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
+    private void ManageFrequentProgramsMenuItem_Click(object? sender, EventArgs e)
     {
         using var dialog = new FrequentProgramsDialog(_frequentPrograms);
         if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -1018,7 +1078,7 @@ public partial class MainForm : Form
         SetStatus(TeacherClientText.FrequentProgramsRefreshed(_frequentPrograms.Count));
     }
 
-    private async void shutdownSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ShutdownSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -1030,7 +1090,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Shutdown, selectedOnly: true);
     }
 
-    private async void restartSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void RestartSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -1042,7 +1102,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Restart, selectedOnly: true);
     }
 
-    private async void logOffSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void LogOffSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -1054,7 +1114,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: true);
     }
 
-    private async void shutdownAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ShutdownAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents.Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
         if (targetAgents.Count == 0)
@@ -1066,7 +1126,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Shutdown, selectedOnly: false);
     }
 
-    private async void restartAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void RestartAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents.Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
         if (targetAgents.Count == 0)
@@ -1078,7 +1138,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.Restart, selectedOnly: false);
     }
 
-    private async void logOffAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void LogOffAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents.Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase)).ToList();
         if (targetAgents.Count == 0)
@@ -1090,7 +1150,7 @@ public partial class MainForm : Form
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
     }
 
-    private async void refreshFilesButton_Click(object sender, EventArgs e)
+    private async void RefreshFilesButton_Click(object? sender, EventArgs e)
     {
         await LoadLocalDirectoryAsync(localPathTextBox.Text);
         await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
@@ -1210,7 +1270,7 @@ public partial class MainForm : Form
             entry is FileInfo fileInfo ? fileInfo.Length : null,
             entry.LastWriteTimeUtc)
         {
-            AttributesDisplay = FormatAttributes(entry.Attributes)
+            AttributesDisplay = FormatAttributes(entry.Attributes),
         };
     }
 
@@ -1331,7 +1391,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void localFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    private async void LocalFilesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || localFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1347,7 +1407,7 @@ public partial class MainForm : Form
         OpenLocalEntry(entry);
     }
 
-    private async void remoteFilesGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    private async void RemoteFilesGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || remoteFilesGrid.Rows[e.RowIndex].DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1360,10 +1420,10 @@ public partial class MainForm : Form
             return;
         }
 
-        openRemoteButton_Click(sender, EventArgs.Empty);
+        OpenRemoteButton_Click(sender, EventArgs.Empty);
     }
 
-    private async void upLocalButton_Click(object sender, EventArgs e)
+    private async void UpLocalButton_Click(object? sender, EventArgs e)
     {
         var parent = Directory.GetParent(localPathTextBox.Text)?.FullName;
         if (!string.IsNullOrWhiteSpace(parent))
@@ -1372,7 +1432,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void upRemoteButton_Click(object sender, EventArgs e)
+    private async void UpRemoteButton_Click(object? sender, EventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(_remoteParentPath))
         {
@@ -1380,7 +1440,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void localDriveComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+    private async void LocalDriveComboBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
         if (_suppressDriveSelectionEvents || localDriveComboBox.SelectedItem is not string root || string.IsNullOrWhiteSpace(root))
         {
@@ -1390,7 +1450,7 @@ public partial class MainForm : Form
         await LoadLocalDirectoryAsync(root);
     }
 
-    private async void remoteDriveComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+    private async void RemoteDriveComboBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
         if (_suppressDriveSelectionEvents || remoteDriveComboBox.SelectedItem is not string root || string.IsNullOrWhiteSpace(root))
         {
@@ -1400,7 +1460,7 @@ public partial class MainForm : Form
         await LoadRemoteDirectoryAsync(root);
     }
 
-    private async void agentsGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+    private async void AgentsGrid_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0)
         {
@@ -1410,7 +1470,7 @@ public partial class MainForm : Form
         await ConnectSelectedAgentAsync();
     }
 
-    private async void uploadButton_Click(object sender, EventArgs e)
+    private async void UploadButton_Click(object? sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
@@ -1434,7 +1494,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void sendToSelectedStudentsButton_Click(object? sender, EventArgs e)
+    private async void SendToSelectedStudentsButton_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -1446,7 +1506,7 @@ public partial class MainForm : Form
         await DistributeLocalSelectionAsync(targetAgents);
     }
 
-    private async void sendToAllOnlineStudentsButton_Click(object? sender, EventArgs e)
+    private async void SendToAllOnlineStudentsButton_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1461,7 +1521,7 @@ public partial class MainForm : Form
         await DistributeLocalSelectionAsync(targetAgents);
     }
 
-    private async void clearSelectedFolderOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ClearSelectedFolderOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
         if (targetAgents.Count == 0)
@@ -1473,7 +1533,7 @@ public partial class MainForm : Form
         await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: false);
     }
 
-    private async void clearSelectedFolderOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ClearSelectedFolderOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1488,40 +1548,13 @@ public partial class MainForm : Form
         await ClearSelectedRemoteDirectoryAsync(targetAgents, allOnline: true);
     }
 
-    private async void collectStudentWorkFromSelectedAgentsMenuItem_Click(object? sender, EventArgs e)
-    {
-        var targetAgents = GetSelectedAgents();
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
-            return;
-        }
-
-        await CollectStudentWorkAsync(targetAgents);
-    }
-
-    private async void collectStudentWorkFromAllOnlineAgentsMenuItem_Click(object? sender, EventArgs e)
-    {
-        var targetAgents = _allAgents
-            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
-            return;
-        }
-
-        await CollectStudentWorkAsync(targetAgents);
-    }
-
-    private async void createStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
+    private async void CreateStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
     {
         _preparedStudentWorkFolders.Clear();
         await EnsureStudentWorkFolderOnAvailableAgentsAsync(reportSummary: true);
     }
 
-    private async void collectStudentWorkToTeacherPcMenuItem_Click(object? sender, EventArgs e)
+    private async void CollectStudentWorkToTeacherPcMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1536,7 +1569,7 @@ public partial class MainForm : Form
         await CollectStudentWorkAsync(targetAgents);
     }
 
-    private async void clearStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
+    private async void ClearStudentWorkFolderOnAllAgentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = _allAgents
             .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
@@ -1551,7 +1584,7 @@ public partial class MainForm : Form
         await ClearConfiguredStudentWorkDirectoryAsync(targetAgents);
     }
 
-    private async void downloadButton_Click(object sender, EventArgs e)
+    private async void DownloadButton_Click(object? sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry || entry.IsDirectory)
         {
@@ -1575,7 +1608,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void openRemoteButton_Click(object? sender, EventArgs e)
+    private async void OpenRemoteButton_Click(object? sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1596,7 +1629,7 @@ public partial class MainForm : Form
         }
     }
 
-    private void openLocalButton_Click(object? sender, EventArgs e)
+    private void OpenLocalButton_Click(object? sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1607,7 +1640,7 @@ public partial class MainForm : Form
         OpenLocalEntry(entry);
     }
 
-    private async void renameLocalButton_Click(object? sender, EventArgs e)
+    private async void RenameLocalButton_Click(object? sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1634,7 +1667,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void renameRemoteButton_Click(object? sender, EventArgs e)
+    private async void RenameRemoteButton_Click(object? sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1662,7 +1695,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void deleteLocalButton_Click(object sender, EventArgs e)
+    private async void DeleteLocalButton_Click(object? sender, EventArgs e)
     {
         if (localFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1700,7 +1733,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void deleteRemoteButton_Click(object sender, EventArgs e)
+    private async void DeleteRemoteButton_Click(object? sender, EventArgs e)
     {
         if (remoteFilesGrid.CurrentRow?.DataBoundItem is not FileSystemEntryDto entry)
         {
@@ -1731,7 +1764,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void newRemoteFolderButton_Click(object sender, EventArgs e)
+    private async void NewRemoteFolderButton_Click(object? sender, EventArgs e)
     {
         using var dialog = new InputDialog(TeacherClientText.CreateRemoteFolderTitle, TeacherClientText.FolderName, TeacherClientText.NewFolderDefaultName);
         if (dialog.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(dialog.Value))
@@ -1761,7 +1794,7 @@ public partial class MainForm : Form
             Process.Start(new ProcessStartInfo
             {
                 FileName = entry.FullPath,
-                UseShellExecute = true
+                UseShellExecute = true,
             });
             SetStatus(TeacherClientText.FormatOpenedLocal(entry.Name));
         }
@@ -1821,13 +1854,13 @@ public partial class MainForm : Form
         return trimmed;
     }
 
-    private void aboutMenuItem_Click(object? sender, EventArgs e)
+    private void AboutMenuItem_Click(object? sender, EventArgs e)
     {
         using var dialog = new AboutDialog();
         dialog.ShowDialog(this);
     }
 
-    private void checkClientUpdateMenuItem_Click(object? sender, EventArgs e)
+    private void CheckClientUpdateMenuItem_Click(object? sender, EventArgs e)
     {
         using var dialog = new ClientUpdateDialog(_clientUpdateService);
         dialog.ShowDialog(this);
@@ -1887,11 +1920,13 @@ public partial class MainForm : Form
                 SetStatus(TeacherClientText.UpdatePreparationMissing);
                 return;
             }
+
             var status = await client.StartAgentUpdateAsync(request);
             if (status is not null)
             {
                 ReplaceAgentRow(ApplyUpdateStatus(agent, status));
             }
+
             SetStatus(TeacherClientText.AgentUpdateStarted(agent.MachineName, status?.AvailableVersion ?? "?"));
         }
         catch (Exception ex)
@@ -2227,21 +2262,23 @@ public partial class MainForm : Form
         using var cursorScope = new CursorScope(this);
         for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
         {
-                var agent = targetAgents[agentIndex];
-                try
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                var request = await CreatePreparedUpdateRequestAsync(agent, client);
+                if (request is null)
                 {
-                    SetStatus(TeacherClientText.BulkAgentUpdateProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
-                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                    var request = await CreatePreparedUpdateRequestAsync(agent, client);
-                    if (request is null)
-                    {
-                        throw new InvalidOperationException(TeacherClientText.UpdatePreparationMissing);
-                    }
-                    var status = await client.StartAgentUpdateAsync(request);
-                    if (status is not null)
-                    {
+                    throw new InvalidOperationException(TeacherClientText.UpdatePreparationMissing);
+                }
+
+                var status = await client.StartAgentUpdateAsync(request);
+                if (status is not null)
+                {
                     ReplaceAgentRow(ApplyUpdateStatus(agent, status));
                 }
+
                 succeeded++;
             }
             catch (Exception ex)
@@ -2614,6 +2651,7 @@ public partial class MainForm : Form
             {
                 // Best-effort policy sync on connect should not block regular teacher connection flow.
             }
+
             SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
@@ -2824,24 +2862,30 @@ public partial class MainForm : Form
         var targetVersion = status.State switch
         {
             AgentUpdateStateKind.Succeeded => status.AvailableVersion ?? agent.Version,
-            _ => agent.Version
+            _ => agent.Version,
         };
 
         return agent with
         {
             Version = targetVersion,
             UpdateStatusBadge = TeacherClientText.UpdateStateBadge(status),
-            UpdateStatusDetail = TeacherClientText.FormatUpdateStatusDetail(status)
+            UpdateStatusDetail = TeacherClientText.FormatUpdateStatusDetail(status),
         };
     }
 
-    private void agentFilters_Changed(object? sender, EventArgs e)
+    private void AgentFilters_Changed(object? sender, EventArgs e)
     {
         ApplyAgentFilters();
     }
 
     private void ApplyAgentFilters()
     {
+        var selectedIds = GetSelectedAgents()
+            .Select(a => a.AgentId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var search = agentSearchTextBox.Text.Trim();
         var selectedGroup = groupFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllGroups;
         var selectedStatus = statusFilterComboBox.SelectedItem?.ToString() ?? TeacherClientText.AllStatuses;
@@ -2864,6 +2908,34 @@ public partial class MainForm : Form
         _agents = new BindingList<DiscoveredAgentRow>(filtered.ToList());
         agentsGrid.DataSource = _agents;
         _suppressBrowserLockEvents = false;
+
+        RestoreAgentsGridSelection(selectedIds);
+    }
+
+    /// <summary>
+    /// Restores selection after rebinding the grid; otherwise group commands for selected PCs see an empty selection.
+    /// </summary>
+    private void RestoreAgentsGridSelection(HashSet<string> selectedIds)
+    {
+        if (selectedIds.Count == 0 || agentsGrid.Rows.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            agentsGrid.ClearSelection();
+            foreach (DataGridViewRow row in agentsGrid.Rows)
+            {
+                if (row.DataBoundItem is DiscoveredAgentRow agent && selectedIds.Contains(agent.AgentId))
+                {
+                    row.Selected = true;
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     private void RefreshGroupFilterOptions()
@@ -2927,7 +2999,7 @@ public partial class MainForm : Form
                             VncStatusMessage = vncStatus?.Message ?? string.Empty,
                             Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                                 ? updateStatus.AvailableVersion ?? info.AgentVersion
-                                : info.AgentVersion
+                                : info.AgentVersion,
                         });
                         continue;
                     }
@@ -2963,7 +3035,7 @@ public partial class MainForm : Form
                         VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
                         Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
                             ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
-                            : info?.AgentVersion ?? agent.Version
+                            : info?.AgentVersion ?? agent.Version,
                     });
                     continue;
                 }
@@ -2974,7 +3046,7 @@ public partial class MainForm : Form
 
             updatedAgents.Add(agent with
             {
-                Status = isReachable ? TeacherClientText.Online : TeacherClientText.Offline
+                Status = isReachable ? TeacherClientText.Online : TeacherClientText.Offline,
             });
         }
 
@@ -3044,7 +3116,7 @@ public partial class MainForm : Form
                     UpdateStatusBadge = discovered.UpdateStatusBadge,
                     UpdateStatusDetail = discovered.UpdateStatusDetail,
                     Version = discovered.Version,
-                    LastSeenUtc = discovered.LastSeenUtc
+                    LastSeenUtc = discovered.LastSeenUtc,
                 };
                 continue;
             }
@@ -3080,7 +3152,9 @@ public partial class MainForm : Form
         bool IsManual)
     {
         public bool BrowserLockEnabled { get; set; }
+
         public bool InputLockEnabled { get; set; }
+
         public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
         public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)
@@ -3217,6 +3291,51 @@ public partial class MainForm : Form
             MessageBox.Show(
                 string.Join(Environment.NewLine, failures),
                 TeacherClientText.BulkInputLockError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private async Task SetWindowsRestrictionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, WindowsRestrictionKind restriction, bool enabled)
+    {
+        if (MessageBox.Show(
+                TeacherClientText.WindowsRestrictionPrompt(restriction, enabled, targetAgents.Count),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            try
+            {
+                SetStatus(TeacherClientText.WindowsRestrictionProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, restriction, enabled));
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.SetWindowsRestrictionEnabledAsync(restriction, enabled);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.WindowsRestrictionCompleted(restriction, enabled, succeeded)
+            : TeacherClientText.WindowsRestrictionCompletedWithFailures(restriction, enabled, succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.BulkWindowsRestrictionsError,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
         }

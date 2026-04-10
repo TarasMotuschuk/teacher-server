@@ -6,6 +6,8 @@ public sealed class InputLockForm : Form
 {
     private readonly System.Windows.Forms.Timer _focusTimer;
     private bool _allowClose;
+    private bool _disposed;
+    private bool _bringPosted;
 
     public InputLockForm(Screen screen)
     {
@@ -24,58 +26,45 @@ public sealed class InputLockForm : Form
         MinimizeBox = false;
         MaximizeBox = false;
         KeyPreview = true;
-        Text = StudentAgentText.InputLockTitle;
+        Text = StudentAgentText.InputLockStatusLine;
 
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(170, 15, 23, 42),
             ColumnCount = 1,
-            RowCount = 3,
-            Padding = new Padding(48)
+            RowCount = 2,
+            Padding = new Padding(48, 48, 48, 32),
         };
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 60F));
 
-        var titleLabel = new Label
+        var spacer = new Panel
         {
-            AutoSize = true,
-            Anchor = AnchorStyles.None,
-            Text = StudentAgentText.InputLockTitle,
-            Font = new Font("Segoe UI", 28F, FontStyle.Bold, GraphicsUnit.Point),
-            ForeColor = Color.White,
+            Dock = DockStyle.Fill,
             BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 24)
         };
 
-        var messageLabel = new Label
+        var statusLabel = new Label
         {
             AutoSize = true,
-            MaximumSize = new Size(900, 0),
-            Anchor = AnchorStyles.Top,
-            Text = $"{StudentAgentText.InputLockMessage}{Environment.NewLine}{Environment.NewLine}{StudentAgentText.InputLockFooter}",
-            Font = new Font("Segoe UI", 17F, FontStyle.Regular, GraphicsUnit.Point),
+            Dock = DockStyle.Fill,
+            Text = StudentAgentText.InputLockStatusLine,
+            Font = new Font("Segoe UI", 20F, FontStyle.Regular, GraphicsUnit.Point),
             ForeColor = Color.White,
             BackColor = Color.Transparent,
-            TextAlign = ContentAlignment.MiddleCenter
+            TextAlign = ContentAlignment.BottomCenter,
         };
 
-        layout.Controls.Add(titleLabel, 0, 0);
-        layout.Controls.Add(messageLabel, 0, 1);
+        layout.Controls.Add(spacer, 0, 0);
+        layout.Controls.Add(statusLabel, 0, 1);
         Controls.Add(layout);
 
         _focusTimer = new System.Windows.Forms.Timer { Interval = 750 };
-        _focusTimer.Tick += (_, _) => BringBackToFront();
+        _focusTimer.Tick += (_, _) => ScheduleBringToFront();
         _focusTimer.Start();
 
-        Shown += (_, _) =>
-        {
-            InputLockGlobalInputHook.AddRef();
-            BringBackToFront();
-        };
-        FormClosed += (_, _) => InputLockGlobalInputHook.Release();
-        Activated += (_, _) => BringBackToFront();
+        Shown += (_, _) => ScheduleBringToFront();
     }
 
     public void ForceClose()
@@ -89,13 +78,31 @@ public sealed class InputLockForm : Form
         if (!_allowClose)
         {
             e.Cancel = true;
-            BringBackToFront();
+            ScheduleBringToFront();
             return;
         }
 
         _focusTimer.Stop();
         _focusTimer.Dispose();
         base.OnFormClosing(e);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            base.Dispose(disposing);
+            return;
+        }
+
+        _disposed = true;
+        if (disposing)
+        {
+            _focusTimer.Stop();
+            _focusTimer.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -116,24 +123,66 @@ public sealed class InputLockForm : Form
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
-        BringBackToFront();
+        ScheduleBringToFront();
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        BringBackToFront();
+        ScheduleBringToFront();
     }
 
-    private void BringBackToFront()
+    // Deferred z-order only: synchronous Activate/Focus from mouse/timer + Activated caused UI-thread hangs.
+    private void ScheduleBringToFront()
     {
-        if (!Visible)
+        if (_disposed || IsDisposed || Disposing || !IsHandleCreated || !Visible)
         {
             return;
         }
 
-        TopMost = true;
-        Activate();
-        BringToFront();
-        Focus();
+        if (_bringPosted)
+        {
+            return;
+        }
+
+        _bringPosted = true;
+        try
+        {
+            BeginInvoke(() =>
+            {
+                try
+                {
+                    BringToFrontCore();
+                }
+                finally
+                {
+                    _bringPosted = false;
+                }
+            });
+        }
+        catch
+        {
+            _bringPosted = false;
+        }
+    }
+
+    private void BringToFrontCore()
+    {
+        if (_disposed || IsDisposed || Disposing || !Visible)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!TopMost)
+            {
+                TopMost = true;
+            }
+
+            BringToFront();
+        }
+        catch
+        {
+        }
     }
 }

@@ -1,11 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using StudentAgent;
 using StudentAgent.Services;
-using StudentAgent.UIHost.DesktopIcons;
-using StudentAgent.UIHost;
 using StudentAgent.UI.Localization;
+using StudentAgent.UIHost;
+using StudentAgent.UIHost.DesktopIcons;
 
 try
 {

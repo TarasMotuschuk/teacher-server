@@ -1,5 +1,5 @@
-using Teacher.Common.Contracts;
 using StudentAgent.Services;
+using Teacher.Common.Contracts;
 
 namespace StudentAgent.Service.Services;
 

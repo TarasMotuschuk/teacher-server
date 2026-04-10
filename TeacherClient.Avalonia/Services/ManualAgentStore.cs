@@ -5,6 +5,11 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class ManualAgentStore
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+    };
+
     private readonly object _sync = new();
     private readonly string _storagePath;
 
@@ -44,10 +49,7 @@ public sealed class ManualAgentStore
     {
         lock (_sync)
         {
-            var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(entries, JsonOptions);
 
             File.WriteAllText(_storagePath, json);
         }

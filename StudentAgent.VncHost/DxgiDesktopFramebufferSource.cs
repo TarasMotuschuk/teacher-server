@@ -1,18 +1,17 @@
-using System.Drawing;
 using System.Runtime.InteropServices;
 using RemoteViewing.Vnc;
-using RemoteViewing.Vnc.Server;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+
 namespace StudentAgent.VncHost;
 
 /// <summary>
 /// DXGI Desktop Duplication — same technique class as Veyon's bundled UltraVNC
-/// (<c>DeskdupEngine.cpp</c>, <c>_USE_DESKTOPDUPLICATION</c>). Duplicates the GPU-composed image,
-/// so secure-desktop UAC prompts match what Veyon shows. GDI <c>CopyFromScreen</c> does not.
+/// (<c>DeskdupEngine.cpp</c>, <c>_USE_DESKTOPDUPLICATION</c>). Duplicates the GPU-composed image.
+/// On WAIT_TIMEOUT, frames are stale; callers should use GDI via <see cref="InputDesktopGdiCapture"/> (input desktop).
 /// </summary>
 internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
 {
@@ -44,8 +43,16 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
 
     public bool SupportsResizing => false;
 
-    public VncFramebuffer Capture()
+    public VncFramebuffer Capture() => Capture(out _);
+
+    /// <param name="timedOut">
+    /// True when <see cref="IDXGIOutputDuplication.AcquireNextFrame"/> returned WAIT_TIMEOUT — the framebuffer is stale.
+    /// Callers should fall back to GDI capture (e.g. <see cref="InputDesktopGdiCapture"/>) so Winlogon / UAC is visible.
+    /// </param>
+    /// <returns>The captured framebuffer, or the last DXGI framebuffer when the duplication API timed out.</returns>
+    public VncFramebuffer Capture(out bool timedOut)
     {
+        timedOut = false;
         lock (_sync)
         {
             if (!EnsureInitialized())
@@ -67,6 +74,7 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
                 if (code == DxgiErrorWaitTimeout)
                 {
                     _timeoutCount++;
+                    timedOut = true;
                     return framebuffer;
                 }
 
@@ -161,6 +169,69 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
         {
             TeardownDuplication();
         }
+    }
+
+    private static bool TryFindPrimaryOutput(
+        IDXGIFactory1 factory,
+        out IDXGIAdapter1 adapter,
+        out IDXGIOutput1 output1,
+        out int desktopLeft,
+        out int desktopTop,
+        out int desktopRight,
+        out int desktopBottom)
+    {
+        adapter = null!;
+        output1 = null!;
+        desktopLeft = desktopTop = desktopRight = desktopBottom = 0;
+
+        var primary = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
+        var cx = primary.Left + (Math.Max(1, primary.Width) / 2);
+        var cy = primary.Top + (Math.Max(1, primary.Height) / 2);
+
+        for (uint i = 0; ; i++)
+        {
+            if (factory.EnumAdapters1(i, out var a).Failure)
+            {
+                break;
+            }
+
+            var matched = false;
+            for (uint j = 0; ; j++)
+            {
+                if (a.EnumOutputs(j, out var output).Failure)
+                {
+                    break;
+                }
+
+                try
+                {
+                    var desc = output.Description;
+                    var r = desc.DesktopCoordinates;
+                    if (cx >= r.Left && cx < r.Right && cy >= r.Top && cy < r.Bottom)
+                    {
+                        output1 = output.QueryInterface<IDXGIOutput1>();
+                        adapter = a;
+                        desktopLeft = r.Left;
+                        desktopTop = r.Top;
+                        desktopRight = r.Right;
+                        desktopBottom = r.Bottom;
+                        matched = true;
+                        return true;
+                    }
+                }
+                finally
+                {
+                    output.Dispose();
+                }
+            }
+
+            if (!matched)
+            {
+                a.Dispose();
+            }
+        }
+
+        return false;
     }
 
     private bool EnsureInitialized()
@@ -278,68 +349,5 @@ internal sealed class DxgiDesktopFramebufferSource : IVncFramebufferSource
         _adapter?.Dispose();
         _adapter = null;
         _framebuffer = null;
-    }
-
-    private static bool TryFindPrimaryOutput(
-        IDXGIFactory1 factory,
-        out IDXGIAdapter1 adapter,
-        out IDXGIOutput1 output1,
-        out int desktopLeft,
-        out int desktopTop,
-        out int desktopRight,
-        out int desktopBottom)
-    {
-        adapter = null!;
-        output1 = null!;
-        desktopLeft = desktopTop = desktopRight = desktopBottom = 0;
-
-        var primary = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
-        var cx = primary.Left + Math.Max(1, primary.Width) / 2;
-        var cy = primary.Top + Math.Max(1, primary.Height) / 2;
-
-        for (uint i = 0; ; i++)
-        {
-            if (factory.EnumAdapters1(i, out var a).Failure)
-            {
-                break;
-            }
-
-            var matched = false;
-            for (uint j = 0; ; j++)
-            {
-                if (a.EnumOutputs(j, out var output).Failure)
-                {
-                    break;
-                }
-
-                try
-                {
-                    var desc = output.Description;
-                    var r = desc.DesktopCoordinates;
-                    if (cx >= r.Left && cx < r.Right && cy >= r.Top && cy < r.Bottom)
-                    {
-                        output1 = output.QueryInterface<IDXGIOutput1>();
-                        adapter = a;
-                        desktopLeft = r.Left;
-                        desktopTop = r.Top;
-                        desktopRight = r.Right;
-                        desktopBottom = r.Bottom;
-                        matched = true;
-                        return true;
-                    }
-                }
-                finally
-                {
-                    output.Dispose();
-                }
-            }
-
-            if (!matched)
-            {
-                a.Dispose();
-            }
-        }
-
-        return false;
     }
 }

@@ -22,12 +22,12 @@ public partial class LogsForm : Form
         LoadLogs();
     }
 
-    private void refreshButton_Click(object? sender, EventArgs e)
+    private void RefreshButton_Click(object? sender, EventArgs e)
     {
         LoadLogs();
     }
 
-    private void openFolderButton_Click(object? sender, EventArgs e)
+    private void OpenFolderButton_Click(object? sender, EventArgs e)
     {
         if (_logService is null)
         {

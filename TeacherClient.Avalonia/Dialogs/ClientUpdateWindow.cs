@@ -35,7 +35,7 @@ public sealed class ClientUpdateWindow : Window
         _statusTextBlock = new TextBlock
         {
             FontWeight = Avalonia.Media.FontWeight.SemiBold,
-            Margin = new Thickness(0, 0, 0, 8)
+            Margin = new Thickness(0, 0, 0, 8),
         };
 
         _progressBar = new ProgressBar
@@ -43,13 +43,13 @@ public sealed class ClientUpdateWindow : Window
             Height = 20,
             Minimum = 0,
             Maximum = 100,
-            Margin = new Thickness(0, 0, 0, 10)
+            Margin = new Thickness(0, 0, 0, 10),
         };
 
         _progressDetailsTextBlock = new TextBlock
         {
             Margin = new Thickness(0, 0, 0, 10),
-            Foreground = Avalonia.Media.Brushes.LightGray
+            Foreground = Avalonia.Media.Brushes.LightGray,
         };
 
         _logTextBox = new TextBox
@@ -58,20 +58,20 @@ public sealed class ClientUpdateWindow : Window
             IsReadOnly = true,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch
+            VerticalAlignment = VerticalAlignment.Stretch,
         };
 
         _hintTextBlock = new TextBlock
         {
             Margin = new Thickness(0, 10, 0, 10),
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Foreground = Avalonia.Media.Brushes.LightGray
+            Foreground = Avalonia.Media.Brushes.LightGray,
         };
 
         _checkButton = new Button
         {
             Content = CrossPlatformText.ClientUpdateCheckButton,
-            MinWidth = 170
+            MinWidth = 170,
         };
         _checkButton.Click += async (_, _) => await CheckForUpdatesAsync();
 
@@ -79,7 +79,7 @@ public sealed class ClientUpdateWindow : Window
         {
             Content = CrossPlatformText.ClientUpdateDownloadButton,
             MinWidth = 170,
-            IsEnabled = false
+            IsEnabled = false,
         };
         _downloadButton.Click += async (_, _) => await DownloadUpdateAsync();
 
@@ -87,14 +87,14 @@ public sealed class ClientUpdateWindow : Window
         {
             Content = CrossPlatformText.ClientUpdateInstallButton,
             MinWidth = 170,
-            IsEnabled = false
+            IsEnabled = false,
         };
         _installButton.Click += (_, _) => InstallUpdate();
 
         var closeButton = new Button
         {
             Content = CrossPlatformText.Close,
-            MinWidth = 130
+            MinWidth = 130,
         };
         closeButton.Click += (_, _) => Close();
 
@@ -102,7 +102,7 @@ public sealed class ClientUpdateWindow : Window
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10,
-            HorizontalAlignment = HorizontalAlignment.Right
+            HorizontalAlignment = HorizontalAlignment.Right,
         };
         buttonsPanel.Children.Add(_checkButton);
         buttonsPanel.Children.Add(_downloadButton);
@@ -112,7 +112,7 @@ public sealed class ClientUpdateWindow : Window
         var rootGrid = new Grid
         {
             Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto")
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto"),
         };
         rootGrid.Children.Add(_statusTextBlock);
         rootGrid.Children.Add(_progressBar);
@@ -179,7 +179,7 @@ public sealed class ClientUpdateWindow : Window
 
         try
         {
-            _service.LaunchInstaller(_installerInfo);
+            TeacherClientUpdateService.LaunchInstaller(_installerInfo);
             AppendLog(CrossPlatformText.ClientUpdateInstallerOpened(_installerInfo.LocalInstallerPath));
             _statusTextBlock.Text = CrossPlatformText.ClientUpdateInstallStarted;
         }
@@ -227,13 +227,13 @@ public sealed class ClientUpdateWindow : Window
             _progressBar.IsIndeterminate = true;
         }
 
-        _progressDetailsTextBlock.Text = BuildProgressDetails(progress);
+        _progressDetailsTextBlock.Text = ClientUpdateWindowTextFormatter.BuildProgressDetails(progress);
         AppendMeaningfulLog(progress);
     }
 
     private void AppendMeaningfulLog(TeacherClientUpdateProgress progress)
     {
-        var message = BuildLogMessage(progress);
+        var message = ClientUpdateWindowTextFormatter.BuildLogMessage(progress);
         if (string.Equals(_lastLoggedMessage, message, StringComparison.Ordinal))
         {
             return;
@@ -241,25 +241,6 @@ public sealed class ClientUpdateWindow : Window
 
         _lastLoggedMessage = message;
         AppendLog(message);
-    }
-
-    private string BuildLogMessage(TeacherClientUpdateProgress progress)
-    {
-        var details = BuildProgressDetails(progress);
-        return string.IsNullOrWhiteSpace(details) ? progress.Message : $"{progress.Message} {details}";
-    }
-
-    private static string BuildProgressDetails(TeacherClientUpdateProgress progress)
-    {
-        if (progress.TotalBytes.HasValue && progress.BytesTransferred.HasValue)
-        {
-            var percent = progress.Percent is >= 0 and <= 100 ? $" ({progress.Percent.Value}%)" : string.Empty;
-            return $"{FormatByteSize(progress.BytesTransferred.Value)} / {FormatByteSize(progress.TotalBytes.Value)}{percent}";
-        }
-
-        return progress.Percent is >= 0 and <= 100
-            ? $"{progress.Percent.Value}%"
-            : string.Empty;
     }
 
     private void AppendLog(string message)
@@ -271,20 +252,5 @@ public sealed class ClientUpdateWindow : Window
 
         _logTextBox.Text = string.Concat(_logTextBox.Text, $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
         _logTextBox.CaretIndex = _logTextBox.Text?.Length ?? 0;
-    }
-
-    private static string FormatByteSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double value = bytes;
-        var unitIndex = 0;
-
-        while (value >= 1024 && unitIndex < units.Length - 1)
-        {
-            value /= 1024;
-            unitIndex++;
-        }
-
-        return unitIndex == 0 ? $"{value:0} {units[unitIndex]}" : $"{value:0.##} {units[unitIndex]}";
     }
 }

@@ -9,6 +9,10 @@ namespace Teacher.Common;
 public sealed class TeacherUpdatePreparationService : IDisposable
 {
     public const string DefaultManifestUrl = "https://github.com/TarasMotuschuk/teacher-server/releases/latest/download/student-agent-version.json";
+    private static readonly JsonSerializerOptions PreparedStateJsonOptions = new()
+    {
+        WriteIndented = true,
+    };
 
     private readonly HttpClient _httpClient = new();
     private readonly string _rootDirectory;
@@ -135,10 +139,7 @@ public sealed class TeacherUpdatePreparationService : IDisposable
             DateTime.UtcNow,
             checkResult.IsManualSource);
 
-        File.WriteAllText(_preparedStatePath, JsonSerializer.Serialize(prepared, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        }));
+        File.WriteAllText(_preparedStatePath, JsonSerializer.Serialize(prepared, PreparedStateJsonOptions));
 
         Report(progress, TeacherUpdatePreparationStage.Prepared, checkResult.Version, $"Update {checkResult.Version} is prepared and ready for deployment.", 100, null);
         return prepared;
@@ -159,69 +160,10 @@ public sealed class TeacherUpdatePreparationService : IDisposable
             hosted.PackageSha256);
     }
 
-    private async Task<TeacherUpdateManifest> ReadManifestAsync(string source, bool isLocalFile, CancellationToken cancellationToken)
+    public void Dispose()
     {
-        TeacherUpdateManifest? manifest;
-        if (isLocalFile)
-        {
-            var json = await File.ReadAllTextAsync(source, cancellationToken);
-            manifest = JsonSerializer.Deserialize<TeacherUpdateManifest>(json);
-        }
-        else
-        {
-            manifest = await _httpClient.GetFromJsonAsync<TeacherUpdateManifest>(source, cancellationToken);
-        }
-
-        if (manifest is null || string.IsNullOrWhiteSpace(manifest.Version))
-        {
-            throw new InvalidOperationException("Update manifest is missing the version field.");
-        }
-
-        return manifest;
-    }
-
-    private string ResolveManualPackagePath(TeacherUpdateManifest manifest, string manualManifestPath)
-    {
-        var manualManifestDirectory = Path.GetDirectoryName(manualManifestPath)!;
-        if (!string.IsNullOrWhiteSpace(manifest.Url))
-        {
-            if (Uri.TryCreate(manifest.Url, UriKind.Absolute, out var uri) && uri.IsFile)
-            {
-                return uri.LocalPath;
-            }
-
-            if (!Uri.TryCreate(manifest.Url, UriKind.Absolute, out _))
-            {
-                return Path.GetFullPath(Path.Combine(manualManifestDirectory, manifest.Url));
-            }
-        }
-
-        var versionSpecific = Path.Combine(manualManifestDirectory, $"student-agent-update-{manifest.Version}.zip");
-        if (File.Exists(versionSpecific))
-        {
-            return versionSpecific;
-        }
-
-        return Path.Combine(manualManifestDirectory, "student-agent-update.zip");
-    }
-
-    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherUpdatePreparationProgress>? progress, string version, CancellationToken cancellationToken)
-    {
-        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength;
-        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var destination = File.Create(destinationPath);
-        await CopyStreamWithProgressAsync(source, destination, progress, version, totalBytes, cancellationToken);
-    }
-
-    private async Task CopyWithProgressAsync(string sourcePath, string destinationPath, IProgress<TeacherUpdatePreparationProgress>? progress, string version, CancellationToken cancellationToken)
-    {
-        var fileInfo = new FileInfo(sourcePath);
-        await using var source = File.OpenRead(sourcePath);
-        await using var destination = File.Create(destinationPath);
-        await CopyStreamWithProgressAsync(source, destination, progress, version, fileInfo.Length, cancellationToken);
+        _packageServer.Dispose();
+        _httpClient.Dispose();
     }
 
     private static async Task CopyStreamWithProgressAsync(Stream source, Stream destination, IProgress<TeacherUpdatePreparationProgress>? progress, string version, long? totalBytes, CancellationToken cancellationToken)
@@ -285,44 +227,68 @@ public sealed class TeacherUpdatePreparationService : IDisposable
         }
     }
 
-    public void Dispose()
+    private static string ResolveManualPackagePath(TeacherUpdateManifest manifest, string manualManifestPath)
     {
-        _packageServer.Dispose();
-        _httpClient.Dispose();
+        var manualManifestDirectory = Path.GetDirectoryName(manualManifestPath)!;
+        if (!string.IsNullOrWhiteSpace(manifest.Url))
+        {
+            if (Uri.TryCreate(manifest.Url, UriKind.Absolute, out var uri) && uri.IsFile)
+            {
+                return uri.LocalPath;
+            }
+
+            if (!Uri.TryCreate(manifest.Url, UriKind.Absolute, out _))
+            {
+                return Path.GetFullPath(Path.Combine(manualManifestDirectory, manifest.Url));
+            }
+        }
+
+        var versionSpecific = Path.Combine(manualManifestDirectory, $"student-agent-update-{manifest.Version}.zip");
+        if (File.Exists(versionSpecific))
+        {
+            return versionSpecific;
+        }
+
+        return Path.Combine(manualManifestDirectory, "student-agent-update.zip");
     }
 
-    private sealed record TeacherUpdateManifest(string Version, string? Url, string? Sha256);
+    private static async Task CopyWithProgressAsync(string sourcePath, string destinationPath, IProgress<TeacherUpdatePreparationProgress>? progress, string version, CancellationToken cancellationToken)
+    {
+        var fileInfo = new FileInfo(sourcePath);
+        await using var source = File.OpenRead(sourcePath);
+        await using var destination = File.Create(destinationPath);
+        await CopyStreamWithProgressAsync(source, destination, progress, version, fileInfo.Length, cancellationToken);
+    }
+
+    private async Task<TeacherUpdateManifest> ReadManifestAsync(string source, bool isLocalFile, CancellationToken cancellationToken)
+    {
+        TeacherUpdateManifest? manifest;
+        if (isLocalFile)
+        {
+            var json = await File.ReadAllTextAsync(source, cancellationToken);
+            manifest = JsonSerializer.Deserialize<TeacherUpdateManifest>(json);
+        }
+        else
+        {
+            manifest = await _httpClient.GetFromJsonAsync<TeacherUpdateManifest>(source, cancellationToken);
+        }
+
+        if (manifest is null || string.IsNullOrWhiteSpace(manifest.Version))
+        {
+            throw new InvalidOperationException("Update manifest is missing the version field.");
+        }
+
+        return manifest;
+    }
+
+    private async Task DownloadWithProgressAsync(string packageUrl, string destinationPath, IProgress<TeacherUpdatePreparationProgress>? progress, string version, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var destination = File.Create(destinationPath);
+        await CopyStreamWithProgressAsync(source, destination, progress, version, totalBytes, cancellationToken);
+    }
 }
-
-public enum TeacherUpdatePreparationStage
-{
-    Idle = 0,
-    Checking = 1,
-    ReadyToDownload = 2,
-    Downloading = 3,
-    Prepared = 4,
-    Failed = 5
-}
-
-public sealed record TeacherUpdatePreparationProgress(
-    TeacherUpdatePreparationStage Stage,
-    string? Version,
-    string Message,
-    int? Percent,
-    long? BytesTransferred,
-    long? TotalBytes);
-
-public sealed record TeacherUpdateCheckResult(
-    string Version,
-    string? PackageSha256,
-    string? LocalPackagePath,
-    string? PackageUrl,
-    bool IsManualSource,
-    string SourceDescription);
-
-public sealed record TeacherPreparedUpdateInfo(
-    string Version,
-    string LocalZipPath,
-    string? PackageSha256,
-    DateTime PreparedAtUtc,
-    bool IsManualSource);

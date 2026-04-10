@@ -1,8 +1,6 @@
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 using Teacher.Common.Contracts;
 
 namespace StudentAgent.Services;
@@ -32,7 +30,7 @@ public sealed class AgentDiscoveryService : BackgroundService
         var discoveryPort = _settingsStore.Current.DiscoveryPort;
         using var udpClient = new UdpClient(discoveryPort)
         {
-            EnableBroadcast = true
+            EnableBroadcast = true,
         };
 
         _logService.LogInfo($"UDP discovery responder listening on port {discoveryPort}.");
@@ -76,7 +74,7 @@ public sealed class AgentDiscoveryService : BackgroundService
                     settings.Port,
                     settings.DiscoveryPort,
                     info.IsVisibleModeEnabled,
-                    ipAddresses.FirstOrDefault() ?? received.RemoteEndPoint.Address.ToString(),
+                    ipAddresses.Count > 0 ? ipAddresses[0] : received.RemoteEndPoint.Address.ToString(),
                     ipAddresses,
                     macAddresses,
                     DateTime.UtcNow);

@@ -55,14 +55,14 @@ partial class LogsForm
         refreshButton.Height = 45;
         refreshButton.Left = 0;
         refreshButton.Top = 6;
-        refreshButton.Click += refreshButton_Click;
+        refreshButton.Click += RefreshButton_Click;
 
         openFolderButton.Text = "Open log folder";
         openFolderButton.Width = 130;
         openFolderButton.Height = 45;
         openFolderButton.Left = 102;
         openFolderButton.Top = 6;
-        openFolderButton.Click += openFolderButton_Click;
+        openFolderButton.Click += OpenFolderButton_Click;
 
         topPanel.Controls.Add(refreshButton);
         topPanel.Controls.Add(openFolderButton);

@@ -6,10 +6,3 @@ public sealed record VncStateDto(
     int Port,
     bool ViewOnly,
     string? Message);
-
-public sealed record StartVncRequest(
-    int? Port = null,
-    bool? ViewOnly = null,
-    string? Password = null);
-
-public sealed record StopVncRequest;

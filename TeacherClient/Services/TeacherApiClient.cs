@@ -12,7 +12,9 @@ public sealed class TeacherApiClient
     public sealed record TransferProgress(long BytesTransferred, long? TotalBytes)
     {
         public bool HasTotal => TotalBytes.HasValue && TotalBytes.Value > 0;
+
         public double ProgressRatio => HasTotal ? (double)BytesTransferred / TotalBytes!.Value : 0d;
+
         public int Percent => HasTotal ? (int)Math.Clamp(Math.Round(ProgressRatio * 100d), 0, 100) : 0;
     }
 
@@ -22,7 +24,7 @@ public sealed class TeacherApiClient
     {
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri(AppendTrailingSlash(baseAddress))
+            BaseAddress = new Uri(AppendTrailingSlash(baseAddress)),
         };
         _httpClient.DefaultRequestHeaders.Add("X-Teacher-Secret", sharedSecret);
     }
@@ -73,6 +75,15 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task SetWindowsRestrictionEnabledAsync(WindowsRestrictionKind restriction, bool enabled, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/windows-restrictions",
+            new WindowsRestrictionStateRequest(restriction, enabled),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task ApplyStudentPolicySettingsAsync(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync(
@@ -114,7 +125,7 @@ public sealed class TeacherApiClient
     {
         using var request = new HttpRequestMessage(HttpMethod.Delete, "api/registry/values")
         {
-            Content = JsonContent.Create(new DeleteRegistryValueRequest(path, name))
+            Content = JsonContent.Create(new DeleteRegistryValueRequest(path, name)),
         };
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -130,7 +141,7 @@ public sealed class TeacherApiClient
     {
         using var request = new HttpRequestMessage(HttpMethod.Delete, "api/registry/keys")
         {
-            Content = JsonContent.Create(new DeleteRegistryKeyRequest(path))
+            Content = JsonContent.Create(new DeleteRegistryKeyRequest(path)),
         };
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -214,7 +225,7 @@ public sealed class TeacherApiClient
     {
         using var request = new HttpRequestMessage(HttpMethod.Delete, "api/files")
         {
-            Content = JsonContent.Create(new DeleteEntryRequest(fullPath))
+            Content = JsonContent.Create(new DeleteEntryRequest(fullPath)),
         };
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -351,7 +362,7 @@ public sealed class TeacherApiClient
     }
 
     private static string AppendTrailingSlash(string baseAddress)
-        => baseAddress.EndsWith("/", StringComparison.Ordinal) ? baseAddress : $"{baseAddress}/";
+        => baseAddress.EndsWith('/') ? baseAddress : $"{baseAddress}/";
 
     private static async Task EnsureSuccessWithServerErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

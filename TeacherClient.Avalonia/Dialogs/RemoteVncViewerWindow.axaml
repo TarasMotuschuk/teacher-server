@@ -22,9 +22,24 @@
     <Border Grid.Row="1"
             Background="#1F2937"
             Padding="12,8">
-      <TextBlock x:Name="StatusTextBlock"
-                 Foreground="#F8FAFC"
-                 TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Margin="0,0,12,0"
+                   Foreground="#F8FAFC"
+                   TextWrapping="Wrap" />
+        <ComboBox x:Name="SendShortcutComboBox"
+                  Grid.Column="1"
+                  Width="240"
+                  Margin="0,0,12,0"
+                  VerticalAlignment="Center"
+                  SelectionChanged="SendShortcutComboBox_OnSelectionChanged" />
+        <Button x:Name="EnableControlButton"
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Click="EnableControlButton_OnClick" />
+      </Grid>
     </Border>
   </Grid>
 </Window>

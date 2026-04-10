@@ -83,6 +83,32 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
             cachedZipPath);
     }
 
+    public void Dispose()
+    {
+        lock (_sync)
+        {
+            if (_listener is null)
+            {
+                return;
+            }
+
+            _listener.Stop();
+            _listener.Close();
+            _listener = null;
+        }
+    }
+
+    private static void ValidateSha256(string packagePath, string expectedSha256)
+    {
+        using var stream = File.OpenRead(packagePath);
+        var hash = System.Security.Cryptography.SHA256.HashData(stream);
+        var actual = Convert.ToHexString(hash).ToLowerInvariant();
+        if (!string.Equals(actual, expectedSha256.Trim().ToLowerInvariant(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Cached update package checksum does not match the manifest.");
+        }
+    }
+
     private void EnsureStarted()
     {
         lock (_sync)
@@ -180,36 +206,4 @@ public sealed class TeacherHostedUpdatePackageServer : IDisposable
         var localIp = ((IPEndPoint)socket.LocalEndPoint!).Address;
         return $"http://{localIp}:{_port}/updates/{version}/student-agent-update.zip";
     }
-
-    private static void ValidateSha256(string packagePath, string expectedSha256)
-    {
-        using var stream = File.OpenRead(packagePath);
-        var hash = System.Security.Cryptography.SHA256.HashData(stream);
-        var actual = Convert.ToHexString(hash).ToLowerInvariant();
-        if (!string.Equals(actual, expectedSha256.Trim().ToLowerInvariant(), StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Cached update package checksum does not match the manifest.");
-        }
-    }
-
-    public void Dispose()
-    {
-        lock (_sync)
-        {
-            if (_listener is null)
-            {
-                return;
-            }
-
-            _listener.Stop();
-            _listener.Close();
-            _listener = null;
-        }
-    }
 }
-
-public sealed record HostedUpdatePackage(
-    string Version,
-    string HostedPackageUrl,
-    string? PackageSha256,
-    string LocalZipPath);

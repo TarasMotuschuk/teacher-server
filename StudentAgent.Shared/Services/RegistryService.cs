@@ -19,17 +19,27 @@ public sealed class RegistryService
 
     public IReadOnlyList<RegistryKeyDto> GetSubKeys(string path)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
         if (string.IsNullOrWhiteSpace(path))
+        {
             return [.. RootHives.Select(h => new RegistryKeyDto(h, h, true))];
+        }
 
         var (hiveName, subPath) = SplitPath(path);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) return [];
+        if (hive is null)
+        {
+            return [];
+        }
 
         if (string.IsNullOrEmpty(subPath))
+        {
             return ListSubKeys(hive, hiveName);
+        }
 
         using var key = hive.OpenSubKey(subPath);
         return key is null ? [] : ListSubKeys(key, path);
@@ -37,16 +47,27 @@ public sealed class RegistryService
 
     public IReadOnlyList<RegistryValueDto> GetValues(string path)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
-        if (string.IsNullOrWhiteSpace(path)) return [];
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return [];
+        }
 
         var (hiveName, subPath) = SplitPath(path);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) return [];
+        if (hive is null)
+        {
+            return [];
+        }
 
         if (string.IsNullOrEmpty(subPath))
+        {
             return ListValues(hive);
+        }
 
         using var key = hive.OpenSubKey(subPath);
         return key is null ? [] : ListValues(key);
@@ -54,16 +75,27 @@ public sealed class RegistryService
 
     public IReadOnlyList<RegistryValueEditDto> GetValuesForEdit(string path)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
-        if (string.IsNullOrWhiteSpace(path)) return [];
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return [];
+        }
 
         var (hiveName, subPath) = SplitPath(path);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) return [];
+        if (hive is null)
+        {
+            return [];
+        }
 
         if (string.IsNullOrEmpty(subPath))
+        {
             return ListValuesForEdit(hive);
+        }
 
         using var key = hive.OpenSubKey(subPath);
         return key is null ? [] : ListValuesForEdit(key);
@@ -71,18 +103,26 @@ public sealed class RegistryService
 
     public void SetValue(string path, string name, string typeStr, string dataStr)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
         var (hiveName, subPath) = SplitPath(path);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        if (hive is null)
+        {
+            throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        }
 
         using var key = string.IsNullOrEmpty(subPath)
             ? hive
             : hive.OpenSubKey(subPath, writable: true);
 
         if (key is null)
+        {
             throw new InvalidOperationException($"Cannot open key: {path}");
+        }
 
         var kind = ParseKind(typeStr);
         var value = NormalizeParsedValue(ParseValue(dataStr, kind), kind);
@@ -91,53 +131,77 @@ public sealed class RegistryService
 
     public void DeleteValue(string path, string name)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
         var (hiveName, subPath) = SplitPath(path);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        if (hive is null)
+        {
+            throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        }
 
         using var key = string.IsNullOrEmpty(subPath)
             ? hive
             : hive.OpenSubKey(subPath, writable: true);
 
         if (key is null)
+        {
             throw new InvalidOperationException($"Cannot open key: {path}");
+        }
 
         key.DeleteValue(NormalizeValueName(name), throwOnMissingValue: false);
     }
 
     public void CreateSubKey(string parentPath, string keyName)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
         var (hiveName, subPath) = SplitPath(parentPath);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        if (hive is null)
+        {
+            throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        }
 
         using var parentKey = string.IsNullOrEmpty(subPath)
             ? hive
             : hive.OpenSubKey(subPath, writable: true);
 
         if (parentKey is null)
+        {
             throw new InvalidOperationException($"Cannot open key: {parentPath}");
+        }
 
         parentKey.CreateSubKey(keyName);
     }
 
     public void DeleteSubKey(string path)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
 
         var (hiveName, subPath) = SplitPath(path);
         var hive = OpenRootHive(hiveName);
-        if (hive is null) throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        if (hive is null)
+        {
+            throw new InvalidOperationException($"Unknown hive: {hiveName}");
+        }
 
         if (string.IsNullOrEmpty(subPath))
+        {
             throw new InvalidOperationException("Cannot delete root hive");
+        }
 
         var lastSlash = subPath.LastIndexOf('\\');
-        var parentPath = lastSlash < 0 ? "" : subPath[..lastSlash];
+        var parentPath = lastSlash < 0 ? string.Empty : subPath[..lastSlash];
         var keyName = lastSlash < 0 ? subPath : subPath[(lastSlash + 1)..];
 
         using var parentKey = string.IsNullOrEmpty(parentPath)
@@ -145,19 +209,30 @@ public sealed class RegistryService
             : hive.OpenSubKey(parentPath, writable: true);
 
         if (parentKey is null)
+        {
             throw new InvalidOperationException($"Cannot open parent key: {parentPath}");
+        }
 
         parentKey.DeleteSubKey(keyName, throwOnMissingSubKey: false);
     }
 
     public string ExportKey(string path)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        if (string.IsNullOrWhiteSpace(path)) throw new InvalidOperationException("Registry path is required.");
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new InvalidOperationException("Registry path is required.");
+        }
 
         using var key = OpenKey(path, writable: false);
         if (key is null)
+        {
             throw new InvalidOperationException($"Cannot open key: {path}");
+        }
 
         var builder = new StringBuilder();
         builder.AppendLine("Windows Registry Editor Version 5.00");
@@ -168,8 +243,15 @@ public sealed class RegistryService
 
     public ImportRegistryFileResult ImportRegFile(string regContent)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        if (string.IsNullOrWhiteSpace(regContent)) throw new InvalidOperationException("Registry file is empty.");
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
+
+        if (string.IsNullOrWhiteSpace(regContent))
+        {
+            throw new InvalidOperationException("Registry file is empty.");
+        }
 
         regContent = SanitizeRegContent(regContent);
         var logicalLines = CombineMultilineEntries(regContent);
@@ -235,6 +317,7 @@ public sealed class RegistryService
             {
                 hasChildren = false;
             }
+
             return new RegistryKeyDto(name, childPath, hasChildren);
         })];
     }
@@ -267,7 +350,7 @@ public sealed class RegistryService
         })];
     }
 
-    private static (string hiveName, string subPath) SplitPath(string path)
+    private static (string HiveName, string SubPath) SplitPath(string path)
     {
         var idx = path.IndexOf('\\');
         return idx < 0
@@ -282,7 +365,7 @@ public sealed class RegistryService
         "HKEY_CLASSES_ROOT" => Registry.ClassesRoot,
         "HKEY_USERS" => Registry.Users,
         "HKEY_CURRENT_CONFIG" => Registry.CurrentConfig,
-        _ => null
+        _ => null,
     };
 
     private static RegistryKey? OpenKey(string path, bool writable)
@@ -327,7 +410,7 @@ public sealed class RegistryService
         RegistryValueKind.MultiString => "REG_MULTI_SZ",
         RegistryValueKind.QWord => "REG_QWORD",
         RegistryValueKind.None => "REG_NONE",
-        _ => "REG_UNKNOWN"
+        _ => "REG_UNKNOWN",
     };
 
     private static string FormatValue(object? value, RegistryValueKind kind) => kind switch
@@ -344,24 +427,24 @@ public sealed class RegistryService
         RegistryValueKind.QWord => value is long l
             ? $"0x{l:X16} ({(ulong)l})"
             : value?.ToString() ?? string.Empty,
-        _ => value?.ToString() ?? string.Empty
+        _ => value?.ToString() ?? string.Empty,
     };
 
     private static string EncodeValue(object? value, RegistryValueKind kind) => kind switch
     {
         RegistryValueKind.Binary => value is byte[] bytes
-            ? BitConverter.ToString(bytes).Replace("-", "")
+            ? BitConverter.ToString(bytes).Replace("-", string.Empty)
             : string.Empty,
         RegistryValueKind.MultiString => value is string[] strs
             ? string.Join("\0", strs)
             : string.Empty,
         RegistryValueKind.DWord => value is int i
-            ? i.ToString()
+            ? i.ToString(CultureInfo.InvariantCulture)
             : value?.ToString() ?? string.Empty,
         RegistryValueKind.QWord => value is long l
-            ? l.ToString()
+            ? l.ToString(CultureInfo.InvariantCulture)
             : value?.ToString() ?? string.Empty,
-        _ => value?.ToString() ?? string.Empty
+        _ => value?.ToString() ?? string.Empty,
     };
 
     private static string DisplayValueName(string name)
@@ -381,7 +464,7 @@ public sealed class RegistryService
         "REG_MULTI_SZ" => RegistryValueKind.MultiString,
         "REG_QWORD" => RegistryValueKind.QWord,
         "REG_NONE" => RegistryValueKind.None,
-        _ => RegistryValueKind.String
+        _ => RegistryValueKind.String,
     };
 
     private static object? ParseValue(string dataStr, RegistryValueKind kind) => kind switch
@@ -396,7 +479,7 @@ public sealed class RegistryService
         RegistryValueKind.QWord => long.TryParse(dataStr, System.Globalization.NumberStyles.Any, null, out var l)
             ? l
             : 0L,
-        _ => dataStr ?? string.Empty
+        _ => dataStr ?? string.Empty,
     };
 
     private static object NormalizeParsedValue(object? value, RegistryValueKind kind) => value ?? kind switch
@@ -405,7 +488,7 @@ public sealed class RegistryService
         RegistryValueKind.MultiString => Array.Empty<string>(),
         RegistryValueKind.DWord => 0,
         RegistryValueKind.QWord => 0L,
-        _ => string.Empty
+        _ => string.Empty,
     };
 
     private static void AppendExportSection(StringBuilder builder, string path, RegistryKey key)
@@ -445,7 +528,7 @@ public sealed class RegistryService
         RegistryValueKind.DWord => $"dword:{unchecked((uint)(value is int i ? i : 0)):x8}",
         RegistryValueKind.QWord => FormatHexValue("b", BitConverter.GetBytes(value is long l ? l : 0L)),
         RegistryValueKind.MultiString => FormatHexValue("7", EncodeMultiString(value as string[] ?? [])),
-        _ => $"\"{EscapeRegString(value?.ToString() ?? string.Empty)}\""
+        _ => $"\"{EscapeRegString(value?.ToString() ?? string.Empty)}\"",
     };
 
     private static string FormatHexValue(string? regType, byte[] bytes)
@@ -470,7 +553,7 @@ public sealed class RegistryService
             .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("\"", "\\\"", StringComparison.Ordinal);
 
-    private static IReadOnlyList<string> CombineMultilineEntries(string content)
+    private static List<string> CombineMultilineEntries(string content)
     {
         using var reader = new StringReader(content.Replace("\r\n", "\n", StringComparison.Ordinal));
         var lines = new List<string>();
@@ -516,30 +599,6 @@ public sealed class RegistryService
         return index >= 0 && builder[index] == '\\';
     }
 
-    private void ApplyImportValue(string path, string line)
-    {
-        line = SanitizeRegLine(line);
-        var separatorIndex = line.IndexOf('=');
-        if (separatorIndex < 0)
-        {
-            throw new InvalidOperationException($"Malformed registry value entry: {line}");
-        }
-
-        var left = line[..separatorIndex].Trim();
-        var right = line[(separatorIndex + 1)..].Trim();
-        var valueName = ParseRegValueName(left);
-
-        if (right == "-")
-        {
-            DeleteValue(path, valueName);
-            return;
-        }
-
-        var (kind, value) = ParseRegValueData(right);
-        using var key = OpenKey(path, writable: true) ?? throw new InvalidOperationException($"Cannot open key: {path}");
-        key.SetValue(valueName, value, kind);
-    }
-
     private static string ParseRegValueName(string token)
     {
         if (token == "@")
@@ -555,7 +614,7 @@ public sealed class RegistryService
         throw new InvalidOperationException($"Unsupported registry value name token: {token}");
     }
 
-    private static (RegistryValueKind kind, object value) ParseRegValueData(string token)
+    private static (RegistryValueKind Kind, object Value) ParseRegValueData(string token)
     {
         if (token.Length >= 2 && token[0] == '"' && token[^1] == '"')
         {
@@ -586,7 +645,7 @@ public sealed class RegistryService
                 "(2)" => (RegistryValueKind.ExpandString, DecodeUnicodeString(bytes)),
                 "(7)" => (RegistryValueKind.MultiString, DecodeMultiString(bytes)),
                 "(b)" => (RegistryValueKind.QWord, bytes.Length >= 8 ? BitConverter.ToInt64(bytes, 0) : 0L),
-                _ => (RegistryValueKind.Binary, bytes)
+                _ => (RegistryValueKind.Binary, bytes),
             };
         }
 
@@ -651,13 +710,18 @@ public sealed class RegistryService
 
     private static byte[] HexStringToBytes(string hex)
     {
-        hex = hex.Replace(" ", "").Replace("-", "");
-        if (hex.Length % 2 != 0) hex = "0" + hex;
+        hex = hex.Replace(" ", string.Empty).Replace("-", string.Empty);
+        if (hex.Length % 2 != 0)
+        {
+            hex = "0" + hex;
+        }
+
         byte[] bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++)
         {
             bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
         }
+
         return bytes;
     }
 
@@ -679,5 +743,29 @@ public sealed class RegistryService
         }
 
         return sanitized;
+    }
+
+    private void ApplyImportValue(string path, string line)
+    {
+        line = SanitizeRegLine(line);
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex < 0)
+        {
+            throw new InvalidOperationException($"Malformed registry value entry: {line}");
+        }
+
+        var left = line[..separatorIndex].Trim();
+        var right = line[(separatorIndex + 1)..].Trim();
+        var valueName = ParseRegValueName(left);
+
+        if (right == "-")
+        {
+            DeleteValue(path, valueName);
+            return;
+        }
+
+        var (kind, value) = ParseRegValueData(right);
+        using var key = OpenKey(path, writable: true) ?? throw new InvalidOperationException($"Cannot open key: {path}");
+        key.SetValue(valueName, value, kind);
     }
 }

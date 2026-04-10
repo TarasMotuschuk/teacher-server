@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Controls;
 using Teacher.Common.Localization;
 using TeacherClient.CrossPlatform.Localization;
@@ -22,8 +23,8 @@ public partial class SettingsWindow : Window
         BulkCopyDestinationPathTextBox.Text = settings.BulkCopyDestinationPath;
         StudentWorkRootPathTextBox.Text = settings.StudentWorkRootPath;
         StudentWorkFolderNameTextBox.Text = settings.StudentWorkFolderName;
-        DesktopIconAutoRestoreIntervalTextBox.Text = settings.DesktopIconAutoRestoreMinutes.ToString();
-        BrowserLockCheckIntervalTextBox.Text = settings.BrowserLockCheckIntervalSeconds.ToString();
+        DesktopIconAutoRestoreIntervalTextBox.Text = settings.DesktopIconAutoRestoreMinutes.ToString(CultureInfo.InvariantCulture);
+        BrowserLockCheckIntervalTextBox.Text = settings.BrowserLockCheckIntervalSeconds.ToString(CultureInfo.InvariantCulture);
         ApplyLocalization();
     }
 
@@ -36,6 +37,16 @@ public partial class SettingsWindow : Window
             StudentWorkFolderNameTextBox.Text?.Trim() ?? string.Empty,
             ParsePositiveInt(DesktopIconAutoRestoreIntervalTextBox.Text, ClientSettings.Default.DesktopIconAutoRestoreMinutes, 1),
             ParsePositiveInt(BrowserLockCheckIntervalTextBox.Text, ClientSettings.Default.BrowserLockCheckIntervalSeconds, 5));
+
+    private static int ParsePositiveInt(string? value, int fallback, int minValue)
+    {
+        if (!int.TryParse(value, out var parsed))
+        {
+            return fallback;
+        }
+
+        return Math.Max(minValue, parsed);
+    }
 
     private void SaveButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -60,15 +71,5 @@ public partial class SettingsWindow : Window
         HintTextBlock.Text = CrossPlatformText.SettingsHint;
         SaveButton.Content = CrossPlatformText.Save;
         CancelButton.Content = CrossPlatformText.Cancel;
-    }
-
-    private static int ParsePositiveInt(string? value, int fallback, int minValue)
-    {
-        if (!int.TryParse(value, out var parsed))
-        {
-            return fallback;
-        }
-
-        return Math.Max(minValue, parsed);
     }
 }

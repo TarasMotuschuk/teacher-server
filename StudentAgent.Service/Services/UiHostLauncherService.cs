@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using StudentAgent.Services;
 
 namespace StudentAgent.Service.Services;

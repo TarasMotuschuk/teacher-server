@@ -1,8 +1,8 @@
-using StudentAgent.Hosting;
-using StudentAgent.Services;
-using StudentAgent.Service.Services;
-using StudentAgent.UI.Localization;
 using Microsoft.AspNetCore.Mvc;
+using StudentAgent.Hosting;
+using StudentAgent.Service.Services;
+using StudentAgent.Services;
+using StudentAgent.UI.Localization;
 using Teacher.Common.Contracts;
 
 try
@@ -19,6 +19,7 @@ try
     builder.Services.AddSingleton<PublicDesktopShortcutService>();
     builder.Services.AddSingleton<DesktopIconLayoutService>();
     builder.Services.AddSingleton<VncHostService>();
+    builder.Services.AddSingleton<WindowsRestrictionsService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
     builder.Services.AddHostedService<VncHostLauncherService>();
 
@@ -142,6 +143,18 @@ try
             store.UpdateVncSettings(false);
             vncHostService.StopAll();
 
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+    app.MapPost("/api/windows-restrictions", ([FromBody] WindowsRestrictionStateRequest request, [FromServices] WindowsRestrictionsService service) =>
+    {
+        try
+        {
+            service.SetRestriction(request.Restriction, request.Enabled);
             return Results.NoContent();
         }
         catch (Exception ex)

@@ -48,7 +48,7 @@ public sealed class FrequentProgramStore
         {
             var json = JsonSerializer.Serialize(Normalize(entries?.ToList()), new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
             });
 
             File.WriteAllText(_storagePath, json);

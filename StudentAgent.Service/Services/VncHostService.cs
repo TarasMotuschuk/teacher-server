@@ -46,8 +46,10 @@ public sealed class VncHostService
             return;
         }
 
-        SessionProcessLauncher.StartProcessInSessionPreferWinlogon(_vncHostPath, string.Empty, sessionId);
-        _logService.LogInfo($"Started StudentAgent.VncHost in session {sessionId} (Veyon-style winlogon token when available).");
+        var launchMode = SessionProcessLauncher.StartProcessInSessionPreferWinlogon(_vncHostPath, string.Empty, sessionId);
+        _logService.LogInfo(launchMode == SessionProcessLauncher.SessionProcessLaunchMode.WinlogonToken
+            ? $"Started StudentAgent.VncHost in session {sessionId} using winlogon token."
+            : $"Started StudentAgent.VncHost in session {sessionId} using user-token fallback (winlogon launch unavailable).");
     }
 
     public void StopInSession(int sessionId)

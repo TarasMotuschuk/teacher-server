@@ -27,7 +27,7 @@ public sealed class FrequentProgramsDialog : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(16),
             ColumnCount = 1,
-            RowCount = 3
+            RowCount = 3,
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
@@ -35,7 +35,7 @@ public sealed class FrequentProgramsDialog : Form
 
         var toolBar = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill
+            Dock = DockStyle.Fill,
         };
 
         var addButton = new Button { Text = TeacherClientText.AddProgram, MinimumSize = new Size(120, 40), AutoSize = true };
@@ -53,7 +53,7 @@ public sealed class FrequentProgramsDialog : Form
             AllowUserToDeleteRows = false,
             ReadOnly = true,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false
+            MultiSelect = false,
         };
         _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.ProgramName, DataPropertyName = nameof(FrequentProgramEntry.DisplayName), AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 30F });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.CommandText, DataPropertyName = nameof(FrequentProgramEntry.CommandText), AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 55F });
@@ -64,7 +64,7 @@ public sealed class FrequentProgramsDialog : Form
         var bottomButtons = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.RightToLeft
+            FlowDirection = FlowDirection.RightToLeft,
         };
         var closeButton = new Button { Text = TeacherClientText.Close, DialogResult = DialogResult.OK, MinimumSize = new Size(120, 42), AutoSize = true };
         bottomButtons.Controls.Add(closeButton);
@@ -169,7 +169,9 @@ public sealed class FrequentProgramsDialog : Form
         }
 
         public string ProgramName => _nameTextBox.Text.Trim();
+
         public string CommandText => _commandTextBox.Text.Trim();
+
         public RemoteCommandRunAs RunAs => _runAsComboBox.SelectedIndex == 1 ? RemoteCommandRunAs.Administrator : RemoteCommandRunAs.CurrentUser;
     }
 }

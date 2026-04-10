@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-using StudentAgent;
 using StudentAgent.Services;
 
 namespace StudentAgent.Service.Services;
@@ -74,7 +72,8 @@ public sealed class VncHostLauncherService : BackgroundService
     }
 
     private static string BuildSignature(AgentRuntimeSettings settings)
-        => string.Join('|',
+        => string.Join(
+            '|',
             settings.VncEnabled,
             settings.VncPort,
             settings.VncViewOnly,
