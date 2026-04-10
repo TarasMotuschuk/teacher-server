@@ -1,5 +1,11 @@
 # ClassCommander
 
+[![CI](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/ci.yml/badge.svg)](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/ci.yml)
+[![Release All](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/release-all.yml/badge.svg)](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/release-all.yml)
+[![Latest Release](https://img.shields.io/github/v/release/TarasMotuschuk/teacher-server?display_name=tag)](https://github.com/TarasMotuschuk/teacher-server/releases/latest)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-2EA44F)](/Users/taras/Projects/OWN-GITHUB/teacher-server/README.md)
+
 `ClassCommander` is a .NET 10 classroom administration solution for a transparent, teacher-controlled environment. It includes:
 
 - `StudentAgent.Service`: Windows Service host for privileged agent runtime duties.
