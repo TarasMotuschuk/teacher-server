@@ -37,7 +37,6 @@
                   SelectionChanged="SendShortcutComboBox_OnSelectionChanged" />
         <Button x:Name="EnableControlButton"
                 Grid.Column="2"
-                MinWidth="200"
                 VerticalAlignment="Center"
                 Click="EnableControlButton_OnClick" />
       </Grid>

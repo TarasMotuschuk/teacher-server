@@ -50,9 +50,6 @@ internal static partial class CrossPlatformText
 
     public static string EnableFullscreenControl => IsUk ? "Увімкнути керування" : "Enable control";
 
-    /// <summary>Fullscreen VNC viewer: button label when remote control is already active (button stays visible for stable layout).</summary>
-    public static string ViewerControlActiveButtonLabel => IsUk ? "Керування увімкнено" : "Control on";
-
     public static string SendKeyboardShortcut => IsUk ? "Надіслати комбінацію клавіш" : "Send keyboard shortcut";
 
     public static string RemoteManagementNoScreens => IsUk ? "Немає доступних екранів учнівських ПК." : "No student PC screens are available.";
