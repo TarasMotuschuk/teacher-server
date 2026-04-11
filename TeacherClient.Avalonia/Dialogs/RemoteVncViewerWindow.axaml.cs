@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -43,6 +45,12 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
     private int _pointerButtonsMask;
     private bool _disposed;
 
+    /// <summary>Keysyms sent on KeyDown so KeyUp releases the same symbol (layout / KeySymbol can differ on KeyUp).</summary>
+    private readonly Dictionary<Key, KeySymbol> _activeKeySyms = new();
+
+    /// <summary>Codepoints already sent via KeyDown/KeySymbol; skipped in TextInput to avoid double letters on platforms that raise both.</summary>
+    private readonly HashSet<int> _suppressTextInputCodepoints = new();
+
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
         : this(machineName, new TeacherVncSession(host, port, sharedSecret, controlEnabled), ownsSession: true)
     {
@@ -55,6 +63,9 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         _ownsSession = ownsSession;
 
         InitializeComponent();
+
+        // Keep keyboard focus on ViewerInputRoot; Image must not become the focused element.
+        ScreenImage.Focusable = false;
         RenderOptions.SetBitmapInterpolationMode(ScreenImage, BitmapInterpolationMode.HighQuality);
         Icon = AppIconLoader.Load();
         Title = CrossPlatformText.RemoteManagementViewerTitle(machineName);
@@ -87,13 +98,19 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             Dispose();
         };
 
-        ScreenImage.PointerPressed += ScreenImage_OnPointerPressed;
-        ScreenImage.PointerReleased += ScreenImage_OnPointerReleased;
-        ScreenImage.PointerMoved += ScreenImage_OnPointerMoved;
-        ScreenImage.PointerWheelChanged += ScreenImage_OnPointerWheelChanged;
-        ViewerInputRoot.KeyDown += ViewerInputRoot_OnKeyDown;
-        ViewerInputRoot.KeyUp += ViewerInputRoot_OnKeyUp;
-        ViewerInputRoot.TextInput += ViewerInputRoot_OnTextInput;
+        // Pointer capture must target the same element that holds keyboard focus; capturing ScreenImage
+        // moves focus to the Image and drops KeyDown on macOS/Linux (mouse worked, keyboard did not).
+        ViewerInputRoot.PointerPressed += ViewerInputRoot_OnPointerPressed;
+        ViewerInputRoot.PointerReleased += ViewerInputRoot_OnPointerReleased;
+        ViewerInputRoot.PointerMoved += ViewerInputRoot_OnPointerMoved;
+        ViewerInputRoot.PointerWheelChanged += ViewerInputRoot_OnPointerWheelChanged;
+
+        // Route keyboard at window scope: macOS borderless/fullscreen often fails to deliver KeyDown to a nested
+        // Border; focus also jumps to the toolbar after layout changes unless we stabilize chrome (see UpdateControlUi).
+        AddHandler(InputElement.KeyDownEvent, Window_OnKeyDown, RoutingStrategies.Tunnel, false);
+        AddHandler(InputElement.KeyUpEvent, Window_OnKeyUp, RoutingStrategies.Tunnel, false);
+        AddHandler(InputElement.TextInputEvent, Window_OnTextInput, RoutingStrategies.Bubble, false);
+
         SendShortcutComboBox.ItemsSource = ShortcutOptions;
         SendShortcutComboBox.SelectedIndex = 0;
         EnableControlButton.Content = CrossPlatformText.EnableFullscreenControl;
@@ -222,6 +239,8 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         }
 
         _disposed = true;
+        _activeKeySyms.Clear();
+        _suppressTextInputCodepoints.Clear();
         _refreshTimer.Stop();
         _cancellation.Cancel();
 
@@ -242,11 +261,14 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void EnableControlButton_OnClick(object? sender, RoutedEventArgs e)
     {
+        e.Handled = true;
         _session.ControlEnabled = true;
         UpdateControlUi();
-        ViewerInputRoot.Focus();
+        Dispatcher.UIThread.Post(
+            () => ViewerInputRoot.Focus(),
+            DispatcherPriority.Input);
     }
 
     private async void SendShortcutComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -277,10 +299,17 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         StatusTextBlock.Text = _session.ControlEnabled
             ? CrossPlatformText.RemoteManagementControl(_machineName)
             : CrossPlatformText.RemoteManagementViewOnly(_machineName);
-        EnableControlButton.IsVisible = !_session.ControlEnabled;
+
+        // Keep the button in the layout (fixed MinWidth in XAML). Toggling IsVisible shrinks the grid column on
+        // macOS and can revalidate the borderless window (looks like a "reload") and steal focus to the ComboBox.
+        EnableControlButton.Content = _session.ControlEnabled
+            ? CrossPlatformText.ViewerControlActiveButtonLabel
+            : CrossPlatformText.EnableFullscreenControl;
+        EnableControlButton.IsEnabled = !_session.ControlEnabled;
+        EnableControlButton.Focusable = !_session.ControlEnabled;
     }
 
-    private void ScreenImage_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    private void ViewerInputRoot_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         ViewerInputRoot.Focus();
         if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
@@ -288,7 +317,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             return;
         }
 
-        e.Pointer.Capture(ScreenImage);
+        e.Pointer.Capture(ViewerInputRoot);
         _pointerButtonsMask = UpdateButtonsMask(_pointerButtonsMask, e.GetCurrentPoint(ScreenImage).Properties);
 
         if (TryMapPointer(e.GetPosition(ScreenImage), out var x, out var y))
@@ -297,7 +326,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         }
     }
 
-    private void ScreenImage_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    private void ViewerInputRoot_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
         {
@@ -315,7 +344,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         _pointerButtonsMask = 0;
     }
 
-    private void ScreenImage_OnPointerMoved(object? sender, PointerEventArgs e)
+    private void ViewerInputRoot_OnPointerMoved(object? sender, PointerEventArgs e)
     {
         if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
         {
@@ -330,7 +359,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         }
     }
 
-    private void ScreenImage_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private void ViewerInputRoot_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         if (!_session.ControlEnabled || !_session.IsConnected || _frameWidth <= 0 || _frameHeight <= 0)
         {
@@ -345,54 +374,195 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         }
     }
 
-    private void ViewerInputRoot_OnKeyDown(object? sender, KeyEventArgs e)
+    private void Window_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (!_session.ControlEnabled)
+        if (!ShouldForwardKeysToRemoteSession())
         {
             return;
         }
 
-        var keySym = MapSpecialKey(e.Key);
-        if (keySym is not null)
+        if (!TryResolveKeysym(e, out var sym))
         {
-            _session.SendKey(keySym.Value, true);
-            e.Handled = true;
+            return;
         }
+
+        _session.SendKey(sym, true);
+        e.Handled = true;
+        _activeKeySyms[e.Key] = sym;
+        RegisterSuppressForKeyDown(e);
     }
 
-    private void ViewerInputRoot_OnKeyUp(object? sender, KeyEventArgs e)
+    private void Window_OnKeyUp(object? sender, KeyEventArgs e)
     {
-        if (!_session.ControlEnabled)
+        if (!ShouldForwardKeysToRemoteSession())
         {
             return;
         }
 
-        var keySym = MapSpecialKey(e.Key);
-        if (keySym is not null)
+        if (!_activeKeySyms.TryGetValue(e.Key, out var sym))
         {
-            _session.SendKey(keySym.Value, false);
-            e.Handled = true;
+            if (!TryResolveKeysym(e, out sym))
+            {
+                return;
+            }
         }
+        else
+        {
+            _activeKeySyms.Remove(e.Key);
+        }
+
+        _session.SendKey(sym, false);
+        e.Handled = true;
     }
 
-    private void ViewerInputRoot_OnTextInput(object? sender, TextInputEventArgs e)
+    private void Window_OnTextInput(object? sender, TextInputEventArgs e)
     {
-        if (!_session.ControlEnabled || string.IsNullOrEmpty(e.Text))
+        if (!ShouldForwardKeysToRemoteSession() || string.IsNullOrEmpty(e.Text))
         {
             return;
         }
 
-        foreach (var character in e.Text)
+        var sent = false;
+        foreach (var rune in e.Text.EnumerateRunes())
         {
-            if (char.IsControl(character))
+            if (_suppressTextInputCodepoints.Remove(rune.Value))
             {
                 continue;
             }
 
-            var keySym = (KeySymbol)(uint)character;
+            if (IsIgnorableTextInputScalar(rune.Value))
+            {
+                continue;
+            }
+
+            var keySym = (KeySymbol)(uint)rune.Value;
             _session.SendKey(keySym, true);
             _session.SendKey(keySym, false);
+            sent = true;
         }
+
+        if (sent)
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>False when focus is on the shortcut combo (or its dropdown) or the enable button so those stay usable.</summary>
+    private bool ShouldForwardKeysToRemoteSession()
+    {
+        if (!_session.ControlEnabled || _disposed)
+        {
+            return false;
+        }
+
+        if (SendShortcutComboBox.IsDropDownOpen)
+        {
+            return false;
+        }
+
+        var focus = FocusManager?.GetFocusedElement();
+        if (focus is null)
+        {
+            return true;
+        }
+
+        if (ReferenceEquals(focus, SendShortcutComboBox))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(focus, EnableControlButton))
+        {
+            return false;
+        }
+
+        if (focus is Visual v)
+        {
+            foreach (var ancestor in v.GetVisualAncestors())
+            {
+                if (ReferenceEquals(ancestor, SendShortcutComboBox))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private void RegisterSuppressForKeyDown(KeyEventArgs e)
+    {
+        var layout = e.KeySymbol;
+        if (!string.IsNullOrEmpty(layout))
+        {
+            RegisterSuppressForUnicodeString(layout);
+            return;
+        }
+
+        var shift = (e.KeyModifiers & KeyModifiers.Shift) != 0;
+        var qwerty = e.PhysicalKey.ToQwertyKeySymbol(shift);
+        RegisterSuppressForUnicodeString(qwerty);
+    }
+
+    private void RegisterSuppressForUnicodeString(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        foreach (var rune in text.EnumerateRunes())
+        {
+            _suppressTextInputCodepoints.Add(rune.Value);
+        }
+    }
+
+    /// <summary>
+    /// 1) F-keys, arrows, modifiers. 2) Avalonia layout text (KeyEventArgs.KeySymbol string). 3) US QWERTY from PhysicalKey when (2) is empty.
+    /// </summary>
+    private static bool TryResolveKeysym(KeyEventArgs e, out KeySymbol sym)
+    {
+        var special = MapSpecialKey(e.Key);
+        if (special is not null)
+        {
+            sym = special.Value;
+            return true;
+        }
+
+        var layoutText = e.KeySymbol;
+        if (!string.IsNullOrEmpty(layoutText))
+        {
+            foreach (var rune in layoutText.EnumerateRunes())
+            {
+                sym = (KeySymbol)(uint)rune.Value;
+                return true;
+            }
+        }
+
+        var shift = (e.KeyModifiers & KeyModifiers.Shift) != 0;
+        var qwertyText = e.PhysicalKey.ToQwertyKeySymbol(shift);
+        if (!string.IsNullOrEmpty(qwertyText))
+        {
+            foreach (var rune in qwertyText.EnumerateRunes())
+            {
+                sym = (KeySymbol)(uint)rune.Value;
+                return true;
+            }
+        }
+
+        sym = default;
+        return false;
+    }
+
+    private static bool IsIgnorableTextInputScalar(int scalarValue)
+    {
+        // Let KeyDown/KeySymbol handle tab/enter; TextInput sometimes echoes controls we already mapped.
+        if (scalarValue >= 32)
+        {
+            return false;
+        }
+
+        return scalarValue is not (9 or 10 or 13);
     }
 
     private bool TryMapPointer(Point position, out int x, out int y)
@@ -493,6 +663,8 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
             Key.RightCtrl => KeySymbol.Control_R,
             Key.LeftAlt => KeySymbol.Alt_L,
             Key.RightAlt => KeySymbol.Alt_R,
+            Key.LWin => KeySymbol.Super_L,
+            Key.RWin => KeySymbol.Super_L,
             _ => null,
         };
     }
@@ -560,5 +732,4 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
 
         return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
     }
-
 }

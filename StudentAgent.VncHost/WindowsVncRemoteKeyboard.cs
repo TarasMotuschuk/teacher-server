@@ -174,7 +174,9 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
             return true;
         }
 
-        return raw >= 0x20;
+        // Printable keysyms (e.g. Latin letters 0x61) must fall through to HandleKeyEventCore's SendUnicode path.
+        // Returning true here with virtualKey=0 incorrectly sent VK 0 and skipped Unicode injection.
+        return false;
     }
 
     private bool TryLaunchTaskManagerFromCadShortcut()

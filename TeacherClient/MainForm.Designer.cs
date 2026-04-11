@@ -493,10 +493,10 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, @"Toolbar/files/upload-group.png", ToolbarIconKind.UploadGroup, SendToSelectedStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, @"Toolbar/files/broadcast.png", ToolbarIconKind.Broadcast, SendToAllOnlineStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, @"Toolbar/files/download.png", ToolbarIconKind.Download, DownloadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, OpenLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, OpenRemoteButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, RenameLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, RenameRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, OpenLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, OpenRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, RenameLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, RenameRemoteButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, @"Toolbar/files/delete-local.png", ToolbarIconKind.Remove, DeleteLocalButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, @"Toolbar/files/delete-remote.png", ToolbarIconKind.Remove, DeleteRemoteButton_Click));
