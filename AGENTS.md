@@ -37,12 +37,13 @@ This repository contains a Windows-oriented classroom administration solution cu
 - Follow the existing C# style with file-scoped namespaces, records for DTOs, and concise minimal API handlers.
 - Keep UI code in `TeacherClient` practical and maintainable; avoid large hidden abstractions unless they clearly improve readability.
 - Add comments sparingly and only where the logic is non-obvious.
+- **Edits in one pass:** When changing a file, apply repo conventions immediately so CI does not fail on a follow-up fix. For C#, that includes correct **`using` order** (e.g. `System.*` first, then other namespaces alphabetically—`dotnet format` aligns with this) and matching existing patterns in the same file. When the same behavior exists in **both** `TeacherClient` and `TeacherClient.Avalonia`, update **both** in the same task unless the user asked for a single platform only.
 
 ## Validation
 
 - Prefer validating changes with `dotnet build TeacherServer.sln`.
 - If a change affects runtime behavior, mention what was validated and what still needs manual testing on Windows.
-- Before pushing, fix formatting failures that break builds (e.g. `IDE0055`) by running `dotnet format TeacherServer.sln`.
+- Before pushing, fix formatting failures that break builds (e.g. `IDE0055`, **IMPORTS** / `using` ordering) by running `dotnet format TeacherServer.sln` (or formatting the touched projects) and rebuilding.
 
 ## Release workflow
 
