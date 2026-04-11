@@ -10,7 +10,7 @@ This repository contains a Windows-oriented classroom administration solution cu
 - `StudentAgent.Shared/`: shared student-side runtime, UI, and hosting source files used by the Windows service and UI host.
 - `StudentAgent.Service/`: privileged Windows Service host for the student machine.
 - `StudentAgent.UIHost/`: session-aware Windows Forms UI host for tray controls, warnings, and visible overlays.
-- `TeacherServer.Setup/`: WiX-based Windows installer project and MSI build scripts.
+- `TeacherServer.Setup/`: WiX-based Windows installer project and MSI build scripts (`Build-Msi.ps1` publishes both `TeacherClient` and `TeacherClient.Avalonia` into the installer).
 - `TeacherClient/`: Windows Forms client for the teacher machine.
 - `TeacherClient.Avalonia/`: cross-platform Avalonia client for teacher workstations on macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup/`: macOS packaging project for the Avalonia teacher client (`.app` + `.pkg`).

@@ -23,6 +23,8 @@ $cleanPaths = @(
     "Teacher.Common\obj",
     "TeacherClient\bin",
     "TeacherClient\obj",
+    "TeacherClient.Avalonia\bin",
+    "TeacherClient.Avalonia\obj",
     "StudentAgent.Service\bin",
     "StudentAgent.Service\obj",
     "StudentAgent.UIHost\bin",
@@ -90,7 +92,7 @@ function Update-Changelog {
         "### Notes",
         "",
         "- Windows release build only.",
-        "- `TeacherClient.Avalonia` is not built for Windows by this command.",
+        "- `TeacherClient.Avalonia` is published into the MSI via `TeacherServer.Setup\\Build-Msi.ps1`.",
         ""
     )
 
@@ -119,6 +121,9 @@ function Invoke-WindowsBuild {
 
     dotnet build ".\TeacherClient\TeacherClient.csproj" -c $Configuration
     if ($LASTEXITCODE -ne 0) { throw "TeacherClient build failed." }
+
+    dotnet build ".\TeacherClient.Avalonia\TeacherClient.Avalonia.csproj" -c $Configuration
+    if ($LASTEXITCODE -ne 0) { throw "TeacherClient.Avalonia build failed." }
 
     dotnet build ".\StudentAgent.Service\StudentAgent.Service.csproj" -c $Configuration
     if ($LASTEXITCODE -ne 0) { throw "StudentAgent.Service build failed." }

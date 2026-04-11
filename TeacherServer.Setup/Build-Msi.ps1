@@ -7,15 +7,18 @@ param(
 $root = Split-Path $PSScriptRoot -Parent
 $artifactsDirectory = Join-Path $PSScriptRoot "artifacts"
 $teacherPayloadDirectory = Join-Path $artifactsDirectory "Teacher"
+$teacherAvaloniaPayloadDirectory = Join-Path $artifactsDirectory "TeacherAvalonia"
 $studentPayloadDirectory = Join-Path $artifactsDirectory "Student"
 $generatedDirectory = Join-Path $PSScriptRoot "Generated"
 
 New-Item -ItemType Directory -Force -Path $teacherPayloadDirectory | Out-Null
+New-Item -ItemType Directory -Force -Path $teacherAvaloniaPayloadDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $studentPayloadDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $generatedDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 $teacherProject = Join-Path $root "TeacherClient\TeacherClient.csproj"
+$teacherAvaloniaProject = Join-Path $root "TeacherClient.Avalonia\TeacherClient.Avalonia.csproj"
 $servicePublishScript = Join-Path $root "StudentAgent.Service\Publish-ServiceBundle.ps1"
 $fragmentGenerator = Join-Path $PSScriptRoot "Generate-WixFragment.ps1"
 $installerProject = Join-Path $PSScriptRoot "TeacherServer.Setup.wixproj"
@@ -29,6 +32,17 @@ dotnet publish $teacherProject `
 
 if ($LASTEXITCODE -ne 0) {
     throw "Publishing TeacherClient failed."
+}
+
+Write-Host "Publishing TeacherClient.Avalonia..."
+dotnet publish $teacherAvaloniaProject `
+    -c $Configuration `
+    -r $Runtime `
+    --self-contained true `
+    -o $teacherAvaloniaPayloadDirectory
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Publishing TeacherClient.Avalonia failed."
 }
 
 Write-Host "Publishing StudentAgent service bundle..."
@@ -51,6 +65,17 @@ Write-Host "Generating WiX payload fragments..."
 
 if ($LASTEXITCODE -ne 0) {
     throw "Generating teacher WiX fragment failed."
+}
+
+& $fragmentGenerator `
+    -SourceDirectory $teacherAvaloniaPayloadDirectory `
+    -DirectoryRefId "TEACHERAVALONIADIR" `
+    -ComponentGroupId "TeacherAvaloniaPayloadGroup" `
+    -OutputPath (Join-Path $generatedDirectory "TeacherAvaloniaPayload.wxs") `
+    -ExcludeFiles @("TeacherClient.Avalonia.exe")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Generating teacher Avalonia WiX fragment failed."
 }
 
 & $fragmentGenerator `
