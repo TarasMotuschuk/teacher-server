@@ -31,6 +31,7 @@
     <Compile Include="..\StudentAgent.Shared\UI\AboutForm.Designer.cs" Link="Shared\UI\AboutForm.Designer.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\BrandingResourceLoader.cs" Link="Shared\UI\BrandingResourceLoader.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\BrowserLockWarningForm.cs" Link="Shared\UI\BrowserLockWarningForm.cs" />
+    <Compile Include="..\StudentAgent.Shared\UI\InputLockBannerForm.cs" Link="Shared\UI\InputLockBannerForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\InputLockForm.cs" Link="Shared\UI\InputLockForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\InputLockGlobalInputHook.cs" Link="Shared\UI\InputLockGlobalInputHook.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\LogsForm.cs" Link="Shared\UI\LogsForm.cs" />

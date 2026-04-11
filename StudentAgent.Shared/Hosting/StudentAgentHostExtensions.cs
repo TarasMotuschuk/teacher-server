@@ -121,7 +121,7 @@ public static class StudentAgentHostExtensions
         {
             try
             {
-                store.UpdateInputLock(request.Enabled);
+                store.UpdateInputLock(request.Enabled, request.VisualMode);
                 agentLog.LogInfo(request.Enabled ? StudentAgentText.InputLockEnabledLog : StudentAgentText.InputLockDisabledLog);
                 return Results.NoContent();
             }

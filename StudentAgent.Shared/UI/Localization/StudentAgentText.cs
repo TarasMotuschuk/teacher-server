@@ -111,6 +111,8 @@ internal static class StudentAgentText
 
     public static string InputLockStatusLine => IsUk ? "Клавіатуру і мишу заблоковано." : "Keyboard and mouse are blocked.";
 
+    public static string InputLockDemoStatusLine => IsUk ? "Режим демонстрації: клавіатуру і мишу учня заблоковано." : "Demonstration mode: student keyboard and mouse are blocked.";
+
     public static string BrowserLockKilledBrowsersLog(int count) => IsUk ? $"Завершено браузерів: {count}." : $"Closed browser processes: {count}.";
 
     public static void SetLanguage(UiLanguage language)

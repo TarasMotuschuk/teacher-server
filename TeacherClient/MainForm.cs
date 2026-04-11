@@ -3251,9 +3251,12 @@ public partial class MainForm : Form
     }
 
     private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+        => await SetInputLockOnAgentsAsync(targetAgents, enabled, InputLockVisualMode.FullscreenOverlay);
+
+    private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled, InputLockVisualMode visualMode)
     {
         if (MessageBox.Show(
-                TeacherClientText.InputLockPrompt(targetAgents.Count, enabled),
+                TeacherClientText.InputLockPrompt(targetAgents.Count, enabled, visualMode),
                 TeacherClientText.GroupCommandsMenu,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
@@ -3270,9 +3273,9 @@ public partial class MainForm : Form
             var agent = targetAgents[agentIndex];
             try
             {
-                SetStatus(TeacherClientText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled));
+                SetStatus(TeacherClientText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled, visualMode));
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                await client.SetInputLockEnabledAsync(enabled);
+                await client.SetInputLockEnabledAsync(enabled, visualMode);
                 ReplaceAgentRow(agent with { InputLockEnabled = enabled });
                 succeeded++;
             }
@@ -3283,8 +3286,8 @@ public partial class MainForm : Form
         }
 
         SetStatus(failures.Count == 0
-            ? TeacherClientText.InputLockCompleted(succeeded, enabled)
-            : TeacherClientText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled));
+            ? TeacherClientText.InputLockCompleted(succeeded, enabled, visualMode)
+            : TeacherClientText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode));
 
         if (failures.Count > 0)
         {
@@ -3294,6 +3297,21 @@ public partial class MainForm : Form
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
         }
+    }
+
+    private async void LockInputForDemonstrationOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
     }
 
     private async Task SetWindowsRestrictionOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, WindowsRestrictionKind restriction, bool enabled)

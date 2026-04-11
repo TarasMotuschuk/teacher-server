@@ -21,6 +21,7 @@ This repository contains a Windows-oriented classroom administration solution cu
 - Keep the product transparent and classroom-safe. Do not add stealth behavior, hidden persistence, covert surveillance, or evasion features.
 - Preserve compatibility with the current Windows-oriented app model. When the active task is the ongoing framework migration, prefer moving changed projects and shared dependencies forward to `.NET 10` together instead of mixing `.NET 8` and `.NET 10` targets unnecessarily.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
+- Unless the task explicitly calls for a different naming scheme, new git branches may use `feature/*` or `fix/*` prefixes by default.
 - When changing API shapes, update the server implementation and both teacher clients together.
 - Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
 - Treat security improvements as welcome defaults: TLS, stronger auth, audit logging, and path restrictions are in scope. Covert control capabilities are not.

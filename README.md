@@ -29,7 +29,7 @@ The current implementation focuses on visible and explicitly authorized administ
 
 ### StudentAgent.UIHost
 
-`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, and fullscreen input-lock overlays. The service launcher is expected to keep it running inside the active student session. Choosing **Exit** from the tray menu prompts for the same StudentAgent administrator password used to open **Settings** and **Logs** from that menu.
+`StudentAgent.UIHost` is the user-session companion process for visible elements such as the tray icon, browser warnings, fullscreen input-lock overlays, and the compact demonstration-mode banner used when a teacher wants to block input without covering the whole student screen. The service launcher is expected to keep it running inside the active student session. Choosing **Exit** from the tray menu prompts for the same StudentAgent administrator password used to open **Settings** and **Logs** from that menu.
 
 ### StudentAgent.VncHost
 
@@ -95,10 +95,10 @@ Available endpoints:
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - grouped remote command execution for either selected students or all online students, with support for multi-line command scripts and a `Current user` or `Administrator` run mode;
-- a teacher-managed frequent programs list that can be refreshed from public desktop shortcuts gathered across online student PCs and then curated manually by the teacher;
+- teacher-managed frequent-program actions grouped together with other group `Commands`, including refresh from public desktop shortcuts gathered across online student PCs and manual curation by the teacher;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
-- visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- visible keyboard-and-mouse locking through an `Input lock` toggle per agent, bulk lock/unlock commands for online student PCs, and a demonstration-mode bulk lock that keeps the lock visible through a compact top banner instead of a fullscreen overlay;
 - teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
@@ -142,10 +142,10 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - bulk distribution of a selected local file or folder to selected students or all online students;
 - grouped destination-folder commands for clearing the configured student destination folder on either selected students or all online students;
 - grouped remote command execution for either selected students or all online students, with support for multi-line command scripts and a `Current user` or `Administrator` run mode;
-- a teacher-managed frequent programs list that can be refreshed from public desktop shortcuts gathered across online student PCs and then curated manually by the teacher;
+- teacher-managed frequent-program actions grouped together with other group `Commands`, including refresh from public desktop shortcuts gathered across online student PCs and manual curation by the teacher;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
-- visible keyboard-and-mouse locking through an `Input lock` toggle per agent and bulk lock/unlock commands for online student PCs;
+- visible keyboard-and-mouse locking through an `Input lock` toggle per agent, bulk lock/unlock commands for online student PCs, and a demonstration-mode bulk lock that keeps the lock visible through a compact top banner instead of a fullscreen overlay;
 - teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;

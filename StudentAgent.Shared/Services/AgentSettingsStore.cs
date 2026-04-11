@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using Teacher.Common;
+using Teacher.Common.Contracts;
 using Teacher.Common.Localization;
 
 namespace StudentAgent.Services;
@@ -180,7 +181,7 @@ public sealed class AgentSettingsStore
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void UpdateInputLock(bool enabled)
+    public void UpdateInputLock(bool enabled, InputLockVisualMode? visualMode = null)
     {
         lock (_sync)
         {
@@ -190,6 +191,11 @@ public sealed class AgentSettingsStore
             }
 
             _current.InputLockEnabled = enabled;
+            if (visualMode is not null)
+            {
+                _current.InputLockVisualMode = visualMode.Value;
+            }
+
             if (_useRegistry)
             {
                 PersistSettings(_current, _current.SharedSecret);
@@ -267,6 +273,7 @@ public sealed class AgentSettingsStore
                 Language = UiLanguageExtensions.GetDefault(),
                 BrowserLockEnabled = defaults.BrowserLockEnabled,
                 InputLockEnabled = defaults.InputLockEnabled,
+                InputLockVisualMode = defaults.InputLockVisualMode,
                 BrowserLockCheckIntervalSeconds = defaults.BrowserLockCheckIntervalSeconds,
                 DesktopIconAutoRestoreMinutes = defaults.DesktopIconAutoRestoreMinutes,
                 VncEnabled = defaults.VncEnabled,
@@ -297,6 +304,7 @@ public sealed class AgentSettingsStore
             Language = ReadUiLanguage(key, nameof(AgentRuntimeSettings.Language), UiLanguageExtensions.GetDefault()),
             BrowserLockEnabled = ReadBool(key, nameof(AgentRuntimeSettings.BrowserLockEnabled), defaults.BrowserLockEnabled),
             InputLockEnabled = ReadBool(key, nameof(AgentRuntimeSettings.InputLockEnabled), defaults.InputLockEnabled),
+            InputLockVisualMode = ReadInputLockVisualMode(key, nameof(AgentRuntimeSettings.InputLockVisualMode), defaults.InputLockVisualMode),
             BrowserLockCheckIntervalSeconds = ReadInt(key, nameof(AgentRuntimeSettings.BrowserLockCheckIntervalSeconds), defaults.BrowserLockCheckIntervalSeconds),
             DesktopIconAutoRestoreMinutes = ReadInt(key, nameof(AgentRuntimeSettings.DesktopIconAutoRestoreMinutes), defaults.DesktopIconAutoRestoreMinutes),
             VncEnabled = ReadBool(key, nameof(AgentRuntimeSettings.VncEnabled), defaults.VncEnabled),
@@ -345,6 +353,7 @@ public sealed class AgentSettingsStore
         key.SetValue(nameof(AgentRuntimeSettings.Language), settings.Language.ToString(), RegistryValueKind.String);
         key.SetValue(nameof(AgentRuntimeSettings.BrowserLockEnabled), settings.BrowserLockEnabled ? 1 : 0, RegistryValueKind.DWord);
         key.SetValue(nameof(AgentRuntimeSettings.InputLockEnabled), settings.InputLockEnabled ? 1 : 0, RegistryValueKind.DWord);
+        key.SetValue(nameof(AgentRuntimeSettings.InputLockVisualMode), settings.InputLockVisualMode.ToString(), RegistryValueKind.String);
         key.SetValue(nameof(AgentRuntimeSettings.BrowserLockCheckIntervalSeconds), settings.BrowserLockCheckIntervalSeconds, RegistryValueKind.DWord);
         key.SetValue(nameof(AgentRuntimeSettings.DesktopIconAutoRestoreMinutes), settings.DesktopIconAutoRestoreMinutes, RegistryValueKind.DWord);
         key.SetValue(nameof(AgentRuntimeSettings.VncEnabled), settings.VncEnabled ? 1 : 0, RegistryValueKind.DWord);
@@ -363,6 +372,7 @@ public sealed class AgentSettingsStore
         value.Language = value.Language.Normalize();
         value.BrowserLockEnabled = value.BrowserLockEnabled;
         value.InputLockEnabled = value.InputLockEnabled;
+        value.InputLockVisualMode = Enum.IsDefined(value.InputLockVisualMode) ? value.InputLockVisualMode : defaults.InputLockVisualMode;
         value.BrowserLockCheckIntervalSeconds = value.BrowserLockCheckIntervalSeconds <= 0
             ? Math.Max(5, defaults.BrowserLockCheckIntervalSeconds)
             : Math.Max(5, value.BrowserLockCheckIntervalSeconds);
@@ -390,6 +400,7 @@ public sealed class AgentSettingsStore
             Language = settings.Language,
             BrowserLockEnabled = settings.BrowserLockEnabled,
             InputLockEnabled = settings.InputLockEnabled,
+            InputLockVisualMode = settings.InputLockVisualMode,
             BrowserLockCheckIntervalSeconds = settings.BrowserLockCheckIntervalSeconds,
             DesktopIconAutoRestoreMinutes = settings.DesktopIconAutoRestoreMinutes,
             VncEnabled = settings.VncEnabled,
@@ -409,6 +420,7 @@ public sealed class AgentSettingsStore
             && left.Language == right.Language
             && left.BrowserLockEnabled == right.BrowserLockEnabled
             && left.InputLockEnabled == right.InputLockEnabled
+            && left.InputLockVisualMode == right.InputLockVisualMode
             && left.BrowserLockCheckIntervalSeconds == right.BrowserLockCheckIntervalSeconds
             && left.DesktopIconAutoRestoreMinutes == right.DesktopIconAutoRestoreMinutes
             && left.VncEnabled == right.VncEnabled
@@ -443,6 +455,29 @@ public sealed class AgentSettingsStore
 
     private static bool ReadBool(RegistryKey key, string name, bool defaultValue)
         => ReadInt(key, name, defaultValue ? 1 : 0) != 0;
+
+    private static InputLockVisualMode ReadInputLockVisualMode(RegistryKey key, string name, InputLockVisualMode defaultValue)
+    {
+        try
+        {
+            var raw = ReadString(key, name);
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return defaultValue;
+            }
+
+            if (Enum.TryParse<InputLockVisualMode>(raw, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed))
+            {
+                return parsed;
+            }
+
+            return defaultValue;
+        }
+        catch
+        {
+            return defaultValue;
+        }
+    }
 
     private static string? ReadString(RegistryKey key, string name)
     {

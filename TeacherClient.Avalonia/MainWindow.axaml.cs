@@ -1627,6 +1627,21 @@ public partial class MainWindow : Window, IDisposable
         await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
     }
 
+    private async void LockInputDemoAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
+    }
+
     private async void UnlockInputAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = _allAgents
@@ -2284,11 +2299,14 @@ public partial class MainWindow : Window, IDisposable
     }
 
     private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+        => await SetInputLockOnAgentsAsync(targetAgents, enabled, InputLockVisualMode.FullscreenOverlay);
+
+    private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled, InputLockVisualMode visualMode)
     {
         if (!await ConfirmationDialog.ShowAsync(
                 this,
                 CrossPlatformText.GroupCommandsTitle,
-                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled)))
+                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled, visualMode)))
         {
             return;
         }
@@ -2304,9 +2322,9 @@ public partial class MainWindow : Window, IDisposable
                 var agent = targetAgents[agentIndex];
                 try
                 {
-                    SetStatus(CrossPlatformText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled));
+                    SetStatus(CrossPlatformText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled, visualMode));
                     var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                    await client.SetInputLockEnabledAsync(enabled);
+                    await client.SetInputLockEnabledAsync(enabled, visualMode);
                     ReplaceAgentRow(agent with { InputLockEnabled = enabled });
                     succeeded++;
                 }
@@ -2317,8 +2335,8 @@ public partial class MainWindow : Window, IDisposable
             }
 
             SetStatus(failures.Count == 0
-                ? CrossPlatformText.InputLockCompleted(succeeded, enabled)
-                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled));
+                ? CrossPlatformText.InputLockCompleted(succeeded, enabled, visualMode)
+                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode));
 
             if (failures.Count > 0)
             {
@@ -3153,8 +3171,7 @@ public partial class MainWindow : Window, IDisposable
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
         DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
-        BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
-        InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
+        BlockingCommandsMenuItem.Header = CrossPlatformText.BlockingCommandsMenu;
         WindowsRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionsMenu;
         TaskManagerRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager);
         EnableTaskManagerRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
@@ -3182,9 +3199,12 @@ public partial class MainWindow : Window, IDisposable
         ApplyCurrentDesktopIconsAllMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
+        LockInputDemoAllMenuItem.Header = CrossPlatformText.LockInputForDemonstrationOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
         RunCommandSelectedMenuItem.Header = CrossPlatformText.RunCommandOnSelectedStudents;
         RunCommandAllMenuItem.Header = CrossPlatformText.RunCommandOnAllOnlineStudents;
+        RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
+        ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         PowerCommandsMenuItem.Header = CrossPlatformText.PowerCommandsMenu;
         SelectedPowerMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         AllOnlinePowerMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
@@ -3194,9 +3214,6 @@ public partial class MainWindow : Window, IDisposable
         ShutdownAllMenuItem.Header = CrossPlatformText.ShutdownCommand;
         RestartAllMenuItem.Header = CrossPlatformText.RestartCommand;
         LogOffAllMenuItem.Header = CrossPlatformText.LogOffCommand;
-        FrequentProgramsMenuItem.Header = CrossPlatformText.FrequentProgramsMenu;
-        RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
-        ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;

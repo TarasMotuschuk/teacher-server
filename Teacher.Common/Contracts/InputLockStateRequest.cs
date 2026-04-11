@@ -1,3 +1,3 @@
 namespace Teacher.Common.Contracts;
 
-public sealed record InputLockStateRequest(bool Enabled);
+public sealed record InputLockStateRequest(bool Enabled, InputLockVisualMode VisualMode = InputLockVisualMode.FullscreenOverlay);

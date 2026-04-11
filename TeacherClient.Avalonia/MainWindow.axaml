@@ -87,11 +87,10 @@
           <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
           <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
         </MenuItem>
-        <MenuItem x:Name="BrowserCommandsMenuItem" Header="_Browser">
+        <MenuItem x:Name="BlockingCommandsMenuItem" Header="_Blocking">
           <MenuItem x:Name="LockBrowsersAllMenuItem" Header="Lock browser on all online student PCs" Click="LockBrowsersAllMenuItem_OnClick" />
-        </MenuItem>
-        <MenuItem x:Name="InputCommandsMenuItem" Header="_Keyboard and Mouse">
           <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
+          <MenuItem x:Name="LockInputDemoAllMenuItem" Header="Enable keyboard and mouse lock (demonstration) on all online student PCs" Click="LockInputDemoAllMenuItem_OnClick" />
           <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
         </MenuItem>
         <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Windows Restrictions">
@@ -123,6 +122,9 @@
         <MenuItem x:Name="CommandsMenuItem" Header="_Commands">
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
+          <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>
         <MenuItem x:Name="DesktopIconsCommandsMenuItem" Header="_Desktop Icons">
           <MenuItem x:Name="RestoreDesktopIconsSelectedMenuItem" Header="Restore icons on selected PCs" Click="RestoreDesktopIconsSelectedMenuItem_OnClick" />
@@ -142,10 +144,6 @@
             <MenuItem x:Name="RestartAllMenuItem" Header="Restart" Click="RestartAllMenuItem_OnClick" />
             <MenuItem x:Name="LogOffAllMenuItem" Header="Log Off" Click="LogOffAllMenuItem_OnClick" />
           </MenuItem>
-        </MenuItem>
-        <MenuItem x:Name="FrequentProgramsMenuItem" Header="_Frequent Programs">
-          <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
-          <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">

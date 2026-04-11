@@ -60,9 +60,9 @@ internal static partial class CrossPlatformText
 
     public static string RemoteManagementRequiresOnlineAgent => IsUk ? "Для цієї дії потрібен онлайн-учнівський ПК." : "The selected student PC must be online.";
 
-    public static string BrowserCommandsMenu => IsUk ? "Браузер" : "Browser";
+    public static string BlockingCommandsMenu => IsUk ? "Блокування" : "Blocking";
 
-    public static string InputCommandsMenu => IsUk ? "Клавіатура і миша" : "Keyboard and Mouse";
+    public static string LockInputForDemonstrationOnAllOnlineStudents => IsUk ? "Увімкнути блокування клавіатури і миші (демонстрація) на всіх онлайн учнівських ПК" : "Enable keyboard and mouse lock (demonstration) on all online student PCs";
 
     public static string WindowsRestrictionsMenu => IsUk ? "Обмеження Windows" : "Windows Restrictions";
 

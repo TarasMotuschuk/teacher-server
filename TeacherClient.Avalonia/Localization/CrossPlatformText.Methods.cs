@@ -253,20 +253,55 @@ internal static partial class CrossPlatformText
             ? $"{(enabled ? "Увімкнути" : "Вимкнути")} блокування клавіатури і миші на всіх онлайн учнівських ПК ({count})?"
             : $"{(enabled ? "Enable" : "Disable")} keyboard and mouse lock on all online student PCs ({count})?";
 
+    public static string InputLockPrompt(int count, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Увімкнути блокування клавіатури і миші на всіх онлайн учнівських ПК ({count}) у режимі {InputLockVisualModeLabel(visualMode)}?"
+                : $"Enable keyboard and mouse lock on all online student PCs ({count}) in {InputLockVisualModeLabel(visualMode)} mode?"
+            : InputLockPrompt(count, enabled);
+
     public static string InputLockCompleted(int count, bool enabled)
         => IsUk
             ? $"{(enabled ? "Блокування клавіатури і миші увімкнено" : "Блокування клавіатури і миші вимкнено")} на {count} учнівських ПК"
             : $"{(enabled ? "Enabled" : "Disabled")} keyboard and mouse lock on {count} student PCs";
+
+    public static string InputLockCompleted(int count, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Блокування клавіатури і миші увімкнено на {count} учнівських ПК у режимі {InputLockVisualModeLabel(visualMode)}"
+                : $"Enabled keyboard and mouse lock on {count} student PCs in {InputLockVisualModeLabel(visualMode)} mode"
+            : InputLockCompleted(count, enabled);
 
     public static string InputLockCompletedWithFailures(int succeeded, int failed, bool enabled)
         => IsUk
             ? $"Групове {(enabled ? "увімкнення" : "вимкнення")} блокування вводу: успішно {succeeded}, з помилками {failed}"
             : $"Bulk {(enabled ? "enable" : "disable")} input lock: {succeeded} succeeded, {failed} failed";
 
+    public static string InputLockCompletedWithFailures(int succeeded, int failed, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Групове увімкнення блокування вводу ({InputLockVisualModeLabel(visualMode)}): успішно {succeeded}, з помилками {failed}"
+                : $"Bulk enable input lock ({InputLockVisualModeLabel(visualMode)}): {succeeded} succeeded, {failed} failed"
+            : InputLockCompletedWithFailures(succeeded, failed, enabled);
+
     public static string InputLockProgress(string agent, int agentIndex, int agentCount, bool enabled)
         => IsUk
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} блокування вводу на {agent} ({agentIndex}/{agentCount})"
             : $"{(enabled ? "Enabling" : "Disabling")} input lock on {agent} ({agentIndex}/{agentCount})";
+
+    public static string InputLockProgress(string agent, int agentIndex, int agentCount, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Увімкнення блокування вводу ({InputLockVisualModeLabel(visualMode)}) на {agent} ({agentIndex}/{agentCount})"
+                : $"Enabling input lock ({InputLockVisualModeLabel(visualMode)}) on {agent} ({agentIndex}/{agentCount})"
+            : InputLockProgress(agent, agentIndex, agentCount, enabled);
+
+    public static string InputLockVisualModeLabel(InputLockVisualMode visualMode)
+        => visualMode switch
+        {
+            InputLockVisualMode.DemonstrationBanner => IsUk ? "демонстрація" : "demonstration",
+            _ => IsUk ? "повний екран" : "fullscreen",
+        };
 
     public static string PowerActionPrompt(PowerActionKind action, int count, bool selectedOnly)
         => IsUk

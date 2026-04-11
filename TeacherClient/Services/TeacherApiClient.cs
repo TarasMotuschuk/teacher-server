@@ -69,9 +69,9 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task SetInputLockEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    public async Task SetInputLockEnabledAsync(bool enabled, InputLockVisualMode visualMode = InputLockVisualMode.FullscreenOverlay, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/input-lock", new InputLockStateRequest(enabled), cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync("api/input-lock", new InputLockStateRequest(enabled, visualMode), cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
