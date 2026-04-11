@@ -50,38 +50,6 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
-    private void HandleKeyEventCore(KeyChangedEventArgs e)
-    {
-        var keysymU = (uint)e.Keysym;
-        UpdateModifierTally(keysymU, e.Pressed);
-
-        // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
-        if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
-            TryLaunchTaskManagerFromCadShortcut())
-        {
-            _skipNextDeleteKeyUp = true;
-            return;
-        }
-
-        if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
-        {
-            _skipNextDeleteKeyUp = false;
-            return;
-        }
-
-        if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
-        {
-            SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
-            return;
-        }
-
-        var keysymValue = (uint)e.Keysym;
-        if (keysymValue is >= 0x20 and <= 0xFFFF)
-        {
-            SendUnicode((char)keysymValue, e.Pressed);
-        }
-    }
-
     private static bool TryMapVirtualKey(KeySym keySym, out ushort virtualKey, out ushort scanCode, out uint keyFlags)
     {
         virtualKey = 0;
@@ -207,6 +175,38 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
         // Other printable keysyms (e.g. non-Latin) fall through to HandleKeyEventCore's SendUnicode path.
         // Returning true here with virtualKey=0 incorrectly sent VK 0 and skipped Unicode injection.
         return false;
+    }
+
+    private void HandleKeyEventCore(KeyChangedEventArgs e)
+    {
+        var keysymU = (uint)e.Keysym;
+        UpdateModifierTally(keysymU, e.Pressed);
+
+        // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
+        if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
+            TryLaunchTaskManagerFromCadShortcut())
+        {
+            _skipNextDeleteKeyUp = true;
+            return;
+        }
+
+        if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
+        {
+            _skipNextDeleteKeyUp = false;
+            return;
+        }
+
+        if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
+        {
+            SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
+            return;
+        }
+
+        var keysymValue = (uint)e.Keysym;
+        if (keysymValue is >= 0x20 and <= 0xFFFF)
+        {
+            SendUnicode((char)keysymValue, e.Pressed);
+        }
     }
 
     private bool TryLaunchTaskManagerFromCadShortcut()

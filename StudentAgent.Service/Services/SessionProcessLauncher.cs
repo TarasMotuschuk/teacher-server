@@ -36,7 +36,11 @@ internal static class SessionProcessLauncher
     /// from <c>winlogon.exe</c> in that session so the child can run on the logon desktop before any
     /// user session token exists. Falls back to <c>WTSQueryUserToken</c> if winlogon-based launch fails.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="applicationPath">Executable to start (full path).</param>
+    /// <param name="arguments">Command-line arguments for the process, or empty.</param>
+    /// <param name="sessionId">Target Windows session ID.</param>
+    /// <param name="hideWindow">When <c>true</c>, creates the process with <c>CREATE_NO_WINDOW</c>.</param>
+    /// <returns>Which launch path succeeded: winlogon token, or user-token fallback.</returns>
     public static SessionProcessLaunchMode StartProcessInSessionPreferWinlogon(string applicationPath, string arguments, int sessionId, bool hideWindow = false)
     {
         if (TryStartProcessUsingWinlogonToken(applicationPath, arguments, sessionId, hideWindow, waitForExit: false, timeout: null, out _))
