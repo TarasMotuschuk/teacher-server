@@ -43,6 +43,41 @@
     <Style Selector="ListBoxItem:selected">
       <Setter Property="Background" Value="#3B82F6" />
     </Style>
+    <!-- Remote management: landscape tiles; selection/hover ring on the card, not a solid ListBoxItem fill -->
+    <Style Selector="ListBox.remoteManagementList">
+      <Setter Property="ClipToBounds" Value="False" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,12,12" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:pointerover">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected:pointerover">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#94A3B8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:pointerover:not(:selected) Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#60A5FA" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#2563EB" />
+      <Setter Property="BorderThickness" Value="3" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected:pointerover Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#3B82F6" />
+      <Setter Property="BorderThickness" Value="3" />
+    </Style>
     <Style Selector="Button.tabAction">
       <Setter Property="Padding" Value="5,2" />
       <Setter Property="MinHeight" Value="30" />
@@ -412,10 +447,10 @@
       <TabItem x:Name="RemoteManagementTabItem" Header="Remote management">
         <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
           <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="148" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
-            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="180" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
-            <Button x:Name="StopVncButton" Classes="tabAction" Width="132" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
-            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="178" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
+            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="168" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
+            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
+            <Button x:Name="StopVncButton" Classes="tabAction" Width="152" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
+            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
           </WrapPanel>
 
           <TextBlock x:Name="RemoteManagementHintTextBlock"
@@ -426,6 +461,7 @@
                      Text="Double-click a tile to open the fullscreen viewer. The buttons above start or stop VNC for the selected PC." />
 
           <ListBox x:Name="RemoteManagementListBox"
+                   Classes="remoteManagementList"
                    Grid.Row="2"
                    SelectionMode="Single"
                    DoubleTapped="RemoteManagementListBox_OnDoubleTapped">
@@ -436,16 +472,14 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <Border Width="238"
-                        Height="286"
-                        Margin="0,0,12,12"
+                <Border Classes="remoteManagementTileRoot"
+                        Width="280"
+                        Height="200"
                         Padding="2"
                         Background="#BFC7D0"
-                        BorderBrush="{Binding SelectionBrush}"
-                        BorderThickness="3"
                         CornerRadius="8">
                   <Border Background="#171D24" CornerRadius="6" Padding="10">
-                    <Grid RowDefinitions="154,32,*">
+                    <Grid RowDefinitions="120,28,*">
                       <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
                         <Image Source="{Binding PreviewBitmap}"
                                Stretch="UniformToFill"
@@ -454,15 +488,16 @@
                       </Border>
                       <TextBlock Grid.Row="1"
                                  Text="{Binding MachineName}"
-                                 FontSize="15"
+                                 FontSize="14"
                                  FontWeight="Bold"
                                  Foreground="White"
                                  TextTrimming="CharacterEllipsis"
                                  VerticalAlignment="Center" />
                       <TextBlock Grid.Row="2"
-                                 Margin="0,2,0,0"
+                                 Margin="0,4,0,0"
                                  Text="{Binding StatusText}"
                                  Foreground="#CBD5E1"
+                                 FontSize="12"
                                  TextWrapping="Wrap" />
                     </Grid>
                   </Border>

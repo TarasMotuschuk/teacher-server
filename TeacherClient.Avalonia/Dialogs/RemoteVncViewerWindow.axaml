@@ -6,39 +6,79 @@
         Title="VNC Viewer"
         Background="Black">
   <Grid RowDefinitions="*,Auto">
-    <!-- Image is not keyboard-focusable; route KeyDown/TextInput through this panel (needed on macOS). -->
-    <Border x:Name="ViewerInputRoot"
-            Grid.Row="0"
-            Background="Transparent"
-            Focusable="True"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch">
-      <Image x:Name="ScreenImage"
-             Stretch="Uniform"
-             HorizontalAlignment="Stretch"
-             VerticalAlignment="Stretch" />
-    </Border>
+    <!-- Scrollbars if inner content ever exceeds the viewport; pointer mapping stays relative to ScreenImage. -->
+    <ScrollViewer x:Name="ViewerScrollViewer"
+                  Grid.Row="0"
+                  Background="Black"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <!-- Image is not keyboard-focusable; route KeyDown/TextInput through this panel (needed on macOS). -->
+      <Border x:Name="ViewerInputRoot"
+              Background="Transparent"
+              Focusable="True"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+        <Image x:Name="ScreenImage"
+               Stretch="Uniform"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch" />
+      </Border>
+    </ScrollViewer>
 
     <Border Grid.Row="1"
             Background="#1F2937"
             Padding="12,8">
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <TextBlock x:Name="StatusTextBlock"
-                   Grid.Column="0"
-                   VerticalAlignment="Center"
-                   Margin="0,0,12,0"
-                   Foreground="#F8FAFC"
-                   TextWrapping="Wrap" />
-        <ComboBox x:Name="SendShortcutComboBox"
-                  Grid.Column="1"
-                  Width="240"
-                  Margin="0,0,12,0"
+      <Grid RowDefinitions="Auto,Auto">
+        <Grid Grid.Row="0"
+              ColumnDefinitions="*,Auto,Auto">
+          <TextBlock x:Name="StatusTextBlock"
+                     Grid.Column="0"
+                     VerticalAlignment="Center"
+                     Margin="0,0,12,0"
+                     Foreground="#F8FAFC"
+                     TextWrapping="Wrap" />
+          <ComboBox x:Name="SendShortcutComboBox"
+                    Grid.Column="1"
+                    Width="240"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    SelectionChanged="SendShortcutComboBox_OnSelectionChanged" />
+          <Button x:Name="EnableControlButton"
+                  Grid.Column="2"
                   VerticalAlignment="Center"
-                  SelectionChanged="SendShortcutComboBox_OnSelectionChanged" />
-        <Button x:Name="EnableControlButton"
-                Grid.Column="2"
-                VerticalAlignment="Center"
-                Click="EnableControlButton_OnClick" />
+                  Click="EnableControlButton_OnClick" />
+        </Grid>
+
+        <Grid Grid.Row="1"
+              Margin="0,8,0,0"
+              ColumnDefinitions="Auto,*,Auto,Auto">
+          <TextBlock x:Name="ZoomLabel"
+                     Grid.Column="0"
+                     Margin="0,0,10,0"
+                     VerticalAlignment="Center"
+                     Foreground="#94A3B8" />
+          <Slider x:Name="ZoomSlider"
+                  Grid.Column="1"
+                  Margin="0,0,10,0"
+                  Minimum="0.25"
+                  Maximum="2"
+                  Value="1"
+                  TickFrequency="0.05"
+                  IsSnapToTickEnabled="False"
+                  VerticalAlignment="Center" />
+          <TextBlock x:Name="ZoomPercentText"
+                     Grid.Column="2"
+                     MinWidth="44"
+                     Margin="0,0,10,0"
+                     VerticalAlignment="Center"
+                     Foreground="#F8FAFC"
+                     TextAlignment="Right" />
+          <CheckBox x:Name="FitToScreenCheckBox"
+                    Grid.Column="3"
+                    VerticalAlignment="Center"
+                    Foreground="#F8FAFC"
+                    IsChecked="True" />
+        </Grid>
       </Grid>
     </Border>
   </Grid>

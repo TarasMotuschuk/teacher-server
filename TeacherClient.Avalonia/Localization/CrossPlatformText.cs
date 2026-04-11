@@ -52,6 +52,10 @@ internal static partial class CrossPlatformText
 
     public static string SendKeyboardShortcut => IsUk ? "Надіслати комбінацію клавіш" : "Send keyboard shortcut";
 
+    public static string RemoteManagementViewerZoomLabel => IsUk ? "Масштаб" : "Zoom";
+
+    public static string RemoteManagementViewerFitToScreenLabel => IsUk ? "Не більше за екран" : "Keep within screen";
+
     public static string RemoteManagementNoScreens => IsUk ? "Немає доступних екранів учнівських ПК." : "No student PC screens are available.";
 
     public static string RemoteManagementNoSelection => IsUk ? "Спочатку виберіть учнівський ПК на вкладці віддаленого керування." : "Choose a student PC on the remote management tab first.";

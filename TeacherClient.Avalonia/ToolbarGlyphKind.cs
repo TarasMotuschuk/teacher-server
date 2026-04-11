@@ -15,4 +15,6 @@ internal enum ToolbarGlyphKind
     OpenRemote,
     Broadcast,
     NewFolder,
+    Play,
+    Fullscreen,
 }

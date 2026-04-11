@@ -3237,10 +3237,10 @@ public partial class MainWindow : Window, IDisposable
         RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
             ? CrossPlatformText.RemoteManagementNoScreens
             : CrossPlatformText.RemoteManagementHint;
-        RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
-        StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StopVncButton.Content = CrossPlatformText.StopVnc;
-        OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
+        ApplyTabButtonContent(RefreshRemoteManagementButton, CrossPlatformText.RefreshRemoteManagement, "Toolbar/remote/refresh-screens.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(StartVncViewOnlyButton, CrossPlatformText.StartVncViewOnly, "Toolbar/remote/start-vnc.png", ToolbarGlyphKind.Play);
+        ApplyTabButtonContent(StopVncButton, CrossPlatformText.StopVnc, "Toolbar/remote/stop-vnc.png", ToolbarGlyphKind.Stop);
+        ApplyTabButtonContent(OpenRemoteManagementViewerButton, CrossPlatformText.OpenFullscreenViewer, "Toolbar/remote/open-viewer.png", ToolbarGlyphKind.Fullscreen);
         ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, "Toolbar/agents/pc-refresh-list.png", ToolbarGlyphKind.Refresh);
         ApplyTabButtonContent(ConnectSelectedAgentButton, CrossPlatformText.ConnectSelectedAgent, "Toolbar/agents/connect.png", ToolbarGlyphKind.Link);
         ApplyTabButtonContent(AddManualAgentButton, CrossPlatformText.AddManualAgent, "Toolbar/agents/add-manual.png", ToolbarGlyphKind.Add);
@@ -3352,10 +3352,10 @@ public partial class MainWindow : Window, IDisposable
             RegistryValuesGrid.Columns[2].Header = CrossPlatformText.RegistryValueData;
         }
 
-        RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
-        StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StopVncButton.Content = CrossPlatformText.StopVnc;
-        OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
+        ApplyTabButtonContent(RefreshRemoteManagementButton, CrossPlatformText.RefreshRemoteManagement, "Toolbar/remote/refresh-screens.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(StartVncViewOnlyButton, CrossPlatformText.StartVncViewOnly, "Toolbar/remote/start-vnc.png", ToolbarGlyphKind.Play);
+        ApplyTabButtonContent(StopVncButton, CrossPlatformText.StopVnc, "Toolbar/remote/stop-vnc.png", ToolbarGlyphKind.Stop);
+        ApplyTabButtonContent(OpenRemoteManagementViewerButton, CrossPlatformText.OpenFullscreenViewer, "Toolbar/remote/open-viewer.png", ToolbarGlyphKind.Fullscreen);
         RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
             ? CrossPlatformText.RemoteManagementNoScreens
             : CrossPlatformText.RemoteManagementHint;
@@ -3439,6 +3439,8 @@ public partial class MainWindow : Window, IDisposable
             ToolbarGlyphKind.OpenRemote => Color.Parse("#2563EB"),
             ToolbarGlyphKind.Broadcast => Color.Parse("#7C3AED"),
             ToolbarGlyphKind.NewFolder => Color.Parse("#CA8A04"),
+            ToolbarGlyphKind.Play => Color.Parse("#16A34A"),
+            ToolbarGlyphKind.Fullscreen => Color.Parse("#2563EB"),
             _ => Color.Parse("#0F172A"),
         });
 
@@ -3458,6 +3460,8 @@ public partial class MainWindow : Window, IDisposable
             ToolbarGlyphKind.OpenRemote => "M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M5,5H12V7H5V19H17V12H19V19C19,20.1 18.1,21 17,21H5C3.9,21 3,20.1 3,19V7C3,5.9 3.9,5 5,5Z",
             ToolbarGlyphKind.Broadcast => "M3,10V14H7L12,19V5L7,10H3M16.5,12C16.5,10.23 15.73,8.63 14.5,7.5L13.08,8.92C13.95,9.69 14.5,10.79 14.5,12C14.5,13.21 13.95,14.31 13.08,15.08L14.5,16.5C15.73,15.37 16.5,13.77 16.5,12M14.5,3.97L13.09,5.38C15.47,7 17,9.83 17,13C17,16.17 15.47,19 13.09,20.62L14.5,22.03C17.3,20.04 19,16.73 19,13C19,9.27 17.3,5.96 14.5,3.97Z",
             ToolbarGlyphKind.NewFolder => "M10,4L12,6H20C21.1,6 22,6.9 22,8V10H20V8H4V18H11V20H4C2.9,20 2,19.1 2,18V6C2,4.9 2.9,4 4,4H10M19,12V15H22V17H19V20H17V17H14V15H17V12H19Z",
+            ToolbarGlyphKind.Play => "M8,5.14V19.14L19,12.14L8,5.14Z",
+            ToolbarGlyphKind.Fullscreen => "M7,14H5V19H10V17H8V14M7,10H5V5H10V7H8V10M17,14H19V19H14V17H16V14M17,10H19V5H14V7H16V10Z",
             _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z",
         };
 
