@@ -253,6 +253,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
 
     private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        e.Handled = true;
         _session.ControlEnabled = true;
         UpdateControlUi();
         ViewerInputRoot.Focus();

@@ -42,7 +42,6 @@ internal static partial class CrossPlatformText
             WindowsRestrictionKind.ControlPanelAndSettings => IsUk ? "Панель керування і Параметри" : "Control Panel and Settings",
             WindowsRestrictionKind.LockWorkstation => IsUk ? "Блокування робочої станції" : "Lock workstation",
             WindowsRestrictionKind.ChangePassword => IsUk ? "Зміна пароля" : "Change password",
-            WindowsRestrictionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
             _ => restriction.ToString(),
         };
 

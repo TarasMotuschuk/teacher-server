@@ -160,9 +160,16 @@ partial class MainForm
         groupCommandsMenuItem.DropDownItems.Add(destinationFolderMenuItem);
         var blockingMenuItem = new ToolStripMenuItem(TeacherClientText.BlockingCommandsMenu);
         blockingMenuItem.DropDownItems.Add(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, LockBrowsersOnAllOnlineStudentsMenuItem_Click);
-        blockingMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, LockInputOnAllOnlineStudentsMenuItem_Click);
-        blockingMenuItem.DropDownItems.Add(TeacherClientText.LockInputForDemonstrationOnAllOnlineStudents, null, LockInputForDemonstrationOnAllOnlineStudentsMenuItem_Click);
-        blockingMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, UnlockInputOnAllOnlineStudentsMenuItem_Click);
+        var blockingSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
+        blockingSelectedMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnMarkedStudents, null, LockInputOnSelectedStudentsMenuItem_Click);
+        blockingSelectedMenuItem.DropDownItems.Add(TeacherClientText.LockInputDemoOnMarkedStudents, null, LockInputDemoOnSelectedStudentsMenuItem_Click);
+        blockingSelectedMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnMarkedStudents, null, UnlockInputOnSelectedStudentsMenuItem_Click);
+        blockingMenuItem.DropDownItems.Add(blockingSelectedMenuItem);
+        var blockingAllOnlineMenuItem = new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu);
+        blockingAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, LockInputOnAllOnlineStudentsMenuItem_Click);
+        blockingAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.LockInputForDemonstrationOnAllOnlineStudents, null, LockInputForDemonstrationOnAllOnlineStudentsMenuItem_Click);
+        blockingAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, UnlockInputOnAllOnlineStudentsMenuItem_Click);
+        blockingMenuItem.DropDownItems.Add(blockingAllOnlineMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(blockingMenuItem);
         var windowsRestrictionsMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionsMenu);
         var taskManagerMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager));
@@ -185,10 +192,6 @@ partial class MainForm
         changePasswordMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
         changePasswordMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
         windowsRestrictionsMenuItem.DropDownItems.Add(changePasswordMenuItem);
-        var logOffMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LogOff));
-        logOffMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
-        logOffMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
-        windowsRestrictionsMenuItem.DropDownItems.Add(logOffMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(windowsRestrictionsMenuItem);
         var commandsMenuItem = new ToolStripMenuItem(TeacherClientText.CommandsMenu);
         commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, RunCommandOnSelectedStudentsMenuItem_Click);
@@ -308,6 +311,7 @@ partial class MainForm
 
         agentsGrid.Dock = DockStyle.Fill;
         agentsGrid.CellDoubleClick += AgentsGrid_CellDoubleClick;
+        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.GroupCommandSelectionColumn, DataPropertyName = "GroupCommandSelected", Width = 72 });
         agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.BrowserLock, DataPropertyName = "BrowserLockEnabled", Width = 90 });
         agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.InputLock, DataPropertyName = "InputLockEnabled", Width = 90 });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100, ReadOnly = true });

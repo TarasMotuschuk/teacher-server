@@ -191,7 +191,11 @@ public sealed class AgentSettingsStore
             }
 
             _current.InputLockEnabled = enabled;
-            if (visualMode is not null)
+            if (!enabled)
+            {
+                _current.InputLockVisualMode = InputLockVisualMode.FullscreenOverlay;
+            }
+            else if (visualMode is not null)
             {
                 _current.InputLockVisualMode = visualMode.Value;
             }

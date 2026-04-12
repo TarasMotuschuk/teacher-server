@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Teacher.Common;
 using Teacher.Common.Vnc;
@@ -41,6 +43,7 @@ public partial class MainWindow
 
     private async void OpenRemoteManagementViewerButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        e.Handled = true;
         var agent = GetSelectedRemoteManagementAgent();
         if (agent is null)
         {
@@ -65,16 +68,63 @@ public partial class MainWindow
         UpdateRemoteManagementSelectionVisuals();
     }
 
-    private async void RemoteManagementListBox_OnDoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    /// <summary>
+    /// Opens the fullscreen viewer on double-click. The handler is on the tile border (not the list) so the tile
+    /// view-model is always correct. ListBox-level DoubleTapped often had <c>e.Source</c> at the list, so resolving
+    /// the item failed. Uses <c>ClickCount == 2</c> when available, plus a time-based second click within 600 ms.
+    /// </summary>
+    private async void RemoteManagementTileRoot_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        var agent = GetSelectedRemoteManagementAgent();
-        if (agent is null)
+        if (sender is not Border { DataContext: RemoteManagementTileViewModel tile })
         {
-            SetStatus(CrossPlatformText.RemoteManagementNoSelection);
             return;
         }
 
-        await OpenRemoteManagementViewerAsync(agent);
+        if (!e.GetCurrentPoint((Visual)sender).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var manualDouble = string.Equals(_remoteTileLastPrimaryAgentId, tile.AgentId, StringComparison.OrdinalIgnoreCase)
+            && (now - _remoteTileLastPrimaryUtc).TotalMilliseconds <= 600;
+        _remoteTileLastPrimaryUtc = now;
+        _remoteTileLastPrimaryAgentId = tile.AgentId;
+
+        if (e.ClickCount != 2 && !manualDouble)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _remoteTileLastPrimaryAgentId = null;
+
+        _remoteManagementSelectedAgentId = tile.AgentId;
+        RemoteManagementListBox.SelectedItem = tile;
+        UpdateRemoteManagementSelectionVisuals();
+
+        await OpenRemoteManagementViewerAsync(tile.Agent);
+    }
+
+    private void CloseAllRemoteVncViewerWindows()
+    {
+        List<Dialogs.RemoteVncViewerWindow> copy;
+        lock (_openRemoteVncViewersSync)
+        {
+            copy = _openRemoteVncViewers.Values.ToList();
+            _openRemoteVncViewers.Clear();
+        }
+
+        foreach (var w in copy)
+        {
+            try
+            {
+                w.Close();
+            }
+            catch
+            {
+            }
+        }
     }
 
     private async Task RefreshRemoteManagementTilesAsync()
@@ -368,6 +418,25 @@ public partial class MainWindow
             return;
         }
 
+        lock (_openRemoteVncViewersSync)
+        {
+            if (_openRemoteVncViewers.TryGetValue(agent.AgentId, out var existing) && existing.IsVisible)
+            {
+                existing.Activate();
+                if (existing.WindowState == WindowState.Minimized)
+                {
+                    existing.WindowState = WindowState.Maximized;
+                }
+
+                return;
+            }
+
+            if (_openRemoteVncViewers.ContainsKey(agent.AgentId))
+            {
+                _openRemoteVncViewers.Remove(agent.AgentId);
+            }
+        }
+
         var tile = _remoteManagementTiles.FirstOrDefault(x => string.Equals(x.AgentId, agent.AgentId, StringComparison.OrdinalIgnoreCase));
         if (tile is not null)
         {
@@ -375,6 +444,26 @@ public partial class MainWindow
             // preview loop and RemoteVncViewerWindow caused use-after-dispose when the preview was stopped or
             // refreshed while the viewer was still open.
             await RemoteManagementViewHelpers.StopRemoteManagementPreviewAsync(tile);
+        }
+
+        // Another OpenRemoteManagementViewerAsync can finish while we awaited StopRemoteManagementPreviewAsync; re-check
+        // before creating a second window for the same agent.
+        lock (_openRemoteVncViewersSync)
+        {
+            if (_openRemoteVncViewers.TryGetValue(agent.AgentId, out var existingAfterAwait) && existingAfterAwait.IsVisible)
+            {
+                existingAfterAwait.Activate();
+                if (existingAfterAwait.WindowState == WindowState.Minimized)
+                {
+                    existingAfterAwait.WindowState = WindowState.Maximized;
+                }
+
+                return;
+            }
+        }
+
+        if (tile is not null)
+        {
             tile.FullscreenViewerCount++;
         }
 
@@ -385,25 +474,39 @@ public partial class MainWindow
             _clientSettings.SharedSecret,
             controlEnabled: false);
 
-        if (tile is not null)
+        lock (_openRemoteVncViewersSync)
         {
-            viewer.Closed += async (_, _) =>
+            _openRemoteVncViewers[agent.AgentId] = viewer;
+        }
+
+        viewer.Closed += async (_, _) =>
+        {
+            lock (_openRemoteVncViewersSync)
+            {
+                if (_openRemoteVncViewers.TryGetValue(agent.AgentId, out var w) && ReferenceEquals(w, viewer))
+                {
+                    _openRemoteVncViewers.Remove(agent.AgentId);
+                }
+            }
+
+            if (tile is not null)
             {
                 tile.FullscreenViewerCount = Math.Max(0, tile.FullscreenViewerCount - 1);
-                if (_isClosing || !agent.VncRunning)
-                {
-                    return;
-                }
+            }
 
-                try
-                {
-                    await EnsureRemoteManagementPreviewAsync(tile);
-                }
-                catch
-                {
-                }
-            };
-        }
+            if (_isClosing || !agent.VncRunning || tile is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await EnsureRemoteManagementPreviewAsync(tile);
+            }
+            catch
+            {
+            }
+        };
 
         try
         {
@@ -419,6 +522,14 @@ public partial class MainWindow
         }
         catch
         {
+            lock (_openRemoteVncViewersSync)
+            {
+                if (_openRemoteVncViewers.TryGetValue(agent.AgentId, out var w) && ReferenceEquals(w, viewer))
+                {
+                    _openRemoteVncViewers.Remove(agent.AgentId);
+                }
+            }
+
             if (tile is not null)
             {
                 tile.FullscreenViewerCount = Math.Max(0, tile.FullscreenViewerCount - 1);
@@ -426,8 +537,6 @@ public partial class MainWindow
 
             throw;
         }
-
-        await Task.CompletedTask;
     }
 
     private DiscoveredAgentRow? GetSelectedRemoteManagementAgent()
@@ -477,5 +586,4 @@ public partial class MainWindow
         tile.Dispose();
         _remoteManagementTiles.Remove(tile);
     }
-
 }

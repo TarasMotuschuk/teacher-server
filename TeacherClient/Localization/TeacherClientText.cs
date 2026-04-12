@@ -141,6 +141,16 @@ internal static class TeacherClientText
 
     public static string InputLock => IsUk ? "Блок вводу" : "Input lock";
 
+    public static string GroupCommandSelectionColumn => IsUk ? "Вибір" : "Select";
+
+    public static string ChooseAgentsForGroupBlockingCommands => IsUk ? "Позначте потрібні учнівські ПК у колонці «Вибір»." : "Mark the student PCs to include using the Select column checkboxes.";
+
+    public static string LockInputOnMarkedStudents => IsUk ? "Заблокувати клавіатуру і мишу" : "Lock keyboard and mouse";
+
+    public static string LockInputDemoOnMarkedStudents => IsUk ? "Режим демонстрації (банер)" : "Demonstration (banner)";
+
+    public static string UnlockInputOnMarkedStudents => IsUk ? "Розблокувати клавіатуру і мишу" : "Unlock keyboard and mouse";
+
     public static string Status => IsUk ? "Статус" : "Status";
 
     public static string AutoReconnect => IsUk ? "Автоперепідключення" : "Auto-reconnect";
@@ -391,7 +401,6 @@ internal static class TeacherClientText
             WindowsRestrictionKind.ControlPanelAndSettings => IsUk ? "Панель керування і Параметри" : "Control Panel and Settings",
             WindowsRestrictionKind.LockWorkstation => IsUk ? "Блокування робочої станції" : "Lock workstation",
             WindowsRestrictionKind.ChangePassword => IsUk ? "Зміна пароля" : "Change password",
-            WindowsRestrictionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
             _ => restriction.ToString(),
         };
 

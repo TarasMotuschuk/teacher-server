@@ -33,12 +33,19 @@ public sealed class WindowsRestrictionsService
             machineKey.SetValue(definition.ValueName, 1, RegistryValueKind.DWord);
             if (restriction == WindowsRestrictionKind.TaskManager)
             {
-                CloseRunningTaskManagerWindows();
+                // Win10/11 Shell (incl. taskbar "Task Manager") often evaluates per-user policy (HKCU).
+                // HKLM alone is not always enough until logoff; mirror into loaded HKEY_USERS\<SID> hives.
+                ApplyDisableTaskMgrToLoadedUserHives(enabled: true);
+                CloseRunningTaskManager();
             }
         }
         else
         {
             machineKey.DeleteValue(definition.ValueName, throwOnMissingValue: false);
+            if (restriction == WindowsRestrictionKind.TaskManager)
+            {
+                ApplyDisableTaskMgrToLoadedUserHives(enabled: false);
+            }
         }
 
         BroadcastPolicyRefresh();
@@ -54,25 +61,29 @@ public sealed class WindowsRestrictionsService
             WindowsRestrictionKind.ControlPanelAndSettings => new(ExplorerPoliciesPath, "NoControlPanel"),
             WindowsRestrictionKind.LockWorkstation => new(SystemPoliciesPath, "DisableLockWorkstation"),
             WindowsRestrictionKind.ChangePassword => new(SystemPoliciesPath, "DisableChangePassword"),
-            WindowsRestrictionKind.LogOff => new(ExplorerPoliciesPath, "NoLogoff"),
             _ => throw new ArgumentOutOfRangeException(nameof(restriction), restriction, "Unsupported Windows restriction."),
         };
 
-    private static void CloseRunningTaskManagerWindows()
+    private static bool ShouldSkipUserHiveSid(string sid)
     {
-        foreach (var process in Process.GetProcessesByName("Taskmgr"))
+        if (string.IsNullOrEmpty(sid) || sid.StartsWith('.'))
         {
-            try
-            {
-                using (process)
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-            }
-            catch
-            {
-            }
+            return true;
         }
+
+        // Merged view / COM (not an interactive user profile hive).
+        if (sid.EndsWith("_Classes", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Service / system accounts (no Explorer taskbar).
+        if (sid is "S-1-5-18" or "S-1-5-19" or "S-1-5-20")
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static void BroadcastPolicyRefresh()
@@ -104,6 +115,109 @@ public sealed class WindowsRestrictionsService
         uint fuFlags,
         uint uTimeout,
         out IntPtr lpdwResult);
+
+    private void ApplyDisableTaskMgrToLoadedUserHives(bool enabled)
+    {
+        const string relativePoliciesPath = @"Software\Microsoft\Windows\CurrentVersion\Policies\System";
+
+        foreach (var sid in Registry.Users.GetSubKeyNames())
+        {
+            if (ShouldSkipUserHiveSid(sid))
+            {
+                continue;
+            }
+
+            try
+            {
+                using var userKey = Registry.Users.CreateSubKey($@"{sid}\{relativePoliciesPath}", writable: true);
+                if (userKey is null)
+                {
+                    continue;
+                }
+
+                if (enabled)
+                {
+                    userKey.SetValue("DisableTaskMgr", 1, RegistryValueKind.DWord);
+                }
+                else
+                {
+                    userKey.DeleteValue("DisableTaskMgr", throwOnMissingValue: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"DisableTaskMgr in HKU\\{sid}: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stops any running Task Manager so the new policy applies immediately.
+    /// Uses <c>taskkill.exe</c> after <see cref="System.Diagnostics.Process.Kill()"/> so termination works from Session 0
+    /// and is not missed due to WOW64 process-enumeration limits; failures are logged (previously swallowed).
+    /// </summary>
+    private void CloseRunningTaskManager()
+    {
+        foreach (var process in Process.GetProcessesByName("Taskmgr"))
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(milliseconds: 5000);
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"Process.Kill(Taskmgr PID {process.Id}) failed: {ex.Message}");
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        var taskkillPath = Path.Combine(Environment.SystemDirectory, "taskkill.exe");
+        if (!File.Exists(taskkillPath))
+        {
+            _agentLogService.LogWarning($"Cannot close Task Manager: '{taskkillPath}' was not found.");
+            return;
+        }
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = taskkillPath,
+                Arguments = "/F /IM Taskmgr.exe /T",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            });
+
+            if (process is null)
+            {
+                _agentLogService.LogWarning("Could not start taskkill.exe to close Task Manager.");
+                return;
+            }
+
+            using (process)
+            {
+                if (!process.WaitForExit(15000))
+                {
+                    _agentLogService.LogWarning("taskkill did not finish within 15s while closing Task Manager.");
+                    return;
+                }
+
+                // 0 = terminated; 128 = no matching process (nothing to do). Other codes are unexpected.
+                if (process.ExitCode is not (0 or 128))
+                {
+                    _agentLogService.LogWarning($"taskkill /IM Taskmgr.exe exited with code {process.ExitCode}.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _agentLogService.LogWarning($"taskkill failed while closing Task Manager: {ex.Message}");
+        }
+    }
 
     private sealed record RestrictionDefinition(string RegistryPath, string ValueName);
 }

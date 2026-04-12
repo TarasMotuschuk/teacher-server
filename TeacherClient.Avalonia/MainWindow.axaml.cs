@@ -48,6 +48,10 @@ public partial class MainWindow : Window, IDisposable
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
     private string? _remoteManagementSelectedAgentId;
+    private readonly Dictionary<string, RemoteVncViewerWindow> _openRemoteVncViewers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _openRemoteVncViewersSync = new();
+    private DateTime _remoteTileLastPrimaryUtc;
+    private string? _remoteTileLastPrimaryAgentId;
     private bool _disposed;
 
     public MainWindow()
@@ -97,6 +101,7 @@ public partial class MainWindow : Window, IDisposable
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+            CloseAllRemoteVncViewerWindows();
             DisposeRemoteManagementTiles();
             Dispose();
         };
@@ -155,6 +160,17 @@ public partial class MainWindow : Window, IDisposable
         }
 
         await ToggleInputLockAsync(agent, checkBox.IsChecked == true);
+    }
+
+    private void GroupCommandCheckBox_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox || checkBox.Tag is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        agent.GroupCommandSelected = checkBox.IsChecked == true;
+        e.Handled = true;
     }
 
     private async void SettingsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -330,11 +346,19 @@ public partial class MainWindow : Window, IDisposable
         await RunBusyAsync(
             async () =>
         {
+            var prevGroupSelection = _allAgents.ToDictionary(x => x.AgentId, x => x.GroupCommandSelected, StringComparer.OrdinalIgnoreCase);
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
+            foreach (var row in _allAgents)
+            {
+                if (prevGroupSelection.TryGetValue(row.AgentId, out var sel))
+                {
+                    row.GroupCommandSelected = sel;
+                }
+            }
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
             await RefreshRemoteManagementTilesAsync();
@@ -1642,6 +1666,54 @@ public partial class MainWindow : Window, IDisposable
         await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
     }
 
+    private async void LockInputSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void LockInputDemoSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
+    }
+
+    private async void UnlockInputSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
+    }
+
     private async void UnlockInputAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = _allAgents
@@ -1691,10 +1763,6 @@ public partial class MainWindow : Window, IDisposable
     private async void EnableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
 
     private async void DisableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
-
-    private async void EnableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
-
-    private async void DisableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
 
     private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -3188,9 +3256,6 @@ public partial class MainWindow : Window, IDisposable
         ChangePasswordRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword);
         EnableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
         DisableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
-        LogOffRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.LogOff);
-        EnableLogOffRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
-        DisableLogOffRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
@@ -3198,6 +3263,11 @@ public partial class MainWindow : Window, IDisposable
         ApplyCurrentDesktopIconsSelectedMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToSelectedStudents;
         ApplyCurrentDesktopIconsAllMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
+        BlockingSelectedMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
+        BlockingAllOnlineMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
+        LockInputSelectedMenuItem.Header = CrossPlatformText.LockInputOnMarkedStudents;
+        LockInputDemoSelectedMenuItem.Header = CrossPlatformText.LockInputDemoOnMarkedStudents;
+        UnlockInputSelectedMenuItem.Header = CrossPlatformText.UnlockInputOnMarkedStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
         LockInputDemoAllMenuItem.Header = CrossPlatformText.LockInputForDemonstrationOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
@@ -3298,23 +3368,24 @@ public partial class MainWindow : Window, IDisposable
         ApplyTabButtonContent(ExportRegistryButton, CrossPlatformText.ExportRegFile, "Toolbar/registry/export-reg.png", ToolbarGlyphKind.Download);
         ApplyTabButtonContent(ImportRegistryButton, CrossPlatformText.ImportRegFile, "Toolbar/registry/import-reg.png", ToolbarGlyphKind.Upload);
         FooterTextBlock.Text = CrossPlatformText.FooterDescription;
-        if (AgentsGrid.Columns.Count >= 15)
+        if (AgentsGrid.Columns.Count >= 16)
         {
-            AgentsGrid.Columns[0].Header = CrossPlatformText.BrowserLock;
-            AgentsGrid.Columns[1].Header = CrossPlatformText.InputLock;
-            AgentsGrid.Columns[2].Header = CrossPlatformText.Source;
-            AgentsGrid.Columns[3].Header = CrossPlatformText.Status;
-            AgentsGrid.Columns[4].Header = CrossPlatformText.Group;
-            AgentsGrid.Columns[5].Header = CrossPlatformText.Machine;
-            AgentsGrid.Columns[6].Header = CrossPlatformText.User;
-            AgentsGrid.Columns[7].Header = "IP";
-            AgentsGrid.Columns[8].Header = CrossPlatformText.Port;
-            AgentsGrid.Columns[9].Header = "MAC";
-            AgentsGrid.Columns[10].Header = CrossPlatformText.Notes;
-            AgentsGrid.Columns[11].Header = CrossPlatformText.UpdateStatus;
-            AgentsGrid.Columns[12].Header = CrossPlatformText.UpdateStatusDetailColumn;
-            AgentsGrid.Columns[13].Header = CrossPlatformText.Version;
-            AgentsGrid.Columns[14].Header = CrossPlatformText.LastSeenUtc;
+            AgentsGrid.Columns[0].Header = CrossPlatformText.GroupCommandSelectionColumn;
+            AgentsGrid.Columns[1].Header = CrossPlatformText.BrowserLock;
+            AgentsGrid.Columns[2].Header = CrossPlatformText.InputLock;
+            AgentsGrid.Columns[3].Header = CrossPlatformText.Source;
+            AgentsGrid.Columns[4].Header = CrossPlatformText.Status;
+            AgentsGrid.Columns[5].Header = CrossPlatformText.Group;
+            AgentsGrid.Columns[6].Header = CrossPlatformText.Machine;
+            AgentsGrid.Columns[7].Header = CrossPlatformText.User;
+            AgentsGrid.Columns[8].Header = "IP";
+            AgentsGrid.Columns[9].Header = CrossPlatformText.Port;
+            AgentsGrid.Columns[10].Header = "MAC";
+            AgentsGrid.Columns[11].Header = CrossPlatformText.Notes;
+            AgentsGrid.Columns[12].Header = CrossPlatformText.UpdateStatus;
+            AgentsGrid.Columns[13].Header = CrossPlatformText.UpdateStatusDetailColumn;
+            AgentsGrid.Columns[14].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[15].Header = CrossPlatformText.LastSeenUtc;
         }
 
         if (ProcessesGrid.Columns.Count >= 6)

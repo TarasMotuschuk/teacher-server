@@ -36,7 +36,9 @@ internal static partial class CrossPlatformText
 
     public static string RemoteManagementTitle => IsUk ? "Віддалене керування" : "Remote management";
 
-    public static string RemoteManagementHint => IsUk ? "Подвійний клік на плитці відкриває повноекранний перегляд. Кнопки нижче запускають або зупиняють VNC, а керування вмикається вже у вікні перегляду." : "Double-click a tile to open the fullscreen viewer. The buttons below start or stop VNC, and control is enabled inside the viewer window.";
+    public static string RemoteManagementHint => IsUk
+        ? "Подвійний клік по плитці робить те саме, що «Відкрити на весь екран»: перегляд без керування, доки у вікні не натиснути «Увімкнути керування». Кнопки панелі запускають або зупиняють VNC для вибраного ПК."
+        : "Double-click a tile for the same fullscreen view as “Open fullscreen viewer” (view-only until you choose “Enable control” in that window). Toolbar buttons start or stop VNC for the selected PC.";
 
     public static string RefreshRemoteManagement => IsUk ? "Оновити екрани" : "Refresh screens";
 
@@ -117,6 +119,16 @@ internal static partial class CrossPlatformText
     public static string BrowserLock => IsUk ? "Блок браузера" : "Browser lock";
 
     public static string InputLock => IsUk ? "Блок вводу" : "Input lock";
+
+    public static string GroupCommandSelectionColumn => IsUk ? "Вибір" : "Select";
+
+    public static string ChooseAgentsForGroupBlockingCommands => IsUk ? "Позначте потрібні учнівські ПК у колонці «Вибір»." : "Mark the student PCs to include using the Select column checkboxes.";
+
+    public static string LockInputOnMarkedStudents => IsUk ? "Заблокувати клавіатуру і мишу" : "Lock keyboard and mouse";
+
+    public static string LockInputDemoOnMarkedStudents => IsUk ? "Режим демонстрації (банер)" : "Demonstration (banner)";
+
+    public static string UnlockInputOnMarkedStudents => IsUk ? "Розблокувати клавіатуру і мишу" : "Unlock keyboard and mouse";
 
     public static string Group => IsUk ? "Група" : "Group";
 

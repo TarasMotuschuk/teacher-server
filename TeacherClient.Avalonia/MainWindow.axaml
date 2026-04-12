@@ -124,9 +124,16 @@
         </MenuItem>
         <MenuItem x:Name="BlockingCommandsMenuItem" Header="_Blocking">
           <MenuItem x:Name="LockBrowsersAllMenuItem" Header="Lock browser on all online student PCs" Click="LockBrowsersAllMenuItem_OnClick" />
-          <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
-          <MenuItem x:Name="LockInputDemoAllMenuItem" Header="Enable keyboard and mouse lock (demonstration) on all online student PCs" Click="LockInputDemoAllMenuItem_OnClick" />
-          <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
+          <MenuItem x:Name="BlockingSelectedMenuItem" Header="Selected PCs">
+            <MenuItem x:Name="LockInputSelectedMenuItem" Header="Lock keyboard and mouse" Click="LockInputSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="LockInputDemoSelectedMenuItem" Header="Demonstration (banner)" Click="LockInputDemoSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="UnlockInputSelectedMenuItem" Header="Unlock keyboard and mouse" Click="UnlockInputSelectedMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="BlockingAllOnlineMenuItem" Header="All Online PCs">
+            <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
+            <MenuItem x:Name="LockInputDemoAllMenuItem" Header="Enable keyboard and mouse lock (demonstration) on all online student PCs" Click="LockInputDemoAllMenuItem_OnClick" />
+            <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
+          </MenuItem>
         </MenuItem>
         <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Windows Restrictions">
           <MenuItem x:Name="TaskManagerRestrictionsMenuItem" Header="Task Manager">
@@ -148,10 +155,6 @@
           <MenuItem x:Name="ChangePasswordRestrictionsMenuItem" Header="Change password">
             <MenuItem x:Name="EnableChangePasswordRestrictionMenuItem" Header="Enable" Click="EnableChangePasswordRestrictionMenuItem_OnClick" />
             <MenuItem x:Name="DisableChangePasswordRestrictionMenuItem" Header="Disable" Click="DisableChangePasswordRestrictionMenuItem_OnClick" />
-          </MenuItem>
-          <MenuItem x:Name="LogOffRestrictionsMenuItem" Header="Log off">
-            <MenuItem x:Name="EnableLogOffRestrictionMenuItem" Header="Enable" Click="EnableLogOffRestrictionMenuItem_OnClick" />
-            <MenuItem x:Name="DisableLogOffRestrictionMenuItem" Header="Disable" Click="DisableLogOffRestrictionMenuItem_OnClick" />
           </MenuItem>
         </MenuItem>
         <MenuItem x:Name="CommandsMenuItem" Header="_Commands">
@@ -261,6 +264,17 @@
                     SelectionMode="Extended"
                     DoubleTapped="AgentsGrid_OnDoubleTapped">
             <DataGrid.Columns>
+              <DataGridTemplateColumn Header="Select" Width="72">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding GroupCommandSelected}"
+                              Tag="{Binding}"
+                              Click="GroupCommandCheckBox_OnClick" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
               <DataGridTemplateColumn Header="Browser lock" Width="95">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
@@ -458,13 +472,12 @@
                      Margin="0,0,0,12"
                      Foreground="#94A3B8"
                      TextWrapping="Wrap"
-                     Text="Double-click a tile to open the fullscreen viewer. The buttons above start or stop VNC for the selected PC." />
+                     Text="" />
 
           <ListBox x:Name="RemoteManagementListBox"
                    Classes="remoteManagementList"
                    Grid.Row="2"
-                   SelectionMode="Single"
-                   DoubleTapped="RemoteManagementListBox_OnDoubleTapped">
+                   SelectionMode="Single">
             <ListBox.ItemsPanel>
               <ItemsPanelTemplate>
                 <WrapPanel Orientation="Horizontal" />
@@ -477,7 +490,8 @@
                         Height="200"
                         Padding="2"
                         Background="#BFC7D0"
-                        CornerRadius="8">
+                        CornerRadius="8"
+                        PointerPressed="RemoteManagementTileRoot_OnPointerPressed">
                   <Border Background="#171D24" CornerRadius="6" Padding="10">
                     <Grid RowDefinitions="120,28,*">
                       <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">

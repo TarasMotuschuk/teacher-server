@@ -10,8 +10,9 @@ namespace TeacherClient;
 
 public partial class MainForm : Form
 {
-    private const int BrowserLockColumnIndex = 0;
-    private const int InputLockColumnIndex = 1;
+    private const int GroupCommandColumnIndex = 0;
+    private const int BrowserLockColumnIndex = 1;
+    private const int InputLockColumnIndex = 2;
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
@@ -181,6 +182,11 @@ public partial class MainForm : Form
         }
 
         if (agentsGrid.Rows[e.RowIndex].DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        if (e.ColumnIndex == GroupCommandColumnIndex)
         {
             return;
         }
@@ -742,11 +748,19 @@ public partial class MainForm : Form
         try
         {
             using CursorScope? cursorScope = showBusyCursor ? new CursorScope(this) : null;
+            var prevGroupSelection = _allAgents.ToDictionary(x => x.AgentId, x => x.GroupCommandSelected, StringComparer.OrdinalIgnoreCase);
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
+            foreach (var row in _allAgents)
+            {
+                if (prevGroupSelection.TryGetValue(row.AgentId, out var sel))
+                {
+                    row.GroupCommandSelected = sel;
+                }
+            }
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
             await RefreshRemoteManagementCardsAsync();
@@ -925,6 +939,54 @@ public partial class MainForm : Form
         await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
     }
 
+    private async void LockInputOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void LockInputDemoOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
+    }
+
+    private async void UnlockInputOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
+    }
+
     private Task ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind restriction, bool enabled)
     {
         var targetAgents = _allAgents
@@ -959,10 +1021,6 @@ public partial class MainForm : Form
     private async void EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
 
     private async void DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
-
-    private async void EnableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
-
-    private async void DisableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
 
     private async void RunCommandOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
@@ -3154,6 +3212,8 @@ public partial class MainForm : Form
         public bool BrowserLockEnabled { get; set; }
 
         public bool InputLockEnabled { get; set; }
+
+        public bool GroupCommandSelected { get; set; }
 
         public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
