@@ -76,6 +76,15 @@ public sealed class TeacherApiClient : IDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ApplyDesktopWallpaperPolicyAsync(string wallpaperPathOnStudent, int wallpaperStyle, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/windows-restrictions/desktop-wallpaper",
+            new DesktopWallpaperPolicyRequest(wallpaperPathOnStudent, wallpaperStyle),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task ApplyStudentPolicySettingsAsync(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync(

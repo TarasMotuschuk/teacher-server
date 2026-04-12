@@ -162,6 +162,18 @@ try
             return Results.BadRequest(new { error = ex.Message });
         }
     });
+    app.MapPost("/api/windows-restrictions/desktop-wallpaper", ([FromBody] DesktopWallpaperPolicyRequest request, [FromServices] WindowsRestrictionsService service) =>
+    {
+        try
+        {
+            service.ApplyDesktopWallpaperPolicy(request.WallpaperPath, request.WallpaperStyle);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
     app.Lifetime.ApplicationStarted.Register(() =>
     {
         logService.LogInfo($"StudentAgent.Service started on port {settingsStore.Current.Port}.");

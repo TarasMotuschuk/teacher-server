@@ -3,7 +3,7 @@ using Teacher.Common.Localization;
 
 namespace TeacherClient.Localization;
 
-internal static class TeacherClientText
+internal static partial class TeacherClientText
 {
     public static UiLanguage CurrentLanguage { get; private set; } = UiLanguageExtensions.GetDefault();
 
@@ -45,7 +45,7 @@ internal static class TeacherClientText
 
     public static string LockInputForDemonstrationOnAllOnlineStudents => IsUk ? "Увімкнути блокування клавіатури і миші (демонстрація) на всіх онлайн учнівських ПК" : "Enable keyboard and mouse lock (demonstration) on all online student PCs";
 
-    public static string WindowsRestrictionsMenu => IsUk ? "Обмеження Windows" : "Windows Restrictions";
+    public static string WindowsRestrictionsMenu => IsUk ? "Групові політики" : "Group Policies";
 
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
 
@@ -146,6 +146,12 @@ internal static class TeacherClientText
     public static string InputLock => IsUk ? "Блок вводу" : "Input lock";
 
     public static string GroupCommandSelectionColumn => IsUk ? "Вибір" : "Select";
+
+    public static string AgentsGridSelectColumnTooltip => IsUk ? "Позначка ПК для групових команд" : "Mark PCs for group commands";
+
+    public static string AgentsGridBrowserLockColumnTooltip => IsUk ? "Блокування браузера на учнівському ПК" : "Browser lock on the student PC";
+
+    public static string AgentsGridInputLockColumnTooltip => IsUk ? "Блокування клавіатури та миші на учнівському ПК" : "Keyboard and mouse lock on the student PC";
 
     public static string ChooseAgentsForGroupBlockingCommands => IsUk ? "Позначте потрібні учнівські ПК у колонці «Вибір»." : "Mark the student PCs to include using the Select column checkboxes.";
 
@@ -405,6 +411,7 @@ internal static class TeacherClientText
             WindowsRestrictionKind.ControlPanelAndSettings => IsUk ? "Панель керування і Параметри" : "Control Panel and Settings",
             WindowsRestrictionKind.LockWorkstation => IsUk ? "Блокування робочої станції" : "Lock workstation",
             WindowsRestrictionKind.ChangePassword => IsUk ? "Зміна пароля" : "Change password",
+            WindowsRestrictionKind.BlockInterfaceChanges => IsUk ? "Блокування змін інтерфейсу" : "Block interface changes",
             _ => restriction.ToString(),
         };
 
@@ -427,6 +434,47 @@ internal static class TeacherClientText
         => IsUk
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} \"{WindowsRestrictionName(restriction)}\": успішно {succeeded}, з помилками {failures}"
             : $"{(enabled ? "Enabled" : "Disabled")} \"{WindowsRestrictionName(restriction)}\": {succeeded} succeeded, {failures} failed";
+
+    public static string DesktopWallpaperMenu => IsUk ? "Зображення робочого столу" : "Desktop wallpaper";
+
+    public static string WallpaperPickImageTitle => IsUk ? "Виберіть зображення для тла робочого столу" : "Choose desktop background image";
+
+    public static string WallpaperStyleDialogTitle => IsUk ? "Стиль зображення робочого столу" : "Desktop wallpaper style";
+
+    public static string WallpaperStyleName(int style) => style switch
+    {
+        0 => IsUk ? "По центру" : "Centered",
+        1 => IsUk ? "Плитка" : "Tiled",
+        2 => IsUk ? "Розтягнути" : "Stretched",
+        3 => IsUk ? "По розміру" : "Fit",
+        4 => IsUk ? "Заповнити" : "Fill",
+        5 => IsUk ? "На кілька моніторів" : "Span",
+        _ => style.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    public static string DesktopWallpaperPrompt(int count, string fileName)
+        => IsUk
+            ? $"Встановити зображення «{fileName}» як тло робочого столу на {count} учнівських ПК? Файл буде скопійовано в C:\\Windows\\Web\\Wallpaper і застосовано через групові політики (Desktop Wallpaper + заборона зміни тла)."
+            : $"Set «{fileName}» as the desktop background on {count} student PCs? The file will be copied to C:\\Windows\\Web\\Wallpaper and applied via Group Policy (Desktop Wallpaper + prevent changing background).";
+
+    public static string DesktopWallpaperProgress(string machine, int index, int total)
+        => IsUk
+            ? $"Зображення робочого столу: {machine} ({index}/{total})"
+            : $"Desktop wallpaper: {machine} ({index}/{total})";
+
+    public static string DesktopWallpaperCompleted(int succeeded)
+        => IsUk
+            ? $"Зображення робочого столу застосовано на {succeeded} ПК"
+            : $"Desktop wallpaper applied on {succeeded} PCs";
+
+    public static string DesktopWallpaperCompletedWithFailures(int succeeded, int failures)
+        => IsUk
+            ? $"Зображення робочого столу: успішно {succeeded}, з помилками {failures}"
+            : $"Desktop wallpaper: {succeeded} succeeded, {failures} failed";
+
+    public static string BulkDesktopWallpaperError => IsUk ? "Помилка встановлення зображення робочого столу" : "Desktop wallpaper error";
+
+    public static string DesktopWallpaperInvalidImage => IsUk ? "Оберіть файл зображення (.jpg, .jpeg, .bmp, .png)." : "Choose an image file (.jpg, .jpeg, .bmp, .png).";
 
     public static string BrowserLockEnabledFor(string machine) => IsUk ? $"Блокування браузера увімкнено на {machine}" : $"Browser lock enabled on {machine}";
 

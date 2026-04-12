@@ -10,6 +10,21 @@ public sealed class WindowsRestrictionsService
 {
     private const string ExplorerPoliciesPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer";
     private const string SystemPoliciesPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+
+    // User Configuration > Control Panel > Personalization (Administrative Templates), applied machine-wide (HKLM) and mirrored to loaded user hives.
+    private static readonly string[] BlockInterfaceSystemDwordValues =
+    [
+        "NoDispAppearancePage",
+        "NoDispThemes",
+        "NoVisualStyleChoice",
+        "NoFontSizeChoice",
+        "NoDispSettingsPage",
+        "NoDispScrSavPage",
+        "NoDispMousePointers",
+    ];
+
+    private const string BlockInterfaceDesktopIconsValue = "NoDesktopIconsUI";
+
     private readonly AgentLogService _agentLogService;
 
     public WindowsRestrictionsService(AgentLogService agentLogService)
@@ -22,6 +37,15 @@ public sealed class WindowsRestrictionsService
         if (!OperatingSystem.IsWindows())
         {
             throw new PlatformNotSupportedException("Windows restrictions are only supported on Windows student agents.");
+        }
+
+        if (restriction == WindowsRestrictionKind.BlockInterfaceChanges)
+        {
+            ApplyBlockInterfaceChanges(enabled);
+            BroadcastPolicyRefresh();
+            _agentLogService.LogInfo(
+                $"Windows restriction '{restriction}' {(enabled ? "enabled" : "disabled")} via teacher command.");
+            return;
         }
 
         var definition = GetDefinition(restriction);
@@ -51,6 +75,169 @@ public sealed class WindowsRestrictionsService
         BroadcastPolicyRefresh();
         _agentLogService.LogInfo(
             $"Windows restriction '{restriction}' {(enabled ? "enabled" : "disabled")} via teacher command.");
+    }
+
+    /// <summary>
+    /// Applies the Desktop Wallpaper policy (user GPO equivalent) and locks the background via
+    /// <c>Prevent changing desktop background</c> (<c>NoDispBackgroundPage</c>).
+    /// </summary>
+    public void ApplyDesktopWallpaperPolicy(string wallpaperFullPath, int wallpaperStyle)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("Desktop wallpaper policy is only supported on Windows student agents.");
+        }
+
+        if (string.IsNullOrWhiteSpace(wallpaperFullPath))
+        {
+            throw new ArgumentException("Wallpaper path is required.", nameof(wallpaperFullPath));
+        }
+
+        var normalizedPath = Path.GetFullPath(wallpaperFullPath.Trim());
+        if (!File.Exists(normalizedPath))
+        {
+            throw new FileNotFoundException($"Wallpaper file was not found: {normalizedPath}", normalizedPath);
+        }
+
+        if (wallpaperStyle is < 0 or > 5)
+        {
+            throw new ArgumentOutOfRangeException(nameof(wallpaperStyle), wallpaperStyle, "Wallpaper style must be between 0 and 5.");
+        }
+
+        var styleString = wallpaperStyle.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        ApplyDesktopWallpaperToKey(Registry.LocalMachine, SystemPoliciesPath, normalizedPath, styleString, lockBackground: true);
+        ApplyDesktopWallpaperToLoadedUserHives(normalizedPath, styleString, lockBackground: true);
+
+        BroadcastPolicyRefresh();
+        _agentLogService.LogInfo($"Desktop wallpaper policy applied: '{normalizedPath}', style {wallpaperStyle}.");
+    }
+
+    private void ApplyBlockInterfaceChanges(bool enabled)
+    {
+        ApplyBlockInterfaceMachine(enabled);
+        ApplyBlockInterfaceToLoadedUserHives(enabled);
+    }
+
+    private static void ApplyBlockInterfaceMachine(bool enabled)
+    {
+        using var systemKey = Registry.LocalMachine.CreateSubKey(SystemPoliciesPath, writable: true)
+            ?? throw new InvalidOperationException($"Cannot open or create registry path '{SystemPoliciesPath}'.");
+
+        using var explorerKey = Registry.LocalMachine.CreateSubKey(ExplorerPoliciesPath, writable: true)
+            ?? throw new InvalidOperationException($"Cannot open or create registry path '{ExplorerPoliciesPath}'.");
+
+        if (enabled)
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.SetValue(name, 1, RegistryValueKind.DWord);
+            }
+
+            explorerKey.SetValue(BlockInterfaceDesktopIconsValue, 1, RegistryValueKind.DWord);
+        }
+        else
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.DeleteValue(name, throwOnMissingValue: false);
+            }
+
+            explorerKey.DeleteValue(BlockInterfaceDesktopIconsValue, throwOnMissingValue: false);
+        }
+    }
+
+    private void ApplyBlockInterfaceToLoadedUserHives(bool enabled)
+    {
+        foreach (var sid in Registry.Users.GetSubKeyNames())
+        {
+            if (ShouldSkipUserHiveSid(sid))
+            {
+                continue;
+            }
+
+            try
+            {
+                ApplyBlockInterfaceToUserHive(sid, enabled);
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"Block interface policy in HKU\\{sid}: {ex.Message}");
+            }
+        }
+    }
+
+    private static void ApplyBlockInterfaceToUserHive(string sid, bool enabled)
+    {
+        using var systemKey = Registry.Users.CreateSubKey($@"{sid}\{SystemPoliciesPath}", writable: true);
+        using var explorerKey = Registry.Users.CreateSubKey($@"{sid}\{ExplorerPoliciesPath}", writable: true);
+        if (systemKey is null || explorerKey is null)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.SetValue(name, 1, RegistryValueKind.DWord);
+            }
+
+            explorerKey.SetValue(BlockInterfaceDesktopIconsValue, 1, RegistryValueKind.DWord);
+        }
+        else
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.DeleteValue(name, throwOnMissingValue: false);
+            }
+
+            explorerKey.DeleteValue(BlockInterfaceDesktopIconsValue, throwOnMissingValue: false);
+        }
+    }
+
+    private static void ApplyDesktopWallpaperToKey(
+        RegistryKey root,
+        string systemPoliciesRelativePath,
+        string wallpaperPath,
+        string wallpaperStyle,
+        bool lockBackground)
+    {
+        using var systemKey = root.CreateSubKey(systemPoliciesRelativePath, writable: true)
+            ?? throw new InvalidOperationException($"Cannot open or create registry path '{systemPoliciesRelativePath}'.");
+
+        systemKey.SetValue("Wallpaper", wallpaperPath, RegistryValueKind.String);
+        systemKey.SetValue("WallpaperStyle", wallpaperStyle, RegistryValueKind.String);
+
+        if (lockBackground)
+        {
+            systemKey.SetValue("NoDispBackgroundPage", 1, RegistryValueKind.DWord);
+        }
+    }
+
+    private void ApplyDesktopWallpaperToLoadedUserHives(string wallpaperPath, string wallpaperStyle, bool lockBackground)
+    {
+        foreach (var sid in Registry.Users.GetSubKeyNames())
+        {
+            if (ShouldSkipUserHiveSid(sid))
+            {
+                continue;
+            }
+
+            try
+            {
+                ApplyDesktopWallpaperToKey(
+                    Registry.Users,
+                    $@"{sid}\{SystemPoliciesPath}",
+                    wallpaperPath,
+                    wallpaperStyle,
+                    lockBackground);
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"Desktop wallpaper policy in HKU\\{sid}: {ex.Message}");
+            }
+        }
     }
 
     private static RestrictionDefinition GetDefinition(WindowsRestrictionKind restriction)

@@ -18,8 +18,8 @@ public partial class MainForm : Form
     }
 
     private const int GroupCommandColumnIndex = 0;
-    private const int BrowserLockColumnIndex = 1;
-    private const int InputLockColumnIndex = 2;
+    private const int BrowserLockColumnIndex = 4;
+    private const int InputLockColumnIndex = 5;
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
@@ -1034,6 +1034,162 @@ public partial class MainForm : Form
     private async void EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: true);
 
     private async void DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
+
+    private async void EnableBlockInterfaceRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.BlockInterfaceChanges, enabled: true);
+
+    private async void DisableBlockInterfaceRestrictionOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.BlockInterfaceChanges, enabled: false);
+
+    private async void SetDesktopWallpaperOnAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ApplyDesktopWallpaperToAgentsAsync(targetAgents);
+    }
+
+    private async void SetDesktopWallpaperOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await ApplyDesktopWallpaperToAgentsAsync(targetAgents);
+    }
+
+    private async Task ApplyDesktopWallpaperToAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        using var pickDialog = new OpenFileDialog
+        {
+            Title = TeacherClientText.WallpaperPickImageTitle,
+            Filter = TeacherClientText.IsUk
+                ? "Зображення|*.jpg;*.jpeg;*.bmp;*.png|Усі файли|*.*"
+                : "Images|*.jpg;*.jpeg;*.bmp;*.png|All files|*.*",
+            CheckFileExists = true,
+        };
+
+        if (pickDialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var localPath = pickDialog.FileName;
+        var ext = Path.GetExtension(localPath);
+        if (!IsAllowedWallpaperExtension(ext))
+        {
+            MessageBox.Show(
+                TeacherClientText.DesktopWallpaperInvalidImage,
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        int style;
+        using (var styleDialog = new DesktopWallpaperStyleForm())
+        {
+            if (styleDialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            style = styleDialog.SelectedStyle;
+        }
+
+        if (MessageBox.Show(
+                TeacherClientText.DesktopWallpaperPrompt(targetAgents.Count, Path.GetFileName(localPath)),
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            return;
+        }
+
+        const string remoteDir = @"C:\Windows\Web\Wallpaper";
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        using var cursorScope = new CursorScope(this);
+        for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+        {
+            var agent = targetAgents[agentIndex];
+            var uniqueName = $"ClassCommander_wall_{Guid.NewGuid():N}{ext}";
+            var tempPath = Path.Combine(Path.GetTempPath(), uniqueName);
+            try
+            {
+                SetStatus(TeacherClientText.DesktopWallpaperProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                File.Copy(localPath, tempPath, overwrite: true);
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                await client.EnsureRemoteDirectoryPathAsync(remoteDir);
+                await client.UploadFileAsync(tempPath, remoteDir);
+                var remoteFullPath = RemoteWindowsPath.Combine(remoteDir, uniqueName);
+                await client.ApplyDesktopWallpaperPolicyAsync(remoteFullPath, style);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+            finally
+            {
+                TryDeleteFile(tempPath);
+            }
+        }
+
+        SetStatus(failures.Count == 0
+            ? TeacherClientText.DesktopWallpaperCompleted(succeeded)
+            : TeacherClientText.DesktopWallpaperCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                string.Join(Environment.NewLine, failures),
+                TeacherClientText.BulkDesktopWallpaperError,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private static bool IsAllowedWallpaperExtension(string? ext)
+    {
+        if (string.IsNullOrEmpty(ext))
+        {
+            return false;
+        }
+
+        return ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".png", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup of temp upload source.
+        }
+    }
 
     private async void RunCommandOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {

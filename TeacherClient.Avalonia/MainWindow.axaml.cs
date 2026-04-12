@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -1995,6 +1997,219 @@ public partial class MainWindow : Window, IDisposable
 
     private async void DisableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
 
+    private async void EnableBlockInterfaceRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.BlockInterfaceChanges, enabled: true);
+
+    private async void DisableBlockInterfaceRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.BlockInterfaceChanges, enabled: false);
+
+    private async void DesktopWallpaperAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ApplyDesktopWallpaperToAgentsAsync(targetAgents);
+    }
+
+    private async void DesktopWallpaperSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await ApplyDesktopWallpaperToAgentsAsync(targetAgents);
+    }
+
+    private async Task ApplyDesktopWallpaperToAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        if (StorageProvider is null)
+        {
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = CrossPlatformText.WallpaperPickImageTitle,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Images")
+                {
+                    Patterns = ["*.jpg", "*.jpeg", "*.bmp", "*.png"],
+                },
+            ],
+        });
+
+        var file = files.FirstOrDefault();
+        if (file is null)
+        {
+            return;
+        }
+
+        var localPath = file.TryGetLocalPath();
+        if (string.IsNullOrWhiteSpace(localPath))
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.GroupCommandsTitle, CrossPlatformText.DesktopWallpaperInvalidImage);
+            return;
+        }
+
+        var ext = Path.GetExtension(localPath);
+        if (!IsAllowedWallpaperExtension(ext))
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.GroupCommandsTitle, CrossPlatformText.DesktopWallpaperInvalidImage);
+            return;
+        }
+
+        var style = await PickWallpaperStyleAsync();
+        if (!style.HasValue)
+        {
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.DesktopWallpaperPrompt(targetAgents.Count, Path.GetFileName(localPath))))
+        {
+            return;
+        }
+
+        const string remoteDir = @"C:\Windows\Web\Wallpaper";
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                var uniqueName = $"ClassCommander_wall_{Guid.NewGuid():N}{ext}";
+                var tempPath = Path.Combine(Path.GetTempPath(), uniqueName);
+                try
+                {
+                    SetStatus(CrossPlatformText.DesktopWallpaperProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                    File.Copy(localPath, tempPath, overwrite: true);
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.EnsureRemoteDirectoryPathAsync(remoteDir);
+                    await client.UploadFileAsync(tempPath, remoteDir);
+                    var remoteFullPath = RemoteWindowsPath.Combine(remoteDir, uniqueName);
+                    await client.ApplyDesktopWallpaperPolicyAsync(remoteFullPath, style.Value);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+                finally
+                {
+                    TryDeleteFile(tempPath);
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.DesktopWallpaperCompleted(succeeded)
+                : CrossPlatformText.DesktopWallpaperCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkDesktopWallpaperError,
+                    string.Join(Environment.NewLine, failures));
+            }
+        });
+    }
+
+    private async Task<int?> PickWallpaperStyleAsync()
+    {
+        var dialog = new Window
+        {
+            Title = CrossPlatformText.WallpaperStyleDialogTitle,
+            Width = 420,
+            Height = 170,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+        };
+
+        var combo = new ComboBox();
+        for (var i = 0; i <= 5; i++)
+        {
+            combo.Items.Add(CrossPlatformText.WallpaperStyleName(i));
+        }
+
+        combo.SelectedIndex = 4;
+
+        int? result = null;
+
+        var ok = new Button { Content = CrossPlatformText.Ok, MinWidth = 80 };
+        var cancel = new Button { Content = CrossPlatformText.Cancel, MinWidth = 80 };
+        ok.Click += (_, _) =>
+        {
+            result = combo.SelectedIndex >= 0 ? combo.SelectedIndex : 4;
+            dialog.Close();
+        };
+
+        cancel.Click += (_, _) => dialog.Close();
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8,
+            Margin = new Thickness(0, 8, 0, 0),
+        };
+        buttons.Children.Add(ok);
+        buttons.Children.Add(cancel);
+
+        var panel = new StackPanel { Margin = new Thickness(16) };
+        panel.Children.Add(combo);
+        panel.Children.Add(buttons);
+
+        dialog.Content = panel;
+
+        await dialog.ShowDialog(this);
+        return result;
+    }
+
+    private static bool IsAllowedWallpaperExtension(string? ext)
+    {
+        if (string.IsNullOrEmpty(ext))
+        {
+            return false;
+        }
+
+        return ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".png", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+        }
+    }
+
     private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = GetSelectedAgents();
@@ -3539,6 +3754,103 @@ public partial class MainWindow : Window, IDisposable
             : trimmed;
     }
 
+    private static Control CreateAgentsGridColumnHeader(string headerText, string toolTipText)
+    {
+        var text = new TextBlock
+        {
+            Text = headerText,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        ToolTip.SetTip(text, toolTipText);
+        return text;
+    }
+
+    private static void SetGroupMenuTip(MenuItem? item, string? tip)
+    {
+        if (item is null || string.IsNullOrEmpty(tip))
+        {
+            return;
+        }
+
+        ToolTip.SetTip(item, tip);
+    }
+
+    private void ApplyGroupCommandMenuTooltips()
+    {
+        SetGroupMenuTip(GroupFileWorkMenuItem, CrossPlatformText.MenuTip_GroupFileWork);
+        SetGroupMenuTip(DestinationFolderMenuItem, CrossPlatformText.MenuTip_DestinationFolder);
+        SetGroupMenuTip(ClearSelectedFolderSelectedMenuItem, CrossPlatformText.MenuTip_ClearDestinationSelected);
+        SetGroupMenuTip(ClearSelectedFolderAllMenuItem, CrossPlatformText.MenuTip_ClearDestinationAll);
+        SetGroupMenuTip(SendSubmenuMenuItem, CrossPlatformText.MenuTip_SendSubmenu);
+        SetGroupMenuTip(SendFileSubmenuMenuItem, CrossPlatformText.MenuTip_SendFile);
+        SetGroupMenuTip(SendFileAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendFileSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(SendFolderSubmenuMenuItem, CrossPlatformText.MenuTip_SendFolder);
+        SetGroupMenuTip(SendFolderAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendFolderSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(SendAndOpenDefaultMenuItem, CrossPlatformText.MenuTip_SendAndOpenDefault);
+        SetGroupMenuTip(SendAndOpenDefaultAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendAndOpenDefaultSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(SendAndOpenDestFolderMenuItem, CrossPlatformText.MenuTip_SendAndOpenDestFolder);
+        SetGroupMenuTip(SendAndOpenDestFolderAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendAndOpenDestFolderSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(BlockingCommandsMenuItem, CrossPlatformText.MenuTip_Blocking);
+        SetGroupMenuTip(LockBrowsersAllMenuItem, CrossPlatformText.MenuTip_LockBrowsersAll);
+        SetGroupMenuTip(BlockingSelectedMenuItem, CrossPlatformText.MenuTip_BlockingSelectedGroup);
+        SetGroupMenuTip(LockInputSelectedMenuItem, CrossPlatformText.MenuTip_LockInputSelected);
+        SetGroupMenuTip(LockInputDemoSelectedMenuItem, CrossPlatformText.MenuTip_LockInputDemoSelected);
+        SetGroupMenuTip(UnlockInputSelectedMenuItem, CrossPlatformText.MenuTip_UnlockInputSelected);
+        SetGroupMenuTip(BlockingAllOnlineMenuItem, CrossPlatformText.MenuTip_BlockingAllOnlineGroup);
+        SetGroupMenuTip(LockInputAllMenuItem, CrossPlatformText.MenuTip_LockInputAll);
+        SetGroupMenuTip(LockInputDemoAllMenuItem, CrossPlatformText.MenuTip_LockInputDemoAll);
+        SetGroupMenuTip(UnlockInputAllMenuItem, CrossPlatformText.MenuTip_UnlockInputAll);
+        SetGroupMenuTip(WindowsRestrictionsMenuItem, CrossPlatformText.MenuTip_GroupPolicies);
+        SetGroupMenuTip(TaskManagerRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionTaskManager);
+        SetGroupMenuTip(EnableTaskManagerRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableTaskManagerRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(RunDialogRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionRunDialog);
+        SetGroupMenuTip(EnableRunDialogRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableRunDialogRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(ControlPanelRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionControlPanel);
+        SetGroupMenuTip(EnableControlPanelRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableControlPanelRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(LockWorkstationRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionLockWorkstation);
+        SetGroupMenuTip(EnableLockWorkstationRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableLockWorkstationRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(ChangePasswordRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionChangePassword);
+        SetGroupMenuTip(EnableChangePasswordRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableChangePasswordRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(BlockInterfaceRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionBlockInterface);
+        SetGroupMenuTip(EnableBlockInterfaceRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableBlockInterfaceRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(DesktopWallpaperMenuItem, CrossPlatformText.MenuTip_DesktopWallpaperMenu);
+        SetGroupMenuTip(DesktopWallpaperAllMenuItem, CrossPlatformText.MenuTip_DesktopWallpaperAll);
+        SetGroupMenuTip(DesktopWallpaperSelectedMenuItem, CrossPlatformText.MenuTip_DesktopWallpaperSelected);
+        SetGroupMenuTip(CommandsMenuItem, CrossPlatformText.MenuTip_Commands);
+        SetGroupMenuTip(RunCommandSelectedMenuItem, CrossPlatformText.MenuTip_RunCommandSelected);
+        SetGroupMenuTip(RunCommandAllMenuItem, CrossPlatformText.MenuTip_RunCommandAll);
+        SetGroupMenuTip(RefreshFrequentProgramsMenuItem, CrossPlatformText.MenuTip_RefreshFrequentPrograms);
+        SetGroupMenuTip(ManageFrequentProgramsMenuItem, CrossPlatformText.MenuTip_ManageFrequentPrograms);
+        SetGroupMenuTip(DesktopIconsCommandsMenuItem, CrossPlatformText.MenuTip_DesktopIconsCmd);
+        SetGroupMenuTip(RestoreDesktopIconsSelectedMenuItem, CrossPlatformText.MenuTip_RestoreIconsSelected);
+        SetGroupMenuTip(RestoreDesktopIconsAllMenuItem, CrossPlatformText.MenuTip_RestoreIconsAll);
+        SetGroupMenuTip(ApplyCurrentDesktopIconsSelectedMenuItem, CrossPlatformText.MenuTip_ApplyLayoutSelected);
+        SetGroupMenuTip(ApplyCurrentDesktopIconsAllMenuItem, CrossPlatformText.MenuTip_ApplyLayoutAll);
+        SetGroupMenuTip(PowerCommandsMenuItem, CrossPlatformText.MenuTip_Power);
+        SetGroupMenuTip(SelectedPowerMenuItem, CrossPlatformText.MenuTip_PowerSelectedGroup);
+        SetGroupMenuTip(ShutdownSelectedMenuItem, CrossPlatformText.MenuTip_Shutdown);
+        SetGroupMenuTip(RestartSelectedMenuItem, CrossPlatformText.MenuTip_Restart);
+        SetGroupMenuTip(LogOffSelectedMenuItem, CrossPlatformText.MenuTip_LogOff);
+        SetGroupMenuTip(AllOnlinePowerMenuItem, CrossPlatformText.MenuTip_PowerAllGroup);
+        SetGroupMenuTip(ShutdownAllMenuItem, CrossPlatformText.MenuTip_Shutdown);
+        SetGroupMenuTip(RestartAllMenuItem, CrossPlatformText.MenuTip_Restart);
+        SetGroupMenuTip(LogOffAllMenuItem, CrossPlatformText.MenuTip_LogOff);
+        SetGroupMenuTip(StudentWorkMenuItem, CrossPlatformText.MenuTip_StudentWork);
+        SetGroupMenuTip(CreateStudentWorkFolderAllMenuItem, CrossPlatformText.MenuTip_CreateWorkFolder);
+        SetGroupMenuTip(CollectStudentWorkToTeacherPcMenuItem, CrossPlatformText.MenuTip_CollectWork);
+        SetGroupMenuTip(ClearStudentWorkFolderAllMenuItem, CrossPlatformText.MenuTip_ClearWorkFolder);
+    }
+
     private void ApplyLocalization()
     {
         var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString();
@@ -3587,6 +3899,12 @@ public partial class MainWindow : Window, IDisposable
         ChangePasswordRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword);
         EnableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
         DisableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        BlockInterfaceRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.BlockInterfaceChanges);
+        EnableBlockInterfaceRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableBlockInterfaceRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        DesktopWallpaperMenuItem.Header = CrossPlatformText.DesktopWallpaperMenu;
+        DesktopWallpaperAllMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
+        DesktopWallpaperSelectedMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
@@ -3621,6 +3939,7 @@ public partial class MainWindow : Window, IDisposable
         CreateStudentWorkFolderAllMenuItem.Header = CrossPlatformText.CreateStudentWorkFolderOnAllAgents;
         CollectStudentWorkToTeacherPcMenuItem.Header = CrossPlatformText.CollectStudentWorkToTeacherPc;
         ClearStudentWorkFolderAllMenuItem.Header = CrossPlatformText.ClearStudentWorkFolderOnAllAgents;
+        ApplyGroupCommandMenuTooltips();
         HelpMenuItem.Header = CrossPlatformText.Help;
         ProgramUpdatesMenuItem.Header = CrossPlatformText.ProgramUpdatesMenu;
         CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
@@ -3702,17 +4021,23 @@ public partial class MainWindow : Window, IDisposable
         RefreshFooterSummary();
         if (AgentsGrid.Columns.Count >= 16)
         {
-            AgentsGrid.Columns[0].Header = CrossPlatformText.GroupCommandSelectionColumn;
-            AgentsGrid.Columns[1].Header = CrossPlatformText.BrowserLock;
-            AgentsGrid.Columns[2].Header = CrossPlatformText.InputLock;
-            AgentsGrid.Columns[3].Header = CrossPlatformText.Source;
-            AgentsGrid.Columns[4].Header = CrossPlatformText.Status;
-            AgentsGrid.Columns[5].Header = CrossPlatformText.Group;
-            AgentsGrid.Columns[6].Header = CrossPlatformText.Machine;
-            AgentsGrid.Columns[7].Header = CrossPlatformText.User;
-            AgentsGrid.Columns[8].Header = "IP";
-            AgentsGrid.Columns[9].Header = CrossPlatformText.Port;
-            AgentsGrid.Columns[10].Header = "MAC";
+            AgentsGrid.Columns[0].Header = CreateAgentsGridColumnHeader(
+                CrossPlatformText.GroupCommandSelectionColumn,
+                CrossPlatformText.AgentsGridSelectColumnTooltip);
+            AgentsGrid.Columns[1].Header = CrossPlatformText.Machine;
+            AgentsGrid.Columns[2].Header = CrossPlatformText.User;
+            AgentsGrid.Columns[3].Header = "IP";
+            AgentsGrid.Columns[4].Header = CreateAgentsGridColumnHeader(
+                CrossPlatformText.BrowserLock,
+                CrossPlatformText.AgentsGridBrowserLockColumnTooltip);
+            AgentsGrid.Columns[5].Header = CreateAgentsGridColumnHeader(
+                CrossPlatformText.InputLock,
+                CrossPlatformText.AgentsGridInputLockColumnTooltip);
+            AgentsGrid.Columns[6].Header = CrossPlatformText.Status;
+            AgentsGrid.Columns[7].Header = CrossPlatformText.Port;
+            AgentsGrid.Columns[8].Header = "MAC";
+            AgentsGrid.Columns[9].Header = CrossPlatformText.Source;
+            AgentsGrid.Columns[10].Header = CrossPlatformText.Group;
             AgentsGrid.Columns[11].Header = CrossPlatformText.Notes;
             AgentsGrid.Columns[12].Header = CrossPlatformText.UpdateStatus;
             AgentsGrid.Columns[13].Header = CrossPlatformText.UpdateStatusDetailColumn;

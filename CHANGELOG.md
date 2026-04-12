@@ -8,11 +8,13 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Added
 
-- Group Commands in both teacher clients now include a `Windows Restrictions` submenu with on/off actions for `Task Manager`, `Run dialog`, `Control Panel and Settings`, `Lock workstation`, and `Change password`
+- Group Commands in both teacher clients now include a **Group Policies** submenu (Ukrainian: **Групові політики**) with enable/disable actions for `Task Manager`, `Run dialog`, `Control Panel and Settings`, `Lock workstation`, `Change password`, **Block interface changes** (personalization-style registry policies: theme, colors, window style, font size, color/appearance settings, desktop icons, mouse pointers, screen saver), and **Desktop wallpaper** (all online or selected PCs). Submenu items show **tooltips** that summarize what each command does.
+- `StudentAgent.Service`: `POST /api/windows-restrictions/desktop-wallpaper` applies an enforced desktop wallpaper (path + style) and enables **Prevent changing desktop background**; the teacher client uploads the image to `C:\Windows\Web\Wallpaper` on each target student PC before calling this endpoint.
 - Group Commands in both teacher clients now include an `Input lock (demonstration)` action that blocks student keyboard and mouse input while showing a compact visible banner instead of a fullscreen overlay
 
 ### Changed
 
+- Renamed the group-command submenu previously labeled **Windows Restrictions** / **Обмеження Windows** to **Group Policies** / **Групові політики** in both teacher clients (English UI uses **Group Policies**).
 - Removed the `Windows Restrictions` → **Log off** (registry `NoLogoff`) group command from both teacher clients and the `WindowsRestrictionKind` API; remote **Power → Log Off** is unchanged
 - Runtime projects, local build guidance, and GitHub Actions workflows now target `.NET 10`; `Teacher.Common` also switches from `MarcusW.VncClient 1.0.0-alpha4` to the community-maintained `Community.MarcusW.VncClient 2.0.3` package as the base for further remote-management stability work
 - Group Commands in both teacher clients now organize browser lock and keyboard/mouse lock under a shared `Blocking` submenu, and frequent-program actions now live inside the `Commands` submenu instead of a separate top-level group-command menu

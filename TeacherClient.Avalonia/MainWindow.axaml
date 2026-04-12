@@ -35,6 +35,26 @@
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
+    <!-- Fluent CheckBox: unchecked box stroke is Border#NormalRectangle (theme brushes), not Foreground — style that part only (no extra border on CheckBox). -->
+    <Style Selector="CheckBox.agentsGridCheckBox">
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="CheckBox.agentsGridCheckBox:unchecked /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#64748B" />
+      <Setter Property="Background" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="CheckBox.agentsGridCheckBox:unchecked:pointerover /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#475569" />
+      <Setter Property="Background" Value="#F8FAFC" />
+    </Style>
+    <Style Selector="DataGridCell:selected CheckBox.agentsGridCheckBox:unchecked /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#0F172A" />
+      <Setter Property="Background" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="DataGridCell:selected CheckBox.agentsGridCheckBox:unchecked:pointerover /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#0F172A" />
+      <Setter Property="Background" Value="#F1F5F9" />
+    </Style>
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Margin" Value="0,0,0,0" />
@@ -154,7 +174,7 @@
             <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
           </MenuItem>
         </MenuItem>
-        <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Windows Restrictions">
+        <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Group Policies">
           <MenuItem x:Name="TaskManagerRestrictionsMenuItem" Header="Task Manager">
             <MenuItem x:Name="EnableTaskManagerRestrictionMenuItem" Header="Enable" Click="EnableTaskManagerRestrictionMenuItem_OnClick" />
             <MenuItem x:Name="DisableTaskManagerRestrictionMenuItem" Header="Disable" Click="DisableTaskManagerRestrictionMenuItem_OnClick" />
@@ -174,6 +194,14 @@
           <MenuItem x:Name="ChangePasswordRestrictionsMenuItem" Header="Change password">
             <MenuItem x:Name="EnableChangePasswordRestrictionMenuItem" Header="Enable" Click="EnableChangePasswordRestrictionMenuItem_OnClick" />
             <MenuItem x:Name="DisableChangePasswordRestrictionMenuItem" Header="Disable" Click="DisableChangePasswordRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="BlockInterfaceRestrictionsMenuItem" Header="Interface appearance">
+            <MenuItem x:Name="EnableBlockInterfaceRestrictionMenuItem" Header="Enable" Click="EnableBlockInterfaceRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableBlockInterfaceRestrictionMenuItem" Header="Disable" Click="DisableBlockInterfaceRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="DesktopWallpaperMenuItem" Header="Desktop wallpaper">
+            <MenuItem x:Name="DesktopWallpaperAllMenuItem" Header="All Online PCs" Click="DesktopWallpaperAllMenuItem_OnClick" />
+            <MenuItem x:Name="DesktopWallpaperSelectedMenuItem" Header="Selected PCs" Click="DesktopWallpaperSelectedMenuItem_OnClick" />
           </MenuItem>
         </MenuItem>
         <MenuItem x:Name="CommandsMenuItem" Header="_Commands">
@@ -278,10 +306,11 @@
                     SelectionMode="Extended"
                     DoubleTapped="AgentsGrid_OnDoubleTapped">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Select" Width="72">
+              <DataGridTemplateColumn Header="Select" Width="88" MinWidth="72">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <CheckBox HorizontalAlignment="Center"
+                    <CheckBox Classes="agentsGridCheckBox"
+                              HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsChecked="{Binding GroupCommandSelected}"
                               Tag="{Binding}"
@@ -289,10 +318,14 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Browser lock" Width="95">
+              <DataGridTextColumn Header="Machine" Binding="{Binding MachineName}" Width="180" MinWidth="100" IsReadOnly="True" />
+              <DataGridTextColumn Header="User" Binding="{Binding CurrentUser}" Width="150" MinWidth="80" IsReadOnly="True" />
+              <DataGridTextColumn Header="IP" Binding="{Binding RespondingAddress}" Width="150" MinWidth="100" IsReadOnly="True" />
+              <DataGridTemplateColumn Header="Browser lock" Width="124" MinWidth="108">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <CheckBox HorizontalAlignment="Center"
+                    <CheckBox Classes="agentsGridCheckBox"
+                              HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsChecked="{Binding BrowserLockEnabled}"
                               Tag="{Binding}"
@@ -300,10 +333,11 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Input lock" Width="95">
+              <DataGridTemplateColumn Header="Input lock" Width="124" MinWidth="108">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <CheckBox HorizontalAlignment="Center"
+                    <CheckBox Classes="agentsGridCheckBox"
+                              HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsChecked="{Binding InputLockEnabled}"
                               Tag="{Binding}"
@@ -311,14 +345,11 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
-              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" IsReadOnly="True" />
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" MinWidth="72" IsReadOnly="True" />
+              <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="90" MinWidth="64" IsReadOnly="True" />
+              <DataGridTextColumn Header="MACs" Binding="{Binding MacAddressesDisplay}" Width="220" MinWidth="120" IsReadOnly="True" />
+              <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" IsReadOnly="True" />
               <DataGridTextColumn Header="Group" Binding="{Binding GroupName}" Width="150" IsReadOnly="True" />
-              <DataGridTextColumn Header="Machine" Binding="{Binding MachineName}" Width="180" IsReadOnly="True" />
-              <DataGridTextColumn Header="User" Binding="{Binding CurrentUser}" Width="150" IsReadOnly="True" />
-              <DataGridTextColumn Header="IP" Binding="{Binding RespondingAddress}" Width="150" IsReadOnly="True" />
-              <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="90" IsReadOnly="True" />
-              <DataGridTextColumn Header="MACs" Binding="{Binding MacAddressesDisplay}" Width="220" IsReadOnly="True" />
               <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="180" IsReadOnly="True" />
               <DataGridTextColumn Header="Update" Binding="{Binding UpdateStatusBadge}" Width="150" IsReadOnly="True" />
               <DataGridTextColumn Header="Update details" Binding="{Binding UpdateStatusDetail}" Width="280" IsReadOnly="True" />

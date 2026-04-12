@@ -42,6 +42,7 @@ internal static partial class CrossPlatformText
             WindowsRestrictionKind.ControlPanelAndSettings => IsUk ? "Панель керування і Параметри" : "Control Panel and Settings",
             WindowsRestrictionKind.LockWorkstation => IsUk ? "Блокування робочої станції" : "Lock workstation",
             WindowsRestrictionKind.ChangePassword => IsUk ? "Зміна пароля" : "Change password",
+            WindowsRestrictionKind.BlockInterfaceChanges => IsUk ? "Блокування змін інтерфейсу" : "Block interface changes",
             _ => restriction.ToString(),
         };
 
@@ -64,6 +65,37 @@ internal static partial class CrossPlatformText
         => IsUk
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} \"{WindowsRestrictionName(restriction)}\": успішно {succeeded}, з помилками {failures}"
             : $"{(enabled ? "Enabled" : "Disabled")} \"{WindowsRestrictionName(restriction)}\": {succeeded} succeeded, {failures} failed";
+
+    public static string WallpaperStyleName(int style) => style switch
+    {
+        0 => IsUk ? "По центру" : "Centered",
+        1 => IsUk ? "Плитка" : "Tiled",
+        2 => IsUk ? "Розтягнути" : "Stretched",
+        3 => IsUk ? "По розміру" : "Fit",
+        4 => IsUk ? "Заповнити" : "Fill",
+        5 => IsUk ? "На кілька моніторів" : "Span",
+        _ => style.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    public static string DesktopWallpaperPrompt(int count, string fileName)
+        => IsUk
+            ? $"Встановити зображення «{fileName}» як тло робочого столу на {count} учнівських ПК? Файл буде скопійовано в C:\\Windows\\Web\\Wallpaper і застосовано через групові політики (Desktop Wallpaper + заборона зміни тла)."
+            : $"Set «{fileName}» as the desktop background on {count} student PCs? The file will be copied to C:\\Windows\\Web\\Wallpaper and applied via Group Policy (Desktop Wallpaper + prevent changing background).";
+
+    public static string DesktopWallpaperProgress(string machine, int index, int total)
+        => IsUk
+            ? $"Зображення робочого столу: {machine} ({index}/{total})"
+            : $"Desktop wallpaper: {machine} ({index}/{total})";
+
+    public static string DesktopWallpaperCompleted(int succeeded)
+        => IsUk
+            ? $"Зображення робочого столу застосовано на {succeeded} ПК"
+            : $"Desktop wallpaper applied on {succeeded} PCs";
+
+    public static string DesktopWallpaperCompletedWithFailures(int succeeded, int failures)
+        => IsUk
+            ? $"Зображення робочого столу: успішно {succeeded}, з помилками {failures}"
+            : $"Desktop wallpaper: {succeeded} succeeded, {failures} failed";
 
     public static string BrowserLockEnabledFor(string machine) => IsUk ? $"Блокування браузера увімкнено на {machine}" : $"Browser lock enabled on {machine}";
 

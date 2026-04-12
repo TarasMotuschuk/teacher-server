@@ -65,6 +65,8 @@ Available endpoints:
 - `GET /api/update/status`: read the current student-agent update state.
 - `GET /api/update/check`: check the configured update manifest for a newer student-agent version.
 - `POST /api/update/start`: download and start installing a newer student-agent version by launching `StudentAgent.Updater`.
+- `POST /api/windows-restrictions`: enable or disable a named classroom policy-style restriction on the student PC (`WindowsRestrictionKind`, including Task Manager, Run dialog, Control Panel, lock workstation, change password, and block interface changes).
+- `POST /api/windows-restrictions/desktop-wallpaper`: apply an enforced desktop wallpaper (full local path on the student PC, style 0–5) and lock out desktop background changes (Group Policy–equivalent registry values under `Policies\System`, mirrored to loaded user hives where applicable).
 
 ### TeacherClient
 
@@ -98,6 +100,7 @@ Available endpoints:
 - teacher-managed frequent-program actions grouped together with other group `Commands`, including refresh from public desktop shortcuts gathered across online student PCs and manual curation by the teacher;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
+- **Group Policies** group commands (Ukrainian UI: **Групові політики**) that push registry-based classroom policies to online student PCs via the agent service: Task Manager, Run dialog, Control Panel and Settings, lock workstation, change password, **block interface changes** (theme, colors, window style, desktop icons, mouse pointers, screen saver), and optional **desktop wallpaper** (upload to `C:\Windows\Web\Wallpaper`, then enforce wallpaper + prevent students from changing the background); hover **tooltips** on group-command menu items summarize each action;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent, bulk lock/unlock commands for online student PCs, and a demonstration-mode bulk lock that keeps the lock visible through a compact top banner instead of a fullscreen overlay;
 - teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
@@ -145,6 +148,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - teacher-managed frequent-program actions grouped together with other group `Commands`, including refresh from public desktop shortcuts gathered across online student PCs and manual curation by the teacher;
 - group commands for collecting student work folders from either selected students or all online students into teacher-side folders named after each student machine;
 - a group browser-lock command for enabling browser blocking across all online student PCs;
+- **Group Policies** group commands (Ukrainian UI: **Групові політики**) matching the Windows client: policy restrictions, **block interface changes**, **desktop wallpaper** with background lock, and **tooltips** on group-command menu items;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent, bulk lock/unlock commands for online student PCs, and a demonstration-mode bulk lock that keeps the lock visible through a compact top banner instead of a fullscreen overlay;
 - teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
@@ -333,7 +337,8 @@ Tag-based GitHub releases now publish all major install/update assets together:
 18. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 19. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
 20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
-21. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
+21. Use `Group Commands -> Group Policies` to enable or disable classroom policy-style restrictions (Task Manager, Run, Control Panel, lock workstation, change password), **Block interface changes**, or **Desktop wallpaper** (the client uploads the image to each student PC under `C:\Windows\Web\Wallpaper`, then applies wallpaper + background lock). Hover menu items to read short descriptions.
+22. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, power, and group-policy operations, the status area reports the current target agent and progress.
 
 ### Start ClassCommander on macOS
 
@@ -364,7 +369,8 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 15. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 16. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
 17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
-18. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, and power operations, the status area reports the current target agent and progress.
+18. Use `Group Commands -> Group Policies` for the same policy, interface-lock, and desktop-wallpaper actions as on Windows (see the Windows quick-start steps above). Hover menu items for tooltips.
+19. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, power, and group-policy operations, the status area reports the current target agent and progress.
 
 ### Build macOS installer for ClassCommander
 

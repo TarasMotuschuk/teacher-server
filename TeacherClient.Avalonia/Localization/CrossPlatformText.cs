@@ -70,7 +70,17 @@ internal static partial class CrossPlatformText
 
     public static string LockInputForDemonstrationOnAllOnlineStudents => IsUk ? "Увімкнути блокування клавіатури і миші (демонстрація) на всіх онлайн учнівських ПК" : "Enable keyboard and mouse lock (demonstration) on all online student PCs";
 
-    public static string WindowsRestrictionsMenu => IsUk ? "Обмеження Windows" : "Windows Restrictions";
+    public static string WindowsRestrictionsMenu => IsUk ? "Групові політики" : "Group Policies";
+
+    public static string DesktopWallpaperMenu => IsUk ? "Зображення робочого столу" : "Desktop wallpaper";
+
+    public static string WallpaperPickImageTitle => IsUk ? "Виберіть зображення для тла робочого столу" : "Choose desktop background image";
+
+    public static string WallpaperStyleDialogTitle => IsUk ? "Стиль зображення робочого столу" : "Desktop wallpaper style";
+
+    public static string BulkDesktopWallpaperError => IsUk ? "Помилка встановлення зображення робочого столу" : "Desktop wallpaper error";
+
+    public static string DesktopWallpaperInvalidImage => IsUk ? "Оберіть файл зображення (.jpg, .jpeg, .bmp, .png)." : "Choose an image file (.jpg, .jpeg, .bmp, .png).";
 
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
 
@@ -121,6 +131,12 @@ internal static partial class CrossPlatformText
     public static string InputLock => IsUk ? "Блок вводу" : "Input lock";
 
     public static string GroupCommandSelectionColumn => IsUk ? "Вибір" : "Select";
+
+    public static string AgentsGridSelectColumnTooltip => IsUk ? "Позначка ПК для групових команд" : "Mark PCs for group commands";
+
+    public static string AgentsGridBrowserLockColumnTooltip => IsUk ? "Блокування браузера на учнівському ПК" : "Browser lock on the student PC";
+
+    public static string AgentsGridInputLockColumnTooltip => IsUk ? "Блокування клавіатури та миші на учнівському ПК" : "Keyboard and mouse lock on the student PC";
 
     public static string ChooseAgentsForGroupBlockingCommands => IsUk ? "Позначте потрібні учнівські ПК у колонці «Вибір»." : "Mark the student PCs to include using the Select column checkboxes.";
 
