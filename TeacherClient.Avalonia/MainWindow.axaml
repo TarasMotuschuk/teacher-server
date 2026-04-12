@@ -360,6 +360,70 @@
         </Grid>
       </TabItem>
 
+      <TabItem x:Name="RemoteManagementTabItem" Header="Remote management">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="168" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
+            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
+            <Button x:Name="StopVncButton" Classes="tabAction" Width="152" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
+            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
+          </WrapPanel>
+
+          <TextBlock x:Name="RemoteManagementHintTextBlock"
+                     Grid.Row="1"
+                     Margin="0,0,0,12"
+                     Foreground="#94A3B8"
+                     TextWrapping="Wrap"
+                     Text="" />
+
+          <ListBox x:Name="RemoteManagementListBox"
+                   Classes="remoteManagementList"
+                   Grid.Row="2"
+                   SelectionMode="Single">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Classes="remoteManagementTileRoot"
+                        Width="280"
+                        Height="200"
+                        Padding="2"
+                        Background="#BFC7D0"
+                        CornerRadius="8"
+                        PointerPressed="RemoteManagementTileRoot_OnPointerPressed">
+                  <Border Background="#171D24" CornerRadius="6" Padding="10">
+                    <Grid RowDefinitions="120,28,*">
+                      <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
+                        <Image Source="{Binding PreviewBitmap}"
+                               Stretch="UniformToFill"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Stretch" />
+                      </Border>
+                      <TextBlock Grid.Row="1"
+                                 Text="{Binding MachineName}"
+                                 FontSize="14"
+                                 FontWeight="Bold"
+                                 Foreground="White"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                      <TextBlock Grid.Row="2"
+                                 Margin="0,4,0,0"
+                                 Text="{Binding StatusText}"
+                                 Foreground="#CBD5E1"
+                                 FontSize="12"
+                                 TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </TabItem>
+
       <TabItem x:Name="ProcessesTabItem" Header="Processes">
         <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
           <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -500,70 +564,6 @@
               </DataGrid.Columns>
             </DataGrid>
           </Grid>
-        </Grid>
-      </TabItem>
-
-      <TabItem x:Name="RemoteManagementTabItem" Header="Remote management">
-        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
-          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="168" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
-            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
-            <Button x:Name="StopVncButton" Classes="tabAction" Width="152" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
-            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
-          </WrapPanel>
-
-          <TextBlock x:Name="RemoteManagementHintTextBlock"
-                     Grid.Row="1"
-                     Margin="0,0,0,12"
-                     Foreground="#94A3B8"
-                     TextWrapping="Wrap"
-                     Text="" />
-
-          <ListBox x:Name="RemoteManagementListBox"
-                   Classes="remoteManagementList"
-                   Grid.Row="2"
-                   SelectionMode="Single">
-            <ListBox.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-              <DataTemplate>
-                <Border Classes="remoteManagementTileRoot"
-                        Width="280"
-                        Height="200"
-                        Padding="2"
-                        Background="#BFC7D0"
-                        CornerRadius="8"
-                        PointerPressed="RemoteManagementTileRoot_OnPointerPressed">
-                  <Border Background="#171D24" CornerRadius="6" Padding="10">
-                    <Grid RowDefinitions="120,28,*">
-                      <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
-                        <Image Source="{Binding PreviewBitmap}"
-                               Stretch="UniformToFill"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Stretch" />
-                      </Border>
-                      <TextBlock Grid.Row="1"
-                                 Text="{Binding MachineName}"
-                                 FontSize="14"
-                                 FontWeight="Bold"
-                                 Foreground="White"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                      <TextBlock Grid.Row="2"
-                                 Margin="0,4,0,0"
-                                 Text="{Binding StatusText}"
-                                 Foreground="#CBD5E1"
-                                 FontSize="12"
-                                 TextWrapping="Wrap" />
-                    </Grid>
-                  </Border>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
         </Grid>
       </TabItem>
     </TabControl>

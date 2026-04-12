@@ -290,10 +290,10 @@ partial class MainForm
         mainTabControl.ItemSize = new Size(140, 34);
         mainTabControl.SizeMode = TabSizeMode.Fixed;
         mainTabControl.TabPages.Add(agentsTabPage);
-        mainTabControl.TabPages.Add(processesTabPage);
-        mainTabControl.TabPages.Add(filesTabPage);
-        mainTabControl.TabPages.Add(registryTabPage);
         mainTabControl.TabPages.Add(remoteManagementTabPage);
+        mainTabControl.TabPages.Add(filesTabPage);
+        mainTabControl.TabPages.Add(processesTabPage);
+        mainTabControl.TabPages.Add(registryTabPage);
 
         agentsTabPage.Text = TeacherClientText.AgentsTab;
         agentsTabPage.BackColor = Color.FromArgb(236, 239, 243);
