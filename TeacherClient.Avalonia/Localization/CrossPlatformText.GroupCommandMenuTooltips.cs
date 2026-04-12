@@ -158,6 +158,14 @@ internal static partial class CrossPlatformText
         ? "Відновлення та розсилка розкладки значків робочого столу."
         : "Restore and push desktop icon layouts.";
 
+    public static string MenuTip_SaveDesktopIconsCurrentPc => IsUk
+        ? "Зберегти розкладку значків на ПК, до якого зараз підключено (вкладка «Віддалено»)."
+        : "Save the desktop icon layout on the PC you are currently connected to (Remote tab).";
+
+    public static string MenuTip_RestoreDesktopIconsCurrentPc => IsUk
+        ? "Відновити збережену розкладку значків на ПК, до якого зараз підключено."
+        : "Restore the saved icon layout on the PC you are currently connected to.";
+
     public static string MenuTip_RestoreIconsSelected => IsUk
         ? "Відновити збережений розклад значків на позначених ПК."
         : "Restore the saved icon layout on marked PCs.";

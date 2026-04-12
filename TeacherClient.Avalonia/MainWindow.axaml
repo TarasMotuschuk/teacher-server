@@ -127,11 +127,6 @@
           <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
           <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
           <Separator />
-          <MenuItem x:Name="DesktopIconsMenuItem" Header="_Desktop Icons">
-            <MenuItem x:Name="SaveDesktopIconLayoutMenuItem" Header="Save desktop icon layout" Click="SaveDesktopIconLayoutMenuItem_OnClick" />
-            <MenuItem x:Name="RestoreDesktopIconLayoutMenuItem" Header="Restore desktop icon layout" Click="RestoreDesktopIconLayoutMenuItem_OnClick" />
-          </MenuItem>
-          <Separator />
           <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
         <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
@@ -212,6 +207,9 @@
           <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>
         <MenuItem x:Name="DesktopIconsCommandsMenuItem" Header="_Desktop Icons">
+          <MenuItem x:Name="SaveDesktopIconLayoutMenuItem" Header="Save desktop icon layout" Click="SaveDesktopIconLayoutMenuItem_OnClick" />
+          <MenuItem x:Name="RestoreDesktopIconLayoutMenuItem" Header="Restore desktop icon layout" Click="RestoreDesktopIconLayoutMenuItem_OnClick" />
+          <Separator />
           <MenuItem x:Name="RestoreDesktopIconsSelectedMenuItem" Header="Restore icons on selected PCs" Click="RestoreDesktopIconsSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RestoreDesktopIconsAllMenuItem" Header="Restore icons on all online PCs" Click="RestoreDesktopIconsAllMenuItem_OnClick" />
           <Separator />
@@ -304,7 +302,8 @@
                     CanUserReorderColumns="False"
                     IsReadOnly="False"
                     SelectionMode="Extended"
-                    DoubleTapped="AgentsGrid_OnDoubleTapped">
+                    DoubleTapped="AgentsGrid_OnDoubleTapped"
+                    LoadingRow="AgentsGrid_OnLoadingRow">
             <DataGrid.Columns>
               <DataGridTemplateColumn Header="Select" Width="88" MinWidth="72">
                 <DataGridTemplateColumn.CellTemplate>

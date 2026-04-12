@@ -3181,11 +3181,42 @@ public partial class MainForm : Form
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
+            agentsGrid.Invalidate();
         }
         catch (Exception ex)
         {
             SetStatus($"{TeacherClientText.ConnectionFailed} {ex.Message}");
         }
+    }
+
+    private void AgentsGrid_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+    {
+        if (e.RowIndex < 0 || agentsGrid.Rows[e.RowIndex].DataBoundItem is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        var connected = IsAgentCurrentlyConnected(agent);
+        e.CellStyle.BackColor = connected ? Color.FromArgb(220, 245, 220) : Color.White;
+    }
+
+    private bool IsAgentCurrentlyConnected(DiscoveredAgentRow agent)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_lastConnectedAgentId) &&
+            string.Equals(agent.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            $"http://{agent.RespondingAddress}:{agent.Port}",
+            _lastConnectedServerUrl,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)

@@ -125,11 +125,6 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, RefreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, ConnectSelectedAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        var desktopIconsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
-        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.SaveDesktopIconLayout, null, SaveDesktopIconLayoutMenuItem_Click);
-        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayout, null, RestoreDesktopIconLayoutMenuItem_Click);
-        connectionMenuItem.DropDownItems.Add(desktopIconsMenuItem);
-        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, AddManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, EditManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, RemoveManualAgentButton_Click);
@@ -210,6 +205,9 @@ partial class MainForm
         commandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ManageFrequentPrograms, null, ManageFrequentProgramsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ManageFrequentPrograms });
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
         var desktopIconsCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu) { ToolTipText = TeacherClientText.MenuTip_DesktopIconsCmd };
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.SaveDesktopIconLayout, null, SaveDesktopIconLayoutMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_SaveDesktopIconsCurrentPc });
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestoreDesktopIconLayout, null, RestoreDesktopIconLayoutMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RestoreDesktopIconsCurrentPc });
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
         desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestoreDesktopIconLayoutOnSelectedStudents, null, RestoreDesktopIconsOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RestoreIconsSelected });
         desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestoreDesktopIconLayoutOnAllOnlineStudents, null, RestoreDesktopIconsOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RestoreIconsAll });
         desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
@@ -316,6 +314,7 @@ partial class MainForm
 
         agentsGrid.Dock = DockStyle.Fill;
         agentsGrid.CellDoubleClick += AgentsGrid_CellDoubleClick;
+        agentsGrid.CellFormatting += AgentsGrid_CellFormatting;
         agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.GroupCommandSelectionColumn, DataPropertyName = "GroupCommandSelected", Width = 88, ToolTipText = TeacherClientText.AgentsGridSelectColumnTooltip });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Machine, DataPropertyName = "MachineName", Width = 180, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.User, DataPropertyName = "CurrentUser", Width = 160, ReadOnly = true });

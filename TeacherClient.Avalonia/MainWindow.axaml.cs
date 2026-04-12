@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Teacher.Common;
 using Teacher.Common.Contracts;
 using TeacherClient.CrossPlatform.Dialogs;
@@ -713,6 +714,51 @@ public partial class MainWindow : Window, IDisposable
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+        Dispatcher.UIThread.Post(RefreshAgentsGridConnectionHighlight, DispatcherPriority.Background);
+    }
+
+    private void AgentsGrid_OnLoadingRow(object? sender, DataGridRowEventArgs e)
+    {
+        ApplyConnectionHighlightToDataGridRow(e.Row);
+    }
+
+    private void ApplyConnectionHighlightToDataGridRow(DataGridRow row)
+    {
+        if (row.DataContext is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        row.Background = IsAgentCurrentlyConnected(agent)
+            ? new SolidColorBrush(Color.Parse("#DCF5DC"))
+            : Brushes.Transparent;
+    }
+
+    private void RefreshAgentsGridConnectionHighlight()
+    {
+        foreach (var row in AgentsGrid.GetVisualDescendants().OfType<DataGridRow>())
+        {
+            ApplyConnectionHighlightToDataGridRow(row);
+        }
+    }
+
+    private bool IsAgentCurrentlyConnected(DiscoveredAgentRow agent)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_lastConnectedAgentId) &&
+            string.Equals(agent.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            $"http://{agent.RespondingAddress}:{agent.Port}",
+            _lastConnectedServerUrl,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
@@ -3832,6 +3878,8 @@ public partial class MainWindow : Window, IDisposable
         SetGroupMenuTip(RefreshFrequentProgramsMenuItem, CrossPlatformText.MenuTip_RefreshFrequentPrograms);
         SetGroupMenuTip(ManageFrequentProgramsMenuItem, CrossPlatformText.MenuTip_ManageFrequentPrograms);
         SetGroupMenuTip(DesktopIconsCommandsMenuItem, CrossPlatformText.MenuTip_DesktopIconsCmd);
+        SetGroupMenuTip(SaveDesktopIconLayoutMenuItem, CrossPlatformText.MenuTip_SaveDesktopIconsCurrentPc);
+        SetGroupMenuTip(RestoreDesktopIconLayoutMenuItem, CrossPlatformText.MenuTip_RestoreDesktopIconsCurrentPc);
         SetGroupMenuTip(RestoreDesktopIconsSelectedMenuItem, CrossPlatformText.MenuTip_RestoreIconsSelected);
         SetGroupMenuTip(RestoreDesktopIconsAllMenuItem, CrossPlatformText.MenuTip_RestoreIconsAll);
         SetGroupMenuTip(ApplyCurrentDesktopIconsSelectedMenuItem, CrossPlatformText.MenuTip_ApplyLayoutSelected);
@@ -3858,7 +3906,6 @@ public partial class MainWindow : Window, IDisposable
         ConnectionMenuItem.Header = CrossPlatformText.ConnectionMenu;
         RefreshAgentsMenuItem.Header = CrossPlatformText.RefreshAgents;
         ConnectSelectedMenuItem.Header = CrossPlatformText.ConnectSelectedAgent;
-        DesktopIconsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         SaveDesktopIconLayoutMenuItem.Header = CrossPlatformText.SaveDesktopIconLayout;
         RestoreDesktopIconLayoutMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayout;
         CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
