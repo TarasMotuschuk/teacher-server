@@ -18,8 +18,8 @@ partial class MainForm
     private TabPage remoteManagementTabPage = null!;
     private TreeView registryTreeView = null!;
     private DataGridView registryValuesGrid = null!;
-    private Button settingsButton = null!;
     private Label statusLabel = null!;
+    private Label footerLabel = null!;
     private DataGridView processesGrid = null!;
     private Button refreshProcessesButton = null!;
     private Button killProcessButton = null!;
@@ -76,8 +76,8 @@ partial class MainForm
         remoteManagementTabPage = new TabPage();
         registryTreeView = new TreeView();
         registryValuesGrid = new DataGridView();
-        settingsButton = new Button();
         statusLabel = new Label();
+        footerLabel = new Label();
         processesGrid = new DataGridView();
         refreshProcessesButton = new Button();
         killProcessButton = new Button();
@@ -122,7 +122,6 @@ partial class MainForm
         MainMenuStrip = mainMenuStrip;
 
         var connectionMenuItem = new ToolStripMenuItem(TeacherClientText.ConnectionMenu);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, SettingsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, RefreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, ConnectSelectedAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
@@ -135,29 +134,31 @@ partial class MainForm
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, EditManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, RemoveManualAgentButton_Click);
 
-        var processesMenuItem = new ToolStripMenuItem(TeacherClientText.ProcessesMenu);
-        processesMenuItem.DropDownItems.Add(TeacherClientText.Refresh, null, RefreshProcessesButton_Click);
-        processesMenuItem.DropDownItems.Add(TeacherClientText.TerminateSelected, null, KillProcessButton_Click);
-
-        var filesMenuItem = new ToolStripMenuItem(TeacherClientText.FilesMenu);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RefreshBoth, null, RefreshFilesButton_Click);
-        filesMenuItem.DropDownItems.Add($"{TeacherClientText.Upload} ->", null, UploadButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToSelectedStudents, null, SendToSelectedStudentsButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToAllOnlineStudents, null, SendToAllOnlineStudentsButton_Click);
-        filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, DownloadButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenLocal, null, OpenLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenRemote, null, OpenRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameLocal, null, RenameLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameRemote, null, RenameRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, DeleteLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, DeleteRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, NewRemoteFolderButton_Click);
-
         var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
+        var groupFileWorkMenuItem = new ToolStripMenuItem(TeacherClientText.GroupFileWorkMenu);
         var destinationFolderMenuItem = new ToolStripMenuItem(TeacherClientText.DestinationFolderMenu);
         destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, ClearSelectedFolderOnSelectedStudentsMenuItem_Click);
         destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, ClearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(destinationFolderMenuItem);
+        groupFileWorkMenuItem.DropDownItems.Add(destinationFolderMenuItem);
+        var sendSubmenuMenuItem = new ToolStripMenuItem(TeacherClientText.SendSubmenu);
+        var sendFileSubmenuMenuItem = new ToolStripMenuItem(TeacherClientText.SendFileSubmenu);
+        sendFileSubmenuMenuItem.DropDownItems.Add(TeacherClientText.ToAllPcsShort, null, SendFileToAllOnlineStudentsMenuItem_Click);
+        sendFileSubmenuMenuItem.DropDownItems.Add(TeacherClientText.ToSelectedPcsShort, null, SendFileToSelectedStudentsMenuItem_Click);
+        sendSubmenuMenuItem.DropDownItems.Add(sendFileSubmenuMenuItem);
+        var sendFolderSubmenuMenuItem = new ToolStripMenuItem(TeacherClientText.SendFolderSubmenu);
+        sendFolderSubmenuMenuItem.DropDownItems.Add(TeacherClientText.ToAllPcsShort, null, SendFolderToAllOnlineStudentsMenuItem_Click);
+        sendFolderSubmenuMenuItem.DropDownItems.Add(TeacherClientText.ToSelectedPcsShort, null, SendFolderToSelectedStudentsMenuItem_Click);
+        sendSubmenuMenuItem.DropDownItems.Add(sendFolderSubmenuMenuItem);
+        groupFileWorkMenuItem.DropDownItems.Add(sendSubmenuMenuItem);
+        var sendAndOpenDefaultMenuItem = new ToolStripMenuItem(TeacherClientText.SendAndOpenWithDefaultAppMenu);
+        sendAndOpenDefaultMenuItem.DropDownItems.Add(TeacherClientText.ToAllPcsShort, null, SendAndOpenWithDefaultToAllOnlineStudentsMenuItem_Click);
+        sendAndOpenDefaultMenuItem.DropDownItems.Add(TeacherClientText.ToSelectedPcsShort, null, SendAndOpenWithDefaultToSelectedStudentsMenuItem_Click);
+        groupFileWorkMenuItem.DropDownItems.Add(sendAndOpenDefaultMenuItem);
+        var sendAndOpenDestFolderMenuItem = new ToolStripMenuItem(TeacherClientText.SendAndOpenStudentDestinationFolderMenu);
+        sendAndOpenDestFolderMenuItem.DropDownItems.Add(TeacherClientText.ToAllPcsShort, null, SendAndOpenDestinationFolderToAllOnlineStudentsMenuItem_Click);
+        sendAndOpenDestFolderMenuItem.DropDownItems.Add(TeacherClientText.ToSelectedPcsShort, null, SendAndOpenDestinationFolderToSelectedStudentsMenuItem_Click);
+        groupFileWorkMenuItem.DropDownItems.Add(sendAndOpenDestFolderMenuItem);
+        groupCommandsMenuItem.DropDownItems.Add(groupFileWorkMenuItem);
         var blockingMenuItem = new ToolStripMenuItem(TeacherClientText.BlockingCommandsMenu);
         blockingMenuItem.DropDownItems.Add(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, LockBrowsersOnAllOnlineStudentsMenuItem_Click);
         var blockingSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
@@ -238,38 +239,33 @@ partial class MainForm
         helpMenuItem.DropDownItems.Add(new ToolStripSeparator());
         helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, AboutMenuItem_Click);
 
+        var configurationMenuItem = new ToolStripMenuItem(TeacherClientText.ConfigurationMenu);
+        configurationMenuItem.DropDownItems.Add(TeacherClientText.BasicSettingsMenu, null, SettingsButton_Click);
+
         mainMenuStrip.Dock = DockStyle.Top;
         mainMenuStrip.BackColor = Color.White;
         mainMenuStrip.ImageScalingSize = new Size(20, 20);
         mainMenuStrip.Items.Add(connectionMenuItem);
-        mainMenuStrip.Items.Add(processesMenuItem);
-        mainMenuStrip.Items.Add(filesMenuItem);
         mainMenuStrip.Items.Add(groupCommandsMenuItem);
+        mainMenuStrip.Items.Add(configurationMenuItem);
         mainMenuStrip.Items.Add(helpMenuItem);
 
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 78,
-            Padding = new Padding(16, 12, 16, 10),
+            Height = 60,
+            Padding = new Padding(16, 10, 16, 10),
             BackColor = Color.White
         };
 
         var headerLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 1,
             RowCount = 1
         };
-        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-
-        settingsButton.Text = TeacherClientText.Settings;
-        settingsButton.Dock = DockStyle.Fill;
-        settingsButton.Margin = new Padding(0, 0, 16, 0);
-        settingsButton.MinimumSize = new Size(130, 48);
-        settingsButton.Click += SettingsButton_Click;
 
         statusLabel.Dock = DockStyle.Fill;
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -277,8 +273,7 @@ partial class MainForm
         statusLabel.AutoEllipsis = true;
         statusLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point);
 
-        headerLayout.Controls.Add(settingsButton, 0, 0);
-        headerLayout.Controls.Add(statusLabel, 1, 0);
+        headerLayout.Controls.Add(statusLabel, 0, 0);
         topPanel.Controls.Add(headerLayout);
 
         mainTabControl.Dock = DockStyle.Fill;
@@ -732,7 +727,24 @@ partial class MainForm
         remoteManagementLayout.Controls.Add(remoteManagementCardsPanel, 0, 2);
         remoteManagementTabPage.Controls.Add(remoteManagementLayout);
 
+        var footerPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 44,
+            Padding = new Padding(12, 8, 12, 8),
+            BackColor = Color.FromArgb(54, 64, 74)
+        };
+
+        footerLabel.Dock = DockStyle.Fill;
+        footerLabel.TextAlign = ContentAlignment.MiddleLeft;
+        footerLabel.ForeColor = Color.FromArgb(212, 217, 223);
+        footerLabel.AutoEllipsis = true;
+        footerLabel.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point);
+        footerLabel.Text = string.Empty;
+        footerPanel.Controls.Add(footerLabel);
+
         Controls.Add(mainTabControl);
+        Controls.Add(footerPanel);
         Controls.Add(topPanel);
         Controls.Add(mainMenuStrip);
         ResumeLayout(false);

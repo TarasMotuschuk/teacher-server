@@ -104,7 +104,6 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <Menu Grid.Row="0" Margin="0,0,0,12">
       <MenuItem x:Name="ConnectionMenuItem" Header="_Connection">
-          <MenuItem x:Name="SettingsMenuItem" Header="_Settings" Click="SettingsButton_OnClick" />
           <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
           <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
           <Separator />
@@ -118,9 +117,29 @@
         <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
       <MenuItem x:Name="GroupCommandsMenuItem" Header="_Group Commands">
-        <MenuItem x:Name="DestinationFolderMenuItem" Header="_Destination Folder">
-          <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
-          <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+        <MenuItem x:Name="GroupFileWorkMenuItem" Header="_File operations">
+          <MenuItem x:Name="DestinationFolderMenuItem" Header="_Destination Folder">
+            <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="SendSubmenuMenuItem" Header="_Send">
+            <MenuItem x:Name="SendFileSubmenuMenuItem" Header="_File">
+              <MenuItem x:Name="SendFileAllMenuItem" Header="To all PCs" Click="SendFileAllMenuItem_OnClick" />
+              <MenuItem x:Name="SendFileSelectedMenuItem" Header="To selected PCs" Click="SendFileSelectedMenuItem_OnClick" />
+            </MenuItem>
+            <MenuItem x:Name="SendFolderSubmenuMenuItem" Header="_Folder">
+              <MenuItem x:Name="SendFolderAllMenuItem" Header="To all PCs" Click="SendFolderAllMenuItem_OnClick" />
+              <MenuItem x:Name="SendFolderSelectedMenuItem" Header="To selected PCs" Click="SendFolderSelectedMenuItem_OnClick" />
+            </MenuItem>
+          </MenuItem>
+          <MenuItem x:Name="SendAndOpenDefaultMenuItem" Header="Send and open with default app">
+            <MenuItem x:Name="SendAndOpenDefaultAllMenuItem" Header="To all PCs" Click="SendAndOpenDefaultAllMenuItem_OnClick" />
+            <MenuItem x:Name="SendAndOpenDefaultSelectedMenuItem" Header="To selected PCs" Click="SendAndOpenDefaultSelectedMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="SendAndOpenDestFolderMenuItem" Header="Send and open student folder">
+            <MenuItem x:Name="SendAndOpenDestFolderAllMenuItem" Header="To all PCs" Click="SendAndOpenDestFolderAllMenuItem_OnClick" />
+            <MenuItem x:Name="SendAndOpenDestFolderSelectedMenuItem" Header="To selected PCs" Click="SendAndOpenDestFolderSelectedMenuItem_OnClick" />
+          </MenuItem>
         </MenuItem>
         <MenuItem x:Name="BlockingCommandsMenuItem" Header="_Blocking">
           <MenuItem x:Name="LockBrowsersAllMenuItem" Header="Lock browser on all online student PCs" Click="LockBrowsersAllMenuItem_OnClick" />
@@ -190,6 +209,9 @@
           <MenuItem x:Name="ClearStudentWorkFolderAllMenuItem" Header="Clear work folder on all PCs" Click="ClearStudentWorkFolderAllMenuItem_OnClick" />
         </MenuItem>
       </MenuItem>
+      <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration">
+        <MenuItem x:Name="BasicSettingsMenuItem" Header="_Basic Settings" Click="SettingsButton_OnClick" />
+      </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="ProgramUpdatesMenuItem" Header="Program Updates">
           <MenuItem x:Name="CheckAgentUpdateMenuItem" Header="Check Agent Updates" Click="CheckSelectedAgentUpdateMenuItem_OnClick" />
@@ -208,18 +230,10 @@
             Padding="12"
             CornerRadius="10"
             Background="#17202A">
-      <Grid ColumnDefinitions="Auto,*">
-        <Button x:Name="SettingsButton" Grid.Column="0"
-                Margin="0,0,14,0"
-                Width="120"
-                Content="Settings"
-                Click="SettingsButton_OnClick" />
-        <TextBlock x:Name="StatusTextBlock"
-                   Grid.Column="1"
-                   VerticalAlignment="Center"
-                   TextWrapping="Wrap"
-                   Text="Ready. Use the Agents tab to select a student machine, then connect." />
-      </Grid>
+      <TextBlock x:Name="StatusTextBlock"
+                 VerticalAlignment="Center"
+                 TextWrapping="Wrap"
+                 Text="Ready. Use the Agents tab to select a student machine, then connect." />
     </Border>
 
     <TabControl x:Name="MainTabControl" Grid.Row="2" Margin="0,16,0,16">
@@ -527,9 +541,9 @@
             Padding="8"
             CornerRadius="10"
             Background="#36404A">
-      <TextBlock x:Name="FooterTextBlock" TextWrapping="Wrap"
-                 Foreground="#D4D9DF"
-                 Text="Avalonia client is cross-platform and now includes the same agent discovery flow as the Windows client, including manual agent groups, status filters, and auto-reconnect against the existing StudentAgent HTTP endpoint." />
+      <TextBlock x:Name="FooterTextBlock"
+                 TextWrapping="Wrap"
+                 Foreground="#D4D9DF" />
     </Border>
   </Grid>
 </Window>

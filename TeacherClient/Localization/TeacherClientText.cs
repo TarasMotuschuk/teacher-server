@@ -35,6 +35,10 @@ internal static class TeacherClientText
 
     public static string GroupCommandsMenu => IsUk ? "Групові команди" : "Group Commands";
 
+    public static string ConfigurationMenu => IsUk ? "Конфігурація" : "Configuration";
+
+    public static string BasicSettingsMenu => IsUk ? "Базові налаштування" : "Basic Settings";
+
     public static string ProgramUpdatesMenu => IsUk ? "Оновлення програми" : "Program Updates";
 
     public static string BlockingCommandsMenu => IsUk ? "Блокування" : "Blocking";
@@ -517,6 +521,28 @@ internal static class TeacherClientText
     public static string ClearDestinationFolderOnAllOnlineStudents => IsUk ? "Очистити папку призначення на всіх онлайн учнях" : "Clear destination folder on all online students";
 
     public static string DestinationFolderMenu => IsUk ? "Папка призначення" : "Destination Folder";
+
+    public static string GroupFileWorkMenu => IsUk ? "Робота з файлами" : "File operations";
+
+    public static string SendSubmenu => IsUk ? "Надіслати" : "Send";
+
+    public static string SendFileSubmenu => IsUk ? "Файл" : "File";
+
+    public static string SendFolderSubmenu => IsUk ? "Папка" : "Folder";
+
+    public static string ToAllPcsShort => IsUk ? "На всі ПК" : "To all PCs";
+
+    public static string ToSelectedPcsShort => IsUk ? "На вибрані ПК" : "To selected PCs";
+
+    public static string SendAndOpenWithDefaultAppMenu => IsUk ? "Надіслати та відкрити пов'язаною програмою" : "Send and open with default application";
+
+    public static string SendAndOpenStudentDestinationFolderMenu => IsUk ? "Надіслати та відкрити папку учню" : "Send and open student folder";
+
+    public static string PickFileForDistributionTitle => IsUk ? "Оберіть файл для надсилання" : "Choose file to send";
+
+    public static string PickFolderForDistributionTitle => IsUk ? "Оберіть папку для надсилання" : "Choose folder to send";
+
+    public static string ChooseFolderInsteadPrompt => IsUk ? "Обрати папку замість файлу?" : "Choose a folder instead of a file?";
 
     public static string LockBrowsersOnAllOnlineStudents => IsUk ? "Заблокувати браузер на всіх онлайн учнівських ПК" : "Lock browser on all online student PCs";
 

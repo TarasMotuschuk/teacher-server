@@ -180,6 +180,28 @@ internal static partial class CrossPlatformText
 
     public static string DestinationFolderMenu => IsUk ? "Папка призначення" : "Destination Folder";
 
+    public static string GroupFileWorkMenu => IsUk ? "Робота з файлами" : "File operations";
+
+    public static string SendSubmenu => IsUk ? "Надіслати" : "Send";
+
+    public static string SendFileSubmenu => IsUk ? "Файл" : "File";
+
+    public static string SendFolderSubmenu => IsUk ? "Папка" : "Folder";
+
+    public static string ToAllPcsShort => IsUk ? "На всі ПК" : "To all PCs";
+
+    public static string ToSelectedPcsShort => IsUk ? "На вибрані ПК" : "To selected PCs";
+
+    public static string SendAndOpenWithDefaultAppMenu => IsUk ? "Надіслати та відкрити пов'язаною програмою" : "Send and open with default application";
+
+    public static string SendAndOpenStudentDestinationFolderMenu => IsUk ? "Надіслати та відкрити папку учню" : "Send and open student folder";
+
+    public static string PickFileForDistributionTitle => IsUk ? "Оберіть файл для надсилання" : "Choose file to send";
+
+    public static string PickFolderForDistributionTitle => IsUk ? "Оберіть папку для надсилання" : "Choose folder to send";
+
+    public static string ChooseFolderInsteadPrompt => IsUk ? "Обрати папку замість файлу?" : "Choose a folder instead of a file?";
+
     public static string LockBrowsersOnAllOnlineStudents => IsUk ? "Заблокувати браузер на всіх онлайн учнівських ПК" : "Lock browser on all online student PCs";
 
     public static string LockInputOnAllOnlineStudents => IsUk ? "Заблокувати клавіатуру і мишу на всіх онлайн учнівських ПК" : "Lock keyboard and mouse on all online student PCs";
@@ -548,7 +570,9 @@ internal static partial class CrossPlatformText
 
     public static string CreateFolderError => IsUk ? "Помилка створення папки" : "Create folder error";
 
-    public static string FooterDescription => IsUk ? "Клієнт Avalonia є кросплатформним і підтримує той самий сценарій пошуку агентів, ручних записів, фільтрів статусу, автоперепідключення та групового копіювання, що й Windows-клієнт." : "Avalonia client is cross-platform and includes the same agent discovery, manual entries, status filtering, auto-reconnect, and bulk copy workflow as the Windows client.";
+    public static string ConfigurationMenu => IsUk ? "Конфігурація" : "Configuration";
+
+    public static string BasicSettingsMenu => IsUk ? "Базові налаштування" : "Basic Settings";
 
     public static string DisplayNameRequired => IsUk ? "Назва є обов'язковою." : "Display name is required.";
 

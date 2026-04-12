@@ -10,6 +10,13 @@ namespace TeacherClient;
 
 public partial class MainForm : Form
 {
+    private enum DistributionOpenFollowUp
+    {
+        None,
+        OpenSentPath,
+        OpenDestinationRoot,
+    }
+
     private const int GroupCommandColumnIndex = 0;
     private const int BrowserLockColumnIndex = 1;
     private const int InputLockColumnIndex = 2;
@@ -43,6 +50,7 @@ public partial class MainForm : Form
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
+    private int _lastDiscoveredAgentCount;
     private string? _remoteManagementSelectedAgentId;
 
     public MainForm()
@@ -68,6 +76,7 @@ public partial class MainForm : Form
         InitializeRegistryTree();
         _manualAgents = _manualAgentStore.Load().ToList();
         _frequentPrograms = _frequentProgramStore.Load().ToList();
+        RefreshFooterSummary();
         groupFilterComboBox.Items.Add(TeacherClientText.AllGroups);
         groupFilterComboBox.SelectedIndex = 0;
         statusFilterComboBox.Items.AddRange([TeacherClientText.AllStatuses, TeacherClientText.Online, TeacherClientText.Offline, TeacherClientText.Unknown]);
@@ -214,6 +223,7 @@ public partial class MainForm : Form
         _clientSettingsStore.Save(_clientSettings);
         TeacherClientText.SetLanguage(_clientSettings.Language);
         SetStatus(TeacherClientText.SettingsSaved);
+        RefreshFooterSummary();
 
         if (_allAgents.Count > 0)
         {
@@ -750,6 +760,7 @@ public partial class MainForm : Form
             using CursorScope? cursorScope = showBusyCursor ? new CursorScope(this) : null;
             var prevGroupSelection = _allAgents.ToDictionary(x => x.AgentId, x => x.GroupCommandSelected, StringComparer.OrdinalIgnoreCase);
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
+            _lastDiscoveredAgentCount = discoveredAgents.Count;
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
@@ -761,6 +772,7 @@ public partial class MainForm : Form
                     row.GroupCommandSelected = sel;
                 }
             }
+
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
             await RefreshRemoteManagementCardsAsync();
@@ -769,6 +781,7 @@ public partial class MainForm : Form
             SetStatus(_allAgents.Count == 0
                 ? TeacherClientText.NoAgentsAvailable
                 : BuildAgentAvailabilityStatus(discoveredAgents.Count, _manualAgents.Count));
+            RefreshFooterSummary();
         }
         catch (Exception ex)
         {
@@ -1579,6 +1592,226 @@ public partial class MainForm : Form
         await DistributeLocalSelectionAsync(targetAgents);
     }
 
+    private async void SendFileToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = PickLocalFileForDistribution();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendFileToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = PickLocalFileForDistribution();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendFolderToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = PickLocalFolderForDistribution();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendFolderToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = PickLocalFolderForDistribution();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenWithDefaultToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = PickLocalFileOrFolderWithFallback();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.OpenSentPath);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenWithDefaultToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = PickLocalFileOrFolderWithFallback();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.OpenSentPath);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenDestinationFolderToAllOnlineStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = PickLocalFileOrFolderWithFallback();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.OpenDestinationRoot);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenDestinationFolderToSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(TeacherClientText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = PickLocalFileOrFolderWithFallback();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.OpenDestinationRoot);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
     private async void ClearSelectedFolderOnSelectedStudentsMenuItem_Click(object? sender, EventArgs e)
     {
         var targetAgents = GetSelectedAgents();
@@ -2143,6 +2376,57 @@ public partial class MainForm : Form
             return;
         }
 
+        await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+    }
+
+    private string? PickLocalFileForDistribution()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = TeacherClientText.PickFileForDistributionTitle,
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+
+        return dialog.ShowDialog(this) == DialogResult.OK ? dialog.FileName : null;
+    }
+
+    private string? PickLocalFolderForDistribution()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = TeacherClientText.PickFolderForDistributionTitle,
+        };
+
+        return dialog.ShowDialog(this) == DialogResult.OK ? dialog.SelectedPath : null;
+    }
+
+    private string? PickLocalFileOrFolderWithFallback()
+    {
+        var file = PickLocalFileForDistribution();
+        if (!string.IsNullOrWhiteSpace(file))
+        {
+            return file;
+        }
+
+        if (MessageBox.Show(
+                this,
+                TeacherClientText.ChooseFolderInsteadPrompt,
+                TeacherClientText.GroupCommandsMenu,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            return null;
+        }
+
+        return PickLocalFolderForDistribution();
+    }
+
+    private async Task DistributeLocalEntryAsync(
+        FileSystemEntryDto entry,
+        IReadOnlyList<DiscoveredAgentRow> targetAgents,
+        DistributionOpenFollowUp followUp)
+    {
         var destinationRoot = GetConfiguredDistributionDestinationPath();
         if (string.IsNullOrWhiteSpace(destinationRoot))
         {
@@ -2152,6 +2436,10 @@ public partial class MainForm : Form
 
         SetStatus(TeacherClientText.PreparingDistributionPlan);
         var plan = LocalDistributionPlanner.Build(entry, destinationRoot);
+        string? pathToOpenSent = followUp == DistributionOpenFollowUp.OpenSentPath
+            ? LocalDistributionOpenPaths.GetRemotePathToOpenAfterDistribution(plan)
+            : null;
+        var pathToOpenDest = followUp == DistributionOpenFollowUp.OpenDestinationRoot ? destinationRoot : null;
 
         var failures = new List<string>();
         var succeeded = 0;
@@ -2171,6 +2459,28 @@ public partial class MainForm : Form
                     targetAgents.Count,
                     SetStatus);
                 succeeded++;
+                if (pathToOpenSent is not null)
+                {
+                    try
+                    {
+                        await client.OpenRemoteEntryAsync(pathToOpenSent);
+                    }
+                    catch (Exception openEx)
+                    {
+                        failures.Add($"{agent.MachineName}: {openEx.Message}");
+                    }
+                }
+                else if (pathToOpenDest is not null)
+                {
+                    try
+                    {
+                        await client.OpenRemoteEntryAsync(pathToOpenDest);
+                    }
+                    catch (Exception openEx)
+                    {
+                        failures.Add($"{agent.MachineName}: {openEx.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -2711,6 +3021,7 @@ public partial class MainForm : Form
             }
 
             SetStatus(TeacherClientText.FormatConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
+            RefreshFooterSummary();
             await LoadProcessesAsync();
             await LoadLocalDirectoryAsync(localPathTextBox.Text);
             await LoadRemoteDirectoryAsync(remotePathTextBox.Text);
@@ -3273,6 +3584,11 @@ public partial class MainForm : Form
         return string.IsNullOrWhiteSpace(_lastConnectedMachineName)
             ? TeacherClientText.FormatAvailableAgents(_allAgents.Count, discoveredCount, manualCount)
             : TeacherClientText.FormatAvailableAgentsWithConnected(_allAgents.Count, discoveredCount, manualCount, _lastConnectedMachineName);
+    }
+
+    private void RefreshFooterSummary()
+    {
+        footerLabel.Text = BuildAgentAvailabilityStatus(_lastDiscoveredAgentCount, _manualAgents.Count);
     }
 
     private static string NormalizeUserDisplay(string? currentUser, string machineName)
