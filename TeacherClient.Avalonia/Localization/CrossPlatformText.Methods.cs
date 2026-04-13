@@ -27,12 +27,12 @@ internal static partial class CrossPlatformText
 
     public static string StudentPolicySettingsAppliedWithFailures(int succeeded, int failures) => IsUk ? $"Policy settings застосовано: успішно {succeeded}, з помилками {failures}" : $"Applied policy settings: {succeeded} succeeded, {failures} failed";
 
-    public static string MachineSummary(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
+    public static string MachineSummary(int total, int discovered, int manual) => IsUk ? $"Доступно учнівських ПК: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available student PCs: {total} total, {discovered} discovered, {manual} manual";
 
     public static string MachineSummaryWithConnected(int total, int discovered, int manual, string machine)
         => IsUk
-            ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
-            : $"Available agents: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
+            ? $"Доступно учнівських ПК: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
+            : $"Available student PCs: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
 
     public static string WindowsRestrictionName(WindowsRestrictionKind restriction)
         => restriction switch
@@ -105,15 +105,15 @@ internal static partial class CrossPlatformText
 
     public static string InputLockDisabledFor(string machine) => IsUk ? $"Блокування клавіатури і миші вимкнено на {machine}" : $"Keyboard and mouse lock disabled on {machine}";
 
-    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ручний агент {name}?" : $"Remove manual agent {name}?";
+    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ПК вручну {name}?" : $"Remove manual PC {name}?";
 
-    public static string AddedManualAgent(string name) => IsUk ? $"Додано ручний агент {name}" : $"Added manual agent {name}";
+    public static string AddedManualAgent(string name) => IsUk ? $"Додано ПК вручну {name}" : $"Added manual PC {name}";
 
-    public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
+    public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ПК вручну {name}" : $"Updated manual PC {name}";
 
-    public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
+    public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ПК вручну {name}" : $"Removed manual PC {name}";
 
-    public static string ConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";
+    public static string ConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} ПК {machine} ({user})  v{version}" : $"Connected to {source} PC {machine} ({user})  v{version}";
 
     public static string DesktopIconLayoutSaved(string machine, int count) => IsUk ? $"{machine}: розкладку іконок збережено ({count})" : $"{machine}: desktop icon layout saved ({count})";
 
@@ -166,8 +166,8 @@ internal static partial class CrossPlatformText
         : $"Start the update on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
 
     public static string BulkAgentUpdateProgress(string machine, int index, int total) => IsUk
-        ? $"Оновлення агента: {machine} ({index}/{total})"
-        : $"Updating agent: {machine} ({index}/{total})";
+        ? $"Оновлення учнівського ПК: {machine} ({index}/{total})"
+        : $"Updating student PC: {machine} ({index}/{total})";
 
     public static string BulkAgentUpdateCompleted(int succeeded) => IsUk
         ? $"Оновлення запущено на {succeeded} учн. ПК"
@@ -241,8 +241,8 @@ internal static partial class CrossPlatformText
 
     public static string DistributionProgress(string agent, string item, int agentIndex, int agentCount, int fileIndex, int fileCount)
         => IsUk
-            ? $"Розсилка {item} -> {agent} (агент {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
-            : $"Distributing {item} -> {agent} (agent {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
+            ? $"Розсилка {item} -> {agent} (ПК {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
+            : $"Distributing {item} -> {agent} (PC {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
 
     public static string RemoteCommandPrompt(int count, bool selectedOnly)
         => IsUk
@@ -374,8 +374,8 @@ internal static partial class CrossPlatformText
 
     public static string ClearingDirectoryProgress(string agent, string path, int agentIndex, int agentCount)
         => IsUk
-            ? $"Очищення {path} на {agent} (агент {agentIndex}/{agentCount})"
-            : $"Clearing {path} on {agent} (agent {agentIndex}/{agentCount})";
+            ? $"Очищення {path} на {agent} (ПК {agentIndex}/{agentCount})"
+            : $"Clearing {path} on {agent} (PC {agentIndex}/{agentCount})";
 
     public static string ClearDirectoryCompleted(string name, int count)
         => IsUk ? $"Очищено вміст папки {name} на {count} учн. ПК" : $"Cleared folder contents {name} on {count} student machines";

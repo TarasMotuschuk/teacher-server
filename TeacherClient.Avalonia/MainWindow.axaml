@@ -125,11 +125,11 @@
     <Menu Grid.Row="0" Margin="0,0,0,12">
       <MenuItem x:Name="ConnectionMenuItem" Header="_Connection">
           <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
-          <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
+          <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected PC" Click="ConnectSelectedAgentButton_OnClick" />
           <Separator />
-          <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
-        <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
-        <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
+          <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual PC" Click="AddManualAgentButton_OnClick" />
+        <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual PC" Click="EditManualAgentButton_OnClick" />
+        <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual PC" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
       <MenuItem x:Name="GroupCommandsMenuItem" Header="_Group Commands">
         <MenuItem x:Name="GroupFileWorkMenuItem" Header="_File operations">
@@ -240,7 +240,7 @@
       </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="ProgramUpdatesMenuItem" Header="Program Updates">
-          <MenuItem x:Name="CheckAgentUpdateMenuItem" Header="Check Agent Updates" Click="CheckSelectedAgentUpdateMenuItem_OnClick" />
+          <MenuItem x:Name="CheckAgentUpdateMenuItem" Header="Check PC updates" Click="CheckSelectedAgentUpdateMenuItem_OnClick" />
           <MenuItem x:Name="StartAgentUpdateMenuItem" Header="Update Selected PC" Click="StartSelectedAgentUpdateMenuItem_OnClick" />
           <MenuItem x:Name="UpdateSelectedMenuItem" Header="Update selected PCs" Click="UpdateSelectedMenuItem_OnClick" />
           <MenuItem x:Name="UpdateAllMenuItem" Header="Update all online PCs" Click="UpdateAllMenuItem_OnClick" />

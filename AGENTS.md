@@ -60,9 +60,12 @@ This repository contains a Windows-oriented classroom administration solution cu
 
 ## Documentation
 
-- Keep `README.md` accurate when capabilities, setup steps, or security assumptions change.
-- Append user-visible milestones to `CHANGELOG.md`.
-- When making functional or UX changes, explicitly describe those changes in documentation and update `README.md` if user-visible behavior, setup, configuration, or workflows changed.
+- Keep documentation accurate when capabilities, setup steps, configuration UX, or operational assumptions change.
+- Maintain these three documentation files together:
+  - `README.md`: short, SEO-friendly product overview for users and GitHub visitors.
+  - `README.dev.md`: full technical reference (endpoints, updates, packaging, scripts, dev notes).
+  - `CHANGELOG.md`: chronological log of user-visible changes by version.
+- When making functional or UX changes, update `README.md` and `README.dev.md` as appropriate, and append user-visible milestones to `CHANGELOG.md`.
 
 ## Saved commands
 

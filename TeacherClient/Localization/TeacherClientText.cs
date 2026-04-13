@@ -63,9 +63,9 @@ internal static partial class TeacherClientText
 
     public static string RefreshBoth => IsUk ? "Оновити обидві панелі" : "Refresh Both";
 
-    public static string Upload => IsUk ? "Завантажити на агент" : "Upload";
+    public static string Upload => IsUk ? "Завантажити на учнівський ПК" : "Upload";
 
-    public static string Download => IsUk ? "Скачати з агента" : "Download";
+    public static string Download => IsUk ? "Скачати з учнівського ПК" : "Download";
 
     public static string OpenLocal => IsUk ? "Відкрити локально" : "Open Local";
 
@@ -239,7 +239,7 @@ internal static partial class TeacherClientText
 
     public static string Language => IsUk ? "Мова" : "Language";
 
-    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності агентів і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт. Інтервали нижче зберігаються на ПК викладача і після збереження застосовуються до всіх онлайн учнівських ПК." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work. The intervals below are stored on the teacher PC and are applied to all online student PCs after saving.";
+    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності учнівських ПК і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт. Інтервали нижче зберігаються на ПК викладача і після збереження застосовуються до всіх онлайн учнівських ПК." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work. The intervals below are stored on the teacher PC and are applied to all online student PCs after saving.";
 
     public static string Save => IsUk ? "Зберегти" : "Save";
 
@@ -259,7 +259,7 @@ internal static partial class TeacherClientText
 
     public static string Ok => "OK";
 
-    public static string ManualAgentTitle => IsUk ? "Ручний агент" : "Manual Agent";
+    public static string ManualAgentTitle => IsUk ? "ПК вручну" : "Manual PC";
 
     public static string RemoteCommandTitle => IsUk ? "Віддалена команда" : "Remote Command";
 
@@ -331,9 +331,9 @@ internal static partial class TeacherClientText
 
     public static string Confirm => IsUk ? "Підтвердження" : "Confirm";
 
-    public static string NoAgentsAvailable => IsUk ? "Немає доступних агентів." : "No agents available.";
+    public static string NoAgentsAvailable => IsUk ? "Немає доступних учнівських ПК." : "No student PCs available.";
 
-    public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть агент." : "Choose an agent first.";
+    public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть учнівський ПК." : "Choose a student PC first.";
 
     public static string ConnectionFailed => IsUk ? "Підключення не вдалося." : "Connection failed.";
 
@@ -377,7 +377,7 @@ internal static partial class TeacherClientText
 
     public static string ProcessLoadError => IsUk ? "Помилка завантаження процесів" : "Process load error";
 
-    public static string DiscoveryError => IsUk ? "Помилка пошуку агентів" : "Discovery error";
+    public static string DiscoveryError => IsUk ? "Помилка пошуку учнівських ПК" : "Discovery error";
 
     public static string UploadError => IsUk ? "Помилка завантаження файлу" : "Upload error";
 
@@ -399,9 +399,9 @@ internal static partial class TeacherClientText
 
     public static string ChooseLocalFileOrFolderToDistribute => IsUk ? "Виберіть локальний файл або папку для розсилки." : "Choose a local file or folder to distribute.";
 
-    public static string ChooseAgentsForDistribution => IsUk ? "Виберіть одного або кількох агентів для розсилки." : "Choose one or more agents for distribution.";
+    public static string ChooseAgentsForDistribution => IsUk ? "Виберіть один або кілька учнівських ПК для розсилки." : "Choose one or more student PCs for distribution.";
 
-    public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн-агентів для групового копіювання." : "No online agents are available for bulk copy.";
+    public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн учнівських ПК для групового копіювання." : "No online student PCs are available for bulk copy.";
 
     public static string WindowsRestrictionName(WindowsRestrictionKind restriction)
         => restriction switch
@@ -482,7 +482,7 @@ internal static partial class TeacherClientText
 
     public static string BrowserLockToggleFailed => IsUk ? "Не вдалося оновити блокування браузера" : "Failed to update browser lock";
 
-    public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн-агентів." : "Browser lock can only be changed for online agents.";
+    public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн учнівських ПК." : "Browser lock can only be changed for online student PCs.";
 
     public static string InputLockEnabledFor(string machine) => IsUk ? $"Блокування клавіатури і миші увімкнено на {machine}" : $"Keyboard and mouse lock enabled on {machine}";
 
@@ -490,7 +490,7 @@ internal static partial class TeacherClientText
 
     public static string InputLockToggleFailed => IsUk ? "Не вдалося оновити блокування клавіатури і миші" : "Failed to update keyboard and mouse lock";
 
-    public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн-агентів." : "Keyboard and mouse lock can only be changed for online agents.";
+    public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн учнівських ПК." : "Keyboard and mouse lock can only be changed for online student PCs.";
 
     public static string DistributionDestinationPathRequired => IsUk ? "У налаштуваннях задайте папку призначення на учнівських ПК." : "Set the student destination folder in settings first.";
 
@@ -624,7 +624,7 @@ internal static partial class TeacherClientText
 
     public static string BulkCollectError => IsUk ? "Помилка групового збору робіт" : "Bulk work collection error";
 
-    public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
+    public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн учнівських ПК для групової команди." : "No online student PCs are available for the group command.";
 
     public static string RemoteCommandPrompt(int count, bool selectedOnly)
         => IsUk
@@ -772,8 +772,8 @@ internal static partial class TeacherClientText
 
     public static string ClearingDirectoryProgress(string agent, string path, int agentIndex, int agentCount)
         => IsUk
-            ? $"Очищення {path} на {agent} (агент {agentIndex}/{agentCount})"
-            : $"Clearing {path} on {agent} (agent {agentIndex}/{agentCount})";
+            ? $"Очищення {path} на {agent} (ПК {agentIndex}/{agentCount})"
+            : $"Clearing {path} on {agent} (PC {agentIndex}/{agentCount})";
 
     public static string ClearDirectoryCompleted(string name, int count)
         => IsUk ? $"Очищено вміст папки {name} на {count} учн. ПК" : $"Cleared folder contents {name} on {count} student machines";
@@ -796,20 +796,20 @@ internal static partial class TeacherClientText
 
     public static string DistributionProgress(string agent, string item, int agentIndex, int agentCount, int fileIndex, int fileCount)
         => IsUk
-            ? $"Розсилка {item} -> {agent} (агент {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
-            : $"Distributing {item} -> {agent} (agent {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
+            ? $"Розсилка {item} -> {agent} (ПК {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
+            : $"Distributing {item} -> {agent} (PC {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
 
-    public static string FormatAddedManualAgent(string name) => IsUk ? $"Додано ручний агент {name}" : $"Added manual agent {name}";
+    public static string FormatAddedManualAgent(string name) => IsUk ? $"Додано ПК вручну {name}" : $"Added manual PC {name}";
 
-    public static string FormatUpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
+    public static string FormatUpdatedManualAgent(string name) => IsUk ? $"Оновлено ПК вручну {name}" : $"Updated manual PC {name}";
 
-    public static string FormatRemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
+    public static string FormatRemovedManualAgent(string name) => IsUk ? $"Видалено ПК вручну {name}" : $"Removed manual PC {name}";
 
-    public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ручний агент." : "Choose a manual agent first.";
+    public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ПК вручну." : "Choose a manual PC first.";
 
-    public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";
+    public static string ManualAgentNotFound => IsUk ? "ПК вручну не знайдено." : "Manual PC not found.";
 
-    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ручний агент {name}?" : $"Remove manual agent {name}?";
+    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ПК вручну {name}?" : $"Remove manual PC {name}?";
 
     public static string SettingsSaved => IsUk ? "Налаштування збережено." : "Settings saved.";
 
@@ -819,17 +819,17 @@ internal static partial class TeacherClientText
 
     public static string StudentPolicySettingsApplyFailed => IsUk ? "Не вдалося застосувати policy settings до учнівських ПК" : "Failed to apply policy settings to student PCs";
 
-    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення агентів..." : "Check Agent Updates...";
+    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення учнівських ПК..." : "Check PC updates...";
 
     public static string CheckForClientUpdate => IsUk ? "Перевірити оновлення клієнта..." : "Check for Client Updates...";
 
     public static string StartAgentUpdate => IsUk ? "Оновити поточний підключений ПК" : "Update Current Connected PC";
 
-    public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн-агент." : "The agent must be online to update.";
+    public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн учнівський ПК." : "The student PC must be online to update.";
 
-    public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення агента" : "Failed to check for agent updates";
+    public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення учнівського ПК" : "Failed to check for PC updates";
 
-    public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення агента" : "Failed to start agent update";
+    public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення учнівського ПК" : "Failed to start PC update";
 
     public static string UpdatePreparationTitle => IsUk ? "Підготовка оновлення" : "Update Preparation";
 
@@ -888,8 +888,8 @@ internal static partial class TeacherClientText
         : $"Start the update on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
 
     public static string BulkAgentUpdateProgress(string machine, int index, int total) => IsUk
-        ? $"Оновлення агента: {machine} ({index}/{total})"
-        : $"Updating agent: {machine} ({index}/{total})";
+        ? $"Оновлення учнівського ПК: {machine} ({index}/{total})"
+        : $"Updating student PC: {machine} ({index}/{total})";
 
     public static string BulkAgentUpdateCompleted(int succeeded) => IsUk
         ? $"Оновлення запущено на {succeeded} учн. ПК"
@@ -948,12 +948,12 @@ internal static partial class TeacherClientText
 
     public static string FormatLoadedProcesses(int count) => IsUk ? $"Завантажено процесів: {count}" : $"Loaded {count} processes";
 
-    public static string FormatAvailableAgents(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
+    public static string FormatAvailableAgents(int total, int discovered, int manual) => IsUk ? $"Доступно учнівських ПК: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available student PCs: {total} total, {discovered} discovered, {manual} manual";
 
     public static string FormatAvailableAgentsWithConnected(int total, int discovered, int manual, string machine)
         => IsUk
-            ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
-            : $"Available agents: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
+            ? $"Доступно учнівських ПК: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
+            : $"Available student PCs: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
 
     public static string FormatUploaded(string name) => IsUk ? $"Завантажено {name}" : $"Uploaded {name}";
 
@@ -977,7 +977,7 @@ internal static partial class TeacherClientText
 
     public static string DeleteRemoteEntryPrompt(string name) => IsUk ? $"Видалити віддалений елемент {name}?" : $"Delete remote entry {name}?";
 
-    public static string FormatConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";
+    public static string FormatConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} ПК {machine} ({user})  v{version}" : $"Connected to {source} PC {machine} ({user})  v{version}";
 
     public static string RegistryTab => IsUk ? "Реєстр" : "Registry";
 

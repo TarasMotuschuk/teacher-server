@@ -276,7 +276,7 @@ internal static partial class CrossPlatformText
 
     public static string Language => IsUk ? "Мова" : "Language";
 
-    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності агентів і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт. Інтервали нижче зберігаються на ПК викладача і після збереження застосовуються до всіх онлайн учнівських ПК." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work. The intervals below are stored on the teacher PC and are applied to all online student PCs after saving.";
+    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності учнівських ПК і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт. Інтервали нижче зберігаються на ПК викладача і після збереження застосовуються до всіх онлайн учнівських ПК." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work. The intervals below are stored on the teacher PC and are applied to all online student PCs after saving.";
 
     public static string Save => IsUk ? "Зберегти" : "Save";
 
@@ -292,7 +292,7 @@ internal static partial class CrossPlatformText
 
     public static string StudentPolicySettingsApplyFailed => IsUk ? "Не вдалося застосувати policy settings до учнівських ПК" : "Failed to apply policy settings to student PCs";
 
-    public static string ManualAgentTitle => IsUk ? "Ручний агент" : "Manual Agent";
+    public static string ManualAgentTitle => IsUk ? "ПК вручну" : "Manual PC";
 
     public static string RemoteCommandTitle => IsUk ? "Віддалена команда" : "Remote Command";
 
@@ -364,45 +364,45 @@ internal static partial class CrossPlatformText
 
     public static string Copyright => "© 2026 Taras Motuschuk. All rights reserved. Email: mtomekt@gmail.com";
 
-    public static string NoAgentsAvailable => IsUk ? "Немає доступних агентів." : "No agents available.";
+    public static string NoAgentsAvailable => IsUk ? "Немає доступних учнівських ПК." : "No student PCs available.";
 
-    public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть агент." : "Choose an agent first.";
+    public static string ChooseAgentFirst => IsUk ? "Спочатку виберіть учнівський ПК." : "Choose a student PC first.";
 
-    public static string ChooseAgentsForDistribution => IsUk ? "Виберіть одного або кількох агентів для розсилки." : "Choose one or more agents for distribution.";
+    public static string ChooseAgentsForDistribution => IsUk ? "Виберіть один або кілька учнівських ПК для розсилки." : "Choose one or more student PCs for distribution.";
 
-    public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн-агентів для групового копіювання." : "No online agents are available for bulk copy.";
+    public static string NoOnlineAgentsAvailableForDistribution => IsUk ? "Немає онлайн учнівських ПК для групового копіювання." : "No online student PCs are available for bulk copy.";
 
     public static string BrowserLockToggleFailed => IsUk ? "Не вдалося оновити блокування браузера" : "Failed to update browser lock";
 
-    public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн-агентів." : "Browser lock can only be changed for online agents.";
+    public static string BrowserLockRequiresOnlineAgent => IsUk ? "Блокування браузера можна змінювати лише для онлайн учнівських ПК." : "Browser lock can only be changed for online student PCs.";
 
     public static string InputLockToggleFailed => IsUk ? "Не вдалося оновити блокування клавіатури і миші" : "Failed to update keyboard and mouse lock";
 
-    public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн-агентів." : "Keyboard and mouse lock can only be changed for online agents.";
+    public static string InputLockRequiresOnlineAgent => IsUk ? "Блокування клавіатури і миші можна змінювати лише для онлайн учнівських ПК." : "Keyboard and mouse lock can only be changed for online student PCs.";
 
     public static string ConnectionFailed => IsUk ? "Підключення не вдалося." : "Connection failed.";
 
     public static string ConnectFromAgentsTabFirst => IsUk ? "Спочатку підключіться до ПК на вкладці учнівських ПК." : "Connect to a PC from the Student PCs tab first.";
 
-    public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ручний агент." : "Choose a manual agent first.";
+    public static string ChooseManualAgentFirst => IsUk ? "Спочатку виберіть ПК вручну." : "Choose a manual PC first.";
 
-    public static string ManualAgentNotFound => IsUk ? "Ручний агент не знайдено." : "Manual agent not found.";
+    public static string ManualAgentNotFound => IsUk ? "ПК вручну не знайдено." : "Manual PC not found.";
 
-    public static string RemoveManualAgentTitle => IsUk ? "Видалити ручний агент" : "Remove Manual Agent";
+    public static string RemoveManualAgentTitle => IsUk ? "Видалити ПК вручну" : "Remove Manual PC";
 
     public static string DesktopIconLayoutError => IsUk ? "Помилка операції з іконками робочого стола" : "Desktop icon operation error";
 
-    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення агентів..." : "Check Agent Updates...";
+    public static string CheckForAgentUpdate => IsUk ? "Перевірити оновлення учнівських ПК..." : "Check PC updates...";
 
     public static string CheckForClientUpdate => IsUk ? "Перевірити оновлення клієнта..." : "Check for Client Updates...";
 
     public static string StartAgentUpdate => IsUk ? "Оновити поточний підключений ПК" : "Update Current Connected PC";
 
-    public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн-агент." : "The agent must be online to update.";
+    public static string AgentUpdateRequiresOnlineAgent => IsUk ? "Для оновлення потрібен онлайн учнівський ПК." : "The student PC must be online to update.";
 
-    public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення агента" : "Failed to check for agent updates";
+    public static string AgentUpdateCheckFailed => IsUk ? "Не вдалося перевірити оновлення учнівського ПК" : "Failed to check for PC updates";
 
-    public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення агента" : "Failed to start agent update";
+    public static string AgentUpdateStartFailed => IsUk ? "Не вдалося запустити оновлення учнівського ПК" : "Failed to start PC update";
 
     public static string UpdatePreparationTitle => IsUk ? "Підготовка оновлення" : "Update Preparation";
 
@@ -496,7 +496,7 @@ internal static partial class CrossPlatformText
 
     public static string ProcessLoadError => IsUk ? "Помилка завантаження процесів" : "Process load error";
 
-    public static string DiscoveryError => IsUk ? "Помилка пошуку агентів" : "Discovery error";
+    public static string DiscoveryError => IsUk ? "Помилка пошуку учнівських ПК" : "Discovery error";
 
     public static string PanelsRefreshed => IsUk ? "Панелі оновлено" : "Panels refreshed";
 
@@ -530,7 +530,7 @@ internal static partial class CrossPlatformText
 
     public static string PreparingDistributionPlan => IsUk ? "Підготовка плану копіювання..." : "Preparing distribution plan...";
 
-    public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн-агентів для групової команди." : "No online agents are available for the group command.";
+    public static string NoOnlineAgentsAvailableForGroupCommand => IsUk ? "Немає онлайн учнівських ПК для групової команди." : "No online student PCs are available for the group command.";
 
     public static string BulkBrowserLockError => IsUk ? "Помилка групового блокування браузера" : "Bulk browser lock error";
 

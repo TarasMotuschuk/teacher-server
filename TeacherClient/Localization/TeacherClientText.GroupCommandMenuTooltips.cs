@@ -87,8 +87,8 @@ internal static partial class TeacherClientText
         : "Remove keyboard and mouse lock on all online student PCs.";
 
     public static string MenuTip_GroupPolicies => IsUk
-        ? "Застосування обмежень Windows (як групові політики) на учнівських ПК через службу агента."
-        : "Apply Windows-style policy restrictions on student PCs via the agent service.";
+        ? "Застосування обмежень Windows (як групові політики) на учнівських ПК через службу StudentAgent."
+        : "Apply Windows-style policy restrictions on student PCs via the StudentAgent service.";
 
     public static string MenuTip_RestrictionTaskManager => IsUk
         ? "Обмежити відкриття диспетчера задач (Task Manager)."

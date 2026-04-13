@@ -5,7 +5,7 @@
         Height="430"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
-        Title="Manual Agent">
+        Title="Manual PC">
   <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="120,*">
     <TextBlock x:Name="DisplayNameLabel" Grid.Row="0" Grid.Column="0" Margin="0,12,12,0" VerticalAlignment="Center" Text="Display name" />
     <TextBox x:Name="DisplayNameTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,12" />
