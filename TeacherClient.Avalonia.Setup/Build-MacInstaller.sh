@@ -16,7 +16,7 @@ VERSION="${VERSION:-${DEFAULT_VERSION:-1.0.0}}"
 PUBLISH_DIR="$SETUP_ROOT/artifacts/publish"
 APP_DIR="$SETUP_ROOT/artifacts/$APP_NAME"
 PKG_DIR="$SETUP_ROOT/dist"
-PKG_PATH="$PKG_DIR/ClassCommander-macos.pkg"
+PKG_PATH="$PKG_DIR/ClassCommander.Setup.pkg"
 ICON_PATH="$REPO_ROOT/Branding/ClassCommander-icon.icns"
 STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/classcommander-pkg.XXXXXX")"
 

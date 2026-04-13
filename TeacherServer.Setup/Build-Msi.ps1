@@ -1,7 +1,8 @@
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
-    [string]$OutputDirectory = (Join-Path $PSScriptRoot "dist")
+    [string]$OutputDirectory = (Join-Path $PSScriptRoot "dist"),
+    [string]$OutputFileName = "ClassCommander.Setup.msi"
 )
 
 $root = Split-Path $PSScriptRoot -Parent
@@ -98,4 +99,14 @@ if ($LASTEXITCODE -ne 0) {
     throw "Building TeacherServer.Setup MSI failed."
 }
 
-Write-Host "MSI build completed. Output: $OutputDirectory"
+$builtMsi = Get-ChildItem -Path $OutputDirectory -Filter "*.msi" | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+if (-not $builtMsi) {
+    throw "MSI build completed but no .msi file was found in $OutputDirectory."
+}
+
+$finalMsiPath = Join-Path $OutputDirectory $OutputFileName
+if ($builtMsi.FullName -ne $finalMsiPath) {
+    Move-Item -Force -Path $builtMsi.FullName -Destination $finalMsiPath
+}
+
+Write-Host "MSI build completed. Output: $finalMsiPath"

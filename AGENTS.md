@@ -22,8 +22,9 @@ This repository contains a Windows-oriented classroom administration solution cu
 - Preserve compatibility with the current Windows-oriented app model. When the active task is the ongoing framework migration, prefer moving changed projects and shared dependencies forward to `.NET 10` together instead of mixing `.NET 8` and `.NET 10` targets unnecessarily.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
 - Unless the task explicitly calls for a different naming scheme, new git branches may use `feature/*` or `fix/*` prefixes by default.
-- When changing API shapes, update the server implementation and both teacher clients together.
-- Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
+- When changing API shapes, update the server implementation and shared contracts so the active teacher client and server stay aligned.
+- `TeacherClient` (Windows Forms) is in maintenance-only mode. Prefer implementing all new teacher-facing features in `TeacherClient.Avalonia`.
+- Only mirror changes into `TeacherClient` when the task explicitly calls for WinForms support, or when the change is a critical bug fix, security fix, packaging fix, or other maintenance-only work needed to keep the legacy client functional.
 - Treat security improvements as welcome defaults: TLS, stronger auth, audit logging, and path restrictions are in scope. Covert control capabilities are not.
 
 ## Branding
@@ -35,9 +36,9 @@ This repository contains a Windows-oriented classroom administration solution cu
 ## Code style
 
 - Follow the existing C# style with file-scoped namespaces, records for DTOs, and concise minimal API handlers.
-- Keep UI code in `TeacherClient` practical and maintainable; avoid large hidden abstractions unless they clearly improve readability.
+- Keep UI code in `TeacherClient` practical and maintainable for maintenance work; avoid investing in large new WinForms abstractions or feature work unless explicitly requested.
 - Add comments sparingly and only where the logic is non-obvious.
-- **Edits in one pass:** When changing a file, apply repo conventions immediately so CI does not fail on a follow-up fix. For C#, that includes correct **`using` order** (e.g. `System.*` first, then other namespaces alphabetically—`dotnet format` aligns with this) and matching existing patterns in the same file. When the same behavior exists in **both** `TeacherClient` and `TeacherClient.Avalonia`, update **both** in the same task unless the user asked for a single platform only.
+- **Edits in one pass:** When changing a file, apply repo conventions immediately so CI does not fail on a follow-up fix. For C#, that includes correct **`using` order** (e.g. `System.*` first, then other namespaces alphabetically—`dotnet format` aligns with this) and matching existing patterns in the same file. Default to `TeacherClient.Avalonia` as the primary teacher UI. Update both teacher clients only when the task explicitly requires parity or when a maintenance-only WinForms fix is needed.
 
 ## Validation
 

@@ -11,8 +11,8 @@
 `ClassCommander` is a **teacher-controlled classroom administration** solution for Windows student PCs, with:
 
 - a Windows service + session UI on the student PC (`StudentAgent.*`)
-- a teacher client on Windows (`TeacherClient`, WinForms)
-- a teacher client on macOS/Linux/Windows (`TeacherClient.Avalonia`, Avalonia)
+- a legacy maintenance-only teacher client on Windows (`TeacherClient`, WinForms)
+- a primary teacher client on macOS/Linux/Windows (`TeacherClient.Avalonia`, Avalonia)
 
 This project keeps an explicit safety boundary: **visible, authorized classroom administration only** (no stealth monitoring, hidden persistence, or covert control flows).
 
@@ -68,8 +68,8 @@ Avalonia teacher client (macOS example):
   - `StudentAgent.UIHost`: visible session UI (tray, dialogs, visible overlays/banners).
   - `StudentAgent.VncHost`: session-aware VNC host for visible remote viewing/control.
 - **Teacher PC**
-  - `TeacherClient`: Windows Forms teacher client.
-  - `TeacherClient.Avalonia`: cross-platform teacher client (macOS/Linux/Windows).
+  - `TeacherClient`: legacy maintenance-only Windows Forms teacher client.
+  - `TeacherClient.Avalonia`: primary cross-platform teacher client (macOS/Linux/Windows).
 - **Shared**
   - `Teacher.Common`: DTOs and API contracts shared between teacher and student.
 
@@ -88,7 +88,7 @@ Avalonia teacher client (macOS example):
 
 ### Teacher PC (Windows)
 
-1. Install **ClassCommander** on the teacher PC using the **Windows MSI** (feature: *Teacher workstation tools*).
+1. Install **ClassCommander** on the teacher PC using the **Windows MSI** `ClassCommander.Setup.msi` (feature: *Teacher workstation tools*).
 2. Open `Configuration → Basic Settings` (or `Connection → Settings`, depending on client) and set:
    - UI language
    - **shared secret** (must match student PCs)
@@ -112,6 +112,8 @@ Build macOS installer:
 cd TeacherClient.Avalonia.Setup
 bash ./Build-MacInstaller.sh
 ```
+
+This produces `TeacherClient.Avalonia.Setup/dist/ClassCommander.Setup.pkg`.
 
 ## Configuration
 
@@ -154,7 +156,7 @@ README.md
 ## Release workflow
 
 - Releases are driven by GitHub Actions on tag push (see workflows).
-- Windows MSI builds live under `TeacherServer.Setup/`.
-- macOS packaging lives under `TeacherClient.Avalonia.Setup/`.
+- Windows MSI builds live under `TeacherServer.Setup/` and produce `ClassCommander.Setup.msi`.
+- macOS packaging lives under `TeacherClient.Avalonia.Setup/` and produces `ClassCommander.Setup.pkg`.
 
 See `AGENTS.md` for repo rules and the Windows release script conventions.
