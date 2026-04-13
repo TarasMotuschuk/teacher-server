@@ -15,8 +15,8 @@ The goal is to avoid building five disconnected products. Instead, we should cre
 
 The target solution includes five deliverables:
 
-1. A test editor installed together with `TeacherClient`
-2. A local test server installed together with `TeacherClient`
+1. A test editor in `ClassCommander.TestEditor`
+2. A local test server in `ClassCommander.TestPlatform`
 3. A student testing module for classroom delivery and result reporting
 4. A Drupal module for online testing
 5. A WordPress plugin for online testing
@@ -80,6 +80,8 @@ The test server should be the single authority for:
 - calculating or finalizing results
 - serving teacher-side reporting
 
+The server project should live in `ClassCommander.TestPlatform`.
+
 ### Client Roles
 
 Teacher-side:
@@ -89,6 +91,9 @@ Teacher-side:
 - assign tests to classes, groups, or selected students
 - monitor live progress
 - inspect results and attempt history
+
+The dedicated teacher authoring tool should live in `ClassCommander.TestEditor`.
+`TeacherClient` should only gain the late-stage integration needed to launch selected tests on student PCs and review operational classroom status.
 
 Student-side:
 
@@ -110,11 +115,12 @@ This is a suggested target structure, not a required immediate refactor:
 - `Teacher.Common`
   Shared test DTOs, result DTOs, contracts, and serialization helpers
 - `TeacherServer.Tests` or `ClassCommander.Tests.Server`
-  Local HTTP API, storage, scoring orchestration, reporting endpoints
-- `TeacherClient.Avalonia`
-  Primary test editor and test-management UI
+- `ClassCommander.TestPlatform`
+  Local HTTP API, storage, scoring orchestration, reporting endpoints, and result management
+- `ClassCommander.TestEditor`
+  Dedicated Avalonia test editor for import, package IO, preview, and authoring
 - `TeacherClient`
-  Mirrored management features where practical, or limited parity in early phases
+  Classroom orchestration only; launches selected tests and consumes reporting where needed
 - `StudentAgent` or a dedicated `StudentTestClient`
   Student runtime for local test delivery
 - `integrations/drupal`
@@ -196,14 +202,13 @@ Implement a student-facing module that:
 
 #### 5. Teacher UI
 
-Implement a minimal management experience in `TeacherClient.Avalonia` first:
+Implement a minimal editor and management experience in `ClassCommander.TestEditor` first:
 
 - import tests
 - browse tests
 - preview questions and assets
-- assign test to selected students
-- monitor attempt state
-- open result summaries
+- open and save `.cctest`
+- prepare tests for later assignment from teacher-side classroom tools
 
 #### 6. Local Storage
 
@@ -250,12 +255,12 @@ Turn the MVP into a maintainable, resilient, and installable ClassCommander subs
 
 #### 1. Dedicated Test Editor
 
-Ship a first-class editor installed with `TeacherClient`.
+Ship a first-class editor in `ClassCommander.TestEditor`.
 
 Preferred direction:
 
-- build the editor in `TeacherClient.Avalonia`
-- decide whether `TeacherClient` gets full parity or a limited management view
+- keep authoring isolated in the dedicated Avalonia editor
+- keep `TeacherClient` focused on classroom operations and test launching
 
 Editor capabilities:
 
