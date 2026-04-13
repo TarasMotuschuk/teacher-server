@@ -14,6 +14,7 @@ public sealed class AgentUpdateService
 
     private readonly object _sync = new();
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHostApplicationLifetime _hostLifetime;
     private readonly AgentLogService _logService;
     private readonly string _manifestUrl;
     private readonly string _statusPath;
@@ -21,9 +22,14 @@ public sealed class AgentUpdateService
     private AgentUpdateStatusDto _status;
     private Task? _runningTask;
 
-    public AgentUpdateService(IHttpClientFactory httpClientFactory, AgentLogService logService, IOptions<AgentOptions> options)
+    public AgentUpdateService(
+        IHttpClientFactory httpClientFactory,
+        IHostApplicationLifetime hostLifetime,
+        AgentLogService logService,
+        IOptions<AgentOptions> options)
     {
         _httpClientFactory = httpClientFactory;
+        _hostLifetime = hostLifetime;
         _logService = logService;
         _manifestUrl = options.Value.UpdateManifestUrl?.Trim() ?? string.Empty;
         _statusPath = StudentAgentPathHelper.GetUpdateStatusPath();
@@ -84,7 +90,7 @@ public sealed class AgentUpdateService
         }
     }
 
-    public Task<AgentUpdateStatusDto> StartUpdateAsync(StartAgentUpdateRequest request, CancellationToken cancellationToken = default)
+    public Task<AgentUpdateStatusDto> StartUpdateAsync(StartAgentUpdateRequest request)
     {
         lock (_sync)
         {
@@ -93,7 +99,9 @@ public sealed class AgentUpdateService
                 return Task.FromResult(_status with { });
             }
 
-            _runningTask = RunUpdateAsync(request, cancellationToken);
+            // Do not pass the HTTP request token: the handler returns 202 Accepted immediately and the
+            // connection may close, canceling a long download with "A task was canceled."
+            _runningTask = RunUpdateAsync(request, _hostLifetime.ApplicationStopping);
             return Task.FromResult(_status with { });
         }
     }

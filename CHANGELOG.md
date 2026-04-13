@@ -6,6 +6,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Student Agent**: remote-triggered updates no longer pass the HTTP request cancellation token into the background download/install pipeline, so closing the `POST /api/update/start` connection after `202 Accepted` does not abort the update with “A task was canceled.”; cancellation still applies when the host application stops.
+
 ## [1.0.16] - 2026-04-11
 
 ### Added
