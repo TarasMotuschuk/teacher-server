@@ -18,8 +18,8 @@ partial class MainForm
     private TabPage remoteManagementTabPage = null!;
     private TreeView registryTreeView = null!;
     private DataGridView registryValuesGrid = null!;
-    private Button settingsButton = null!;
     private Label statusLabel = null!;
+    private Label footerLabel = null!;
     private DataGridView processesGrid = null!;
     private Button refreshProcessesButton = null!;
     private Button killProcessButton = null!;
@@ -76,8 +76,8 @@ partial class MainForm
         remoteManagementTabPage = new TabPage();
         registryTreeView = new TreeView();
         registryValuesGrid = new DataGridView();
-        settingsButton = new Button();
         statusLabel = new Label();
+        footerLabel = new Label();
         processesGrid = new DataGridView();
         refreshProcessesButton = new Button();
         killProcessButton = new Button();
@@ -122,107 +122,115 @@ partial class MainForm
         MainMenuStrip = mainMenuStrip;
 
         var connectionMenuItem = new ToolStripMenuItem(TeacherClientText.ConnectionMenu);
-        connectionMenuItem.DropDownItems.Add(TeacherClientText.Settings, null, SettingsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RefreshAgents, null, RefreshAgentsButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.ConnectSelectedAgent, null, ConnectSelectedAgentButton_Click);
-        connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        var desktopIconsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
-        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.SaveDesktopIconLayout, null, SaveDesktopIconLayoutMenuItem_Click);
-        desktopIconsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayout, null, RestoreDesktopIconLayoutMenuItem_Click);
-        connectionMenuItem.DropDownItems.Add(desktopIconsMenuItem);
         connectionMenuItem.DropDownItems.Add(new ToolStripSeparator());
         connectionMenuItem.DropDownItems.Add(TeacherClientText.AddManualAgent, null, AddManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.EditManualAgent, null, EditManualAgentButton_Click);
         connectionMenuItem.DropDownItems.Add(TeacherClientText.RemoveManualAgent, null, RemoveManualAgentButton_Click);
 
-        var processesMenuItem = new ToolStripMenuItem(TeacherClientText.ProcessesMenu);
-        processesMenuItem.DropDownItems.Add(TeacherClientText.Refresh, null, RefreshProcessesButton_Click);
-        processesMenuItem.DropDownItems.Add(TeacherClientText.TerminateSelected, null, KillProcessButton_Click);
-
-        var filesMenuItem = new ToolStripMenuItem(TeacherClientText.FilesMenu);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RefreshBoth, null, RefreshFilesButton_Click);
-        filesMenuItem.DropDownItems.Add($"{TeacherClientText.Upload} ->", null, UploadButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToSelectedStudents, null, SendToSelectedStudentsButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.SendToAllOnlineStudents, null, SendToAllOnlineStudentsButton_Click);
-        filesMenuItem.DropDownItems.Add($"<- {TeacherClientText.Download}", null, DownloadButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenLocal, null, OpenLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.OpenRemote, null, OpenRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameLocal, null, RenameLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.RenameRemote, null, RenameRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteLocal, null, DeleteLocalButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.DeleteRemote, null, DeleteRemoteButton_Click);
-        filesMenuItem.DropDownItems.Add(TeacherClientText.NewRemoteFolder, null, NewRemoteFolderButton_Click);
-
         var groupCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.GroupCommandsMenu);
-        var destinationFolderMenuItem = new ToolStripMenuItem(TeacherClientText.DestinationFolderMenu);
-        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, ClearSelectedFolderOnSelectedStudentsMenuItem_Click);
-        destinationFolderMenuItem.DropDownItems.Add(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, ClearSelectedFolderOnAllOnlineStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(destinationFolderMenuItem);
-        var browserMenuItem = new ToolStripMenuItem(TeacherClientText.BrowserCommandsMenu);
-        browserMenuItem.DropDownItems.Add(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, LockBrowsersOnAllOnlineStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(browserMenuItem);
-        var inputMenuItem = new ToolStripMenuItem(TeacherClientText.InputCommandsMenu);
-        inputMenuItem.DropDownItems.Add(TeacherClientText.LockInputOnAllOnlineStudents, null, LockInputOnAllOnlineStudentsMenuItem_Click);
-        inputMenuItem.DropDownItems.Add(TeacherClientText.UnlockInputOnAllOnlineStudents, null, UnlockInputOnAllOnlineStudentsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(inputMenuItem);
-        var windowsRestrictionsMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionsMenu);
-        var taskManagerMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager));
-        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
-        taskManagerMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click);
+        var groupFileWorkMenuItem = new ToolStripMenuItem(TeacherClientText.GroupFileWorkMenu) { ToolTipText = TeacherClientText.MenuTip_GroupFileWork };
+        var destinationFolderMenuItem = new ToolStripMenuItem(TeacherClientText.DestinationFolderMenu) { ToolTipText = TeacherClientText.MenuTip_DestinationFolder };
+        destinationFolderMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ClearDestinationFolderOnSelectedStudents, null, ClearSelectedFolderOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ClearDestinationSelected });
+        destinationFolderMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ClearDestinationFolderOnAllOnlineStudents, null, ClearSelectedFolderOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ClearDestinationAll });
+        groupFileWorkMenuItem.DropDownItems.Add(destinationFolderMenuItem);
+        var sendSubmenuMenuItem = new ToolStripMenuItem(TeacherClientText.SendSubmenu) { ToolTipText = TeacherClientText.MenuTip_SendSubmenu };
+        var sendFileSubmenuMenuItem = new ToolStripMenuItem(TeacherClientText.SendFileSubmenu) { ToolTipText = TeacherClientText.MenuTip_SendFile };
+        sendFileSubmenuMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToAllPcsShort, null, SendFileToAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToAllPcs });
+        sendFileSubmenuMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToSelectedPcsShort, null, SendFileToSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToSelectedPcs });
+        sendSubmenuMenuItem.DropDownItems.Add(sendFileSubmenuMenuItem);
+        var sendFolderSubmenuMenuItem = new ToolStripMenuItem(TeacherClientText.SendFolderSubmenu) { ToolTipText = TeacherClientText.MenuTip_SendFolder };
+        sendFolderSubmenuMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToAllPcsShort, null, SendFolderToAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToAllPcs });
+        sendFolderSubmenuMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToSelectedPcsShort, null, SendFolderToSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToSelectedPcs });
+        sendSubmenuMenuItem.DropDownItems.Add(sendFolderSubmenuMenuItem);
+        groupFileWorkMenuItem.DropDownItems.Add(sendSubmenuMenuItem);
+        var sendAndOpenDefaultMenuItem = new ToolStripMenuItem(TeacherClientText.SendAndOpenWithDefaultAppMenu) { ToolTipText = TeacherClientText.MenuTip_SendAndOpenDefault };
+        sendAndOpenDefaultMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToAllPcsShort, null, SendAndOpenWithDefaultToAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToAllPcs });
+        sendAndOpenDefaultMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToSelectedPcsShort, null, SendAndOpenWithDefaultToSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToSelectedPcs });
+        groupFileWorkMenuItem.DropDownItems.Add(sendAndOpenDefaultMenuItem);
+        var sendAndOpenDestFolderMenuItem = new ToolStripMenuItem(TeacherClientText.SendAndOpenStudentDestinationFolderMenu) { ToolTipText = TeacherClientText.MenuTip_SendAndOpenDestFolder };
+        sendAndOpenDestFolderMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToAllPcsShort, null, SendAndOpenDestinationFolderToAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToAllPcs });
+        sendAndOpenDestFolderMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ToSelectedPcsShort, null, SendAndOpenDestinationFolderToSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ToSelectedPcs });
+        groupFileWorkMenuItem.DropDownItems.Add(sendAndOpenDestFolderMenuItem);
+        groupCommandsMenuItem.DropDownItems.Add(groupFileWorkMenuItem);
+        var blockingMenuItem = new ToolStripMenuItem(TeacherClientText.BlockingCommandsMenu) { ToolTipText = TeacherClientText.MenuTip_Blocking };
+        blockingMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LockBrowsersOnAllOnlineStudents, null, LockBrowsersOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LockBrowsersAll });
+        var blockingSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu) { ToolTipText = TeacherClientText.MenuTip_BlockingSelectedGroup };
+        blockingSelectedMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LockInputOnMarkedStudents, null, LockInputOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LockInputSelected });
+        blockingSelectedMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LockInputDemoOnMarkedStudents, null, LockInputDemoOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LockInputDemoSelected });
+        blockingSelectedMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.UnlockInputOnMarkedStudents, null, UnlockInputOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_UnlockInputSelected });
+        blockingMenuItem.DropDownItems.Add(blockingSelectedMenuItem);
+        var blockingAllOnlineMenuItem = new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu) { ToolTipText = TeacherClientText.MenuTip_BlockingAllOnlineGroup };
+        blockingAllOnlineMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LockInputOnAllOnlineStudents, null, LockInputOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LockInputAll });
+        blockingAllOnlineMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LockInputForDemonstrationOnAllOnlineStudents, null, LockInputForDemonstrationOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LockInputDemoAll });
+        blockingAllOnlineMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.UnlockInputOnAllOnlineStudents, null, UnlockInputOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_UnlockInputAll });
+        blockingMenuItem.DropDownItems.Add(blockingAllOnlineMenuItem);
+        groupCommandsMenuItem.DropDownItems.Add(blockingMenuItem);
+        var windowsRestrictionsMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionsMenu) { ToolTipText = TeacherClientText.MenuTip_GroupPolicies };
+        var taskManagerMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager)) { ToolTipText = TeacherClientText.MenuTip_RestrictionTaskManager };
+        taskManagerMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.EnableCommand, null, EnableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_EnableRestrictionAllOnline });
+        taskManagerMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.DisableCommand, null, DisableTaskManagerRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DisableRestrictionAllOnline });
         windowsRestrictionsMenuItem.DropDownItems.Add(taskManagerMenuItem);
-        var runDialogMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.RunDialog));
-        runDialogMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
-        runDialogMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click);
+        var runDialogMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.RunDialog)) { ToolTipText = TeacherClientText.MenuTip_RestrictionRunDialog };
+        runDialogMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.EnableCommand, null, EnableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_EnableRestrictionAllOnline });
+        runDialogMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.DisableCommand, null, DisableRunDialogRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DisableRestrictionAllOnline });
         windowsRestrictionsMenuItem.DropDownItems.Add(runDialogMenuItem);
-        var controlPanelMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ControlPanelAndSettings));
-        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
-        controlPanelMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click);
+        var controlPanelMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ControlPanelAndSettings)) { ToolTipText = TeacherClientText.MenuTip_RestrictionControlPanel };
+        controlPanelMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.EnableCommand, null, EnableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_EnableRestrictionAllOnline });
+        controlPanelMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.DisableCommand, null, DisableControlPanelRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DisableRestrictionAllOnline });
         windowsRestrictionsMenuItem.DropDownItems.Add(controlPanelMenuItem);
-        var lockWorkstationMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LockWorkstation));
-        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
-        lockWorkstationMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click);
+        var lockWorkstationMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LockWorkstation)) { ToolTipText = TeacherClientText.MenuTip_RestrictionLockWorkstation };
+        lockWorkstationMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.EnableCommand, null, EnableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_EnableRestrictionAllOnline });
+        lockWorkstationMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.DisableCommand, null, DisableLockWorkstationRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DisableRestrictionAllOnline });
         windowsRestrictionsMenuItem.DropDownItems.Add(lockWorkstationMenuItem);
-        var changePasswordMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword));
-        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
-        changePasswordMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click);
+        var changePasswordMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword)) { ToolTipText = TeacherClientText.MenuTip_RestrictionChangePassword };
+        changePasswordMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.EnableCommand, null, EnableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_EnableRestrictionAllOnline });
+        changePasswordMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.DisableCommand, null, DisableChangePasswordRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DisableRestrictionAllOnline });
         windowsRestrictionsMenuItem.DropDownItems.Add(changePasswordMenuItem);
-        var logOffMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.LogOff));
-        logOffMenuItem.DropDownItems.Add(TeacherClientText.EnableCommand, null, EnableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
-        logOffMenuItem.DropDownItems.Add(TeacherClientText.DisableCommand, null, DisableLogOffRestrictionOnAllOnlineStudentsMenuItem_Click);
-        windowsRestrictionsMenuItem.DropDownItems.Add(logOffMenuItem);
+        var blockInterfaceMenuItem = new ToolStripMenuItem(TeacherClientText.WindowsRestrictionName(WindowsRestrictionKind.BlockInterfaceChanges)) { ToolTipText = TeacherClientText.MenuTip_RestrictionBlockInterface };
+        blockInterfaceMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.EnableCommand, null, EnableBlockInterfaceRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_EnableRestrictionAllOnline });
+        blockInterfaceMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.DisableCommand, null, DisableBlockInterfaceRestrictionOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DisableRestrictionAllOnline });
+        windowsRestrictionsMenuItem.DropDownItems.Add(blockInterfaceMenuItem);
+        var desktopWallpaperMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopWallpaperMenu) { ToolTipText = TeacherClientText.MenuTip_DesktopWallpaperMenu };
+        desktopWallpaperMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu, null, SetDesktopWallpaperOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DesktopWallpaperAll });
+        desktopWallpaperMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu, null, SetDesktopWallpaperOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_DesktopWallpaperSelected });
+        windowsRestrictionsMenuItem.DropDownItems.Add(desktopWallpaperMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(windowsRestrictionsMenuItem);
-        var commandsMenuItem = new ToolStripMenuItem(TeacherClientText.CommandsMenu);
-        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnSelectedStudents, null, RunCommandOnSelectedStudentsMenuItem_Click);
-        commandsMenuItem.DropDownItems.Add(TeacherClientText.RunCommandOnAllOnlineStudents, null, RunCommandOnAllOnlineStudentsMenuItem_Click);
+        var commandsMenuItem = new ToolStripMenuItem(TeacherClientText.CommandsMenu) { ToolTipText = TeacherClientText.MenuTip_Commands };
+        commandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RunCommandOnSelectedStudents, null, RunCommandOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RunCommandSelected });
+        commandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RunCommandOnAllOnlineStudents, null, RunCommandOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RunCommandAll });
+        commandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        commandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RefreshFrequentPrograms, null, RefreshFrequentProgramsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RefreshFrequentPrograms });
+        commandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ManageFrequentPrograms, null, ManageFrequentProgramsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ManageFrequentPrograms });
         groupCommandsMenuItem.DropDownItems.Add(commandsMenuItem);
-        var desktopIconsCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu);
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnSelectedStudents, null, RestoreDesktopIconsOnSelectedStudentsMenuItem_Click);
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.RestoreDesktopIconLayoutOnAllOnlineStudents, null, RestoreDesktopIconsOnAllOnlineStudentsMenuItem_Click);
+        var desktopIconsCommandsMenuItem = new ToolStripMenuItem(TeacherClientText.DesktopIconsMenu) { ToolTipText = TeacherClientText.MenuTip_DesktopIconsCmd };
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.SaveDesktopIconLayout, null, SaveDesktopIconLayoutMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_SaveDesktopIconsCurrentPc });
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestoreDesktopIconLayout, null, RestoreDesktopIconLayoutMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RestoreDesktopIconsCurrentPc });
         desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToSelectedStudents, null, ApplyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click);
-        desktopIconsCommandsMenuItem.DropDownItems.Add(TeacherClientText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents, null, ApplyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click);
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestoreDesktopIconLayoutOnSelectedStudents, null, RestoreDesktopIconsOnSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RestoreIconsSelected });
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestoreDesktopIconLayoutOnAllOnlineStudents, null, RestoreDesktopIconsOnAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_RestoreIconsAll });
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ApplyCurrentDesktopIconLayoutToSelectedStudents, null, ApplyCurrentDesktopLayoutToSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ApplyLayoutSelected });
+        desktopIconsCommandsMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents, null, ApplyCurrentDesktopLayoutToAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ApplyLayoutAll });
         groupCommandsMenuItem.DropDownItems.Add(desktopIconsCommandsMenuItem);
-        var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu);
-        var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu);
-        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, ShutdownSelectedStudentsMenuItem_Click);
-        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, RestartSelectedStudentsMenuItem_Click);
-        powerSelectedMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, LogOffSelectedStudentsMenuItem_Click);
-        var powerAllOnlineMenuItem = new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu);
-        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.ShutdownCommand, null, ShutdownAllOnlineStudentsMenuItem_Click);
-        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.RestartCommand, null, RestartAllOnlineStudentsMenuItem_Click);
-        powerAllOnlineMenuItem.DropDownItems.Add(TeacherClientText.LogOffCommand, null, LogOffAllOnlineStudentsMenuItem_Click);
+        var powerMenuItem = new ToolStripMenuItem(TeacherClientText.PowerCommandsMenu) { ToolTipText = TeacherClientText.MenuTip_Power };
+        var powerSelectedMenuItem = new ToolStripMenuItem(TeacherClientText.SelectedStudentsMenu) { ToolTipText = TeacherClientText.MenuTip_PowerSelectedGroup };
+        powerSelectedMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ShutdownCommand, null, ShutdownSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_Shutdown });
+        powerSelectedMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestartCommand, null, RestartSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_Restart });
+        powerSelectedMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LogOffCommand, null, LogOffSelectedStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LogOff });
+        var powerAllOnlineMenuItem = new ToolStripMenuItem(TeacherClientText.AllOnlineStudentsMenu) { ToolTipText = TeacherClientText.MenuTip_PowerAllGroup };
+        powerAllOnlineMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ShutdownCommand, null, ShutdownAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_Shutdown });
+        powerAllOnlineMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.RestartCommand, null, RestartAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_Restart });
+        powerAllOnlineMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.LogOffCommand, null, LogOffAllOnlineStudentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_LogOff });
         powerMenuItem.DropDownItems.Add(powerSelectedMenuItem);
         powerMenuItem.DropDownItems.Add(powerAllOnlineMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(powerMenuItem);
-        var frequentProgramsMenuItem = new ToolStripMenuItem(TeacherClientText.FrequentProgramsMenu);
-        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.RefreshFrequentPrograms, null, RefreshFrequentProgramsMenuItem_Click);
-        frequentProgramsMenuItem.DropDownItems.Add(TeacherClientText.ManageFrequentPrograms, null, ManageFrequentProgramsMenuItem_Click);
-        groupCommandsMenuItem.DropDownItems.Add(frequentProgramsMenuItem);
         groupCommandsMenuItem.DropDownItems.Add(new ToolStripSeparator());
-        var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu);
-        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, CreateStudentWorkFolderOnAllAgentsMenuItem_Click);
-        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.CollectStudentWorkToTeacherPc, null, CollectStudentWorkToTeacherPcMenuItem_Click);
-        studentWorkMenuItem.DropDownItems.Add(TeacherClientText.ClearStudentWorkFolderOnAllAgents, null, ClearStudentWorkFolderOnAllAgentsMenuItem_Click);
+        var studentWorkMenuItem = new ToolStripMenuItem(TeacherClientText.StudentWorkMenu) { ToolTipText = TeacherClientText.MenuTip_StudentWork };
+        studentWorkMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.CreateStudentWorkFolderOnAllAgents, null, CreateStudentWorkFolderOnAllAgentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_CreateWorkFolder });
+        studentWorkMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.CollectStudentWorkToTeacherPc, null, CollectStudentWorkToTeacherPcMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_CollectWork });
+        studentWorkMenuItem.DropDownItems.Add(new ToolStripMenuItem(TeacherClientText.ClearStudentWorkFolderOnAllAgents, null, ClearStudentWorkFolderOnAllAgentsMenuItem_Click) { ToolTipText = TeacherClientText.MenuTip_ClearWorkFolder });
         groupCommandsMenuItem.DropDownItems.Add(studentWorkMenuItem);
 
         var helpMenuItem = new ToolStripMenuItem(TeacherClientText.Help);
@@ -237,38 +245,34 @@ partial class MainForm
         helpMenuItem.DropDownItems.Add(new ToolStripSeparator());
         helpMenuItem.DropDownItems.Add(TeacherClientText.About, null, AboutMenuItem_Click);
 
+        var configurationMenuItem = new ToolStripMenuItem(TeacherClientText.ConfigurationMenu);
+        configurationMenuItem.DropDownItems.Add(TeacherClientText.BasicSettingsMenu, null, SettingsButton_Click);
+
         mainMenuStrip.Dock = DockStyle.Top;
         mainMenuStrip.BackColor = Color.White;
         mainMenuStrip.ImageScalingSize = new Size(20, 20);
+        mainMenuStrip.ShowItemToolTips = true;
         mainMenuStrip.Items.Add(connectionMenuItem);
-        mainMenuStrip.Items.Add(processesMenuItem);
-        mainMenuStrip.Items.Add(filesMenuItem);
         mainMenuStrip.Items.Add(groupCommandsMenuItem);
+        mainMenuStrip.Items.Add(configurationMenuItem);
         mainMenuStrip.Items.Add(helpMenuItem);
 
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 78,
-            Padding = new Padding(16, 12, 16, 10),
+            Height = 60,
+            Padding = new Padding(16, 10, 16, 10),
             BackColor = Color.White
         };
 
         var headerLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 1,
             RowCount = 1
         };
-        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-
-        settingsButton.Text = TeacherClientText.Settings;
-        settingsButton.Dock = DockStyle.Fill;
-        settingsButton.Margin = new Padding(0, 0, 16, 0);
-        settingsButton.MinimumSize = new Size(130, 48);
-        settingsButton.Click += SettingsButton_Click;
 
         statusLabel.Dock = DockStyle.Fill;
         statusLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -276,8 +280,7 @@ partial class MainForm
         statusLabel.AutoEllipsis = true;
         statusLabel.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point);
 
-        headerLayout.Controls.Add(settingsButton, 0, 0);
-        headerLayout.Controls.Add(statusLabel, 1, 0);
+        headerLayout.Controls.Add(statusLabel, 0, 0);
         topPanel.Controls.Add(headerLayout);
 
         mainTabControl.Dock = DockStyle.Fill;
@@ -285,10 +288,10 @@ partial class MainForm
         mainTabControl.ItemSize = new Size(140, 34);
         mainTabControl.SizeMode = TabSizeMode.Fixed;
         mainTabControl.TabPages.Add(agentsTabPage);
-        mainTabControl.TabPages.Add(processesTabPage);
-        mainTabControl.TabPages.Add(filesTabPage);
-        mainTabControl.TabPages.Add(registryTabPage);
         mainTabControl.TabPages.Add(remoteManagementTabPage);
+        mainTabControl.TabPages.Add(filesTabPage);
+        mainTabControl.TabPages.Add(processesTabPage);
+        mainTabControl.TabPages.Add(registryTabPage);
 
         agentsTabPage.Text = TeacherClientText.AgentsTab;
         agentsTabPage.BackColor = Color.FromArgb(236, 239, 243);
@@ -307,19 +310,22 @@ partial class MainForm
         ConfigureGrid(remoteFilesGrid);
         agentsGrid.MultiSelect = true;
         agentsGrid.ReadOnly = false;
+        agentsGrid.ShowCellToolTips = true;
 
         agentsGrid.Dock = DockStyle.Fill;
         agentsGrid.CellDoubleClick += AgentsGrid_CellDoubleClick;
-        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.BrowserLock, DataPropertyName = "BrowserLockEnabled", Width = 90 });
-        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.InputLock, DataPropertyName = "InputLockEnabled", Width = 90 });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100, ReadOnly = true });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Status, DataPropertyName = "Status", Width = 100, ReadOnly = true });
-        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Group, DataPropertyName = "GroupName", Width = 140, ReadOnly = true });
+        agentsGrid.CellFormatting += AgentsGrid_CellFormatting;
+        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.GroupCommandSelectionColumn, DataPropertyName = "GroupCommandSelected", Width = 88, ToolTipText = TeacherClientText.AgentsGridSelectColumnTooltip });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Machine, DataPropertyName = "MachineName", Width = 180, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.User, DataPropertyName = "CurrentUser", Width = 160, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IP", DataPropertyName = "RespondingAddress", Width = 150, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.BrowserLock, DataPropertyName = "BrowserLockEnabled", Width = 124, ToolTipText = TeacherClientText.AgentsGridBrowserLockColumnTooltip });
+        agentsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = TeacherClientText.InputLock, DataPropertyName = "InputLockEnabled", Width = 124, ToolTipText = TeacherClientText.AgentsGridInputLockColumnTooltip });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Status, DataPropertyName = "Status", Width = 100, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Port, DataPropertyName = "Port", Width = 80, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MAC", DataPropertyName = "MacAddressesDisplay", Width = 220, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Source, DataPropertyName = "Source", Width = 100, ReadOnly = true });
+        agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Group, DataPropertyName = "GroupName", Width = 140, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.Notes, DataPropertyName = "Notes", Width = 200, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.UpdateStatus, DataPropertyName = "UpdateStatusBadge", Width = 140, ReadOnly = true });
         agentsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = TeacherClientText.UpdateStatusDetailColumn, DataPropertyName = "UpdateStatusDetail", Width = 280, ReadOnly = true });
@@ -495,10 +501,10 @@ partial class MainForm
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToSelectedStudents, @"Toolbar/files/upload-group.png", ToolbarIconKind.UploadGroup, SendToSelectedStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.SendToAllOnlineStudents, @"Toolbar/files/broadcast.png", ToolbarIconKind.Broadcast, SendToAllOnlineStudentsButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.Download, @"Toolbar/files/download.png", ToolbarIconKind.Download, DownloadButton_Click));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, OpenLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, OpenRemoteButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, RenameLocalButton_Click, showText: true));
-        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, RenameRemoteButton_Click, showText: true));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenLocal, @"Toolbar/files/open-local.png", ToolbarIconKind.OpenRemote, OpenLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.OpenRemote, @"Toolbar/files/open-remote.png", ToolbarIconKind.OpenRemote, OpenRemoteButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameLocal, @"Toolbar/files/rename-local.png", ToolbarIconKind.Edit, RenameLocalButton_Click));
+        filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.RenameRemote, @"Toolbar/files/rename-remote.png", ToolbarIconKind.Edit, RenameRemoteButton_Click));
         filesToolStrip.Items.Add(new ToolStripSeparator());
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteLocal, @"Toolbar/files/delete-local.png", ToolbarIconKind.Remove, DeleteLocalButton_Click));
         filesToolStrip.Items.Add(CreateToolbarButton(TeacherClientText.DeleteRemote, @"Toolbar/files/delete-remote.png", ToolbarIconKind.Remove, DeleteRemoteButton_Click));
@@ -730,7 +736,24 @@ partial class MainForm
         remoteManagementLayout.Controls.Add(remoteManagementCardsPanel, 0, 2);
         remoteManagementTabPage.Controls.Add(remoteManagementLayout);
 
+        var footerPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 44,
+            Padding = new Padding(12, 8, 12, 8),
+            BackColor = Color.FromArgb(54, 64, 74)
+        };
+
+        footerLabel.Dock = DockStyle.Fill;
+        footerLabel.TextAlign = ContentAlignment.MiddleLeft;
+        footerLabel.ForeColor = Color.FromArgb(212, 217, 223);
+        footerLabel.AutoEllipsis = true;
+        footerLabel.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point);
+        footerLabel.Text = string.Empty;
+        footerPanel.Controls.Add(footerLabel);
+
         Controls.Add(mainTabControl);
+        Controls.Add(footerPanel);
         Controls.Add(topPanel);
         Controls.Add(mainMenuStrip);
         ResumeLayout(false);

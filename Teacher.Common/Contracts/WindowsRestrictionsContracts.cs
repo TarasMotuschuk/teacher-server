@@ -7,7 +7,7 @@ public enum WindowsRestrictionKind
     ControlPanelAndSettings = 2,
     LockWorkstation = 3,
     ChangePassword = 4,
-    LogOff = 5,
+    BlockInterfaceChanges = 5,
 }
 
 public sealed record WindowsRestrictionStateRequest(

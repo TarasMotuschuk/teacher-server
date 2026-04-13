@@ -33,44 +33,14 @@ internal sealed class WindowsVncRemoteController : IVncRemoteController
         }
     }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetCursorPos(int x, int y);
-
-    [DllImport("user32.dll")]
-    private static extern int GetSystemMetrics(int nIndex);
-
-    private void HandleTouchEventCore(PointerChangedEventArgs e)
-    {
-        var virtualLeft = GetSystemMetrics(76);
-        var virtualTop = GetSystemMetrics(77);
-        _ = SetCursorPos(virtualLeft + e.X, virtualTop + e.Y);
-
-        var currentButtons = e.PressedButtons & (ButtonLeft | ButtonMiddle | ButtonRight);
-        SendButtonChanges(_pressedButtons, currentButtons);
-        _pressedButtons = currentButtons;
-
-        if ((e.PressedButtons & ButtonWheelUp) != 0)
-        {
-            SendMouseInput(MouseeventfWheel, WheelDelta);
-        }
-
-        if ((e.PressedButtons & ButtonWheelDown) != 0)
-        {
-            SendMouseInput(MouseeventfWheel, unchecked((uint)-WheelDelta));
-        }
-    }
-
-    private void SendButtonChanges(int previousButtons, int currentButtons)
+    private static void SendButtonChanges(int previousButtons, int currentButtons)
     {
         SendButtonChange(previousButtons, currentButtons, ButtonLeft, MouseeventfLeftdown, MouseeventfLeftup);
         SendButtonChange(previousButtons, currentButtons, ButtonMiddle, MouseeventfMiddledown, MouseeventfMiddleup);
         SendButtonChange(previousButtons, currentButtons, ButtonRight, MouseeventfRightdown, MouseeventfRightup);
     }
 
-    private void SendButtonChange(int previousButtons, int currentButtons, int mask, uint downFlag, uint upFlag)
+    private static void SendButtonChange(int previousButtons, int currentButtons, int mask, uint downFlag, uint upFlag)
     {
         var wasPressed = (previousButtons & mask) != 0;
         var isPressed = (currentButtons & mask) != 0;
@@ -79,53 +49,86 @@ internal sealed class WindowsVncRemoteController : IVncRemoteController
             return;
         }
 
-        SendMouseInput(isPressed ? downFlag : upFlag, 0);
+        NativeMethods.SendMouseInput(isPressed ? downFlag : upFlag, 0, InputMouse, MouseeventfMove, MouseeventfWheel);
     }
 
-    private static void SendMouseInput(uint flags, uint mouseData)
+    private void HandleTouchEventCore(PointerChangedEventArgs e)
     {
-        var input = new INPUT
+        var virtualLeft = NativeMethods.GetSystemMetrics(76);
+        var virtualTop = NativeMethods.GetSystemMetrics(77);
+        _ = NativeMethods.SetCursorPos(virtualLeft + e.X, virtualTop + e.Y);
+
+        var currentButtons = e.PressedButtons & (ButtonLeft | ButtonMiddle | ButtonRight);
+        SendButtonChanges(_pressedButtons, currentButtons);
+        _pressedButtons = currentButtons;
+
+        if ((e.PressedButtons & ButtonWheelUp) != 0)
         {
-            Type = InputMouse,
-            U = new InputUnion
+            NativeMethods.SendMouseInput(MouseeventfWheel, WheelDelta, InputMouse, MouseeventfMove, MouseeventfWheel);
+        }
+
+        if ((e.PressedButtons & ButtonWheelDown) != 0)
+        {
+            NativeMethods.SendMouseInput(MouseeventfWheel, unchecked((uint)-WheelDelta), InputMouse, MouseeventfMove, MouseeventfWheel);
+        }
+    }
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool SetCursorPos(int x, int y);
+
+        [DllImport("user32.dll")]
+        internal static extern int GetSystemMetrics(int nIndex);
+
+        internal static void SendMouseInput(uint flags, uint mouseData, uint inputMouse, uint mouseeventfMove, uint mouseeventfWheel)
+        {
+            var input = new INPUT
             {
-                Mi = new MOUSEINPUT
+                Type = inputMouse,
+                U = new InputUnion
                 {
-                    Dx = 0,
-                    Dy = 0,
-                    MouseData = mouseData,
-                    DwFlags = flags | ((flags & MouseeventfWheel) == 0 ? MouseeventfMove : 0),
-                    DwExtraInfo = UIntPtr.Zero,
+                    Mi = new MOUSEINPUT
+                    {
+                        Dx = 0,
+                        Dy = 0,
+                        MouseData = mouseData,
+                        DwFlags = flags | ((flags & mouseeventfWheel) == 0 ? mouseeventfMove : 0),
+                        DwExtraInfo = UIntPtr.Zero,
+                    },
                 },
-            },
-        };
+            };
 
-        var inputs = new[] { input };
-        _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
-    }
+            var inputs = new[] { input };
+            _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct INPUT
-    {
-        public uint Type;
-        public InputUnion U;
-    }
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct INPUT
+        {
+            public uint Type;
+            public InputUnion U;
+        }
 
-    [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion
-    {
-        [FieldOffset(0)]
-        public MOUSEINPUT Mi;
-    }
+        [StructLayout(LayoutKind.Explicit)]
+        internal struct InputUnion
+        {
+            [FieldOffset(0)]
+            public MOUSEINPUT Mi;
+        }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MOUSEINPUT
-    {
-        public int Dx;
-        public int Dy;
-        public uint MouseData;
-        public uint DwFlags;
-        public uint Time;
-        public UIntPtr DwExtraInfo;
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct MOUSEINPUT
+        {
+            public int Dx;
+            public int Dy;
+            public uint MouseData;
+            public uint DwFlags;
+            public uint Time;
+            public UIntPtr DwExtraInfo;
+        }
     }
 }

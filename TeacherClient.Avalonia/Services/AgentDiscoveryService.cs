@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -51,7 +52,7 @@ public sealed class AgentDiscoveryService
 
                 var normalized = parsed with
                 {
-                    RespondingAddress = result.RemoteEndPoint.Address.ToString(),
+                    RespondingAddress = SelectPreferredRespondingAddress(parsed, result.RemoteEndPoint.Address),
                     LastSeenUtc = DateTime.UtcNow,
                 };
 
@@ -65,5 +66,57 @@ public sealed class AgentDiscoveryService
         return agents.Values
             .OrderBy(x => x.MachineName, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static string SelectPreferredRespondingAddress(AgentDiscoveryDto parsed, IPAddress remoteEndPointAddress)
+    {
+        var localNetworks = GetLocalIpv4Networks();
+        foreach (var candidate in parsed.IpAddresses)
+        {
+            if (!IPAddress.TryParse(candidate, out var candidateAddress) ||
+                candidateAddress.AddressFamily != AddressFamily.InterNetwork)
+            {
+                continue;
+            }
+
+            if (localNetworks.Any(local => AreOnSameSubnet(local.Address, local.PrefixMask, candidateAddress)))
+            {
+                return candidate;
+            }
+        }
+
+        return remoteEndPointAddress.ToString();
+    }
+
+    private static IReadOnlyList<(IPAddress Address, IPAddress PrefixMask)> GetLocalIpv4Networks()
+    {
+        return NetworkInterface.GetAllNetworkInterfaces()
+            .Where(networkInterface =>
+                networkInterface.OperationalStatus == OperationalStatus.Up &&
+                networkInterface.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                networkInterface.NetworkInterfaceType != NetworkInterfaceType.Tunnel)
+            .SelectMany(networkInterface => networkInterface.GetIPProperties().UnicastAddresses)
+            .Where(unicast =>
+                unicast.Address.AddressFamily == AddressFamily.InterNetwork &&
+                !IPAddress.IsLoopback(unicast.Address) &&
+                unicast.IPv4Mask is not null)
+            .Select(unicast => (unicast.Address, unicast.IPv4Mask!))
+            .ToList();
+    }
+
+    private static bool AreOnSameSubnet(IPAddress localAddress, IPAddress prefixMask, IPAddress candidateAddress)
+    {
+        var localBytes = localAddress.GetAddressBytes();
+        var maskBytes = prefixMask.GetAddressBytes();
+        var candidateBytes = candidateAddress.GetAddressBytes();
+        for (var index = 0; index < localBytes.Length; index++)
+        {
+            if ((localBytes[index] & maskBytes[index]) != (candidateBytes[index] & maskBytes[index]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

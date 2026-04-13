@@ -6,6 +6,7 @@
     <Cultures>en-us</Cultures>
     <DefineConstants>
       TeacherPayloadDir=$(MSBuildProjectDirectory)\artifacts\Teacher;
+      TeacherAvaloniaPayloadDir=$(MSBuildProjectDirectory)\artifacts\TeacherAvalonia;
       StudentPayloadDir=$(MSBuildProjectDirectory)\artifacts\Student;
       GeneratedFragmentsDir=$(MSBuildProjectDirectory)\Generated
     </DefineConstants>

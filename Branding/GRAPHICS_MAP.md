@@ -119,6 +119,20 @@ This folder is the single source of truth for user-facing graphics across `Class
 - `Toolbar/registry/import-reg.png`
   Import a `.reg` file into the selected registry location.
 
+## Toolbar: Remote management
+
+- `Toolbar/remote/refresh-screens.png`
+  `Оновити екрани` — refresh remote-management tiles / screen previews.
+
+- `Toolbar/remote/start-vnc.png`
+  `Запустити VNC` — start VNC on the selected student PC (view-only).
+
+- `Toolbar/remote/stop-vnc.png`
+  `Зупинити VNC` — stop VNC on the selected student PC.
+
+- `Toolbar/remote/open-viewer.png`
+  `Відкрити на весь екран` — open the fullscreen remote desktop viewer for the selected PC.
+
 ## Notes
 
 - Toolbar images are expected to be `PNG` with transparent background.

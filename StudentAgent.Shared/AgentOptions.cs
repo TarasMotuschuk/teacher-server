@@ -1,3 +1,4 @@
+using Teacher.Common.Contracts;
 using Teacher.Common.Localization;
 
 namespace StudentAgent;
@@ -23,6 +24,8 @@ public sealed class AgentOptions
     public bool BrowserLockEnabled { get; set; }
 
     public bool InputLockEnabled { get; set; }
+
+    public InputLockVisualMode InputLockVisualMode { get; set; } = InputLockVisualMode.FullscreenOverlay;
 
     public int BrowserLockCheckIntervalSeconds { get; set; } = 60;
 

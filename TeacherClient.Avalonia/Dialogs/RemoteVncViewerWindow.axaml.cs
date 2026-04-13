@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -41,6 +42,8 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
     private int _frameHeight;
     private bool _updatingShortcutSelection;
     private int _pointerButtonsMask;
+    private int _bitmapPixelWidth;
+    private int _bitmapPixelHeight;
     private bool _disposed;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
@@ -97,23 +100,27 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         SendShortcutComboBox.ItemsSource = ShortcutOptions;
         SendShortcutComboBox.SelectedIndex = 0;
         EnableControlButton.Content = CrossPlatformText.EnableFullscreenControl;
+        ZoomLabel.Text = CrossPlatformText.RemoteManagementViewerZoomLabel;
+        FitToScreenCheckBox.Content = CrossPlatformText.RemoteManagementViewerFitToScreenLabel;
+        ZoomSlider.ValueChanged += (_, _) =>
+        {
+            UpdateZoomPercentLabel();
+            ApplyViewerScale();
+        };
+
+        FitToScreenCheckBox.IsCheckedChanged += FitToScreenCheckBox_OnIsCheckedChanged;
+        ViewerScrollViewer.SizeChanged += (_, _) => ApplyViewerScale();
+        SizeChanged += (_, _) => ApplyViewerScale();
+        UpdateZoomPercentLabel();
         UpdateControlUi();
     }
 
     private void ConfigureWindowForCurrentPlatform()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            SystemDecorations = SystemDecorations.None;
-            ExtendClientAreaToDecorationsHint = true;
-            ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
-            return;
-        }
-
-        // CenterOwner in XAML conflicts with maximize transitions on some builds; apply the
-        // preferred state after the window is opened.
-        WindowStartupLocation = WindowStartupLocation.Manual;
+        // Normal title bar and resize grips on all platforms (incl. macOS). Borderless fullscreen hid close/zoom
+        // and forced users to quit the whole app.
+        SystemDecorations = SystemDecorations.Full;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
     }
 
     private void ApplyPreferredInitialLayout() => WindowState = WindowState.Maximized;
@@ -184,6 +191,8 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
 
             _frameWidth = capture.FrameWidth;
             _frameHeight = capture.FrameHeight;
+            _bitmapPixelWidth = capture.Frame!.Width;
+            _bitmapPixelHeight = capture.Frame.Height;
 
             var bitmap = CreatePinnedBitmap(capture.Frame);
             SetBitmap(bitmap);
@@ -244,6 +253,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
 
     private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        e.Handled = true;
         _session.ControlEnabled = true;
         UpdateControlUi();
         ViewerInputRoot.Focus();
@@ -502,6 +512,75 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         DisposeBitmap();
         _currentBitmap = bitmap;
         ScreenImage.Source = bitmap.Bitmap;
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                ApplyViewerScale();
+                UpdateZoomPercentLabel();
+            },
+            DispatcherPriority.Background);
+    }
+
+    private void UpdateZoomPercentLabel()
+    {
+        ZoomPercentText.Text = $"{(int)Math.Round(ZoomSlider.Value * 100)}%";
+    }
+
+    private void FitToScreenCheckBox_OnIsCheckedChanged(object? sender, RoutedEventArgs e)
+    {
+        ApplyViewerScale();
+    }
+
+    private void ApplyViewerScale()
+    {
+        if (_bitmapPixelWidth <= 0 || _bitmapPixelHeight <= 0)
+        {
+            return;
+        }
+
+        var bw = (double)_bitmapPixelWidth;
+        var bh = (double)_bitmapPixelHeight;
+        var zoom = ZoomSlider.Value;
+
+        if (FitToScreenCheckBox.IsChecked == true)
+        {
+            var (screenW, screenH) = GetScreenWorkAreaSizeDips();
+            var vpW = Math.Max(1d, ViewerScrollViewer.Bounds.Width);
+            var vpH = Math.Max(1d, ViewerScrollViewer.Bounds.Height);
+            var maxW = Math.Min(screenW, vpW);
+            var maxH = Math.Min(screenH, vpH);
+            var fitScale = Math.Min(maxW / bw, maxH / bh);
+            var screenCap = Math.Min(screenW / bw, screenH / bh);
+            var scale = Math.Min(fitScale * zoom, screenCap);
+            ScreenImage.Width = bw * scale;
+            ScreenImage.Height = bh * scale;
+        }
+        else
+        {
+            ScreenImage.Width = bw * zoom;
+            ScreenImage.Height = bh * zoom;
+        }
+    }
+
+    private (double Width, double Height) GetScreenWorkAreaSizeDips()
+    {
+        var screen = Screens?.ScreenFromWindow(this) ?? Screens?.Primary;
+        if (screen is null)
+        {
+            return (Math.Max(1d, Bounds.Width), Math.Max(1d, Bounds.Height));
+        }
+
+        var work = screen.WorkingArea;
+        var w = (double)work.Width;
+        var h = (double)work.Height;
+
+        // WorkingArea is in device-independent units on supported backends; keep sane minimums.
+        if (w < 64 || h < 64)
+        {
+            return (Math.Max(1d, Bounds.Width), Math.Max(1d, Bounds.Height));
+        }
+
+        return (w, h);
     }
 
     private static PinnedBitmap CreatePinnedBitmap(VncFrameCapture frame)
@@ -560,5 +639,4 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
 
         return new VncFrameCapture(targetWidth, targetHeight, targetWidth * 4, targetPixels);
     }
-
 }

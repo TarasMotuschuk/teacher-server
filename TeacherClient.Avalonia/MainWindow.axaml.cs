@@ -1,10 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Teacher.Common;
 using Teacher.Common.Contracts;
 using TeacherClient.CrossPlatform.Dialogs;
@@ -16,6 +19,13 @@ namespace TeacherClient.CrossPlatform;
 
 public partial class MainWindow : Window, IDisposable
 {
+    private enum DistributionOpenFollowUp
+    {
+        None,
+        OpenSentPath,
+        OpenDestinationRoot,
+    }
+
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
@@ -47,7 +57,12 @@ public partial class MainWindow : Window, IDisposable
     private string? _lastConnectedAgentId;
     private string? _lastConnectedServerUrl;
     private string? _lastConnectedMachineName;
+    private int _lastDiscoveredAgentCount;
     private string? _remoteManagementSelectedAgentId;
+    private readonly Dictionary<string, RemoteVncViewerWindow> _openRemoteVncViewers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _openRemoteVncViewersSync = new();
+    private DateTime _remoteTileLastPrimaryUtc;
+    private string? _remoteTileLastPrimaryAgentId;
     private bool _disposed;
 
     public MainWindow()
@@ -97,6 +112,7 @@ public partial class MainWindow : Window, IDisposable
             _agentRefreshTimer.Stop();
             _connectionMonitorTimer.Stop();
             _updateStatusTimer.Stop();
+            CloseAllRemoteVncViewerWindows();
             DisposeRemoteManagementTiles();
             Dispose();
         };
@@ -155,6 +171,17 @@ public partial class MainWindow : Window, IDisposable
         }
 
         await ToggleInputLockAsync(agent, checkBox.IsChecked == true);
+    }
+
+    private void GroupCommandCheckBox_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox || checkBox.Tag is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        agent.GroupCommandSelected = checkBox.IsChecked == true;
+        e.Handled = true;
     }
 
     private async void SettingsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -330,11 +357,20 @@ public partial class MainWindow : Window, IDisposable
         await RunBusyAsync(
             async () =>
         {
+            var prevGroupSelection = _allAgents.ToDictionary(x => x.AgentId, x => x.GroupCommandSelected, StringComparer.OrdinalIgnoreCase);
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
+            _lastDiscoveredAgentCount = discoveredAgents.Count;
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
+            foreach (var row in _allAgents)
+            {
+                if (prevGroupSelection.TryGetValue(row.AgentId, out var sel))
+                {
+                    row.GroupCommandSelected = sel;
+                }
+            }
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
             await RefreshRemoteManagementTilesAsync();
@@ -343,6 +379,7 @@ public partial class MainWindow : Window, IDisposable
             SetStatus(_allAgents.Count == 0
                 ? CrossPlatformText.NoAgentsAvailable
                 : BuildAgentAvailabilityStatus(discoveredAgents.Count, _manualAgents.Count));
+            RefreshFooterSummary();
         }, CrossPlatformText.DiscoveryError);
     }
 
@@ -673,9 +710,55 @@ public partial class MainWindow : Window, IDisposable
         }
 
         SetStatus(CrossPlatformText.ConnectedToAgent(sourceLabel, info.MachineName, NormalizeUserDisplay(info.CurrentUser, info.MachineName), info.AgentVersion));
+        RefreshFooterSummary();
         await LoadProcessesAsync();
         await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
         await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+        Dispatcher.UIThread.Post(RefreshAgentsGridConnectionHighlight, DispatcherPriority.Background);
+    }
+
+    private void AgentsGrid_OnLoadingRow(object? sender, DataGridRowEventArgs e)
+    {
+        ApplyConnectionHighlightToDataGridRow(e.Row);
+    }
+
+    private void ApplyConnectionHighlightToDataGridRow(DataGridRow row)
+    {
+        if (row.DataContext is not DiscoveredAgentRow agent)
+        {
+            return;
+        }
+
+        row.Background = IsAgentCurrentlyConnected(agent)
+            ? new SolidColorBrush(Color.Parse("#DCF5DC"))
+            : Brushes.Transparent;
+    }
+
+    private void RefreshAgentsGridConnectionHighlight()
+    {
+        foreach (var row in AgentsGrid.GetVisualDescendants().OfType<DataGridRow>())
+        {
+            ApplyConnectionHighlightToDataGridRow(row);
+        }
+    }
+
+    private bool IsAgentCurrentlyConnected(DiscoveredAgentRow agent)
+    {
+        if (string.IsNullOrWhiteSpace(_lastConnectedServerUrl))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_lastConnectedAgentId) &&
+            string.Equals(agent.AgentId, _lastConnectedAgentId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            $"http://{agent.RespondingAddress}:{agent.Port}",
+            _lastConnectedServerUrl,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
@@ -1555,6 +1638,226 @@ public partial class MainWindow : Window, IDisposable
         await DistributeLocalSelectionAsync(selectedAgents);
     }
 
+    private async void SendFileAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFileForDistributionAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendFileSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFileForDistributionAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, selectedAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFolderForDistributionAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendFolderSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFolderForDistributionAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, selectedAgents, DistributionOpenFollowUp.None);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenDefaultAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFileOrFolderWithFallbackAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.OpenSentPath);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenDefaultSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFileOrFolderWithFallbackAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, selectedAgents, DistributionOpenFollowUp.OpenSentPath);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenDestFolderAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFileOrFolderWithFallbackAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.OpenDestinationRoot);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
+    private async void SendAndOpenDestFolderSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var selectedAgents = GetSelectedAgents();
+        if (selectedAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        var path = await PickLocalFileOrFolderWithFallbackAsync();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var entry = LocalPathEntryFactory.CreateFromPath(path);
+            await DistributeLocalEntryAsync(entry, selectedAgents, DistributionOpenFollowUp.OpenDestinationRoot);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(ex.Message);
+        }
+    }
+
     private async void SendToAllOnlineStudentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = _allAgents
@@ -1627,6 +1930,69 @@ public partial class MainWindow : Window, IDisposable
         await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
     }
 
+    private async void LockInputDemoAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
+    }
+
+    private async void LockInputSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true);
+    }
+
+    private async void LockInputDemoSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: true, InputLockVisualMode.DemonstrationBanner);
+    }
+
+    private async void UnlockInputSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await SetInputLockOnAgentsAsync(targetAgents, enabled: false);
+    }
+
     private async void UnlockInputAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = _allAgents
@@ -1677,9 +2043,218 @@ public partial class MainWindow : Window, IDisposable
 
     private async void DisableChangePasswordRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.ChangePassword, enabled: false);
 
-    private async void EnableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: true);
+    private async void EnableBlockInterfaceRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.BlockInterfaceChanges, enabled: true);
 
-    private async void DisableLogOffRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.LogOff, enabled: false);
+    private async void DisableBlockInterfaceRestrictionMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ToggleWindowsRestrictionOnAllOnlineStudentsAsync(WindowsRestrictionKind.BlockInterfaceChanges, enabled: false);
+
+    private async void DesktopWallpaperAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ApplyDesktopWallpaperToAgentsAsync(targetAgents);
+    }
+
+    private async void DesktopWallpaperSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => x.GroupCommandSelected)
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await ApplyDesktopWallpaperToAgentsAsync(targetAgents);
+    }
+
+    private async Task ApplyDesktopWallpaperToAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        if (StorageProvider is null)
+        {
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = CrossPlatformText.WallpaperPickImageTitle,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Images")
+                {
+                    Patterns = ["*.jpg", "*.jpeg", "*.bmp", "*.png"],
+                },
+            ],
+        });
+
+        var file = files.FirstOrDefault();
+        if (file is null)
+        {
+            return;
+        }
+
+        var localPath = file.TryGetLocalPath();
+        if (string.IsNullOrWhiteSpace(localPath))
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.GroupCommandsTitle, CrossPlatformText.DesktopWallpaperInvalidImage);
+            return;
+        }
+
+        var ext = Path.GetExtension(localPath);
+        if (!IsAllowedWallpaperExtension(ext))
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.GroupCommandsTitle, CrossPlatformText.DesktopWallpaperInvalidImage);
+            return;
+        }
+
+        var style = await PickWallpaperStyleAsync();
+        if (!style.HasValue)
+        {
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.DesktopWallpaperPrompt(targetAgents.Count, Path.GetFileName(localPath))))
+        {
+            return;
+        }
+
+        const string remoteDir = @"C:\Windows\Web\Wallpaper";
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            {
+                var agent = targetAgents[agentIndex];
+                var uniqueName = $"ClassCommander_wall_{Guid.NewGuid():N}{ext}";
+                var tempPath = Path.Combine(Path.GetTempPath(), uniqueName);
+                try
+                {
+                    SetStatus(CrossPlatformText.DesktopWallpaperProgress(agent.MachineName, agentIndex + 1, targetAgents.Count));
+                    File.Copy(localPath, tempPath, overwrite: true);
+                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.EnsureRemoteDirectoryPathAsync(remoteDir);
+                    await client.UploadFileAsync(tempPath, remoteDir);
+                    var remoteFullPath = RemoteWindowsPath.Combine(remoteDir, uniqueName);
+                    await client.ApplyDesktopWallpaperPolicyAsync(remoteFullPath, style.Value);
+                    succeeded++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+                finally
+                {
+                    TryDeleteFile(tempPath);
+                }
+            }
+
+            SetStatus(failures.Count == 0
+                ? CrossPlatformText.DesktopWallpaperCompleted(succeeded)
+                : CrossPlatformText.DesktopWallpaperCompletedWithFailures(succeeded, failures.Count));
+
+            if (failures.Count > 0)
+            {
+                await ConfirmationDialog.ShowInfoAsync(
+                    this,
+                    CrossPlatformText.BulkDesktopWallpaperError,
+                    string.Join(Environment.NewLine, failures));
+            }
+        });
+    }
+
+    private async Task<int?> PickWallpaperStyleAsync()
+    {
+        var dialog = new Window
+        {
+            Title = CrossPlatformText.WallpaperStyleDialogTitle,
+            Width = 420,
+            Height = 170,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+        };
+
+        var combo = new ComboBox();
+        for (var i = 0; i <= 5; i++)
+        {
+            combo.Items.Add(CrossPlatformText.WallpaperStyleName(i));
+        }
+
+        combo.SelectedIndex = 4;
+
+        int? result = null;
+
+        var ok = new Button { Content = CrossPlatformText.Ok, MinWidth = 80 };
+        var cancel = new Button { Content = CrossPlatformText.Cancel, MinWidth = 80 };
+        ok.Click += (_, _) =>
+        {
+            result = combo.SelectedIndex >= 0 ? combo.SelectedIndex : 4;
+            dialog.Close();
+        };
+
+        cancel.Click += (_, _) => dialog.Close();
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8,
+            Margin = new Thickness(0, 8, 0, 0),
+        };
+        buttons.Children.Add(ok);
+        buttons.Children.Add(cancel);
+
+        var panel = new StackPanel { Margin = new Thickness(16) };
+        panel.Children.Add(combo);
+        panel.Children.Add(buttons);
+
+        dialog.Content = panel;
+
+        await dialog.ShowDialog(this);
+        return result;
+    }
+
+    private static bool IsAllowedWallpaperExtension(string? ext)
+    {
+        if (string.IsNullOrEmpty(ext))
+        {
+            return false;
+        }
+
+        return ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".png", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+        }
+    }
 
     private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -2119,6 +2694,62 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
+        await DistributeLocalEntryAsync(entry, targetAgents, DistributionOpenFollowUp.None);
+    }
+
+    private async Task<string?> PickLocalFileForDistributionAsync()
+    {
+        if (StorageProvider is null)
+        {
+            return null;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = CrossPlatformText.PickFileForDistributionTitle,
+            AllowMultiple = false,
+        });
+
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    private async Task<string?> PickLocalFolderForDistributionAsync()
+    {
+        if (StorageProvider is null)
+        {
+            return null;
+        }
+
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = CrossPlatformText.PickFolderForDistributionTitle,
+            AllowMultiple = false,
+        });
+
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+    }
+
+    private async Task<string?> PickLocalFileOrFolderWithFallbackAsync()
+    {
+        var file = await PickLocalFileForDistributionAsync();
+        if (!string.IsNullOrWhiteSpace(file))
+        {
+            return file;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.GroupCommandsTitle, CrossPlatformText.ChooseFolderInsteadPrompt))
+        {
+            return null;
+        }
+
+        return await PickLocalFolderForDistributionAsync();
+    }
+
+    private async Task DistributeLocalEntryAsync(
+        FileSystemEntryDto entry,
+        IReadOnlyList<DiscoveredAgentRow> targetAgents,
+        DistributionOpenFollowUp followUp)
+    {
         var destinationRoot = GetConfiguredDistributionDestinationPath();
         if (string.IsNullOrWhiteSpace(destinationRoot))
         {
@@ -2128,6 +2759,10 @@ public partial class MainWindow : Window, IDisposable
 
         SetStatus(CrossPlatformText.PreparingDistributionPlan);
         var plan = LocalDistributionPlanner.Build(entry, destinationRoot);
+        string? pathToOpenSent = followUp == DistributionOpenFollowUp.OpenSentPath
+            ? LocalDistributionOpenPaths.GetRemotePathToOpenAfterDistribution(plan)
+            : null;
+        var pathToOpenDest = followUp == DistributionOpenFollowUp.OpenDestinationRoot ? destinationRoot : null;
 
         var failures = new List<string>();
         var succeeded = 0;
@@ -2149,6 +2784,28 @@ public partial class MainWindow : Window, IDisposable
                         targetAgents.Count,
                         SetStatus);
                     succeeded++;
+                    if (pathToOpenSent is not null)
+                    {
+                        try
+                        {
+                            await client.OpenRemoteEntryAsync(pathToOpenSent);
+                        }
+                        catch (Exception openEx)
+                        {
+                            failures.Add($"{agent.MachineName}: {openEx.Message}");
+                        }
+                    }
+                    else if (pathToOpenDest is not null)
+                    {
+                        try
+                        {
+                            await client.OpenRemoteEntryAsync(pathToOpenDest);
+                        }
+                        catch (Exception openEx)
+                        {
+                            failures.Add($"{agent.MachineName}: {openEx.Message}");
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -2284,11 +2941,14 @@ public partial class MainWindow : Window, IDisposable
     }
 
     private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
+        => await SetInputLockOnAgentsAsync(targetAgents, enabled, InputLockVisualMode.FullscreenOverlay);
+
+    private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled, InputLockVisualMode visualMode)
     {
         if (!await ConfirmationDialog.ShowAsync(
                 this,
                 CrossPlatformText.GroupCommandsTitle,
-                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled)))
+                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled, visualMode)))
         {
             return;
         }
@@ -2304,9 +2964,9 @@ public partial class MainWindow : Window, IDisposable
                 var agent = targetAgents[agentIndex];
                 try
                 {
-                    SetStatus(CrossPlatformText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled));
+                    SetStatus(CrossPlatformText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled, visualMode));
                     var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                    await client.SetInputLockEnabledAsync(enabled);
+                    await client.SetInputLockEnabledAsync(enabled, visualMode);
                     ReplaceAgentRow(agent with { InputLockEnabled = enabled });
                     succeeded++;
                 }
@@ -2317,8 +2977,8 @@ public partial class MainWindow : Window, IDisposable
             }
 
             SetStatus(failures.Count == 0
-                ? CrossPlatformText.InputLockCompleted(succeeded, enabled)
-                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled));
+                ? CrossPlatformText.InputLockCompleted(succeeded, enabled, visualMode)
+                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode));
 
             if (failures.Count > 0)
             {
@@ -3118,6 +3778,11 @@ public partial class MainWindow : Window, IDisposable
             : CrossPlatformText.MachineSummaryWithConnected(_allAgents.Count, discoveredCount, manualCount, _lastConnectedMachineName);
     }
 
+    private void RefreshFooterSummary()
+    {
+        FooterTextBlock.Text = BuildAgentAvailabilityStatus(_lastDiscoveredAgentCount, _manualAgents.Count);
+    }
+
     private static string NormalizeUserDisplay(string? currentUser, string machineName)
     {
         if (string.IsNullOrWhiteSpace(currentUser))
@@ -3135,15 +3800,112 @@ public partial class MainWindow : Window, IDisposable
             : trimmed;
     }
 
+    private static Control CreateAgentsGridColumnHeader(string headerText, string toolTipText)
+    {
+        var text = new TextBlock
+        {
+            Text = headerText,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        ToolTip.SetTip(text, toolTipText);
+        return text;
+    }
+
+    private static void SetGroupMenuTip(MenuItem? item, string? tip)
+    {
+        if (item is null || string.IsNullOrEmpty(tip))
+        {
+            return;
+        }
+
+        ToolTip.SetTip(item, tip);
+    }
+
+    private void ApplyGroupCommandMenuTooltips()
+    {
+        SetGroupMenuTip(GroupFileWorkMenuItem, CrossPlatformText.MenuTip_GroupFileWork);
+        SetGroupMenuTip(DestinationFolderMenuItem, CrossPlatformText.MenuTip_DestinationFolder);
+        SetGroupMenuTip(ClearSelectedFolderSelectedMenuItem, CrossPlatformText.MenuTip_ClearDestinationSelected);
+        SetGroupMenuTip(ClearSelectedFolderAllMenuItem, CrossPlatformText.MenuTip_ClearDestinationAll);
+        SetGroupMenuTip(SendSubmenuMenuItem, CrossPlatformText.MenuTip_SendSubmenu);
+        SetGroupMenuTip(SendFileSubmenuMenuItem, CrossPlatformText.MenuTip_SendFile);
+        SetGroupMenuTip(SendFileAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendFileSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(SendFolderSubmenuMenuItem, CrossPlatformText.MenuTip_SendFolder);
+        SetGroupMenuTip(SendFolderAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendFolderSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(SendAndOpenDefaultMenuItem, CrossPlatformText.MenuTip_SendAndOpenDefault);
+        SetGroupMenuTip(SendAndOpenDefaultAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendAndOpenDefaultSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(SendAndOpenDestFolderMenuItem, CrossPlatformText.MenuTip_SendAndOpenDestFolder);
+        SetGroupMenuTip(SendAndOpenDestFolderAllMenuItem, CrossPlatformText.MenuTip_ToAllPcs);
+        SetGroupMenuTip(SendAndOpenDestFolderSelectedMenuItem, CrossPlatformText.MenuTip_ToSelectedPcs);
+        SetGroupMenuTip(BlockingCommandsMenuItem, CrossPlatformText.MenuTip_Blocking);
+        SetGroupMenuTip(LockBrowsersAllMenuItem, CrossPlatformText.MenuTip_LockBrowsersAll);
+        SetGroupMenuTip(BlockingSelectedMenuItem, CrossPlatformText.MenuTip_BlockingSelectedGroup);
+        SetGroupMenuTip(LockInputSelectedMenuItem, CrossPlatformText.MenuTip_LockInputSelected);
+        SetGroupMenuTip(LockInputDemoSelectedMenuItem, CrossPlatformText.MenuTip_LockInputDemoSelected);
+        SetGroupMenuTip(UnlockInputSelectedMenuItem, CrossPlatformText.MenuTip_UnlockInputSelected);
+        SetGroupMenuTip(BlockingAllOnlineMenuItem, CrossPlatformText.MenuTip_BlockingAllOnlineGroup);
+        SetGroupMenuTip(LockInputAllMenuItem, CrossPlatformText.MenuTip_LockInputAll);
+        SetGroupMenuTip(LockInputDemoAllMenuItem, CrossPlatformText.MenuTip_LockInputDemoAll);
+        SetGroupMenuTip(UnlockInputAllMenuItem, CrossPlatformText.MenuTip_UnlockInputAll);
+        SetGroupMenuTip(WindowsRestrictionsMenuItem, CrossPlatformText.MenuTip_GroupPolicies);
+        SetGroupMenuTip(TaskManagerRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionTaskManager);
+        SetGroupMenuTip(EnableTaskManagerRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableTaskManagerRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(RunDialogRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionRunDialog);
+        SetGroupMenuTip(EnableRunDialogRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableRunDialogRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(ControlPanelRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionControlPanel);
+        SetGroupMenuTip(EnableControlPanelRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableControlPanelRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(LockWorkstationRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionLockWorkstation);
+        SetGroupMenuTip(EnableLockWorkstationRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableLockWorkstationRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(ChangePasswordRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionChangePassword);
+        SetGroupMenuTip(EnableChangePasswordRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableChangePasswordRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(BlockInterfaceRestrictionsMenuItem, CrossPlatformText.MenuTip_RestrictionBlockInterface);
+        SetGroupMenuTip(EnableBlockInterfaceRestrictionMenuItem, CrossPlatformText.MenuTip_EnableRestrictionAllOnline);
+        SetGroupMenuTip(DisableBlockInterfaceRestrictionMenuItem, CrossPlatformText.MenuTip_DisableRestrictionAllOnline);
+        SetGroupMenuTip(DesktopWallpaperMenuItem, CrossPlatformText.MenuTip_DesktopWallpaperMenu);
+        SetGroupMenuTip(DesktopWallpaperAllMenuItem, CrossPlatformText.MenuTip_DesktopWallpaperAll);
+        SetGroupMenuTip(DesktopWallpaperSelectedMenuItem, CrossPlatformText.MenuTip_DesktopWallpaperSelected);
+        SetGroupMenuTip(CommandsMenuItem, CrossPlatformText.MenuTip_Commands);
+        SetGroupMenuTip(RunCommandSelectedMenuItem, CrossPlatformText.MenuTip_RunCommandSelected);
+        SetGroupMenuTip(RunCommandAllMenuItem, CrossPlatformText.MenuTip_RunCommandAll);
+        SetGroupMenuTip(RefreshFrequentProgramsMenuItem, CrossPlatformText.MenuTip_RefreshFrequentPrograms);
+        SetGroupMenuTip(ManageFrequentProgramsMenuItem, CrossPlatformText.MenuTip_ManageFrequentPrograms);
+        SetGroupMenuTip(DesktopIconsCommandsMenuItem, CrossPlatformText.MenuTip_DesktopIconsCmd);
+        SetGroupMenuTip(SaveDesktopIconLayoutMenuItem, CrossPlatformText.MenuTip_SaveDesktopIconsCurrentPc);
+        SetGroupMenuTip(RestoreDesktopIconLayoutMenuItem, CrossPlatformText.MenuTip_RestoreDesktopIconsCurrentPc);
+        SetGroupMenuTip(RestoreDesktopIconsSelectedMenuItem, CrossPlatformText.MenuTip_RestoreIconsSelected);
+        SetGroupMenuTip(RestoreDesktopIconsAllMenuItem, CrossPlatformText.MenuTip_RestoreIconsAll);
+        SetGroupMenuTip(ApplyCurrentDesktopIconsSelectedMenuItem, CrossPlatformText.MenuTip_ApplyLayoutSelected);
+        SetGroupMenuTip(ApplyCurrentDesktopIconsAllMenuItem, CrossPlatformText.MenuTip_ApplyLayoutAll);
+        SetGroupMenuTip(PowerCommandsMenuItem, CrossPlatformText.MenuTip_Power);
+        SetGroupMenuTip(SelectedPowerMenuItem, CrossPlatformText.MenuTip_PowerSelectedGroup);
+        SetGroupMenuTip(ShutdownSelectedMenuItem, CrossPlatformText.MenuTip_Shutdown);
+        SetGroupMenuTip(RestartSelectedMenuItem, CrossPlatformText.MenuTip_Restart);
+        SetGroupMenuTip(LogOffSelectedMenuItem, CrossPlatformText.MenuTip_LogOff);
+        SetGroupMenuTip(AllOnlinePowerMenuItem, CrossPlatformText.MenuTip_PowerAllGroup);
+        SetGroupMenuTip(ShutdownAllMenuItem, CrossPlatformText.MenuTip_Shutdown);
+        SetGroupMenuTip(RestartAllMenuItem, CrossPlatformText.MenuTip_Restart);
+        SetGroupMenuTip(LogOffAllMenuItem, CrossPlatformText.MenuTip_LogOff);
+        SetGroupMenuTip(StudentWorkMenuItem, CrossPlatformText.MenuTip_StudentWork);
+        SetGroupMenuTip(CreateStudentWorkFolderAllMenuItem, CrossPlatformText.MenuTip_CreateWorkFolder);
+        SetGroupMenuTip(CollectStudentWorkToTeacherPcMenuItem, CrossPlatformText.MenuTip_CollectWork);
+        SetGroupMenuTip(ClearStudentWorkFolderAllMenuItem, CrossPlatformText.MenuTip_ClearWorkFolder);
+    }
+
     private void ApplyLocalization()
     {
         var selectedStatus = StatusFilterComboBox.SelectedItem?.ToString();
         Title = CrossPlatformText.MainTitle;
         ConnectionMenuItem.Header = CrossPlatformText.ConnectionMenu;
-        SettingsMenuItem.Header = CrossPlatformText.Settings;
         RefreshAgentsMenuItem.Header = CrossPlatformText.RefreshAgents;
         ConnectSelectedMenuItem.Header = CrossPlatformText.ConnectSelectedAgent;
-        DesktopIconsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         SaveDesktopIconLayoutMenuItem.Header = CrossPlatformText.SaveDesktopIconLayout;
         RestoreDesktopIconLayoutMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayout;
         CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
@@ -3152,9 +3914,22 @@ public partial class MainWindow : Window, IDisposable
         EditManualMenuItem.Header = CrossPlatformText.EditManualAgent;
         RemoveManualMenuItem.Header = CrossPlatformText.RemoveManualAgent;
         GroupCommandsMenuItem.Header = CrossPlatformText.GroupCommands;
+        GroupFileWorkMenuItem.Header = CrossPlatformText.GroupFileWorkMenu;
         DestinationFolderMenuItem.Header = CrossPlatformText.DestinationFolderMenu;
-        BrowserCommandsMenuItem.Header = CrossPlatformText.BrowserCommandsMenu;
-        InputCommandsMenuItem.Header = CrossPlatformText.InputCommandsMenu;
+        SendSubmenuMenuItem.Header = CrossPlatformText.SendSubmenu;
+        SendFileSubmenuMenuItem.Header = CrossPlatformText.SendFileSubmenu;
+        SendFileAllMenuItem.Header = CrossPlatformText.ToAllPcsShort;
+        SendFileSelectedMenuItem.Header = CrossPlatformText.ToSelectedPcsShort;
+        SendFolderSubmenuMenuItem.Header = CrossPlatformText.SendFolderSubmenu;
+        SendFolderAllMenuItem.Header = CrossPlatformText.ToAllPcsShort;
+        SendFolderSelectedMenuItem.Header = CrossPlatformText.ToSelectedPcsShort;
+        SendAndOpenDefaultMenuItem.Header = CrossPlatformText.SendAndOpenWithDefaultAppMenu;
+        SendAndOpenDefaultAllMenuItem.Header = CrossPlatformText.ToAllPcsShort;
+        SendAndOpenDefaultSelectedMenuItem.Header = CrossPlatformText.ToSelectedPcsShort;
+        SendAndOpenDestFolderMenuItem.Header = CrossPlatformText.SendAndOpenStudentDestinationFolderMenu;
+        SendAndOpenDestFolderAllMenuItem.Header = CrossPlatformText.ToAllPcsShort;
+        SendAndOpenDestFolderSelectedMenuItem.Header = CrossPlatformText.ToSelectedPcsShort;
+        BlockingCommandsMenuItem.Header = CrossPlatformText.BlockingCommandsMenu;
         WindowsRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionsMenu;
         TaskManagerRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.TaskManager);
         EnableTaskManagerRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
@@ -3171,9 +3946,12 @@ public partial class MainWindow : Window, IDisposable
         ChangePasswordRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.ChangePassword);
         EnableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
         DisableChangePasswordRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
-        LogOffRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.LogOff);
-        EnableLogOffRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
-        DisableLogOffRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        BlockInterfaceRestrictionsMenuItem.Header = CrossPlatformText.WindowsRestrictionName(WindowsRestrictionKind.BlockInterfaceChanges);
+        EnableBlockInterfaceRestrictionMenuItem.Header = CrossPlatformText.EnableCommand;
+        DisableBlockInterfaceRestrictionMenuItem.Header = CrossPlatformText.DisableCommand;
+        DesktopWallpaperMenuItem.Header = CrossPlatformText.DesktopWallpaperMenu;
+        DesktopWallpaperAllMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
+        DesktopWallpaperSelectedMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
@@ -3181,10 +3959,18 @@ public partial class MainWindow : Window, IDisposable
         ApplyCurrentDesktopIconsSelectedMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToSelectedStudents;
         ApplyCurrentDesktopIconsAllMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToAllOnlineStudents;
         LockBrowsersAllMenuItem.Header = CrossPlatformText.LockBrowsersOnAllOnlineStudents;
+        BlockingSelectedMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
+        BlockingAllOnlineMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
+        LockInputSelectedMenuItem.Header = CrossPlatformText.LockInputOnMarkedStudents;
+        LockInputDemoSelectedMenuItem.Header = CrossPlatformText.LockInputDemoOnMarkedStudents;
+        UnlockInputSelectedMenuItem.Header = CrossPlatformText.UnlockInputOnMarkedStudents;
         LockInputAllMenuItem.Header = CrossPlatformText.LockInputOnAllOnlineStudents;
+        LockInputDemoAllMenuItem.Header = CrossPlatformText.LockInputForDemonstrationOnAllOnlineStudents;
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
         RunCommandSelectedMenuItem.Header = CrossPlatformText.RunCommandOnSelectedStudents;
         RunCommandAllMenuItem.Header = CrossPlatformText.RunCommandOnAllOnlineStudents;
+        RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
+        ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         PowerCommandsMenuItem.Header = CrossPlatformText.PowerCommandsMenu;
         SelectedPowerMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         AllOnlinePowerMenuItem.Header = CrossPlatformText.AllOnlineStudentsMenu;
@@ -3194,15 +3980,13 @@ public partial class MainWindow : Window, IDisposable
         ShutdownAllMenuItem.Header = CrossPlatformText.ShutdownCommand;
         RestartAllMenuItem.Header = CrossPlatformText.RestartCommand;
         LogOffAllMenuItem.Header = CrossPlatformText.LogOffCommand;
-        FrequentProgramsMenuItem.Header = CrossPlatformText.FrequentProgramsMenu;
-        RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
-        ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;
         CreateStudentWorkFolderAllMenuItem.Header = CrossPlatformText.CreateStudentWorkFolderOnAllAgents;
         CollectStudentWorkToTeacherPcMenuItem.Header = CrossPlatformText.CollectStudentWorkToTeacherPc;
         ClearStudentWorkFolderAllMenuItem.Header = CrossPlatformText.ClearStudentWorkFolderOnAllAgents;
+        ApplyGroupCommandMenuTooltips();
         HelpMenuItem.Header = CrossPlatformText.Help;
         ProgramUpdatesMenuItem.Header = CrossPlatformText.ProgramUpdatesMenu;
         CheckAgentUpdateMenuItem.Header = CrossPlatformText.CheckForAgentUpdate;
@@ -3211,7 +3995,8 @@ public partial class MainWindow : Window, IDisposable
         UpdateAllMenuItem.Header = CrossPlatformText.UpdateAllOnlineStudents;
         CheckClientUpdateMenuItem.Header = CrossPlatformText.CheckForClientUpdate;
         AboutMenuItem.Header = CrossPlatformText.About;
-        SettingsButton.Content = CrossPlatformText.Settings;
+        ConfigurationMenuItem.Header = CrossPlatformText.ConfigurationMenu;
+        BasicSettingsMenuItem.Header = CrossPlatformText.BasicSettingsMenu;
         AgentsTabItem.Header = CrossPlatformText.Agents;
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;
@@ -3220,10 +4005,10 @@ public partial class MainWindow : Window, IDisposable
         RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
             ? CrossPlatformText.RemoteManagementNoScreens
             : CrossPlatformText.RemoteManagementHint;
-        RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
-        StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StopVncButton.Content = CrossPlatformText.StopVnc;
-        OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
+        ApplyTabButtonContent(RefreshRemoteManagementButton, CrossPlatformText.RefreshRemoteManagement, "Toolbar/remote/refresh-screens.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(StartVncViewOnlyButton, CrossPlatformText.StartVncViewOnly, "Toolbar/remote/start-vnc.png", ToolbarGlyphKind.Play);
+        ApplyTabButtonContent(StopVncButton, CrossPlatformText.StopVnc, "Toolbar/remote/stop-vnc.png", ToolbarGlyphKind.Stop);
+        ApplyTabButtonContent(OpenRemoteManagementViewerButton, CrossPlatformText.OpenFullscreenViewer, "Toolbar/remote/open-viewer.png", ToolbarGlyphKind.Fullscreen);
         ApplyTabButtonContent(RefreshAgentsButton, CrossPlatformText.RefreshAgents, "Toolbar/agents/pc-refresh-list.png", ToolbarGlyphKind.Refresh);
         ApplyTabButtonContent(ConnectSelectedAgentButton, CrossPlatformText.ConnectSelectedAgent, "Toolbar/agents/connect.png", ToolbarGlyphKind.Link);
         ApplyTabButtonContent(AddManualAgentButton, CrossPlatformText.AddManualAgent, "Toolbar/agents/add-manual.png", ToolbarGlyphKind.Add);
@@ -3280,24 +4065,31 @@ public partial class MainWindow : Window, IDisposable
         ApplyTabButtonContent(DeleteKeyButton, CrossPlatformText.DeleteKey, "Toolbar/registry/delete-key.png", ToolbarGlyphKind.Remove);
         ApplyTabButtonContent(ExportRegistryButton, CrossPlatformText.ExportRegFile, "Toolbar/registry/export-reg.png", ToolbarGlyphKind.Download);
         ApplyTabButtonContent(ImportRegistryButton, CrossPlatformText.ImportRegFile, "Toolbar/registry/import-reg.png", ToolbarGlyphKind.Upload);
-        FooterTextBlock.Text = CrossPlatformText.FooterDescription;
-        if (AgentsGrid.Columns.Count >= 15)
+        RefreshFooterSummary();
+        if (AgentsGrid.Columns.Count >= 16)
         {
-            AgentsGrid.Columns[0].Header = CrossPlatformText.BrowserLock;
-            AgentsGrid.Columns[1].Header = CrossPlatformText.InputLock;
-            AgentsGrid.Columns[2].Header = CrossPlatformText.Source;
-            AgentsGrid.Columns[3].Header = CrossPlatformText.Status;
-            AgentsGrid.Columns[4].Header = CrossPlatformText.Group;
-            AgentsGrid.Columns[5].Header = CrossPlatformText.Machine;
-            AgentsGrid.Columns[6].Header = CrossPlatformText.User;
-            AgentsGrid.Columns[7].Header = "IP";
-            AgentsGrid.Columns[8].Header = CrossPlatformText.Port;
-            AgentsGrid.Columns[9].Header = "MAC";
-            AgentsGrid.Columns[10].Header = CrossPlatformText.Notes;
-            AgentsGrid.Columns[11].Header = CrossPlatformText.UpdateStatus;
-            AgentsGrid.Columns[12].Header = CrossPlatformText.UpdateStatusDetailColumn;
-            AgentsGrid.Columns[13].Header = CrossPlatformText.Version;
-            AgentsGrid.Columns[14].Header = CrossPlatformText.LastSeenUtc;
+            AgentsGrid.Columns[0].Header = CreateAgentsGridColumnHeader(
+                CrossPlatformText.GroupCommandSelectionColumn,
+                CrossPlatformText.AgentsGridSelectColumnTooltip);
+            AgentsGrid.Columns[1].Header = CrossPlatformText.Machine;
+            AgentsGrid.Columns[2].Header = CrossPlatformText.User;
+            AgentsGrid.Columns[3].Header = "IP";
+            AgentsGrid.Columns[4].Header = CreateAgentsGridColumnHeader(
+                CrossPlatformText.BrowserLock,
+                CrossPlatformText.AgentsGridBrowserLockColumnTooltip);
+            AgentsGrid.Columns[5].Header = CreateAgentsGridColumnHeader(
+                CrossPlatformText.InputLock,
+                CrossPlatformText.AgentsGridInputLockColumnTooltip);
+            AgentsGrid.Columns[6].Header = CrossPlatformText.Status;
+            AgentsGrid.Columns[7].Header = CrossPlatformText.Port;
+            AgentsGrid.Columns[8].Header = "MAC";
+            AgentsGrid.Columns[9].Header = CrossPlatformText.Source;
+            AgentsGrid.Columns[10].Header = CrossPlatformText.Group;
+            AgentsGrid.Columns[11].Header = CrossPlatformText.Notes;
+            AgentsGrid.Columns[12].Header = CrossPlatformText.UpdateStatus;
+            AgentsGrid.Columns[13].Header = CrossPlatformText.UpdateStatusDetailColumn;
+            AgentsGrid.Columns[14].Header = CrossPlatformText.Version;
+            AgentsGrid.Columns[15].Header = CrossPlatformText.LastSeenUtc;
         }
 
         if (ProcessesGrid.Columns.Count >= 6)
@@ -3335,10 +4127,10 @@ public partial class MainWindow : Window, IDisposable
             RegistryValuesGrid.Columns[2].Header = CrossPlatformText.RegistryValueData;
         }
 
-        RefreshRemoteManagementButton.Content = CrossPlatformText.RefreshRemoteManagement;
-        StartVncViewOnlyButton.Content = CrossPlatformText.StartVncViewOnly;
-        StopVncButton.Content = CrossPlatformText.StopVnc;
-        OpenRemoteManagementViewerButton.Content = CrossPlatformText.OpenFullscreenViewer;
+        ApplyTabButtonContent(RefreshRemoteManagementButton, CrossPlatformText.RefreshRemoteManagement, "Toolbar/remote/refresh-screens.png", ToolbarGlyphKind.Refresh);
+        ApplyTabButtonContent(StartVncViewOnlyButton, CrossPlatformText.StartVncViewOnly, "Toolbar/remote/start-vnc.png", ToolbarGlyphKind.Play);
+        ApplyTabButtonContent(StopVncButton, CrossPlatformText.StopVnc, "Toolbar/remote/stop-vnc.png", ToolbarGlyphKind.Stop);
+        ApplyTabButtonContent(OpenRemoteManagementViewerButton, CrossPlatformText.OpenFullscreenViewer, "Toolbar/remote/open-viewer.png", ToolbarGlyphKind.Fullscreen);
         RemoteManagementHintTextBlock.Text = _remoteManagementTiles.Count == 0
             ? CrossPlatformText.RemoteManagementNoScreens
             : CrossPlatformText.RemoteManagementHint;
@@ -3422,6 +4214,8 @@ public partial class MainWindow : Window, IDisposable
             ToolbarGlyphKind.OpenRemote => Color.Parse("#2563EB"),
             ToolbarGlyphKind.Broadcast => Color.Parse("#7C3AED"),
             ToolbarGlyphKind.NewFolder => Color.Parse("#CA8A04"),
+            ToolbarGlyphKind.Play => Color.Parse("#16A34A"),
+            ToolbarGlyphKind.Fullscreen => Color.Parse("#2563EB"),
             _ => Color.Parse("#0F172A"),
         });
 
@@ -3441,6 +4235,8 @@ public partial class MainWindow : Window, IDisposable
             ToolbarGlyphKind.OpenRemote => "M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M5,5H12V7H5V19H17V12H19V19C19,20.1 18.1,21 17,21H5C3.9,21 3,20.1 3,19V7C3,5.9 3.9,5 5,5Z",
             ToolbarGlyphKind.Broadcast => "M3,10V14H7L12,19V5L7,10H3M16.5,12C16.5,10.23 15.73,8.63 14.5,7.5L13.08,8.92C13.95,9.69 14.5,10.79 14.5,12C14.5,13.21 13.95,14.31 13.08,15.08L14.5,16.5C15.73,15.37 16.5,13.77 16.5,12M14.5,3.97L13.09,5.38C15.47,7 17,9.83 17,13C17,16.17 15.47,19 13.09,20.62L14.5,22.03C17.3,20.04 19,16.73 19,13C19,9.27 17.3,5.96 14.5,3.97Z",
             ToolbarGlyphKind.NewFolder => "M10,4L12,6H20C21.1,6 22,6.9 22,8V10H20V8H4V18H11V20H4C2.9,20 2,19.1 2,18V6C2,4.9 2.9,4 4,4H10M19,12V15H22V17H19V20H17V17H14V15H17V12H19Z",
+            ToolbarGlyphKind.Play => "M8,5.14V19.14L19,12.14L8,5.14Z",
+            ToolbarGlyphKind.Fullscreen => "M7,14H5V19H10V17H8V14M7,10H5V5H10V7H8V10M17,14H19V19H14V17H16V14M17,10H19V5H14V7H16V10Z",
             _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z",
         };
 

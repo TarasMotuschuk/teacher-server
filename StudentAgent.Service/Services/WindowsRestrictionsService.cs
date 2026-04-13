@@ -10,6 +10,21 @@ public sealed class WindowsRestrictionsService
 {
     private const string ExplorerPoliciesPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer";
     private const string SystemPoliciesPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+
+    // User Configuration > Control Panel > Personalization (Administrative Templates), applied machine-wide (HKLM) and mirrored to loaded user hives.
+    private static readonly string[] BlockInterfaceSystemDwordValues =
+    [
+        "NoDispAppearancePage",
+        "NoDispThemes",
+        "NoVisualStyleChoice",
+        "NoFontSizeChoice",
+        "NoDispSettingsPage",
+        "NoDispScrSavPage",
+        "NoDispMousePointers",
+    ];
+
+    private const string BlockInterfaceDesktopIconsValue = "NoDesktopIconsUI";
+
     private readonly AgentLogService _agentLogService;
 
     public WindowsRestrictionsService(AgentLogService agentLogService)
@@ -24,6 +39,15 @@ public sealed class WindowsRestrictionsService
             throw new PlatformNotSupportedException("Windows restrictions are only supported on Windows student agents.");
         }
 
+        if (restriction == WindowsRestrictionKind.BlockInterfaceChanges)
+        {
+            ApplyBlockInterfaceChanges(enabled);
+            BroadcastPolicyRefresh();
+            _agentLogService.LogInfo(
+                $"Windows restriction '{restriction}' {(enabled ? "enabled" : "disabled")} via teacher command.");
+            return;
+        }
+
         var definition = GetDefinition(restriction);
         using var machineKey = Registry.LocalMachine.CreateSubKey(definition.RegistryPath, writable: true)
             ?? throw new InvalidOperationException($"Cannot open or create registry path '{definition.RegistryPath}'.");
@@ -33,17 +57,187 @@ public sealed class WindowsRestrictionsService
             machineKey.SetValue(definition.ValueName, 1, RegistryValueKind.DWord);
             if (restriction == WindowsRestrictionKind.TaskManager)
             {
-                CloseRunningTaskManagerWindows();
+                // Win10/11 Shell (incl. taskbar "Task Manager") often evaluates per-user policy (HKCU).
+                // HKLM alone is not always enough until logoff; mirror into loaded HKEY_USERS\<SID> hives.
+                ApplyDisableTaskMgrToLoadedUserHives(enabled: true);
+                CloseRunningTaskManager();
             }
         }
         else
         {
             machineKey.DeleteValue(definition.ValueName, throwOnMissingValue: false);
+            if (restriction == WindowsRestrictionKind.TaskManager)
+            {
+                ApplyDisableTaskMgrToLoadedUserHives(enabled: false);
+            }
         }
 
         BroadcastPolicyRefresh();
         _agentLogService.LogInfo(
             $"Windows restriction '{restriction}' {(enabled ? "enabled" : "disabled")} via teacher command.");
+    }
+
+    /// <summary>
+    /// Applies the Desktop Wallpaper policy (user GPO equivalent) and locks the background via
+    /// <c>Prevent changing desktop background</c> (<c>NoDispBackgroundPage</c>).
+    /// </summary>
+    public void ApplyDesktopWallpaperPolicy(string wallpaperFullPath, int wallpaperStyle)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("Desktop wallpaper policy is only supported on Windows student agents.");
+        }
+
+        if (string.IsNullOrWhiteSpace(wallpaperFullPath))
+        {
+            throw new ArgumentException("Wallpaper path is required.", nameof(wallpaperFullPath));
+        }
+
+        var normalizedPath = Path.GetFullPath(wallpaperFullPath.Trim());
+        if (!File.Exists(normalizedPath))
+        {
+            throw new FileNotFoundException($"Wallpaper file was not found: {normalizedPath}", normalizedPath);
+        }
+
+        if (wallpaperStyle is < 0 or > 5)
+        {
+            throw new ArgumentOutOfRangeException(nameof(wallpaperStyle), wallpaperStyle, "Wallpaper style must be between 0 and 5.");
+        }
+
+        var styleString = wallpaperStyle.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        ApplyDesktopWallpaperToKey(Registry.LocalMachine, SystemPoliciesPath, normalizedPath, styleString, lockBackground: true);
+        ApplyDesktopWallpaperToLoadedUserHives(normalizedPath, styleString, lockBackground: true);
+
+        BroadcastPolicyRefresh();
+        _agentLogService.LogInfo($"Desktop wallpaper policy applied: '{normalizedPath}', style {wallpaperStyle}.");
+    }
+
+    private void ApplyBlockInterfaceChanges(bool enabled)
+    {
+        ApplyBlockInterfaceMachine(enabled);
+        ApplyBlockInterfaceToLoadedUserHives(enabled);
+    }
+
+    private static void ApplyBlockInterfaceMachine(bool enabled)
+    {
+        using var systemKey = Registry.LocalMachine.CreateSubKey(SystemPoliciesPath, writable: true)
+            ?? throw new InvalidOperationException($"Cannot open or create registry path '{SystemPoliciesPath}'.");
+
+        using var explorerKey = Registry.LocalMachine.CreateSubKey(ExplorerPoliciesPath, writable: true)
+            ?? throw new InvalidOperationException($"Cannot open or create registry path '{ExplorerPoliciesPath}'.");
+
+        if (enabled)
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.SetValue(name, 1, RegistryValueKind.DWord);
+            }
+
+            explorerKey.SetValue(BlockInterfaceDesktopIconsValue, 1, RegistryValueKind.DWord);
+        }
+        else
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.DeleteValue(name, throwOnMissingValue: false);
+            }
+
+            explorerKey.DeleteValue(BlockInterfaceDesktopIconsValue, throwOnMissingValue: false);
+        }
+    }
+
+    private void ApplyBlockInterfaceToLoadedUserHives(bool enabled)
+    {
+        foreach (var sid in Registry.Users.GetSubKeyNames())
+        {
+            if (ShouldSkipUserHiveSid(sid))
+            {
+                continue;
+            }
+
+            try
+            {
+                ApplyBlockInterfaceToUserHive(sid, enabled);
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"Block interface policy in HKU\\{sid}: {ex.Message}");
+            }
+        }
+    }
+
+    private static void ApplyBlockInterfaceToUserHive(string sid, bool enabled)
+    {
+        using var systemKey = Registry.Users.CreateSubKey($@"{sid}\{SystemPoliciesPath}", writable: true);
+        using var explorerKey = Registry.Users.CreateSubKey($@"{sid}\{ExplorerPoliciesPath}", writable: true);
+        if (systemKey is null || explorerKey is null)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.SetValue(name, 1, RegistryValueKind.DWord);
+            }
+
+            explorerKey.SetValue(BlockInterfaceDesktopIconsValue, 1, RegistryValueKind.DWord);
+        }
+        else
+        {
+            foreach (var name in BlockInterfaceSystemDwordValues)
+            {
+                systemKey.DeleteValue(name, throwOnMissingValue: false);
+            }
+
+            explorerKey.DeleteValue(BlockInterfaceDesktopIconsValue, throwOnMissingValue: false);
+        }
+    }
+
+    private static void ApplyDesktopWallpaperToKey(
+        RegistryKey root,
+        string systemPoliciesRelativePath,
+        string wallpaperPath,
+        string wallpaperStyle,
+        bool lockBackground)
+    {
+        using var systemKey = root.CreateSubKey(systemPoliciesRelativePath, writable: true)
+            ?? throw new InvalidOperationException($"Cannot open or create registry path '{systemPoliciesRelativePath}'.");
+
+        systemKey.SetValue("Wallpaper", wallpaperPath, RegistryValueKind.String);
+        systemKey.SetValue("WallpaperStyle", wallpaperStyle, RegistryValueKind.String);
+
+        if (lockBackground)
+        {
+            systemKey.SetValue("NoDispBackgroundPage", 1, RegistryValueKind.DWord);
+        }
+    }
+
+    private void ApplyDesktopWallpaperToLoadedUserHives(string wallpaperPath, string wallpaperStyle, bool lockBackground)
+    {
+        foreach (var sid in Registry.Users.GetSubKeyNames())
+        {
+            if (ShouldSkipUserHiveSid(sid))
+            {
+                continue;
+            }
+
+            try
+            {
+                ApplyDesktopWallpaperToKey(
+                    Registry.Users,
+                    $@"{sid}\{SystemPoliciesPath}",
+                    wallpaperPath,
+                    wallpaperStyle,
+                    lockBackground);
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"Desktop wallpaper policy in HKU\\{sid}: {ex.Message}");
+            }
+        }
     }
 
     private static RestrictionDefinition GetDefinition(WindowsRestrictionKind restriction)
@@ -54,25 +248,29 @@ public sealed class WindowsRestrictionsService
             WindowsRestrictionKind.ControlPanelAndSettings => new(ExplorerPoliciesPath, "NoControlPanel"),
             WindowsRestrictionKind.LockWorkstation => new(SystemPoliciesPath, "DisableLockWorkstation"),
             WindowsRestrictionKind.ChangePassword => new(SystemPoliciesPath, "DisableChangePassword"),
-            WindowsRestrictionKind.LogOff => new(ExplorerPoliciesPath, "NoLogoff"),
             _ => throw new ArgumentOutOfRangeException(nameof(restriction), restriction, "Unsupported Windows restriction."),
         };
 
-    private static void CloseRunningTaskManagerWindows()
+    private static bool ShouldSkipUserHiveSid(string sid)
     {
-        foreach (var process in Process.GetProcessesByName("Taskmgr"))
+        if (string.IsNullOrEmpty(sid) || sid.StartsWith('.'))
         {
-            try
-            {
-                using (process)
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-            }
-            catch
-            {
-            }
+            return true;
         }
+
+        // Merged view / COM (not an interactive user profile hive).
+        if (sid.EndsWith("_Classes", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Service / system accounts (no Explorer taskbar).
+        if (sid is "S-1-5-18" or "S-1-5-19" or "S-1-5-20")
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static void BroadcastPolicyRefresh()
@@ -104,6 +302,109 @@ public sealed class WindowsRestrictionsService
         uint fuFlags,
         uint uTimeout,
         out IntPtr lpdwResult);
+
+    private void ApplyDisableTaskMgrToLoadedUserHives(bool enabled)
+    {
+        const string relativePoliciesPath = @"Software\Microsoft\Windows\CurrentVersion\Policies\System";
+
+        foreach (var sid in Registry.Users.GetSubKeyNames())
+        {
+            if (ShouldSkipUserHiveSid(sid))
+            {
+                continue;
+            }
+
+            try
+            {
+                using var userKey = Registry.Users.CreateSubKey($@"{sid}\{relativePoliciesPath}", writable: true);
+                if (userKey is null)
+                {
+                    continue;
+                }
+
+                if (enabled)
+                {
+                    userKey.SetValue("DisableTaskMgr", 1, RegistryValueKind.DWord);
+                }
+                else
+                {
+                    userKey.DeleteValue("DisableTaskMgr", throwOnMissingValue: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"DisableTaskMgr in HKU\\{sid}: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stops any running Task Manager so the new policy applies immediately.
+    /// Uses <c>taskkill.exe</c> after <see cref="System.Diagnostics.Process.Kill()"/> so termination works from Session 0
+    /// and is not missed due to WOW64 process-enumeration limits; failures are logged (previously swallowed).
+    /// </summary>
+    private void CloseRunningTaskManager()
+    {
+        foreach (var process in Process.GetProcessesByName("Taskmgr"))
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(milliseconds: 5000);
+            }
+            catch (Exception ex)
+            {
+                _agentLogService.LogWarning($"Process.Kill(Taskmgr PID {process.Id}) failed: {ex.Message}");
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        var taskkillPath = Path.Combine(Environment.SystemDirectory, "taskkill.exe");
+        if (!File.Exists(taskkillPath))
+        {
+            _agentLogService.LogWarning($"Cannot close Task Manager: '{taskkillPath}' was not found.");
+            return;
+        }
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = taskkillPath,
+                Arguments = "/F /IM Taskmgr.exe /T",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            });
+
+            if (process is null)
+            {
+                _agentLogService.LogWarning("Could not start taskkill.exe to close Task Manager.");
+                return;
+            }
+
+            using (process)
+            {
+                if (!process.WaitForExit(15000))
+                {
+                    _agentLogService.LogWarning("taskkill did not finish within 15s while closing Task Manager.");
+                    return;
+                }
+
+                // 0 = terminated; 128 = no matching process (nothing to do). Other codes are unexpected.
+                if (process.ExitCode is not (0 or 128))
+                {
+                    _agentLogService.LogWarning($"taskkill /IM Taskmgr.exe exited with code {process.ExitCode}.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _agentLogService.LogWarning($"taskkill failed while closing Task Manager: {ex.Message}");
+        }
+    }
 
     private sealed record RestrictionDefinition(string RegistryPath, string ValueName);
 }

@@ -10,7 +10,7 @@ This repository contains a Windows-oriented classroom administration solution cu
 - `StudentAgent.Shared/`: shared student-side runtime, UI, and hosting source files used by the Windows service and UI host.
 - `StudentAgent.Service/`: privileged Windows Service host for the student machine.
 - `StudentAgent.UIHost/`: session-aware Windows Forms UI host for tray controls, warnings, and visible overlays.
-- `TeacherServer.Setup/`: WiX-based Windows installer project and MSI build scripts.
+- `TeacherServer.Setup/`: WiX-based Windows installer project and MSI build scripts (`Build-Msi.ps1` publishes both `TeacherClient` and `TeacherClient.Avalonia` into the installer).
 - `TeacherClient/`: Windows Forms client for the teacher machine.
 - `TeacherClient.Avalonia/`: cross-platform Avalonia client for teacher workstations on macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup/`: macOS packaging project for the Avalonia teacher client (`.app` + `.pkg`).
@@ -21,6 +21,7 @@ This repository contains a Windows-oriented classroom administration solution cu
 - Keep the product transparent and classroom-safe. Do not add stealth behavior, hidden persistence, covert surveillance, or evasion features.
 - Preserve compatibility with the current Windows-oriented app model. When the active task is the ongoing framework migration, prefer moving changed projects and shared dependencies forward to `.NET 10` together instead of mixing `.NET 8` and `.NET 10` targets unnecessarily.
 - Prefer small, reviewable changes that keep `Teacher.Common` contracts aligned with both server and client.
+- Unless the task explicitly calls for a different naming scheme, new git branches may use `feature/*` or `fix/*` prefixes by default.
 - When changing API shapes, update the server implementation and both teacher clients together.
 - Functional changes in `TeacherClient` should be mirrored in `TeacherClient.Avalonia` unless the task explicitly calls for platform-specific behavior.
 - Treat security improvements as welcome defaults: TLS, stronger auth, audit logging, and path restrictions are in scope. Covert control capabilities are not.
@@ -36,12 +37,13 @@ This repository contains a Windows-oriented classroom administration solution cu
 - Follow the existing C# style with file-scoped namespaces, records for DTOs, and concise minimal API handlers.
 - Keep UI code in `TeacherClient` practical and maintainable; avoid large hidden abstractions unless they clearly improve readability.
 - Add comments sparingly and only where the logic is non-obvious.
+- **Edits in one pass:** When changing a file, apply repo conventions immediately so CI does not fail on a follow-up fix. For C#, that includes correct **`using` order** (e.g. `System.*` first, then other namespaces alphabetically—`dotnet format` aligns with this) and matching existing patterns in the same file. When the same behavior exists in **both** `TeacherClient` and `TeacherClient.Avalonia`, update **both** in the same task unless the user asked for a single platform only.
 
 ## Validation
 
 - Prefer validating changes with `dotnet build TeacherServer.sln`.
 - If a change affects runtime behavior, mention what was validated and what still needs manual testing on Windows.
-- Before pushing, fix formatting failures that break builds (e.g. `IDE0055`) by running `dotnet format TeacherServer.sln`.
+- Before pushing, fix formatting failures that break builds (e.g. `IDE0055`, **IMPORTS** / `using` ordering) by running `dotnet format TeacherServer.sln` (or formatting the touched projects) and rebuilding.
 
 ## Release workflow
 
@@ -58,9 +60,12 @@ This repository contains a Windows-oriented classroom administration solution cu
 
 ## Documentation
 
-- Keep `README.md` accurate when capabilities, setup steps, or security assumptions change.
-- Append user-visible milestones to `CHANGELOG.md`.
-- When making functional or UX changes, explicitly describe those changes in documentation and update `README.md` if user-visible behavior, setup, configuration, or workflows changed.
+- Keep documentation accurate when capabilities, setup steps, configuration UX, or operational assumptions change.
+- Maintain these three documentation files together:
+  - `README.md`: short, SEO-friendly product overview for users and GitHub visitors.
+  - `README.dev.md`: full technical reference (endpoints, updates, packaging, scripts, dev notes).
+  - `CHANGELOG.md`: chronological log of user-visible changes by version.
+- When making functional or UX changes, update `README.md` and `README.dev.md` as appropriate, and append user-visible milestones to `CHANGELOG.md`.
 
 ## Saved commands
 

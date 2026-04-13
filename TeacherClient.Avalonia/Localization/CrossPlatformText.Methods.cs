@@ -27,12 +27,12 @@ internal static partial class CrossPlatformText
 
     public static string StudentPolicySettingsAppliedWithFailures(int succeeded, int failures) => IsUk ? $"Policy settings застосовано: успішно {succeeded}, з помилками {failures}" : $"Applied policy settings: {succeeded} succeeded, {failures} failed";
 
-    public static string MachineSummary(int total, int discovered, int manual) => IsUk ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available agents: {total} total, {discovered} discovered, {manual} manual";
+    public static string MachineSummary(int total, int discovered, int manual) => IsUk ? $"Доступно учнівських ПК: {total} всього, {discovered} знайдено, {manual} вручну" : $"Available student PCs: {total} total, {discovered} discovered, {manual} manual";
 
     public static string MachineSummaryWithConnected(int total, int discovered, int manual, string machine)
         => IsUk
-            ? $"Доступно агентів: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
-            : $"Available agents: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
+            ? $"Доступно учнівських ПК: {total} всього, {discovered} знайдено, {manual} вручну. Підключено: {machine}"
+            : $"Available student PCs: {total} total, {discovered} discovered, {manual} manual. Connected: {machine}";
 
     public static string WindowsRestrictionName(WindowsRestrictionKind restriction)
         => restriction switch
@@ -42,7 +42,7 @@ internal static partial class CrossPlatformText
             WindowsRestrictionKind.ControlPanelAndSettings => IsUk ? "Панель керування і Параметри" : "Control Panel and Settings",
             WindowsRestrictionKind.LockWorkstation => IsUk ? "Блокування робочої станції" : "Lock workstation",
             WindowsRestrictionKind.ChangePassword => IsUk ? "Зміна пароля" : "Change password",
-            WindowsRestrictionKind.LogOff => IsUk ? "Вихід з облікового запису" : "Log off",
+            WindowsRestrictionKind.BlockInterfaceChanges => IsUk ? "Блокування змін інтерфейсу" : "Block interface changes",
             _ => restriction.ToString(),
         };
 
@@ -66,6 +66,37 @@ internal static partial class CrossPlatformText
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} \"{WindowsRestrictionName(restriction)}\": успішно {succeeded}, з помилками {failures}"
             : $"{(enabled ? "Enabled" : "Disabled")} \"{WindowsRestrictionName(restriction)}\": {succeeded} succeeded, {failures} failed";
 
+    public static string WallpaperStyleName(int style) => style switch
+    {
+        0 => IsUk ? "По центру" : "Centered",
+        1 => IsUk ? "Плитка" : "Tiled",
+        2 => IsUk ? "Розтягнути" : "Stretched",
+        3 => IsUk ? "По розміру" : "Fit",
+        4 => IsUk ? "Заповнити" : "Fill",
+        5 => IsUk ? "На кілька моніторів" : "Span",
+        _ => style.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    public static string DesktopWallpaperPrompt(int count, string fileName)
+        => IsUk
+            ? $"Встановити зображення «{fileName}» як тло робочого столу на {count} учнівських ПК? Файл буде скопійовано в C:\\Windows\\Web\\Wallpaper і застосовано через групові політики (Desktop Wallpaper + заборона зміни тла)."
+            : $"Set «{fileName}» as the desktop background on {count} student PCs? The file will be copied to C:\\Windows\\Web\\Wallpaper and applied via Group Policy (Desktop Wallpaper + prevent changing background).";
+
+    public static string DesktopWallpaperProgress(string machine, int index, int total)
+        => IsUk
+            ? $"Зображення робочого столу: {machine} ({index}/{total})"
+            : $"Desktop wallpaper: {machine} ({index}/{total})";
+
+    public static string DesktopWallpaperCompleted(int succeeded)
+        => IsUk
+            ? $"Зображення робочого столу застосовано на {succeeded} ПК"
+            : $"Desktop wallpaper applied on {succeeded} PCs";
+
+    public static string DesktopWallpaperCompletedWithFailures(int succeeded, int failures)
+        => IsUk
+            ? $"Зображення робочого столу: успішно {succeeded}, з помилками {failures}"
+            : $"Desktop wallpaper: {succeeded} succeeded, {failures} failed";
+
     public static string BrowserLockEnabledFor(string machine) => IsUk ? $"Блокування браузера увімкнено на {machine}" : $"Browser lock enabled on {machine}";
 
     public static string BrowserLockDisabledFor(string machine) => IsUk ? $"Блокування браузера вимкнено на {machine}" : $"Browser lock disabled on {machine}";
@@ -74,15 +105,15 @@ internal static partial class CrossPlatformText
 
     public static string InputLockDisabledFor(string machine) => IsUk ? $"Блокування клавіатури і миші вимкнено на {machine}" : $"Keyboard and mouse lock disabled on {machine}";
 
-    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ручний агент {name}?" : $"Remove manual agent {name}?";
+    public static string RemoveManualAgentPrompt(string name) => IsUk ? $"Видалити ПК вручну {name}?" : $"Remove manual PC {name}?";
 
-    public static string AddedManualAgent(string name) => IsUk ? $"Додано ручний агент {name}" : $"Added manual agent {name}";
+    public static string AddedManualAgent(string name) => IsUk ? $"Додано ПК вручну {name}" : $"Added manual PC {name}";
 
-    public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ручний агент {name}" : $"Updated manual agent {name}";
+    public static string UpdatedManualAgent(string name) => IsUk ? $"Оновлено ПК вручну {name}" : $"Updated manual PC {name}";
 
-    public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ручний агент {name}" : $"Removed manual agent {name}";
+    public static string RemovedManualAgent(string name) => IsUk ? $"Видалено ПК вручну {name}" : $"Removed manual PC {name}";
 
-    public static string ConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} агента {machine} ({user})  v{version}" : $"Connected to {source} agent {machine} ({user})  v{version}";
+    public static string ConnectedToAgent(string source, string machine, string user, string version) => IsUk ? $"Підключено до {source} ПК {machine} ({user})  v{version}" : $"Connected to {source} PC {machine} ({user})  v{version}";
 
     public static string DesktopIconLayoutSaved(string machine, int count) => IsUk ? $"{machine}: розкладку іконок збережено ({count})" : $"{machine}: desktop icon layout saved ({count})";
 
@@ -135,8 +166,8 @@ internal static partial class CrossPlatformText
         : $"Start the update on {(selectedOnly ? "selected" : "all online")} student PCs ({count})?";
 
     public static string BulkAgentUpdateProgress(string machine, int index, int total) => IsUk
-        ? $"Оновлення агента: {machine} ({index}/{total})"
-        : $"Updating agent: {machine} ({index}/{total})";
+        ? $"Оновлення учнівського ПК: {machine} ({index}/{total})"
+        : $"Updating student PC: {machine} ({index}/{total})";
 
     public static string BulkAgentUpdateCompleted(int succeeded) => IsUk
         ? $"Оновлення запущено на {succeeded} учн. ПК"
@@ -210,8 +241,8 @@ internal static partial class CrossPlatformText
 
     public static string DistributionProgress(string agent, string item, int agentIndex, int agentCount, int fileIndex, int fileCount)
         => IsUk
-            ? $"Розсилка {item} -> {agent} (агент {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
-            : $"Distributing {item} -> {agent} (agent {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
+            ? $"Розсилка {item} -> {agent} (ПК {agentIndex}/{agentCount}, файл {fileIndex}/{fileCount})"
+            : $"Distributing {item} -> {agent} (PC {agentIndex}/{agentCount}, file {fileIndex}/{fileCount})";
 
     public static string RemoteCommandPrompt(int count, bool selectedOnly)
         => IsUk
@@ -253,20 +284,55 @@ internal static partial class CrossPlatformText
             ? $"{(enabled ? "Увімкнути" : "Вимкнути")} блокування клавіатури і миші на всіх онлайн учнівських ПК ({count})?"
             : $"{(enabled ? "Enable" : "Disable")} keyboard and mouse lock on all online student PCs ({count})?";
 
+    public static string InputLockPrompt(int count, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Увімкнути блокування клавіатури і миші на всіх онлайн учнівських ПК ({count}) у режимі {InputLockVisualModeLabel(visualMode)}?"
+                : $"Enable keyboard and mouse lock on all online student PCs ({count}) in {InputLockVisualModeLabel(visualMode)} mode?"
+            : InputLockPrompt(count, enabled);
+
     public static string InputLockCompleted(int count, bool enabled)
         => IsUk
             ? $"{(enabled ? "Блокування клавіатури і миші увімкнено" : "Блокування клавіатури і миші вимкнено")} на {count} учнівських ПК"
             : $"{(enabled ? "Enabled" : "Disabled")} keyboard and mouse lock on {count} student PCs";
+
+    public static string InputLockCompleted(int count, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Блокування клавіатури і миші увімкнено на {count} учнівських ПК у режимі {InputLockVisualModeLabel(visualMode)}"
+                : $"Enabled keyboard and mouse lock on {count} student PCs in {InputLockVisualModeLabel(visualMode)} mode"
+            : InputLockCompleted(count, enabled);
 
     public static string InputLockCompletedWithFailures(int succeeded, int failed, bool enabled)
         => IsUk
             ? $"Групове {(enabled ? "увімкнення" : "вимкнення")} блокування вводу: успішно {succeeded}, з помилками {failed}"
             : $"Bulk {(enabled ? "enable" : "disable")} input lock: {succeeded} succeeded, {failed} failed";
 
+    public static string InputLockCompletedWithFailures(int succeeded, int failed, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Групове увімкнення блокування вводу ({InputLockVisualModeLabel(visualMode)}): успішно {succeeded}, з помилками {failed}"
+                : $"Bulk enable input lock ({InputLockVisualModeLabel(visualMode)}): {succeeded} succeeded, {failed} failed"
+            : InputLockCompletedWithFailures(succeeded, failed, enabled);
+
     public static string InputLockProgress(string agent, int agentIndex, int agentCount, bool enabled)
         => IsUk
             ? $"{(enabled ? "Увімкнення" : "Вимкнення")} блокування вводу на {agent} ({agentIndex}/{agentCount})"
             : $"{(enabled ? "Enabling" : "Disabling")} input lock on {agent} ({agentIndex}/{agentCount})";
+
+    public static string InputLockProgress(string agent, int agentIndex, int agentCount, bool enabled, InputLockVisualMode visualMode)
+        => enabled
+            ? IsUk
+                ? $"Увімкнення блокування вводу ({InputLockVisualModeLabel(visualMode)}) на {agent} ({agentIndex}/{agentCount})"
+                : $"Enabling input lock ({InputLockVisualModeLabel(visualMode)}) on {agent} ({agentIndex}/{agentCount})"
+            : InputLockProgress(agent, agentIndex, agentCount, enabled);
+
+    public static string InputLockVisualModeLabel(InputLockVisualMode visualMode)
+        => visualMode switch
+        {
+            InputLockVisualMode.DemonstrationBanner => IsUk ? "демонстрація" : "demonstration",
+            _ => IsUk ? "повний екран" : "fullscreen",
+        };
 
     public static string PowerActionPrompt(PowerActionKind action, int count, bool selectedOnly)
         => IsUk
@@ -308,8 +374,8 @@ internal static partial class CrossPlatformText
 
     public static string ClearingDirectoryProgress(string agent, string path, int agentIndex, int agentCount)
         => IsUk
-            ? $"Очищення {path} на {agent} (агент {agentIndex}/{agentCount})"
-            : $"Clearing {path} on {agent} (agent {agentIndex}/{agentCount})";
+            ? $"Очищення {path} на {agent} (ПК {agentIndex}/{agentCount})"
+            : $"Clearing {path} on {agent} (PC {agentIndex}/{agentCount})";
 
     public static string ClearDirectoryCompleted(string name, int count)
         => IsUk ? $"Очищено вміст папки {name} на {count} учн. ПК" : $"Cleared folder contents {name} on {count} student machines";

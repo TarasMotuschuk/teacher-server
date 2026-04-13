@@ -69,9 +69,9 @@ public sealed class TeacherApiClient
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task SetInputLockEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    public async Task SetInputLockEnabledAsync(bool enabled, InputLockVisualMode visualMode = InputLockVisualMode.FullscreenOverlay, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/input-lock", new InputLockStateRequest(enabled), cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync("api/input-lock", new InputLockStateRequest(enabled, visualMode), cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
@@ -80,6 +80,15 @@ public sealed class TeacherApiClient
         var response = await _httpClient.PostAsJsonAsync(
             "api/windows-restrictions",
             new WindowsRestrictionStateRequest(restriction, enabled),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task ApplyDesktopWallpaperPolicyAsync(string wallpaperPathOnStudent, int wallpaperStyle, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/windows-restrictions/desktop-wallpaper",
+            new DesktopWallpaperPolicyRequest(wallpaperPathOnStudent, wallpaperStyle),
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }

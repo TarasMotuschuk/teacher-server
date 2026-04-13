@@ -1,6 +1,7 @@
 using System.Security.Principal;
 using StudentAgent.Services;
 using StudentAgent.UI.Localization;
+using Teacher.Common.Contracts;
 
 namespace StudentAgent.UI;
 
@@ -15,7 +16,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     private readonly ToolStripMenuItem _settingsMenuItem;
     private readonly ToolStripMenuItem _logsMenuItem;
     private readonly ToolStripMenuItem _exitMenuItem;
-    private readonly List<InputLockForm> _inputLockForms = [];
+    private readonly List<Form> _inputLockForms = [];
     private bool _browserCheckInProgress;
     private bool _inputLockHookHeld;
 
@@ -224,7 +225,9 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
             {
                 foreach (var screen in Screen.AllScreens)
                 {
-                    var form = new InputLockForm(screen);
+                    Form form = _settingsStore.Current.InputLockVisualMode == InputLockVisualMode.DemonstrationBanner
+                        ? new InputLockBannerForm(screen)
+                        : new InputLockForm(screen);
                     _inputLockForms.Add(form);
                     form.Show();
                 }
@@ -247,7 +250,18 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         foreach (var form in _inputLockForms.ToArray())
         {
-            form.ForceClose();
+            switch (form)
+            {
+                case InputLockForm fullscreenForm:
+                    fullscreenForm.ForceClose();
+                    break;
+                case InputLockBannerForm bannerForm:
+                    bannerForm.ForceClose();
+                    break;
+                default:
+                    form.Close();
+                    break;
+            }
         }
 
         _inputLockForms.Clear();

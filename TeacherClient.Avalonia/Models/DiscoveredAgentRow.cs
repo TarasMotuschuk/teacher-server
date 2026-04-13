@@ -30,6 +30,9 @@ internal sealed record DiscoveredAgentRow(
 
     public bool InputLockEnabled { get; set; }
 
+    /// <summary>UI-only: include this agent in group blocking commands from the Blocking menu (selected PCs).</summary>
+    public bool GroupCommandSelected { get; set; }
+
     public string LastSeenDisplay => LastSeenUtc == DateTime.MinValue ? string.Empty : LastSeenUtc.ToString("u");
 
     public static DiscoveredAgentRow FromDto(AgentDiscoveryDto dto)

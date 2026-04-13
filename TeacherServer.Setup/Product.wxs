@@ -36,6 +36,7 @@
       <Directory Id="COMPANYFOLDER" Name="MTD">
         <Directory Id="INSTALLFOLDER" Name="TeacherServer">
         <Directory Id="TEACHERDIR" Name="Teacher" />
+        <Directory Id="TEACHERAVALONIADIR" Name="TeacherAvalonia" />
         <Directory Id="STUDENTDIR" Name="Student" />
         </Directory>
       </Directory>
@@ -79,11 +80,15 @@
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher client." Level="2" AllowAdvertise="no">
+    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher clients (WinForms and Avalonia)." Level="2" AllowAdvertise="no">
       <ComponentRef Id="TeacherClientMainComponent" />
+      <ComponentRef Id="TeacherClientAvaloniaMainComponent" />
       <ComponentRef Id="TeacherDesktopShortcutComponent" />
       <ComponentRef Id="TeacherStartMenuShortcutComponent" />
+      <ComponentRef Id="TeacherDesktopShortcutAvaloniaComponent" />
+      <ComponentRef Id="TeacherStartMenuShortcutAvaloniaComponent" />
       <ComponentGroupRef Id="TeacherPayloadGroup" />
+      <ComponentGroupRef Id="TeacherAvaloniaPayloadGroup" />
     </Feature>
 
     <Feature Id="StudentFeature" Title="Student workstation tools" Description="Install the privileged student service and session UI host." Level="1" AllowAdvertise="no">
@@ -96,6 +101,10 @@
 
     <Component Id="TeacherClientMainComponent" Directory="TEACHERDIR" Guid="*">
       <File Id="TeacherClientExe" Source="$(var.TeacherPayloadDir)\TeacherClient.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="TeacherClientAvaloniaMainComponent" Directory="TEACHERAVALONIADIR" Guid="*">
+      <File Id="TeacherClientAvaloniaExe" Source="$(var.TeacherAvaloniaPayloadDir)\TeacherClient.Avalonia.exe" KeyPath="yes" />
     </Component>
 
     <Component Id="TeacherDesktopShortcutComponent" Directory="DesktopFolder" Guid="*">
@@ -116,6 +125,24 @@
       <RemoveFolder Id="RemoveTeacherProgramMenuAppFolder" On="uninstall" />
       <RemoveFolder Id="RemoveTeacherProgramMenuFolder" Directory="TeacherProgramMenuFolder" On="uninstall" />
       <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="TeacherDesktopShortcutAvaloniaComponent" Directory="DesktopFolder" Guid="*">
+      <Shortcut Id="TeacherDesktopShortcutAvalonia"
+                Name="ClassCommander (Avalonia)"
+                Target="[TEACHERAVALONIADIR]TeacherClient.Avalonia.exe"
+                WorkingDirectory="TEACHERAVALONIADIR"
+                Description="ClassCommander cross-platform teacher client (Avalonia UI)." />
+      <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="DesktopShortcutAvalonia" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="TeacherStartMenuShortcutAvaloniaComponent" Directory="TeacherProgramMenuAppFolder" Guid="*">
+      <Shortcut Id="TeacherStartMenuShortcutAvalonia"
+                Name="ClassCommander (Avalonia)"
+                Target="[TEACHERAVALONIADIR]TeacherClient.Avalonia.exe"
+                WorkingDirectory="TEACHERAVALONIADIR"
+                Description="ClassCommander cross-platform teacher client (Avalonia UI)." />
+      <RegistryValue Root="HKCU" Key="Software\MTD\TeacherServer" Name="StartMenuShortcutAvalonia" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <Component Id="StudentServiceMainComponent" Directory="STUDENTDIR" Guid="*">

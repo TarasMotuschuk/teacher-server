@@ -35,6 +35,26 @@
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
+    <!-- Fluent CheckBox: unchecked box stroke is Border#NormalRectangle (theme brushes), not Foreground — style that part only (no extra border on CheckBox). -->
+    <Style Selector="CheckBox.agentsGridCheckBox">
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="CheckBox.agentsGridCheckBox:unchecked /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#64748B" />
+      <Setter Property="Background" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="CheckBox.agentsGridCheckBox:unchecked:pointerover /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#475569" />
+      <Setter Property="Background" Value="#F8FAFC" />
+    </Style>
+    <Style Selector="DataGridCell:selected CheckBox.agentsGridCheckBox:unchecked /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#0F172A" />
+      <Setter Property="Background" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="DataGridCell:selected CheckBox.agentsGridCheckBox:unchecked:pointerover /template/ Border#NormalRectangle">
+      <Setter Property="BorderBrush" Value="#0F172A" />
+      <Setter Property="Background" Value="#F1F5F9" />
+    </Style>
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Margin" Value="0,0,0,0" />
@@ -42,6 +62,41 @@
     </Style>
     <Style Selector="ListBoxItem:selected">
       <Setter Property="Background" Value="#3B82F6" />
+    </Style>
+    <!-- Remote management: landscape tiles; selection/hover ring on the card, not a solid ListBoxItem fill -->
+    <Style Selector="ListBox.remoteManagementList">
+      <Setter Property="ClipToBounds" Value="False" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,12,12" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:pointerover">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected:pointerover">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#94A3B8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:pointerover:not(:selected) Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#60A5FA" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#2563EB" />
+      <Setter Property="BorderThickness" Value="3" />
+    </Style>
+    <Style Selector="ListBox.remoteManagementList ListBoxItem:selected:pointerover Border.remoteManagementTileRoot">
+      <Setter Property="BorderBrush" Value="#3B82F6" />
+      <Setter Property="BorderThickness" Value="3" />
     </Style>
     <Style Selector="Button.tabAction">
       <Setter Property="Padding" Value="5,2" />
@@ -69,32 +124,52 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <Menu Grid.Row="0" Margin="0,0,0,12">
       <MenuItem x:Name="ConnectionMenuItem" Header="_Connection">
-          <MenuItem x:Name="SettingsMenuItem" Header="_Settings" Click="SettingsButton_OnClick" />
           <MenuItem x:Name="RefreshAgentsMenuItem" Header="_Refresh Agents" Click="RefreshAgentsButton_OnClick" />
-          <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected Agent" Click="ConnectSelectedAgentButton_OnClick" />
+          <MenuItem x:Name="ConnectSelectedMenuItem" Header="Connect _Selected PC" Click="ConnectSelectedAgentButton_OnClick" />
           <Separator />
-          <MenuItem x:Name="DesktopIconsMenuItem" Header="_Desktop Icons">
-            <MenuItem x:Name="SaveDesktopIconLayoutMenuItem" Header="Save desktop icon layout" Click="SaveDesktopIconLayoutMenuItem_OnClick" />
-            <MenuItem x:Name="RestoreDesktopIconLayoutMenuItem" Header="Restore desktop icon layout" Click="RestoreDesktopIconLayoutMenuItem_OnClick" />
-          </MenuItem>
-          <Separator />
-          <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual Agent" Click="AddManualAgentButton_OnClick" />
-        <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual Agent" Click="EditManualAgentButton_OnClick" />
-        <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual Agent" Click="RemoveManualAgentButton_OnClick" />
+          <MenuItem x:Name="AddManualMenuItem" Header="_Add Manual PC" Click="AddManualAgentButton_OnClick" />
+        <MenuItem x:Name="EditManualMenuItem" Header="_Edit Manual PC" Click="EditManualAgentButton_OnClick" />
+        <MenuItem x:Name="RemoveManualMenuItem" Header="_Remove Manual PC" Click="RemoveManualAgentButton_OnClick" />
       </MenuItem>
       <MenuItem x:Name="GroupCommandsMenuItem" Header="_Group Commands">
-        <MenuItem x:Name="DestinationFolderMenuItem" Header="_Destination Folder">
-          <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
-          <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+        <MenuItem x:Name="GroupFileWorkMenuItem" Header="_File operations">
+          <MenuItem x:Name="DestinationFolderMenuItem" Header="_Destination Folder">
+            <MenuItem x:Name="ClearSelectedFolderSelectedMenuItem" Header="Clear destination folder on selected students" Click="ClearSelectedFolderSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="ClearSelectedFolderAllMenuItem" Header="Clear destination folder on all online students" Click="ClearSelectedFolderAllMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="SendSubmenuMenuItem" Header="_Send">
+            <MenuItem x:Name="SendFileSubmenuMenuItem" Header="_File">
+              <MenuItem x:Name="SendFileAllMenuItem" Header="To all PCs" Click="SendFileAllMenuItem_OnClick" />
+              <MenuItem x:Name="SendFileSelectedMenuItem" Header="To selected PCs" Click="SendFileSelectedMenuItem_OnClick" />
+            </MenuItem>
+            <MenuItem x:Name="SendFolderSubmenuMenuItem" Header="_Folder">
+              <MenuItem x:Name="SendFolderAllMenuItem" Header="To all PCs" Click="SendFolderAllMenuItem_OnClick" />
+              <MenuItem x:Name="SendFolderSelectedMenuItem" Header="To selected PCs" Click="SendFolderSelectedMenuItem_OnClick" />
+            </MenuItem>
+          </MenuItem>
+          <MenuItem x:Name="SendAndOpenDefaultMenuItem" Header="Send and open with default app">
+            <MenuItem x:Name="SendAndOpenDefaultAllMenuItem" Header="To all PCs" Click="SendAndOpenDefaultAllMenuItem_OnClick" />
+            <MenuItem x:Name="SendAndOpenDefaultSelectedMenuItem" Header="To selected PCs" Click="SendAndOpenDefaultSelectedMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="SendAndOpenDestFolderMenuItem" Header="Send and open student folder">
+            <MenuItem x:Name="SendAndOpenDestFolderAllMenuItem" Header="To all PCs" Click="SendAndOpenDestFolderAllMenuItem_OnClick" />
+            <MenuItem x:Name="SendAndOpenDestFolderSelectedMenuItem" Header="To selected PCs" Click="SendAndOpenDestFolderSelectedMenuItem_OnClick" />
+          </MenuItem>
         </MenuItem>
-        <MenuItem x:Name="BrowserCommandsMenuItem" Header="_Browser">
+        <MenuItem x:Name="BlockingCommandsMenuItem" Header="_Blocking">
           <MenuItem x:Name="LockBrowsersAllMenuItem" Header="Lock browser on all online student PCs" Click="LockBrowsersAllMenuItem_OnClick" />
+          <MenuItem x:Name="BlockingSelectedMenuItem" Header="Selected PCs">
+            <MenuItem x:Name="LockInputSelectedMenuItem" Header="Lock keyboard and mouse" Click="LockInputSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="LockInputDemoSelectedMenuItem" Header="Demonstration (banner)" Click="LockInputDemoSelectedMenuItem_OnClick" />
+            <MenuItem x:Name="UnlockInputSelectedMenuItem" Header="Unlock keyboard and mouse" Click="UnlockInputSelectedMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="BlockingAllOnlineMenuItem" Header="All Online PCs">
+            <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
+            <MenuItem x:Name="LockInputDemoAllMenuItem" Header="Enable keyboard and mouse lock (demonstration) on all online student PCs" Click="LockInputDemoAllMenuItem_OnClick" />
+            <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
+          </MenuItem>
         </MenuItem>
-        <MenuItem x:Name="InputCommandsMenuItem" Header="_Keyboard and Mouse">
-          <MenuItem x:Name="LockInputAllMenuItem" Header="Lock keyboard and mouse on all online student PCs" Click="LockInputAllMenuItem_OnClick" />
-          <MenuItem x:Name="UnlockInputAllMenuItem" Header="Unlock keyboard and mouse on all online student PCs" Click="UnlockInputAllMenuItem_OnClick" />
-        </MenuItem>
-        <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Windows Restrictions">
+        <MenuItem x:Name="WindowsRestrictionsMenuItem" Header="_Group Policies">
           <MenuItem x:Name="TaskManagerRestrictionsMenuItem" Header="Task Manager">
             <MenuItem x:Name="EnableTaskManagerRestrictionMenuItem" Header="Enable" Click="EnableTaskManagerRestrictionMenuItem_OnClick" />
             <MenuItem x:Name="DisableTaskManagerRestrictionMenuItem" Header="Disable" Click="DisableTaskManagerRestrictionMenuItem_OnClick" />
@@ -115,16 +190,26 @@
             <MenuItem x:Name="EnableChangePasswordRestrictionMenuItem" Header="Enable" Click="EnableChangePasswordRestrictionMenuItem_OnClick" />
             <MenuItem x:Name="DisableChangePasswordRestrictionMenuItem" Header="Disable" Click="DisableChangePasswordRestrictionMenuItem_OnClick" />
           </MenuItem>
-          <MenuItem x:Name="LogOffRestrictionsMenuItem" Header="Log off">
-            <MenuItem x:Name="EnableLogOffRestrictionMenuItem" Header="Enable" Click="EnableLogOffRestrictionMenuItem_OnClick" />
-            <MenuItem x:Name="DisableLogOffRestrictionMenuItem" Header="Disable" Click="DisableLogOffRestrictionMenuItem_OnClick" />
+          <MenuItem x:Name="BlockInterfaceRestrictionsMenuItem" Header="Interface appearance">
+            <MenuItem x:Name="EnableBlockInterfaceRestrictionMenuItem" Header="Enable" Click="EnableBlockInterfaceRestrictionMenuItem_OnClick" />
+            <MenuItem x:Name="DisableBlockInterfaceRestrictionMenuItem" Header="Disable" Click="DisableBlockInterfaceRestrictionMenuItem_OnClick" />
+          </MenuItem>
+          <MenuItem x:Name="DesktopWallpaperMenuItem" Header="Desktop wallpaper">
+            <MenuItem x:Name="DesktopWallpaperAllMenuItem" Header="All Online PCs" Click="DesktopWallpaperAllMenuItem_OnClick" />
+            <MenuItem x:Name="DesktopWallpaperSelectedMenuItem" Header="Selected PCs" Click="DesktopWallpaperSelectedMenuItem_OnClick" />
           </MenuItem>
         </MenuItem>
         <MenuItem x:Name="CommandsMenuItem" Header="_Commands">
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
+          <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>
         <MenuItem x:Name="DesktopIconsCommandsMenuItem" Header="_Desktop Icons">
+          <MenuItem x:Name="SaveDesktopIconLayoutMenuItem" Header="Save desktop icon layout" Click="SaveDesktopIconLayoutMenuItem_OnClick" />
+          <MenuItem x:Name="RestoreDesktopIconLayoutMenuItem" Header="Restore desktop icon layout" Click="RestoreDesktopIconLayoutMenuItem_OnClick" />
+          <Separator />
           <MenuItem x:Name="RestoreDesktopIconsSelectedMenuItem" Header="Restore icons on selected PCs" Click="RestoreDesktopIconsSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RestoreDesktopIconsAllMenuItem" Header="Restore icons on all online PCs" Click="RestoreDesktopIconsAllMenuItem_OnClick" />
           <Separator />
@@ -143,10 +228,6 @@
             <MenuItem x:Name="LogOffAllMenuItem" Header="Log Off" Click="LogOffAllMenuItem_OnClick" />
           </MenuItem>
         </MenuItem>
-        <MenuItem x:Name="FrequentProgramsMenuItem" Header="_Frequent Programs">
-          <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
-          <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
-        </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">
           <MenuItem x:Name="CreateStudentWorkFolderAllMenuItem" Header="Create work folder on all PCs" Click="CreateStudentWorkFolderAllMenuItem_OnClick" />
@@ -154,9 +235,12 @@
           <MenuItem x:Name="ClearStudentWorkFolderAllMenuItem" Header="Clear work folder on all PCs" Click="ClearStudentWorkFolderAllMenuItem_OnClick" />
         </MenuItem>
       </MenuItem>
+      <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration">
+        <MenuItem x:Name="BasicSettingsMenuItem" Header="_Basic Settings" Click="SettingsButton_OnClick" />
+      </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="ProgramUpdatesMenuItem" Header="Program Updates">
-          <MenuItem x:Name="CheckAgentUpdateMenuItem" Header="Check Agent Updates" Click="CheckSelectedAgentUpdateMenuItem_OnClick" />
+          <MenuItem x:Name="CheckAgentUpdateMenuItem" Header="Check PC updates" Click="CheckSelectedAgentUpdateMenuItem_OnClick" />
           <MenuItem x:Name="StartAgentUpdateMenuItem" Header="Update Selected PC" Click="StartSelectedAgentUpdateMenuItem_OnClick" />
           <MenuItem x:Name="UpdateSelectedMenuItem" Header="Update selected PCs" Click="UpdateSelectedMenuItem_OnClick" />
           <MenuItem x:Name="UpdateAllMenuItem" Header="Update all online PCs" Click="UpdateAllMenuItem_OnClick" />
@@ -172,18 +256,10 @@
             Padding="12"
             CornerRadius="10"
             Background="#17202A">
-      <Grid ColumnDefinitions="Auto,*">
-        <Button x:Name="SettingsButton" Grid.Column="0"
-                Margin="0,0,14,0"
-                Width="120"
-                Content="Settings"
-                Click="SettingsButton_OnClick" />
-        <TextBlock x:Name="StatusTextBlock"
-                   Grid.Column="1"
-                   VerticalAlignment="Center"
-                   TextWrapping="Wrap"
-                   Text="Ready. Use the Agents tab to select a student machine, then connect." />
-      </Grid>
+      <TextBlock x:Name="StatusTextBlock"
+                 VerticalAlignment="Center"
+                 TextWrapping="Wrap"
+                 Text="Ready. Use the Agents tab to select a student machine, then connect." />
     </Border>
 
     <TabControl x:Name="MainTabControl" Grid.Row="2" Margin="0,16,0,16">
@@ -226,12 +302,29 @@
                     CanUserReorderColumns="False"
                     IsReadOnly="False"
                     SelectionMode="Extended"
-                    DoubleTapped="AgentsGrid_OnDoubleTapped">
+                    DoubleTapped="AgentsGrid_OnDoubleTapped"
+                    LoadingRow="AgentsGrid_OnLoadingRow">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Browser lock" Width="95">
+              <DataGridTemplateColumn Header="Select" Width="88" MinWidth="72">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <CheckBox HorizontalAlignment="Center"
+                    <CheckBox Classes="agentsGridCheckBox"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding GroupCommandSelected}"
+                              Tag="{Binding}"
+                              Click="GroupCommandCheckBox_OnClick" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Machine" Binding="{Binding MachineName}" Width="180" MinWidth="100" IsReadOnly="True" />
+              <DataGridTextColumn Header="User" Binding="{Binding CurrentUser}" Width="150" MinWidth="80" IsReadOnly="True" />
+              <DataGridTextColumn Header="IP" Binding="{Binding RespondingAddress}" Width="150" MinWidth="100" IsReadOnly="True" />
+              <DataGridTemplateColumn Header="Browser lock" Width="124" MinWidth="108">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox Classes="agentsGridCheckBox"
+                              HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsChecked="{Binding BrowserLockEnabled}"
                               Tag="{Binding}"
@@ -239,10 +332,11 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Input lock" Width="95">
+              <DataGridTemplateColumn Header="Input lock" Width="124" MinWidth="108">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <CheckBox HorizontalAlignment="Center"
+                    <CheckBox Classes="agentsGridCheckBox"
+                              HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsChecked="{Binding InputLockEnabled}"
                               Tag="{Binding}"
@@ -250,14 +344,11 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
-              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" IsReadOnly="True" />
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" MinWidth="72" IsReadOnly="True" />
+              <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="90" MinWidth="64" IsReadOnly="True" />
+              <DataGridTextColumn Header="MACs" Binding="{Binding MacAddressesDisplay}" Width="220" MinWidth="120" IsReadOnly="True" />
+              <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" IsReadOnly="True" />
               <DataGridTextColumn Header="Group" Binding="{Binding GroupName}" Width="150" IsReadOnly="True" />
-              <DataGridTextColumn Header="Machine" Binding="{Binding MachineName}" Width="180" IsReadOnly="True" />
-              <DataGridTextColumn Header="User" Binding="{Binding CurrentUser}" Width="150" IsReadOnly="True" />
-              <DataGridTextColumn Header="IP" Binding="{Binding RespondingAddress}" Width="150" IsReadOnly="True" />
-              <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="90" IsReadOnly="True" />
-              <DataGridTextColumn Header="MACs" Binding="{Binding MacAddressesDisplay}" Width="220" IsReadOnly="True" />
               <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="180" IsReadOnly="True" />
               <DataGridTextColumn Header="Update" Binding="{Binding UpdateStatusBadge}" Width="150" IsReadOnly="True" />
               <DataGridTextColumn Header="Update details" Binding="{Binding UpdateStatusDetail}" Width="280" IsReadOnly="True" />
@@ -265,6 +356,70 @@
               <DataGridTextColumn Header="Last Seen UTC" Binding="{Binding LastSeenDisplay}" Width="190" IsReadOnly="True" />
             </DataGrid.Columns>
           </DataGrid>
+        </Grid>
+      </TabItem>
+
+      <TabItem x:Name="RemoteManagementTabItem" Header="Remote management">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="168" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
+            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
+            <Button x:Name="StopVncButton" Classes="tabAction" Width="152" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
+            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="200" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
+          </WrapPanel>
+
+          <TextBlock x:Name="RemoteManagementHintTextBlock"
+                     Grid.Row="1"
+                     Margin="0,0,0,12"
+                     Foreground="#94A3B8"
+                     TextWrapping="Wrap"
+                     Text="" />
+
+          <ListBox x:Name="RemoteManagementListBox"
+                   Classes="remoteManagementList"
+                   Grid.Row="2"
+                   SelectionMode="Single">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Classes="remoteManagementTileRoot"
+                        Width="280"
+                        Height="200"
+                        Padding="2"
+                        Background="#BFC7D0"
+                        CornerRadius="8"
+                        PointerPressed="RemoteManagementTileRoot_OnPointerPressed">
+                  <Border Background="#171D24" CornerRadius="6" Padding="10">
+                    <Grid RowDefinitions="120,28,*">
+                      <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
+                        <Image Source="{Binding PreviewBitmap}"
+                               Stretch="UniformToFill"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Stretch" />
+                      </Border>
+                      <TextBlock Grid.Row="1"
+                                 Text="{Binding MachineName}"
+                                 FontSize="14"
+                                 FontWeight="Bold"
+                                 Foreground="White"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                      <TextBlock Grid.Row="2"
+                                 Margin="0,4,0,0"
+                                 Text="{Binding StatusText}"
+                                 Foreground="#CBD5E1"
+                                 FontSize="12"
+                                 TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
         </Grid>
       </TabItem>
 
@@ -410,79 +565,15 @@
           </Grid>
         </Grid>
       </TabItem>
-
-      <TabItem x:Name="RemoteManagementTabItem" Header="Remote management">
-        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
-          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="RefreshRemoteManagementButton" Classes="tabAction" Width="148" Margin="0,0,5,5" Click="RefreshRemoteManagementButton_OnClick" />
-            <Button x:Name="StartVncViewOnlyButton" Classes="tabAction" Width="180" Margin="0,0,5,5" Click="StartVncViewOnlyButton_OnClick" />
-            <Button x:Name="StopVncButton" Classes="tabAction" Width="132" Margin="0,0,5,5" Click="StopVncButton_OnClick" />
-            <Button x:Name="OpenRemoteManagementViewerButton" Classes="tabAction" Width="178" Margin="0,0,5,5" Click="OpenRemoteManagementViewerButton_OnClick" />
-          </WrapPanel>
-
-          <TextBlock x:Name="RemoteManagementHintTextBlock"
-                     Grid.Row="1"
-                     Margin="0,0,0,12"
-                     Foreground="#94A3B8"
-                     TextWrapping="Wrap"
-                     Text="Double-click a tile to open the fullscreen viewer. The buttons above start or stop VNC for the selected PC." />
-
-          <ListBox x:Name="RemoteManagementListBox"
-                   Grid.Row="2"
-                   SelectionMode="Single"
-                   DoubleTapped="RemoteManagementListBox_OnDoubleTapped">
-            <ListBox.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-              <DataTemplate>
-                <Border Width="238"
-                        Height="286"
-                        Margin="0,0,12,12"
-                        Padding="2"
-                        Background="#BFC7D0"
-                        BorderBrush="{Binding SelectionBrush}"
-                        BorderThickness="3"
-                        CornerRadius="8">
-                  <Border Background="#171D24" CornerRadius="6" Padding="10">
-                    <Grid RowDefinitions="154,32,*">
-                      <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
-                        <Image Source="{Binding PreviewBitmap}"
-                               Stretch="UniformToFill"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Stretch" />
-                      </Border>
-                      <TextBlock Grid.Row="1"
-                                 Text="{Binding MachineName}"
-                                 FontSize="15"
-                                 FontWeight="Bold"
-                                 Foreground="White"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                      <TextBlock Grid.Row="2"
-                                 Margin="0,2,0,0"
-                                 Text="{Binding StatusText}"
-                                 Foreground="#CBD5E1"
-                                 TextWrapping="Wrap" />
-                    </Grid>
-                  </Border>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </Grid>
-      </TabItem>
     </TabControl>
 
     <Border Grid.Row="3"
             Padding="8"
             CornerRadius="10"
             Background="#36404A">
-      <TextBlock x:Name="FooterTextBlock" TextWrapping="Wrap"
-                 Foreground="#D4D9DF"
-                 Text="Avalonia client is cross-platform and now includes the same agent discovery flow as the Windows client, including manual agent groups, status filters, and auto-reconnect against the existing StudentAgent HTTP endpoint." />
+      <TextBlock x:Name="FooterTextBlock"
+                 TextWrapping="Wrap"
+                 Foreground="#D4D9DF" />
     </Border>
   </Grid>
 </Window>

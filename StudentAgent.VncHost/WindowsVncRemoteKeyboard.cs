@@ -13,6 +13,9 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     private const uint KeyeventfKeyup = 0x0002;
     private const uint KeyeventfUnicode = 0x0004;
 
+    /// <summary>MAPVK_VK_TO_VSC — map virtual-key code to scan code.</summary>
+    private const uint MapvkVkToVsc = 0;
+
     private readonly AgentLogService _logService;
     private readonly object _sync = new();
     private int _sendInputFailureLogBudget = 8;
@@ -43,37 +46,9 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
-    private void HandleKeyEventCore(KeyChangedEventArgs e)
-    {
-        var keysymU = (uint)e.Keysym;
-        UpdateModifierTally(keysymU, e.Pressed);
-
-        // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
-        if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
-            TryLaunchTaskManagerFromCadShortcut())
-        {
-            _skipNextDeleteKeyUp = true;
-            return;
-        }
-
-        if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
-        {
-            _skipNextDeleteKeyUp = false;
-            return;
-        }
-
-        if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
-        {
-            SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
-            return;
-        }
-
-        var keysymValue = (uint)e.Keysym;
-        if (keysymValue is >= 0x20 and <= 0xFFFF)
-        {
-            SendUnicode((char)keysymValue, e.Pressed);
-        }
-    }
+    /// <summary>Maps a virtual-key code to a scan code (MAPVK_VK_TO_VSC).</summary>
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
     private static bool TryMapVirtualKey(KeySym keySym, out ushort virtualKey, out ushort scanCode, out uint keyFlags)
     {
@@ -174,7 +149,64 @@ internal sealed class WindowsVncRemoteKeyboard : IVncRemoteKeyboard
             return true;
         }
 
-        return raw >= 0x20;
+        // Latin letters and digits (X11 keysyms in ASCII range). Use real VK + scan code so Windows shell
+        // hotkeys (e.g. Win+D show desktop) work; KEYEVENTF_UNICODE for those keys does not reliably trigger them.
+        if (raw is >= 0x61 and <= 0x7A)
+        {
+            virtualKey = (ushort)(raw - 0x20);
+            scanCode = (ushort)MapVirtualKey(virtualKey, MapvkVkToVsc);
+            return true;
+        }
+
+        if (raw is >= 0x41 and <= 0x5A)
+        {
+            virtualKey = (ushort)raw;
+            scanCode = (ushort)MapVirtualKey(virtualKey, MapvkVkToVsc);
+            return true;
+        }
+
+        if (raw is >= 0x30 and <= 0x39)
+        {
+            virtualKey = (ushort)raw;
+            scanCode = (ushort)MapVirtualKey(virtualKey, MapvkVkToVsc);
+            return true;
+        }
+
+        // Other printable keysyms (e.g. non-Latin) fall through to HandleKeyEventCore's SendUnicode path.
+        // Returning true here with virtualKey=0 incorrectly sent VK 0 and skipped Unicode injection.
+        return false;
+    }
+
+    private void HandleKeyEventCore(KeyChangedEventArgs e)
+    {
+        var keysymU = (uint)e.Keysym;
+        UpdateModifierTally(keysymU, e.Pressed);
+
+        // Windows blocks synthetic Ctrl+Alt+Del (SAS). Open Task Manager instead — usual classroom need.
+        if (keysymU == 0xFFFF && e.Pressed && _ctrlDownCount > 0 && _altDownCount > 0 &&
+            TryLaunchTaskManagerFromCadShortcut())
+        {
+            _skipNextDeleteKeyUp = true;
+            return;
+        }
+
+        if (keysymU == 0xFFFF && !e.Pressed && _skipNextDeleteKeyUp)
+        {
+            _skipNextDeleteKeyUp = false;
+            return;
+        }
+
+        if (TryMapVirtualKey(e.Keysym, out var virtualKey, out var scanCode, out var keyFlags))
+        {
+            SendVirtualKey(virtualKey, scanCode, e.Pressed, keyFlags, (uint)e.Keysym);
+            return;
+        }
+
+        var keysymValue = (uint)e.Keysym;
+        if (keysymValue is >= 0x20 and <= 0xFFFF)
+        {
+            SendUnicode((char)keysymValue, e.Pressed);
+        }
     }
 
     private bool TryLaunchTaskManagerFromCadShortcut()
