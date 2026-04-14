@@ -102,6 +102,26 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             resp.EnsureSuccessStatusCode();
         }
 
+        // Verify that the student service marked the demo session active (gives immediate feedback if UIHost is not running).
+        for (var i = 0; i < 40; i++)
+        {
+            using var statusReq = new HttpRequestMessage(HttpMethod.Get, $"{studentBaseUrl}/api/demo/status");
+            statusReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+            using var statusResp = await _httpClient.SendAsync(statusReq);
+            statusResp.EnsureSuccessStatusCode();
+            var status = await statusResp.Content.ReadFromJsonAsync<DemoSessionStatusDto>();
+            if (status is not null && status.Active && string.Equals(status.SessionId, sessionId, StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            await Task.Delay(100);
+            if (i == 39)
+            {
+                throw new InvalidOperationException("Student demo session did not become active. Ensure StudentAgent.UIHost is running in the student session.");
+            }
+        }
+
         // Poll answer until available.
         for (var i = 0; i < 80; i++)
         {
@@ -194,7 +214,28 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         var stopReq = new DemoSessionStopRequest(sessionId);
         using var req = new HttpRequestMessage(HttpMethod.Post, $"{studentBaseUrl}/api/demo/webrtc/stop") { Content = JsonContent.Create(stopReq) };
         req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
-        await _httpClient.SendAsync(req);
+        using (var resp = await _httpClient.SendAsync(req))
+        {
+            resp.EnsureSuccessStatusCode();
+        }
+
+        // Best-effort verification.
+        try
+        {
+            using var statusReq = new HttpRequestMessage(HttpMethod.Get, $"{studentBaseUrl}/api/demo/status");
+            statusReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+            using var statusResp = await _httpClient.SendAsync(statusReq);
+            statusResp.EnsureSuccessStatusCode();
+            var status = await statusResp.Content.ReadFromJsonAsync<DemoSessionStatusDto>();
+            if (status is not null && status.Active)
+            {
+                throw new InvalidOperationException("Student demo session is still active after stop.");
+            }
+        }
+        catch
+        {
+            // Do not throw on verification failure; stop is still requested.
+        }
     }
 
     private static string GetScreenInputPath()

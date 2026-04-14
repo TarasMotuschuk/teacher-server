@@ -5,6 +5,7 @@ using SIPSorceryMedia.Abstractions;
 using SIPSorceryMedia.FFmpeg;
 using StudentAgent.Services;
 using StudentAgent.UI;
+using StudentAgent.UI.Localization;
 using Teacher.Common.Contracts;
 
 namespace StudentAgent.UIHost;
@@ -19,6 +20,8 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     private string? _activeDemoSessionId;
     private RTCPeerConnection? _demoPc;
     private FFmpegVideoEndPoint? _demoVideoEndPoint;
+    private bool _demoAuthWarningShown;
+    private DateTime _lastDemoConnectivityWarningUtc;
 
     public UIHostApplicationContext(AgentSettingsStore settingsStore, AgentLogService logService, ProcessService processService)
         : base(settingsStore, logService, processService)
@@ -78,6 +81,27 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             using var resp = await _httpClient.SendAsync(req);
             if (!resp.IsSuccessStatusCode)
             {
+                if ((int)resp.StatusCode == 401 || (int)resp.StatusCode == 403)
+                {
+                    if (!_demoAuthWarningShown)
+                    {
+                        _demoAuthWarningShown = true;
+                        LogService.LogWarning("Demonstration: UIHost cannot read /api/demo/status due to unauthorized teacher secret (401/403).");
+                        ShowTrayNotification(
+                            StudentAgentText.AgentName,
+                            "Demonstration is blocked: teacher secret mismatch. Open Settings and check Shared Secret.");
+                    }
+                }
+                else
+                {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastDemoConnectivityWarningUtc > TimeSpan.FromMinutes(2))
+                    {
+                        _lastDemoConnectivityWarningUtc = now;
+                        LogService.LogWarning($"Demonstration: UIHost cannot read /api/demo/status. HTTP {(int)resp.StatusCode}.");
+                    }
+                }
+
                 return;
             }
 
@@ -95,6 +119,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
 
             if (!string.Equals(_activeDemoSessionId, status.SessionId, StringComparison.Ordinal))
             {
+                _demoAuthWarningShown = false;
                 _activeDemoSessionId = status.SessionId;
                 ShowDemoForms();
                 await StartOrRefreshDemoWebRtcAsync(status.SessionId);

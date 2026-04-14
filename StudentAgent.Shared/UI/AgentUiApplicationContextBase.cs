@@ -84,6 +84,19 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 
+    protected void ShowTrayNotification(string title, string message)
+    {
+        try
+        {
+            _notifyIcon.BalloonTipTitle = title;
+            _notifyIcon.BalloonTipText = message;
+            _notifyIcon.ShowBalloonTip(3000);
+        }
+        catch
+        {
+        }
+    }
+
     protected override void ExitThreadCore()
     {
         _browserLockTimer.Stop();

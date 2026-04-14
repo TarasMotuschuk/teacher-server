@@ -182,5 +182,3 @@ public sealed class DemoFullscreenForm : Form
         }
     }
 }
-
-

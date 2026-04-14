@@ -263,6 +263,7 @@ public partial class MainWindow : Window, IDisposable
             .ToList();
         if (targetAgents.Count == 0)
         {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
             return;
         }
 
@@ -293,6 +294,7 @@ public partial class MainWindow : Window, IDisposable
             .ToList();
         if (targetAgents.Count == 0)
         {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
             return;
         }
 
@@ -305,6 +307,7 @@ public partial class MainWindow : Window, IDisposable
         var sessionId = _demoSessionId;
 
         var (capW, capH) = GetDemonstrationCaptureSize();
+        SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
 
         await RunBusyAsync(async () =>
         {
@@ -315,6 +318,8 @@ public partial class MainWindow : Window, IDisposable
                 var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
                 await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureWidth: capW, captureHeight: capH);
             }
+
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
         }, CrossPlatformText.DemonstrationStartFailed);
     }
 
@@ -336,6 +341,7 @@ public partial class MainWindow : Window, IDisposable
     {
         var sessionId = _demoSessionId ?? Guid.NewGuid().ToString("N");
         _demoSessionId = null;
+        SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
 
         await RunBusyAsync(async () =>
         {
@@ -346,6 +352,8 @@ public partial class MainWindow : Window, IDisposable
                 var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
                 await _demoStreamer.StopAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
             }
+
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
         }, CrossPlatformText.DemonstrationStopFailed);
     }
 
