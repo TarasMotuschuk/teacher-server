@@ -201,19 +201,13 @@ codesign_app_bundle() {
 
   echo "Codesigning app bundle (ad-hoc)..."
 
-  # Sign dylibs first (inner), then the main executable, then the .app wrapper.
-  if compgen -G "$FFMPEG_FRAMEWORKS_DIR/*.dylib" >/dev/null; then
-    for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
-      [[ -f "$lib" ]] || continue
-      codesign --force --sign - --timestamp=none "$lib" >/dev/null 2>&1 || true
-    done
-  fi
-
-  if [[ -f "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia" ]]; then
-    codesign --force --sign - --timestamp=none "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia" >/dev/null 2>&1 || true
-  fi
-
-  codesign --force --sign - --timestamp=none "$APP_DIR" >/dev/null 2>&1 || true
+  # Self-contained .NET publish includes multiple nested Mach-O binaries under Contents/MacOS.
+  # Sign the whole bundle deeply so all nested code gets a consistent signature.
+  codesign --force --deep --sign - --timestamp=none "$APP_DIR" >/dev/null 2>&1 || {
+    echo "ERROR: codesign failed for $APP_DIR" >&2
+    codesign --force --deep --sign - --timestamp=none --verbose=4 "$APP_DIR" || true
+    exit 3
+  }
 
   # Fail early in CI if the bundle is still invalid.
   codesign --verify --deep --strict "$APP_DIR" >/dev/null 2>&1 || {
