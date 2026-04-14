@@ -225,7 +225,6 @@ codesign_app_bundle() {
 
 stage_ffmpeg_dylibs
 make_ffmpeg_relocatable
-codesign_app_bundle
 
 INFO_PLIST_TEMPLATE="$SETUP_ROOT/Resources/Info.plist.template"
 INFO_PLIST_PATH="$APP_DIR/Contents/Info.plist"
@@ -245,6 +244,7 @@ echo -n "APPL????" > "$APP_DIR/Contents/PkgInfo"
 chmod +x "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
 find "$APP_DIR" -name '._*' -delete
 find "$APP_DIR" -name '.DS_Store' -delete
+codesign_app_bundle
 ditto --norsrc "$APP_DIR" "$STAGING_DIR/$APP_NAME"
 
 echo "Building macOS installer package..."
