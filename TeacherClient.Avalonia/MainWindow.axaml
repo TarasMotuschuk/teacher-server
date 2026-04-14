@@ -8,7 +8,7 @@
         Height="820"
         MinWidth="1100"
         MinHeight="720"
-        Background="#2B2B2B"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
         Title="ClassCommander">
   <Design.DataContext>
     <x:Null />
@@ -61,7 +61,7 @@
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ListBoxItem:selected">
-      <Setter Property="Background" Value="#3B82F6" />
+      <Setter Property="Background" Value="{DynamicResource ListBoxItemSelectedAccentBrush}" />
     </Style>
     <!-- Remote management: landscape tiles; selection/hover ring on the card, not a solid ListBoxItem fill -->
     <Style Selector="ListBox.remoteManagementList">
@@ -83,19 +83,19 @@
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ListBox.remoteManagementList Border.remoteManagementTileRoot">
-      <Setter Property="BorderBrush" Value="#94A3B8" />
+      <Setter Property="BorderBrush" Value="{DynamicResource RemoteTileBorderDefaultBrush}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="ListBox.remoteManagementList ListBoxItem:pointerover:not(:selected) Border.remoteManagementTileRoot">
-      <Setter Property="BorderBrush" Value="#60A5FA" />
+      <Setter Property="BorderBrush" Value="{DynamicResource RemoteTileBorderHoverBrush}" />
       <Setter Property="BorderThickness" Value="2" />
     </Style>
     <Style Selector="ListBox.remoteManagementList ListBoxItem:selected Border.remoteManagementTileRoot">
-      <Setter Property="BorderBrush" Value="#2563EB" />
+      <Setter Property="BorderBrush" Value="{DynamicResource RemoteTileBorderSelectedBrush}" />
       <Setter Property="BorderThickness" Value="3" />
     </Style>
     <Style Selector="ListBox.remoteManagementList ListBoxItem:selected:pointerover Border.remoteManagementTileRoot">
-      <Setter Property="BorderBrush" Value="#3B82F6" />
+      <Setter Property="BorderBrush" Value="{DynamicResource RemoteTileBorderSelectedHoverBrush}" />
       <Setter Property="BorderThickness" Value="3" />
     </Style>
     <Style Selector="Button.tabAction">
@@ -103,21 +103,21 @@
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="MinWidth" Value="126" />
       <Setter Property="MaxWidth" Value="200" />
-      <Setter Property="Background" Value="#4A4A4A" />
-      <Setter Property="Foreground" Value="#F8FAFC" />
-      <Setter Property="BorderBrush" Value="#686868" />
+      <Setter Property="Background" Value="{DynamicResource TabActionBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TabActionForegroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TabActionBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="8" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.tabAction:pointerover">
-      <Setter Property="Background" Value="#5A5A5A" />
-      <Setter Property="BorderBrush" Value="#848484" />
+      <Setter Property="Background" Value="{DynamicResource TabActionPointerOverBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TabActionPointerOverBorderBrush}" />
     </Style>
     <Style Selector="Button.tabAction:pressed">
-      <Setter Property="Background" Value="#414141" />
-      <Setter Property="BorderBrush" Value="#979797" />
+      <Setter Property="Background" Value="{DynamicResource TabActionPressedBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TabActionPressedBorderBrush}" />
     </Style>
   </Window.Styles>
 
@@ -255,10 +255,11 @@
     <Border Grid.Row="1"
             Padding="12"
             CornerRadius="10"
-            Background="#17202A">
+            Background="{DynamicResource AppStatusBarBackgroundBrush}">
       <TextBlock x:Name="StatusTextBlock"
                  VerticalAlignment="Center"
                  TextWrapping="Wrap"
+                 Foreground="{DynamicResource AppChromeForegroundBrush}"
                  Text="Ready. Use the Agents tab to select a student machine, then connect." />
     </Border>
 
@@ -371,7 +372,7 @@
           <TextBlock x:Name="RemoteManagementHintTextBlock"
                      Grid.Row="1"
                      Margin="0,0,0,12"
-                     Foreground="#94A3B8"
+                     Foreground="{DynamicResource RemoteManagementHintForegroundBrush}"
                      TextWrapping="Wrap"
                      Text="" />
 
@@ -390,12 +391,12 @@
                         Width="280"
                         Height="200"
                         Padding="2"
-                        Background="#BFC7D0"
+                        Background="{DynamicResource RemoteTileOuterBackgroundBrush}"
                         CornerRadius="8"
                         PointerPressed="RemoteManagementTileRoot_OnPointerPressed">
-                  <Border Background="#171D24" CornerRadius="6" Padding="10">
+                  <Border Background="{DynamicResource RemoteTileInnerBackgroundBrush}" CornerRadius="6" Padding="10">
                     <Grid RowDefinitions="120,28,*">
-                      <Border Grid.Row="0" Background="#1A1F26" CornerRadius="4">
+                      <Border Grid.Row="0" Background="{DynamicResource RemoteTilePreviewBackgroundBrush}" CornerRadius="4">
                         <Image Source="{Binding PreviewBitmap}"
                                Stretch="UniformToFill"
                                HorizontalAlignment="Stretch"
@@ -405,13 +406,13 @@
                                  Text="{Binding MachineName}"
                                  FontSize="14"
                                  FontWeight="Bold"
-                                 Foreground="White"
+                                 Foreground="{DynamicResource RemoteTileTitleForegroundBrush}"
                                  TextTrimming="CharacterEllipsis"
                                  VerticalAlignment="Center" />
                       <TextBlock Grid.Row="2"
                                  Margin="0,4,0,0"
                                  Text="{Binding StatusText}"
-                                 Foreground="#CBD5E1"
+                                 Foreground="{DynamicResource RemoteTileStatusForegroundBrush}"
                                  FontSize="12"
                                  TextWrapping="Wrap" />
                     </Grid>
@@ -450,75 +451,115 @@
       </TabItem>
 
       <TabItem x:Name="FilesTabItem" Header="Files">
-        <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
-          <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+        <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
+          <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
             <Button x:Name="RefreshFilesButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="RefreshFilesButton_OnClick" />
-            <Button x:Name="UploadButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="UploadButton_OnClick" />
-            <Button x:Name="DownloadButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="DownloadButton_OnClick" />
+            <Button x:Name="FilesCopyButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="FilesCopyButton_OnClick" />
             <Button x:Name="SendToSelectedStudentsButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="SendToSelectedStudentsButton_OnClick" />
             <Button x:Name="SendToAllOnlineStudentsButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="SendToAllOnlineStudentsButton_OnClick" />
-            <Button x:Name="OpenLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="OpenLocalButton_OnClick" />
-            <Button x:Name="OpenRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="OpenRemoteButton_OnClick" />
-            <Button x:Name="RenameLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="RenameLocalButton_OnClick" />
-            <Button x:Name="RenameRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="RenameRemoteButton_OnClick" />
+            <Button x:Name="FilesOpenButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="FilesOpenButton_OnClick" />
+            <Button x:Name="FilesRenameButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="FilesRenameButton_OnClick" />
+            <Button x:Name="FilesDeleteButton" Classes="tabAction" Width="110" Margin="0,0,5,5" Click="FilesDeleteButton_OnClick" />
             <Button x:Name="NewRemoteFolderButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="NewRemoteFolderButton_OnClick" />
-            <Button x:Name="DeleteLocalButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="DeleteLocalButton_OnClick" />
-            <Button x:Name="DeleteRemoteButton" Classes="tabAction" Width="126" Margin="0,0,5,5" Click="DeleteRemoteButton_OnClick" />
           </WrapPanel>
 
-          <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
-            <StackPanel Grid.Column="0" Margin="0,0,8,0" Spacing="8">
-              <TextBlock x:Name="TeacherPcTextBlock" FontWeight="Bold" Text="Teacher PC" />
-              <Grid ColumnDefinitions="140,88,*,180">
-                <ComboBox x:Name="LocalDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="LocalDriveComboBox_OnSelectionChanged" />
-                <Button x:Name="UpLocalButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
-                <TextBox x:Name="LocalPathTextBox" Grid.Column="2" IsReadOnly="True" />
-                <TextBlock x:Name="LocalDriveSpaceTextBlock" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" TextAlignment="Right" Foreground="#A7ADB4" Text="Free: unknown" />
+          <Grid Grid.Row="1"
+                ColumnDefinitions="*,*"
+                Margin="0,0,0,0"
+                MinHeight="200">
+            <Border x:Name="LocalFilesPanelBorder"
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    Padding="8"
+                    CornerRadius="8"
+                    BorderThickness="2"
+                    BorderBrush="{DynamicResource FilePanelBorderInactiveBrush}"
+                    Background="{DynamicResource FilePanelBackgroundBrush}"
+                    PointerPressed="LocalFilesPanelBorder_OnPointerPressed">
+              <Grid RowDefinitions="Auto,*">
+                <StackPanel Spacing="8">
+                  <TextBlock x:Name="TeacherPcTextBlock"
+                             FontWeight="Bold"
+                             Foreground="{DynamicResource AppChromeForegroundBrush}"
+                             Text="Teacher PC" />
+                  <Grid ColumnDefinitions="140,88,*,180">
+                    <ComboBox x:Name="LocalDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="LocalDriveComboBox_OnSelectionChanged" />
+                    <Button x:Name="UpLocalButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpLocalButton_OnClick" />
+                    <TextBox x:Name="LocalPathTextBox" Grid.Column="2" IsReadOnly="True" />
+                    <TextBlock x:Name="LocalDriveSpaceTextBlock" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" TextAlignment="Right" Foreground="{DynamicResource DriveSpaceForegroundBrush}" Text="Free: unknown" />
+                  </Grid>
+                </StackPanel>
+                <DataGrid x:Name="LocalFilesGrid"
+                          Grid.Row="1"
+                          Margin="0,8,0,0"
+                          AutoGenerateColumns="False"
+                          CanUserResizeColumns="True"
+                          IsReadOnly="True"
+                          SelectionMode="Single"
+                          PointerPressed="LocalFilesGrid_OnPointerPressed"
+                          GotFocus="LocalFilesGrid_OnGotFocus"
+                          SelectionChanged="LocalFilesGrid_OnSelectionChanged"
+                          DoubleTapped="LocalFilesGrid_OnDoubleTapped">
+                  <!-- Fluent DataGridColumnHeader reserves 32px for sort icon even when hidden; free that space for file columns. -->
+                  <DataGrid.Resources>
+                    <x:Double x:Key="DataGridSortIconMinWidth">0</x:Double>
+                  </DataGrid.Resources>
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="5.8*" />
+                    <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="1*" />
+                    <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="1*" />
+                    <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="1*" />
+                    <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="1.2*" />
+                  </DataGrid.Columns>
+                </DataGrid>
               </Grid>
-            </StackPanel>
+            </Border>
 
-            <StackPanel Grid.Column="1" Spacing="8">
-              <TextBlock x:Name="StudentPcTextBlock" FontWeight="Bold" Text="Student PC" />
-              <Grid ColumnDefinitions="140,88,*,180">
-                <ComboBox x:Name="RemoteDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="RemoteDriveComboBox_OnSelectionChanged" />
-                <Button x:Name="UpRemoteButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
-                <TextBox x:Name="RemotePathTextBox" Grid.Column="2" IsReadOnly="True" />
-                <TextBlock x:Name="RemoteDriveSpaceTextBlock" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" TextAlignment="Right" Foreground="#A7ADB4" Text="Free: unknown" />
+            <Border x:Name="RemoteFilesPanelBorder"
+                    Grid.Column="1"
+                    Padding="8"
+                    CornerRadius="8"
+                    BorderThickness="2"
+                    BorderBrush="{DynamicResource FilePanelBorderInactiveBrush}"
+                    Background="{DynamicResource FilePanelBackgroundBrush}"
+                    PointerPressed="RemoteFilesPanelBorder_OnPointerPressed">
+              <Grid RowDefinitions="Auto,*">
+                <StackPanel Spacing="8">
+                  <TextBlock x:Name="StudentPcTextBlock"
+                             FontWeight="Bold"
+                             Foreground="{DynamicResource AppChromeForegroundBrush}"
+                             Text="Student PC" />
+                  <Grid ColumnDefinitions="140,88,*,180">
+                    <ComboBox x:Name="RemoteDriveComboBox" Grid.Column="0" Margin="0,0,8,0" SelectionChanged="RemoteDriveComboBox_OnSelectionChanged" />
+                    <Button x:Name="UpRemoteButton" Grid.Column="1" Margin="0,0,8,0" Content="Up" Click="UpRemoteButton_OnClick" />
+                    <TextBox x:Name="RemotePathTextBox" Grid.Column="2" IsReadOnly="True" />
+                    <TextBlock x:Name="RemoteDriveSpaceTextBlock" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" TextAlignment="Right" Foreground="{DynamicResource DriveSpaceForegroundBrush}" Text="Free: unknown" />
+                  </Grid>
+                </StackPanel>
+                <DataGrid x:Name="RemoteFilesGrid"
+                          Grid.Row="1"
+                          Margin="0,8,0,0"
+                          AutoGenerateColumns="False"
+                          CanUserResizeColumns="True"
+                          IsReadOnly="True"
+                          SelectionMode="Single"
+                          PointerPressed="RemoteFilesGrid_OnPointerPressed"
+                          GotFocus="RemoteFilesGrid_OnGotFocus"
+                          SelectionChanged="RemoteFilesGrid_OnSelectionChanged"
+                          DoubleTapped="RemoteFilesGrid_OnDoubleTapped">
+                  <DataGrid.Resources>
+                    <x:Double x:Key="DataGridSortIconMinWidth">0</x:Double>
+                  </DataGrid.Resources>
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="5.8*" />
+                    <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="1*" />
+                    <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="1*" />
+                    <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="1*" />
+                    <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="1.2*" />
+                  </DataGrid.Columns>
+                </DataGrid>
               </Grid>
-            </StackPanel>
-          </Grid>
-
-          <Grid Grid.Row="2" ColumnDefinitions="*,*">
-            <DataGrid x:Name="LocalFilesGrid"
-                      Grid.Column="0"
-                      Margin="0,0,8,0"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      DoubleTapped="LocalFilesGrid_OnDoubleTapped">
-              <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="5.8*" />
-                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="1*" />
-                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="1*" />
-                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="1*" />
-                <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="1.2*" />
-              </DataGrid.Columns>
-            </DataGrid>
-
-            <DataGrid x:Name="RemoteFilesGrid"
-                      Grid.Column="1"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      DoubleTapped="RemoteFilesGrid_OnDoubleTapped">
-              <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding DisplayNameWithIcon}" Width="5.8*" />
-                <DataGridTextColumn Header="Extension" Binding="{Binding Extension}" Width="1*" />
-                <DataGridTextColumn Header="Attributes" Binding="{Binding AttributesDisplay}" Width="1*" />
-                <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="1*" />
-                <DataGridTextColumn Header="Modified UTC" Binding="{Binding LastModifiedUtc}" Width="1.2*" />
-              </DataGrid.Columns>
-            </DataGrid>
+            </Border>
           </Grid>
         </Grid>
       </TabItem>
@@ -570,10 +611,10 @@
     <Border Grid.Row="3"
             Padding="8"
             CornerRadius="10"
-            Background="#36404A">
+            Background="{DynamicResource FooterBackgroundBrush}">
       <TextBlock x:Name="FooterTextBlock"
                  TextWrapping="Wrap"
-                 Foreground="#D4D9DF" />
+                 Foreground="{DynamicResource FooterForegroundBrush}" />
     </Border>
   </Grid>
 </Window>

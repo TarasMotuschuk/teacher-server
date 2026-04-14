@@ -315,11 +315,11 @@ public static class StudentAgentHostExtensions
             }
         });
 
-        app.MapPost("/api/update/start", async ([FromBody] StartAgentUpdateRequest? request, [FromServices] AgentUpdateService service, CancellationToken cancellationToken) =>
+        app.MapPost("/api/update/start", async ([FromBody] StartAgentUpdateRequest? request, [FromServices] AgentUpdateService service) =>
         {
             try
             {
-                var status = await service.StartUpdateAsync(request ?? new StartAgentUpdateRequest(), cancellationToken);
+                var status = await service.StartUpdateAsync(request ?? new StartAgentUpdateRequest());
                 return Results.Accepted("/api/update/status", status);
             }
             catch (Exception ex)

@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.Dialogs.SettingsWindow"
         Width="620"
-        Height="600"
+        Height="560"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="ClassCommander Settings">
@@ -62,35 +62,38 @@
               Grid.Column="1"
               Height="45" />
 
-    <TextBlock x:Name="DesktopIconAutoRestoreIntervalLabel"
+    <TextBlock x:Name="ThemeLabel"
                Grid.Row="5"
+               Grid.Column="0"
+               Margin="0,8,12,0"
+               VerticalAlignment="Top"
+               Text="Interface theme" />
+    <ComboBox x:Name="ThemeComboBox"
+              Grid.Row="5"
+              Grid.Column="1"
+              Height="45" />
+
+    <TextBlock x:Name="DesktopIconAutoRestoreIntervalLabel"
+               Grid.Row="6"
                Grid.Column="0"
                Margin="0,8,12,0"
                VerticalAlignment="Top"
                Text="Desktop icon auto-restore (min)" />
     <TextBox x:Name="DesktopIconAutoRestoreIntervalTextBox"
-             Grid.Row="5"
+             Grid.Row="6"
              Grid.Column="1"
              Height="45" />
 
     <TextBlock x:Name="BrowserLockCheckIntervalLabel"
-               Grid.Row="6"
+               Grid.Row="7"
                Grid.Column="0"
                Margin="0,8,12,0"
                VerticalAlignment="Top"
                Text="Browser-lock check interval (s)" />
     <TextBox x:Name="BrowserLockCheckIntervalTextBox"
-             Grid.Row="6"
+             Grid.Row="7"
              Grid.Column="1"
              Height="45" />
-
-    <TextBlock x:Name="HintTextBlock"
-               Grid.Row="7"
-               Grid.Column="0"
-               Grid.ColumnSpan="2"
-               Margin="0,14,0,0"
-               TextWrapping="Wrap"
-               Text="The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution." />
 
     <StackPanel Grid.Row="8"
                 Grid.Column="0"

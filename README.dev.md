@@ -12,8 +12,8 @@
 - `StudentAgent.UIHost`: Windows Forms session UI process for tray controls, warnings, and visible student overlays.
 - `StudentAgent.VncHost`: session-aware VNC host process for visible remote screen viewing and control.
 - `TeacherServer.Setup`: WiX-based MSI installer project for Windows deployment.
-- `TeacherClient`: Windows Forms application used by the teacher.
-- `TeacherClient.Avalonia`: cross-platform desktop client for macOS, Linux, and Windows.
+- `TeacherClient`: legacy maintenance-only Windows Forms application used by the teacher on Windows.
+- `TeacherClient.Avalonia`: primary cross-platform desktop client for macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup`: macOS packaging project that builds a `.app` bundle and a `.pkg` installer.
 - `Teacher.Common`: shared DTOs and request contracts.
 
@@ -70,7 +70,7 @@ Available endpoints:
 
 ### TeacherClient
 
-`TeacherClient` is a desktop UI for the teacher workstation. It provides:
+`TeacherClient` is the legacy Windows Forms desktop UI for the teacher workstation. It remains supported for maintenance work, packaging compatibility, and critical fixes, but new teacher-facing functionality should be implemented in `TeacherClient.Avalonia`. It provides:
 
 - auto-discovery of agents on the local network over UDP;
 - a combined `Agents` list with auto-discovered and manual entries;
@@ -121,7 +121,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 
 ### TeacherClient.Avalonia
 
-`TeacherClient.Avalonia` provides the same core workflow in a cross-platform desktop app:
+`TeacherClient.Avalonia` is the primary teacher client and provides the same core workflow in a cross-platform desktop app:
 
 - auto-discovery of agents on the local network over UDP;
 - a combined `Agents` list with auto-discovered and manual entries;
@@ -134,6 +134,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - a teacher-configured destination folder path used for bulk distribution on student PCs;
 - teacher-configured student work folder settings with automatic shared-folder provisioning on reachable student PCs;
 - user-selectable UI language with English and Ukrainian options;
+- user-selectable interface theme (dark or light), persisted alongside other teacher-side settings;
 - browse remote processes and terminate a selected process;
 - double-click process details with full metadata plus `Kill` and `Restart` actions;
 - browse local and remote file trees in dual panes;
@@ -259,14 +260,16 @@ Build-Msi.cmd
 ```
 
 4. The script will:
-   - publish a self-contained `TeacherClient` payload;
+   - publish self-contained `TeacherClient` and `TeacherClient.Avalonia` payloads;
    - publish a self-contained `StudentAgent.Service` + `StudentAgent.UIHost` payload;
    - generate WiX payload fragments;
-   - build an MSI into [TeacherServer.Setup/dist](TeacherServer.Setup/dist).
+   - build `ClassCommander.Setup.msi` into [TeacherServer.Setup/dist](TeacherServer.Setup/dist).
 
-5. Run the generated `.msi` on Windows. The installer is branded as `ClassCommander`, and then choose the desired feature during setup:
+5. Run the generated `ClassCommander.Setup.msi` on Windows. The installer is branded as `ClassCommander`, and then choose the desired feature during setup:
    - `Teacher workstation tools`
    - `Student workstation tools`
+
+The Windows installer deploys both teacher binaries for compatibility, but only creates teacher-facing shortcuts for the Avalonia client. Those shortcuts are named simply `ClassCommander`.
 
 When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service`, `StudentAgent.UIHost`, and `StudentAgent.VncHost` together and registers the Windows service automatically.
 
@@ -305,7 +308,7 @@ Teacher workstations can also check for a newer client installer directly from G
 3. Run `Download installer` to cache the MSI or PKG locally.
 4. Run `Install update` to open the downloaded installer with the operating system.
 
-The client update manifest is emitted as `classcommander-client-version.json` in GitHub Release assets and points to the release MSI and PKG files for the current version.
+The client update manifest is emitted as `classcommander-client-version.json` in GitHub Release assets and points to `ClassCommander.Setup.msi` and `ClassCommander.Setup.pkg` for the current version.
 
 Tag-based GitHub releases now publish all major install/update assets together:
 
@@ -317,7 +320,7 @@ Tag-based GitHub releases now publish all major install/update assets together:
 
 ### Start ClassCommander on Windows
 
-1. Launch `ClassCommander` (`TeacherClient.exe`).
+1. Launch `ClassCommander` from the installed Avalonia shortcut, or run `TeacherClient.exe` directly only when you specifically need the legacy WinForms client.
 2. Use the `Agents` tab to auto-discover agents or define manual entries.
 3. Optionally assign manual agents to a `Group` such as a classroom, lab row, or lesson cohort.
 4. Filter the list by search text, `Status`, or `Group`.
@@ -389,7 +392,7 @@ bash ./Build-MacInstaller.sh
 
 4. The outputs are:
    - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)
-   - installer: [TeacherClient.Avalonia.Setup/dist/ClassCommander-macos.pkg](TeacherClient.Avalonia.Setup/dist/ClassCommander-macos.pkg)
+   - installer: [TeacherClient.Avalonia.Setup/dist/ClassCommander.Setup.pkg](TeacherClient.Avalonia.Setup/dist/ClassCommander.Setup.pkg)
 
 5. Install the app by opening the generated `.pkg`.
 

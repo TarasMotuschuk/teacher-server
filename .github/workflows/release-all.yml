@@ -115,7 +115,7 @@ jobs:
       - name: Build StudentAgent.VncHost
         run: dotnet build StudentAgent.VncHost/StudentAgent.VncHost.csproj -c Release --nologo
 
-      - name: Build MSI
+      - name: Build ClassCommander.Setup.msi
         shell: pwsh
         run: |
           powershell -ExecutionPolicy Bypass -File .\TeacherServer.Setup\Build-Msi.ps1 -Configuration Release
@@ -124,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi
-          path: TeacherServer.Setup/dist/*.msi
+          path: TeacherServer.Setup/dist/ClassCommander.Setup.msi
           if-no-files-found: error
 
   build-macos-installer:
@@ -148,7 +148,7 @@ jobs:
             | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build Avalonia .pkg
+      - name: Build ClassCommander.Setup.pkg
         env:
           CONFIGURATION: Release
           RUNTIME: osx-arm64
@@ -159,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-pkg
-          path: TeacherClient.Avalonia.Setup/dist/*.pkg
+          path: TeacherClient.Avalonia.Setup/dist/ClassCommander.Setup.pkg
           if-no-files-found: error
 
   publish-release:
@@ -195,10 +195,10 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           VERSION="${TAG_NAME#v}"
-          MSI_FILE=$(find artifacts/windows-msi -name '*.msi' -print -quit)
-          PKG_FILE=$(find artifacts/macos-pkg -name '*.pkg' -print -quit)
+          MSI_FILE="artifacts/windows-msi/ClassCommander.Setup.msi"
+          PKG_FILE="artifacts/macos-pkg/ClassCommander.Setup.pkg"
 
-          if [ -z "$MSI_FILE" ] || [ -z "$PKG_FILE" ]; then
+          if [ ! -f "$MSI_FILE" ] || [ ! -f "$PKG_FILE" ]; then
             echo "Missing MSI or PKG asset."
             exit 1
           fi
@@ -226,6 +226,6 @@ jobs:
             artifacts/student-agent/student-agent-update-*.zip
             artifacts/student-agent/student-agent-update-*.sha256.txt
             artifacts/student-agent/student-agent-version.json
-            artifacts/windows-msi/*.msi
-            artifacts/macos-pkg/*.pkg
+            artifacts/windows-msi/ClassCommander.Setup.msi
+            artifacts/macos-pkg/ClassCommander.Setup.pkg
             artifacts/classcommander-client-version.json

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -44,6 +45,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
     private int _pointerButtonsMask;
     private int _bitmapPixelWidth;
     private int _bitmapPixelHeight;
+    private int _asyncCloseStarted;
     private bool _disposed;
 
     public RemoteVncViewerWindow(string machineName, string host, int port, string sharedSecret, bool controlEnabled)
@@ -85,10 +87,7 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
                 DispatcherPriority.Loaded);
         };
 
-        Closing += (_, _) =>
-        {
-            Dispose();
-        };
+        Closing += OnWindowClosing;
 
         ScreenImage.PointerPressed += ScreenImage_OnPointerPressed;
         ScreenImage.PointerReleased += ScreenImage_OnPointerReleased;
@@ -223,32 +222,86 @@ public partial class RemoteVncViewerWindow : Window, IDisposable
         _currentBitmap = null;
     }
 
-    public void Dispose()
+    private void OnWindowClosing(object? sender, CancelEventArgs e)
     {
+        if (Volatile.Read(ref _asyncCloseStarted) != 0)
+        {
+            return;
+        }
+
         if (_disposed)
         {
             return;
         }
 
-        _disposed = true;
+        e.Cancel = true;
+        Interlocked.Exchange(ref _asyncCloseStarted, 1);
+        BeginAsyncClose();
+    }
+
+    private void BeginAsyncClose()
+    {
         _refreshTimer.Stop();
         _cancellation.Cancel();
 
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while ((Volatile.Read(ref _captureInProgress) != 0 || Volatile.Read(ref _connectInProgress) != 0) &&
-               DateTime.UtcNow < deadline)
+        _ = Task.Run(async () =>
         {
-            Thread.Sleep(20);
+            try
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(15);
+                while ((Volatile.Read(ref _captureInProgress) != 0 || Volatile.Read(ref _connectInProgress) != 0) &&
+                       DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(20).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (_ownsSession)
+                    {
+                        _session.Dispose();
+                    }
+                }
+                catch
+                {
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(
+                    () =>
+                    {
+                        if (_disposed)
+                        {
+                            return;
+                        }
+
+                        _disposed = true;
+                        _cancellation.Dispose();
+                        DisposeBitmap();
+                        Closing -= OnWindowClosing;
+                        Close();
+                        GC.SuppressFinalize(this);
+                    });
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_disposed || Volatile.Read(ref _asyncCloseStarted) != 0)
+        {
+            return;
         }
 
-        if (_ownsSession)
+        if (Dispatcher.UIThread.CheckAccess())
         {
-            _session.Dispose();
+            Close();
         }
-
-        _cancellation.Dispose();
-        DisposeBitmap();
-        GC.SuppressFinalize(this);
+        else
+        {
+            Dispatcher.UIThread.Post(Close);
+        }
     }
 
     private void EnableControlButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

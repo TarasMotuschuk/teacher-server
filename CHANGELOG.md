@@ -6,6 +6,26 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-04-13
+
+### Added
+
+- **TeacherClient.Avalonia**: **Interface theme** setting (dark / light); existing colors are preserved as the dark theme, with a light palette option.
+
+### Changed
+
+- **TeacherClient.Avalonia**: Settings window no longer shows one long footer paragraph; the same explanations appear as **tooltips** on the matching labels and fields.
+
+- **TeacherClient.Avalonia**: Files tab **local and remote file lists** allow **resizing columns** by dragging column header dividers (`CanUserResizeColumns`). Column headers no longer reserve the default **32px** sort-icon gutter when the icon is hidden (restores header text space and tooltips); header tooltips use a full-width hit target.
+
+- **TeacherClient.Avalonia**: Files tab uses an **active panel** (highlighted border on teacher vs student file lists); **Open**, **Rename**, and **Delete** are single toolbar actions applied to the active side. **Copy** replaces separate upload/download: with the teacher panel active it uploads the selected file to the current remote folder; with the student panel active it downloads the selected file to the current local folder. **Open** on a **remote file** shows a small dialog: open on the student PC (unchanged) or copy to a temp folder on this PC (`/tmp/ClassCommander` on macOS, `%TEMP%\\ClassCommander` on Windows) and open locally; **remote folders** still open on the student PC only. **New remote folder** is enabled only when the student panel is active. Send-to-class actions are unchanged.
+
+### Fixed
+
+- **TeacherClient.Avalonia**: Files tab active panel indicator now switches when the user selects a row or focuses the opposite file grid (not only when clicking the panel chrome), so the highlighted border matches the panel used for Open/Rename/Delete.
+
+- **Student Agent**: remote-triggered updates no longer pass the HTTP request cancellation token into the background download/install pipeline, so closing the `POST /api/update/start` connection after `202 Accepted` does not abort the update with “A task was canceled.”; cancellation still applies when the host application stops.
+
 ## [1.0.16] - 2026-04-11
 
 ### Added

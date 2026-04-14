@@ -172,9 +172,38 @@ internal static partial class CrossPlatformText
 
     public static string DownloadArrow => IsUk ? "<- Скачати" : "<- Download";
 
+    /// <summary>Files tab: unified copy (upload or download depending on active panel).</summary>
+    public static string FilesToolbarCopy => IsUk ? "Копіювати" : "Copy";
+
+    /// <summary>Tooltip when teacher (local) panel is active — copy uploads to student.</summary>
+    public static string FilesCopyTooltipTeacherPanel =>
+        IsUk
+            ? "Копіює вибраний файл з ПК викладача на ПК студента (у поточну віддалену папку)."
+            : "Copy the selected file from this PC to the student PC (current remote folder).";
+
+    /// <summary>Tooltip when student (remote) panel is active — copy downloads to teacher.</summary>
+    public static string FilesCopyTooltipStudentPanel =>
+        IsUk
+            ? "Копіює вибраний файл з ПК студента на ПК викладача (у поточну локальну папку)."
+            : "Copy the selected file from the student PC to this PC (current local folder).";
+
     public static string OpenLocal => IsUk ? "Відкрити локально" : "Open Local";
 
     public static string OpenRemote => IsUk ? "Відкрити на учнівському ПК" : "Open on Student PC";
+
+    public static string RemoteOpenChoiceTitle => IsUk ? "Відкрити файл" : "Open file";
+
+    public static string RemoteOpenChoiceDescription =>
+        IsUk
+            ? "Оберіть, де відкрити файл з учнівського ПК."
+            : "Choose where to open the file from the student PC.";
+
+    public static string RemoteOpenOnStudentPc => IsUk ? "На учнівському ПК" : "On student PC";
+
+    public static string RemoteOpenOnLocalPc =>
+        IsUk
+            ? "На цьому ПК (копія в тимчасову папку, потім відкриття)"
+            : "On this PC (copy to temp folder, then open)";
 
     public static string RenameLocal => IsUk ? "Перейменувати локально" : "Rename Local";
 
@@ -183,6 +212,27 @@ internal static partial class CrossPlatformText
     public static string DeleteLocal => IsUk ? "Видалити локально" : "Delete Local";
 
     public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
+
+    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    public static string FilesToolbarOpen => IsUk ? "Відкрити" : "Open";
+
+    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    public static string FilesToolbarRename => IsUk ? "Перейменувати" : "Rename";
+
+    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    public static string FilesToolbarDelete => IsUk ? "Видалити" : "Delete";
+
+    /// <summary>Tooltip for Open/Rename/Delete on the Files tab — explains active panel.</summary>
+    public static string FilesToolbarActivePanelHint =>
+        IsUk
+            ? "Дія для активної панелі (підсвічена рамка): ліва — ПК викладача, права — ПК студента."
+            : "Action applies to the active panel (highlighted border): left — teacher PC, right — student PC.";
+
+    /// <summary>Tooltip when New remote folder is disabled (teacher panel active).</summary>
+    public static string FilesNewFolderNeedsStudentPanel =>
+        IsUk
+            ? "Спочатку виберіть праву панель (ПК студента), щоб створити папку на віддаленому ПК."
+            : "Activate the right panel (student PC) to create a folder on the remote machine.";
 
     public static string NewRemoteFolder => IsUk ? "Нова віддалена папка" : "New Remote Folder";
 
@@ -276,7 +326,31 @@ internal static partial class CrossPlatformText
 
     public static string Language => IsUk ? "Мова" : "Language";
 
-    public static string SettingsHint => IsUk ? "Спільний секрет використовується для перевірки доступності учнівських ПК і для всіх API-запитів. Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок. Базовий шлях і назва папки робіт визначають спільний каталог, який буде створюватися на учнівських ПК для збереження робіт. Інтервали нижче зберігаються на ПК викладача і після збереження застосовуються до всіх онлайн учнівських ПК." : "The shared secret is used for reachability checks and all teacher-to-student API calls. The destination folder defines the starting path on student PCs for bulk file and folder distribution. The work base path and work folder name define the shared student folder that will be created on student PCs for saved work. The intervals below are stored on the teacher PC and are applied to all online student PCs after saving.";
+    public static string SettingsUiTheme => IsUk ? "Тема інтерфейсу" : "Interface theme";
+
+    public static string SettingsUiThemeDark => IsUk ? "Темна" : "Dark";
+
+    public static string SettingsUiThemeLight => IsUk ? "Світла" : "Light";
+
+    public static string SettingsFieldTooltipSharedSecret => IsUk
+        ? "Спільний секрет використовується для перевірки доступності учнівських ПК і для всіх API-запитів."
+        : "Used for reachability checks and all teacher-to-student API calls.";
+
+    public static string SettingsFieldTooltipBulkCopyDestination => IsUk
+        ? "Папка призначення визначає стартовий шлях на учнівських ПК для масового копіювання файлів і папок."
+        : "Defines the starting path on student PCs for bulk file and folder distribution.";
+
+    public static string SettingsFieldTooltipStudentWorkRootPath => IsUk
+        ? "Разом із назвою папки робіт визначає спільний каталог, який буде створюватися на учнівських ПК для збереження робіт."
+        : "Together with the work folder name, defines the shared student folder created on student PCs for saved work.";
+
+    public static string SettingsFieldTooltipStudentWorkFolderName => IsUk
+        ? "Разом із базовим шляхом робіт визначає спільний каталог, який буде створюватися на учнівських ПК для збереження робіт."
+        : "Together with the work base path, defines the shared student folder created on student PCs for saved work.";
+
+    public static string SettingsFieldTooltipTeacherSideInterval => IsUk
+        ? "Зберігається на ПК викладача; після збереження застосовується до всіх онлайн учнівських ПК."
+        : "Stored on the teacher PC; after saving, applied to all online student PCs.";
 
     public static string Save => IsUk ? "Зберегти" : "Save";
 

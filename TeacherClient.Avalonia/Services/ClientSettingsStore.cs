@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Teacher.Common;
 using Teacher.Common.Localization;
 using TeacherClient.CrossPlatform.Models;
@@ -10,6 +11,7 @@ public sealed class ClientSettingsStore
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     private readonly object _sync = new();
@@ -82,6 +84,12 @@ public sealed class ClientSettingsStore
             ? ClientSettings.Default.BrowserLockCheckIntervalSeconds
             : Math.Max(5, configuredBrowserLockCheckIntervalSeconds.GetValueOrDefault());
 
+        var theme = settings?.Theme ?? default;
+        if (theme != AppUiTheme.Dark && theme != AppUiTheme.Light)
+        {
+            theme = ClientSettings.Default.Theme;
+        }
+
         return new ClientSettings(
             sharedSecret,
             language,
@@ -89,6 +97,7 @@ public sealed class ClientSettingsStore
             studentWorkRootPath,
             studentWorkFolderName,
             Math.Max(1, desktopIconAutoRestoreMinutes),
-            browserLockCheckIntervalSeconds);
+            browserLockCheckIntervalSeconds,
+            theme);
     }
 }

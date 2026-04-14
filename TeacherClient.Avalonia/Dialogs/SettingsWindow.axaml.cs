@@ -26,6 +26,7 @@ public partial class SettingsWindow : Window
         DesktopIconAutoRestoreIntervalTextBox.Text = settings.DesktopIconAutoRestoreMinutes.ToString(CultureInfo.InvariantCulture);
         BrowserLockCheckIntervalTextBox.Text = settings.BrowserLockCheckIntervalSeconds.ToString(CultureInfo.InvariantCulture);
         ApplyLocalization();
+        ThemeComboBox.SelectedIndex = (int)settings.Theme;
     }
 
     public ClientSettings ToSettings()
@@ -36,7 +37,8 @@ public partial class SettingsWindow : Window
             StudentWorkRootPathTextBox.Text?.Trim() ?? string.Empty,
             StudentWorkFolderNameTextBox.Text?.Trim() ?? string.Empty,
             ParsePositiveInt(DesktopIconAutoRestoreIntervalTextBox.Text, ClientSettings.Default.DesktopIconAutoRestoreMinutes, 1),
-            ParsePositiveInt(BrowserLockCheckIntervalTextBox.Text, ClientSettings.Default.BrowserLockCheckIntervalSeconds, 5));
+            ParsePositiveInt(BrowserLockCheckIntervalTextBox.Text, ClientSettings.Default.BrowserLockCheckIntervalSeconds, 5),
+            ThemeComboBox.SelectedIndex == 1 ? AppUiTheme.Light : AppUiTheme.Dark);
 
     private static int ParsePositiveInt(string? value, int fallback, int minValue)
     {
@@ -68,7 +70,33 @@ public partial class SettingsWindow : Window
         DesktopIconAutoRestoreIntervalLabel.Text = CrossPlatformText.DesktopIconAutoRestoreInterval;
         BrowserLockCheckIntervalLabel.Text = CrossPlatformText.BrowserLockCheckInterval;
         LanguageLabel.Text = CrossPlatformText.Language;
-        HintTextBlock.Text = CrossPlatformText.SettingsHint;
+        ThemeLabel.Text = CrossPlatformText.SettingsUiTheme;
+        var themeIndex = ThemeComboBox.SelectedIndex;
+        ThemeComboBox.ItemsSource = new[] { CrossPlatformText.SettingsUiThemeDark, CrossPlatformText.SettingsUiThemeLight };
+        ThemeComboBox.SelectedIndex = themeIndex >= 0 && themeIndex <= 1 ? themeIndex : 0;
+
+        var tipSecret = CrossPlatformText.SettingsFieldTooltipSharedSecret;
+        ToolTip.SetTip(SharedSecretLabel, tipSecret);
+        ToolTip.SetTip(SharedSecretTextBox, tipSecret);
+
+        var tipBulk = CrossPlatformText.SettingsFieldTooltipBulkCopyDestination;
+        ToolTip.SetTip(BulkCopyDestinationPathLabel, tipBulk);
+        ToolTip.SetTip(BulkCopyDestinationPathTextBox, tipBulk);
+
+        var tipRoot = CrossPlatformText.SettingsFieldTooltipStudentWorkRootPath;
+        ToolTip.SetTip(StudentWorkRootPathLabel, tipRoot);
+        ToolTip.SetTip(StudentWorkRootPathTextBox, tipRoot);
+
+        var tipFolderName = CrossPlatformText.SettingsFieldTooltipStudentWorkFolderName;
+        ToolTip.SetTip(StudentWorkFolderNameLabel, tipFolderName);
+        ToolTip.SetTip(StudentWorkFolderNameTextBox, tipFolderName);
+
+        var tipInterval = CrossPlatformText.SettingsFieldTooltipTeacherSideInterval;
+        ToolTip.SetTip(DesktopIconAutoRestoreIntervalLabel, tipInterval);
+        ToolTip.SetTip(DesktopIconAutoRestoreIntervalTextBox, tipInterval);
+        ToolTip.SetTip(BrowserLockCheckIntervalLabel, tipInterval);
+        ToolTip.SetTip(BrowserLockCheckIntervalTextBox, tipInterval);
+
         SaveButton.Content = CrossPlatformText.Save;
         CancelButton.Content = CrossPlatformText.Cancel;
     }

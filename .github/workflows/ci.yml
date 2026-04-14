@@ -65,14 +65,14 @@ jobs:
       - name: Build StudentAgent.VncHost
         run: dotnet build StudentAgent.VncHost/StudentAgent.VncHost.csproj -c Release --nologo
 
-      - name: Build MSI
+      - name: Build ClassCommander.Setup.msi
         run: powershell -ExecutionPolicy Bypass -File TeacherServer.Setup\Build-Msi.ps1 -Configuration Release
 
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
           name: TeacherServer-MSI
-          path: TeacherServer.Setup/dist/*.msi
+          path: TeacherServer.Setup/dist/ClassCommander.Setup.msi
           if-no-files-found: error
 
   # ─────────────────────────────────────────────
@@ -99,7 +99,7 @@ jobs:
             | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build Avalonia .pkg
+      - name: Build ClassCommander.Setup.pkg
         env:
           CONFIGURATION: Release
           RUNTIME: osx-arm64
@@ -110,5 +110,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ClassCommander-macOS
-          path: TeacherClient.Avalonia.Setup/dist/*.pkg
+          path: TeacherClient.Avalonia.Setup/dist/ClassCommander.Setup.pkg
           if-no-files-found: error

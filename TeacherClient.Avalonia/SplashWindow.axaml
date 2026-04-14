@@ -10,10 +10,10 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="CenterScreen"
-        Background="#0B1220">
+        Background="{DynamicResource SplashWindowBackgroundBrush}">
   <Border CornerRadius="14"
           ClipToBounds="True"
-          Background="#0B1220">
+          Background="{DynamicResource SplashWindowBackgroundBrush}">
     <Image Source="avares://TeacherClient.Avalonia/Assets/Branding/ClassCommander-splash.png"
            Stretch="UniformToFill" />
   </Border>
