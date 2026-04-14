@@ -53,11 +53,21 @@ stage_ffmpeg_dylibs() {
   if command -v brew >/dev/null 2>&1; then
     local prefix
     prefix="$(brew --prefix ffmpeg 2>/dev/null || true)"
+    if [[ -z "$prefix" ]]; then
+      echo "Homebrew is available but ffmpeg is not installed. Installing ffmpeg..."
+      brew install ffmpeg
+      prefix="$(brew --prefix ffmpeg 2>/dev/null || true)"
+    fi
     if [[ -n "$prefix" && -d "$prefix/lib" ]]; then
       echo "Staging FFmpeg dylibs from Homebrew prefix: $prefix"
-      # Copy FFmpeg libs + common codec deps that ffmpeg may link against.
-      # We copy a broad set of dylibs and make them relocatable below.
-      find "$prefix/lib" -maxdepth 1 -type f -name '*.dylib' -print0 | xargs -0 -I{} cp -f "{}" "$FFMPEG_FRAMEWORKS_DIR/" || true
+      # Copy the FFmpeg dylibs (plus swscale/swresample) that SIPSorcery loads.
+      cp -f "$prefix/lib/libavcodec"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+      cp -f "$prefix/lib/libavdevice"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+      cp -f "$prefix/lib/libavfilter"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+      cp -f "$prefix/lib/libavformat"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+      cp -f "$prefix/lib/libavutil"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+      cp -f "$prefix/lib/libswresample"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+      cp -f "$prefix/lib/libswscale"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
       return
     fi
   fi
