@@ -87,6 +87,36 @@ stage_ffmpeg_dylibs() {
       cp -f "$prefix/lib/libavutil"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
       cp -f "$prefix/lib/libswresample"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
       cp -f "$prefix/lib/libswscale"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+
+      # Homebrew ffmpeg dylibs depend on many other non-system dylibs (x264/vpx/openssl/...).
+      # Collect the full dependency closure so dlopen succeeds on machines without Homebrew.
+      local changed
+      changed=1
+      while [[ "$changed" == "1" ]]; do
+        changed=0
+        for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
+          [[ -f "$lib" ]] || continue
+          for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
+            case "$dep" in
+              /System/*|/usr/lib/*)
+                continue
+                ;;
+            esac
+
+            local dep_base
+            dep_base="$(basename "$dep")"
+            if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
+              continue
+            fi
+
+            if [[ -f "$dep" && "$dep" == "$prefix"* && "$dep" == *.dylib ]]; then
+              cp -f "$dep" "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+              changed=1
+            fi
+          done
+        done
+      done
+
       return
     fi
   fi
