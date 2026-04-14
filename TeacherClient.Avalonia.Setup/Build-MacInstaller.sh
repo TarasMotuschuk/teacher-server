@@ -50,6 +50,14 @@ stage_ffmpeg_dylibs() {
     return
   fi
 
+  # GitHub runners normally include Homebrew, but PATH can vary.
+  if [[ -x "/opt/homebrew/bin/brew" && -z "$(command -v brew 2>/dev/null)" ]]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+  fi
+  if [[ -x "/usr/local/bin/brew" && -z "$(command -v brew 2>/dev/null)" ]]; then
+    export PATH="/usr/local/bin:$PATH"
+  fi
+
   if command -v brew >/dev/null 2>&1; then
     local prefix
     prefix="$(brew --prefix ffmpeg 2>/dev/null || true)"
@@ -72,7 +80,7 @@ stage_ffmpeg_dylibs() {
     fi
   fi
 
-  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR or install ffmpeg via brew on the build machine." >&2
+  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR or ensure Homebrew+ffmpeg are available on the build machine." >&2
   exit 2
 }
 

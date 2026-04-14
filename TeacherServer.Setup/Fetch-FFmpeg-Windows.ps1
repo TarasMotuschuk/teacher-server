@@ -20,10 +20,11 @@ if (Test-Path $extractDir) {
 New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
 
 # Shared build includes the required DLLs (avcodec/avformat/avutil/swscale/...).
-# Source: https://www.gyan.dev/ffmpeg/builds/
+# Prefer a stable GitHub-hosted shared ZIP; override via env var if needed.
 $url = $env:CLASSCOMMANDER_FFMPEG_WINDOWS_SHARED_ZIP_URL
 if (-not $url) {
-    $url = "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.0-full_build-shared.zip"
+    # Source: https://github.com/BtbN/FFmpeg-Builds/releases
+    $url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip"
 }
 
 Write-Host "Downloading FFmpeg shared build from $url"
