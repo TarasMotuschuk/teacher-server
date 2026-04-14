@@ -216,18 +216,31 @@ make_ffmpeg_relocatable() {
   # Ensure the app can resolve @rpath to our bundled dylibs.
   install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$exe" 2>/dev/null || true
 
-  # Rewrite dylib install names and internal dependencies to use @rpath.
-  for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
-    [[ -f "$lib" ]] || continue
-    base="$(basename "$lib")"
-    install_name_tool -id "@rpath/$base" "$lib" 2>/dev/null || true
-
-    # Point dependencies that are also bundled to @rpath.
-    for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
-      dep_base="$(basename "$dep")"
-      if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
-        install_name_tool -change "$dep" "@rpath/$dep_base" "$lib" 2>/dev/null || true
+  # SIPSorcery calls avdevice_register_all(); any unresolved transitive dylib -> DllNotFoundException.
+  # Multiple passes: rewrite Homebrew absolute paths to @rpath; add @loader_path so sibling dylibs resolve.
+  local pass
+  for pass in 1 2 3 4 5; do
+    for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
+      [[ -f "$lib" ]] || continue
+      if [[ "$pass" == "1" ]]; then
+        install_name_tool -add_rpath "@loader_path/." "$lib" 2>/dev/null || true
+        install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$lib" 2>/dev/null || true
       fi
+
+      base="$(basename "$lib")"
+      install_name_tool -id "@rpath/$base" "$lib" 2>/dev/null || true
+
+      for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
+        case "$dep" in
+          @*|/System/*|/usr/lib/*)
+            continue
+            ;;
+        esac
+        dep_base="$(basename "$dep")"
+        if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
+          install_name_tool -change "$dep" "@rpath/$dep_base" "$lib" 2>/dev/null || true
+        fi
+      done
     done
   done
 }
