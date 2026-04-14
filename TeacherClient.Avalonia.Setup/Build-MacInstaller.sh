@@ -79,6 +79,14 @@ stage_ffmpeg_dylibs() {
     fi
     if [[ -n "$prefix" && -d "$prefix/lib" ]]; then
       echo "Staging FFmpeg dylibs from Homebrew prefix: $prefix"
+      # e.g. /opt/homebrew — deps like libx264 live under /opt/homebrew/opt/x264/..., not under .../opt/ffmpeg/...
+      local brew_prefix
+      brew_prefix="$("$brew_bin" --prefix 2>/dev/null || true)"
+      if [[ -z "$brew_prefix" ]]; then
+        if [[ -d "/opt/homebrew" ]]; then brew_prefix="/opt/homebrew"; fi
+        if [[ -z "$brew_prefix" && -d "/usr/local" ]]; then brew_prefix="/usr/local"; fi
+      fi
+
       # Copy the FFmpeg dylibs (plus swscale/swresample) that SIPSorcery loads.
       cp -f "$prefix/lib/libavcodec"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
       cp -f "$prefix/lib/libavdevice"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
@@ -98,7 +106,7 @@ stage_ffmpeg_dylibs() {
           [[ -f "$lib" ]] || continue
           for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
             case "$dep" in
-              /System/*|/usr/lib/*)
+              @*|/System/*|/usr/lib/*)
                 continue
                 ;;
             esac
@@ -109,7 +117,8 @@ stage_ffmpeg_dylibs() {
               continue
             fi
 
-            if [[ -f "$dep" && "$dep" == "$prefix"* && "$dep" == *.dylib ]]; then
+            # Copy any Homebrew dylib dependency (x264, ssl, etc.), not only libs under the ffmpeg keg.
+            if [[ -f "$dep" && "$dep" == *.dylib && -n "$brew_prefix" && "$dep" == "$brew_prefix"* ]]; then
               cp -f "$dep" "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
               changed=1
             fi
