@@ -193,8 +193,39 @@ make_ffmpeg_relocatable() {
   done
 }
 
+codesign_app_bundle() {
+  if ! command -v codesign >/dev/null 2>&1; then
+    echo "WARNING: codesign is not available; skipping app signing."
+    return
+  fi
+
+  echo "Codesigning app bundle (ad-hoc)..."
+
+  # Sign dylibs first (inner), then the main executable, then the .app wrapper.
+  if compgen -G "$FFMPEG_FRAMEWORKS_DIR/*.dylib" >/dev/null; then
+    for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
+      [[ -f "$lib" ]] || continue
+      codesign --force --sign - --timestamp=none "$lib" >/dev/null 2>&1 || true
+    done
+  fi
+
+  if [[ -f "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia" ]]; then
+    codesign --force --sign - --timestamp=none "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia" >/dev/null 2>&1 || true
+  fi
+
+  codesign --force --sign - --timestamp=none "$APP_DIR" >/dev/null 2>&1 || true
+
+  # Fail early in CI if the bundle is still invalid.
+  codesign --verify --deep --strict "$APP_DIR" >/dev/null 2>&1 || {
+    echo "ERROR: codesign verification failed for $APP_DIR" >&2
+    codesign --verify --deep --strict --verbose=4 "$APP_DIR" || true
+    exit 3
+  }
+}
+
 stage_ffmpeg_dylibs
 make_ffmpeg_relocatable
+codesign_app_bundle
 
 INFO_PLIST_TEMPLATE="$SETUP_ROOT/Resources/Info.plist.template"
 INFO_PLIST_PATH="$APP_DIR/Contents/Info.plist"
