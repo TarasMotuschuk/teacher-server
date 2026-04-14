@@ -314,8 +314,8 @@ public partial class MainWindow : Window, IDisposable
             for (var index = 0; index < targetAgents.Count; index++)
             {
                 var agent = targetAgents[index];
-                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} ({index + 1}/{targetAgents.Count})");
                 var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
                 await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureWidth: capW, captureHeight: capH);
             }
 
@@ -348,8 +348,8 @@ public partial class MainWindow : Window, IDisposable
             for (var index = 0; index < targetAgents.Count; index++)
             {
                 var agent = targetAgents[index];
-                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} ({index + 1}/{targetAgents.Count})");
                 var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
                 await _demoStreamer.StopAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
             }
 

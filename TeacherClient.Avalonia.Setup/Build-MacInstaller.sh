@@ -40,6 +40,60 @@ dotnet publish "$PROJECT_PATH" \
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 ditto --norsrc "$PUBLISH_DIR" "$APP_DIR/Contents/MacOS"
 
+FFMPEG_FRAMEWORKS_DIR="$APP_DIR/Contents/Frameworks/ffmpeg"
+mkdir -p "$FFMPEG_FRAMEWORKS_DIR"
+
+stage_ffmpeg_dylibs() {
+  if [[ -n "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR:-}" && -d "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}" ]]; then
+    echo "Staging FFmpeg dylibs from CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR=${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}"
+    ditto --norsrc "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}/" "$FFMPEG_FRAMEWORKS_DIR"
+    return
+  fi
+
+  if command -v brew >/dev/null 2>&1; then
+    local prefix
+    prefix="$(brew --prefix ffmpeg 2>/dev/null || true)"
+    if [[ -n "$prefix" && -d "$prefix/lib" ]]; then
+      echo "Staging FFmpeg dylibs from Homebrew prefix: $prefix"
+      # Copy FFmpeg libs + common codec deps that ffmpeg may link against.
+      # We copy a broad set of dylibs and make them relocatable below.
+      find "$prefix/lib" -maxdepth 1 -type f -name '*.dylib' -print0 | xargs -0 -I{} cp -f "{}" "$FFMPEG_FRAMEWORKS_DIR/" || true
+      return
+    fi
+  fi
+
+  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR or install ffmpeg via brew on the build machine." >&2
+  exit 2
+}
+
+make_ffmpeg_relocatable() {
+  local exe="$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
+  if [[ ! -f "$exe" ]]; then
+    return
+  fi
+
+  # Ensure the app can resolve @rpath to our bundled dylibs.
+  install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$exe" 2>/dev/null || true
+
+  # Rewrite dylib install names and internal dependencies to use @rpath.
+  for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
+    [[ -f "$lib" ]] || continue
+    base="$(basename "$lib")"
+    install_name_tool -id "@rpath/$base" "$lib" 2>/dev/null || true
+
+    # Point dependencies that are also bundled to @rpath.
+    for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
+      dep_base="$(basename "$dep")"
+      if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
+        install_name_tool -change "$dep" "@rpath/$dep_base" "$lib" 2>/dev/null || true
+      fi
+    done
+  done
+}
+
+stage_ffmpeg_dylibs
+make_ffmpeg_relocatable
+
 INFO_PLIST_TEMPLATE="$SETUP_ROOT/Resources/Info.plist.template"
 INFO_PLIST_PATH="$APP_DIR/Contents/Info.plist"
 

@@ -29,6 +29,19 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             return;
         }
 
+        // Quick connectivity check with a clear error message (helps diagnose wrong IP/port).
+        try
+        {
+            using var healthReq = new HttpRequestMessage(HttpMethod.Get, $"{studentBaseUrl}/health");
+            healthReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+            using var healthResp = await _httpClient.SendAsync(healthReq);
+            healthResp.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
+        }
+
         FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, null, null);
 
         var pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });

@@ -18,6 +18,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            FfmpegBootstrap.TryConfigureBundledLibraries();
             var settings = new ClientSettingsStore().Load();
             CrossPlatformText.SetLanguage(settings.Language);
             AppUiThemeApplier.Apply(settings.Theme);
