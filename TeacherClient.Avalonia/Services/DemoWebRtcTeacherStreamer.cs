@@ -43,14 +43,16 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
         }
 
-        EnsureFfmpegReady();
+        FfmpegBootstrap.TryConfigureBundledLibraries();
+        var bundledLibDir = FfmpegBootstrap.TryGetBundledFfmpegLibDirectory();
         try
         {
-            FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, null, null);
+            // SIPSorcery RegisterFFmpegBinaries only checks PATH or FFmpeg/bin/x64 unless libPath is set; it ignores ffmpeg.RootPath.
+            FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, bundledLibDir, null);
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException(BuildFfmpegErrorMessage(ex), ex);
+            throw new InvalidOperationException(BuildFfmpegErrorMessage(ex, bundledLibDir), ex);
         }
 
         var pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
@@ -281,47 +283,13 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         return "desktop";
     }
 
-    private static void EnsureFfmpegReady()
-    {
-        // Demo start can happen long after app startup; make sure RootPath is configured
-        // and not pointing at an empty bundle directory.
-        FfmpegBootstrap.TryConfigureBundledLibraries();
-
-        var root = ffmpeg.RootPath;
-        if (string.IsNullOrWhiteSpace(root))
-        {
-            return;
-        }
-
-        // If RootPath is set but empty/invalid, clear it so SIPSorcery falls back to system lookup.
-        try
-        {
-            if (!Directory.Exists(root))
-            {
-                ffmpeg.RootPath = string.Empty;
-                return;
-            }
-
-            var hasCodec = Directory.EnumerateFiles(root, "libavcodec*.dylib").Any()
-                           || Directory.EnumerateFiles(root, "avcodec*.dll").Any();
-            var hasUtil = Directory.EnumerateFiles(root, "libavutil*.dylib").Any()
-                          || Directory.EnumerateFiles(root, "avutil*.dll").Any();
-            if (!hasCodec || !hasUtil)
-            {
-                ffmpeg.RootPath = string.Empty;
-            }
-        }
-        catch
-        {
-        }
-    }
-
-    private static string BuildFfmpegErrorMessage(Exception ex)
+    private static string BuildFfmpegErrorMessage(Exception ex, string? bundledLibDirPassedToInit)
     {
         var baseDir = AppContext.BaseDirectory;
         var candidates = new[]
         {
             Path.Combine(baseDir, "ffmpeg"),
+            Path.Combine(baseDir, "ffmpeg", "bin"),
             Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg")),
         };
 
@@ -329,6 +297,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         var lines = new List<string>
         {
             $"FFmpeg initialization failed: {ex.Message}",
+            $"Bundled lib dir passed to FFmpegInit.Initialise = {bundledLibDirPassedToInit ?? "<null> (searches PATH / FFmpeg/bin/x64 only)"}",
             $"FFmpeg.AutoGen.ffmpeg.RootPath = {root}",
             $"BaseDirectory = {baseDir}",
             "Checked candidates:",
@@ -339,9 +308,13 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             try
             {
                 var exists = Directory.Exists(c);
-                var avcodec = exists ? Directory.EnumerateFiles(c, "libavcodec*.dylib").Any() : false;
-                var avutil = exists ? Directory.EnumerateFiles(c, "libavutil*.dylib").Any() : false;
-                lines.Add($"- {c} (exists={exists}, libavcodec={avcodec}, libavutil={avutil})");
+                var avcodec = exists
+                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avcodec*.dll" : "libavcodec*.dylib").Any()
+                    : false;
+                var avutil = exists
+                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avutil*.dll" : "libavutil*.dylib").Any()
+                    : false;
+                lines.Add($"- {c} (exists={exists}, avcodec={avcodec}, avutil={avutil})");
             }
             catch
             {

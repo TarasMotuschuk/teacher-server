@@ -4,7 +4,12 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public static class FfmpegBootstrap
 {
-    public static void TryConfigureBundledLibraries()
+    /// <summary>
+    /// Returns the directory that contains FFmpeg shared libraries (DLLs / dylibs) when bundled with the app,
+    /// or <c>null</c> if none are present. Pass this to <c>SIPSorceryMedia.FFmpeg.FFmpegInit.Initialise(..., libPath, ...)</c>;
+    /// that API only searches PATH or a fixed <c>FFmpeg/bin/x64</c> layout when <c>libPath</c> is null.
+    /// </summary>
+    public static string? TryGetBundledFfmpegLibDirectory()
     {
         try
         {
@@ -23,13 +28,23 @@ public static class FfmpegBootstrap
             {
                 if (Directory.Exists(dir) && LooksLikeFfmpegLibDirectory(dir))
                 {
-                    ffmpeg.RootPath = dir;
-                    return;
+                    return dir;
                 }
             }
         }
         catch
         {
+        }
+
+        return null;
+    }
+
+    public static void TryConfigureBundledLibraries()
+    {
+        var dir = TryGetBundledFfmpegLibDirectory();
+        if (dir is not null)
+        {
+            ffmpeg.RootPath = dir;
         }
     }
 

@@ -4,6 +4,7 @@ using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
 using SIPSorceryMedia.FFmpeg;
 using StudentAgent.Services;
+using TeacherClient.CrossPlatform.Services;
 using StudentAgent.UI;
 using StudentAgent.UI.Localization;
 using Teacher.Common.Contracts;
@@ -150,8 +151,10 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                 return;
             }
 
-            // Initialise FFmpeg once. Requires FFmpeg shared libraries in PATH on Windows.
-            FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, null, null);
+            // Initialise FFmpeg once. Pass bundled lib directory — FFmpegInit ignores ffmpeg.RootPath unless libPath is set.
+            FfmpegBootstrap.TryConfigureBundledLibraries();
+            var bundledLibDir = FfmpegBootstrap.TryGetBundledFfmpegLibDirectory();
+            FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, bundledLibDir, null);
 
             _demoVideoEndPoint = new FFmpegVideoEndPoint();
             _demoVideoEndPoint.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8 || format.Codec == VideoCodecsEnum.H264);
