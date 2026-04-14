@@ -38,6 +38,9 @@ public partial class MainWindow : Window, IDisposable
     private readonly TeacherClientUpdateService _clientUpdateService =
         new(GetClientUpdateRootDirectory(), typeof(MainWindow).Assembly.GetName().Version?.ToString() ?? "0.0.0");
 
+    private readonly DemoWebRtcTeacherStreamer _demoStreamer = new();
+    private string? _demoSessionId;
+
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -153,6 +156,7 @@ public partial class MainWindow : Window, IDisposable
         _disposed = true;
         _updatePreparationService.Dispose();
         _clientUpdateService.Dispose();
+        _demoStreamer.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -233,6 +237,100 @@ public partial class MainWindow : Window, IDisposable
     private async void RestoreDesktopIconLayoutMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await RestoreDesktopIconLayoutAsync();
+    }
+
+    private async void StartDemonstrationSelectedMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await StartDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async void StartDemonstrationAllMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .Distinct()
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            return;
+        }
+
+        await StartDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async void StopDemonstrationSelectedMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await StopDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async void StopDemonstrationAllMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .Distinct()
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            return;
+        }
+
+        await StopDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async Task StartDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        _demoSessionId ??= Guid.NewGuid().ToString("N");
+        var sessionId = _demoSessionId;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} ({index + 1}/{targetAgents.Count})");
+                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
+            }
+        }, CrossPlatformText.DemonstrationStartFailed);
+    }
+
+    private async Task StopDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var sessionId = _demoSessionId ?? Guid.NewGuid().ToString("N");
+        _demoSessionId = null;
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} ({index + 1}/{targetAgents.Count})");
+                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                await _demoStreamer.StopAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
+            }
+        }, CrossPlatformText.DemonstrationStopFailed);
     }
 
     private async void RestoreDesktopIconsSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -4157,6 +4255,11 @@ public partial class MainWindow : Window, IDisposable
         DesktopWallpaperSelectedMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
+        DemonstrationMenuItem.Header = CrossPlatformText.DemonstrationMenu;
+        StartDemonstrationSelectedMenuItem.Header = CrossPlatformText.StartDemonstrationOnSelectedStudents;
+        StartDemonstrationAllMenuItem.Header = CrossPlatformText.StartDemonstrationOnAllOnlineStudents;
+        StopDemonstrationSelectedMenuItem.Header = CrossPlatformText.StopDemonstrationOnSelectedStudents;
+        StopDemonstrationAllMenuItem.Header = CrossPlatformText.StopDemonstrationOnAllOnlineStudents;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
         RestoreDesktopIconsAllMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnAllOnlineStudents;
         ApplyCurrentDesktopIconsSelectedMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToSelectedStudents;

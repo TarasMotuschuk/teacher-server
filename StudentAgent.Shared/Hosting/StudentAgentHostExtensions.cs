@@ -14,6 +14,7 @@ public static class StudentAgentHostExtensions
         services.Configure<AgentOptions>(configuration.GetSection(AgentOptions.SectionName));
         services.AddSingleton<AgentSettingsStore>();
         services.AddSingleton<AgentLogService>();
+        services.AddSingleton<DemoSessionStore>();
         services.AddSingleton<ProcessService>();
         services.AddSingleton<FileService>();
         services.AddSingleton<ServerInfoService>();
@@ -65,6 +66,73 @@ public static class StudentAgentHostExtensions
         });
 
         app.MapGet("/api/info", (ServerInfoService service) => Results.Ok(service.GetInfo()));
+
+        app.MapGet("/api/demo/status", ([FromServices] DemoSessionStore store) => Results.Ok(store.GetStatus()));
+
+        // WebRTC signaling endpoints (teacher -> student). Media transport is peer-to-peer; these endpoints exchange SDP/ICE only.
+        app.MapPost("/api/demo/webrtc/start", ([FromBody] DemoSessionStartRequest request, [FromServices] DemoSessionStore store) =>
+        {
+            try
+            {
+                store.StartOrReplace(request.SessionId, request.FullscreenLock, request.SdpType, request.Sdp);
+                return Results.Accepted();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/demo/webrtc/offer", (string sessionId, [FromServices] DemoSessionStore store) =>
+        {
+            var offer = store.TryConsumeOffer(sessionId);
+            return offer is null
+                ? Results.NoContent()
+                : Results.Ok(new DemoSessionStartRequest(sessionId, offer.Value.SdpType, offer.Value.Sdp, IncludeAudio: false, AudioMutedByDefault: true, FullscreenLock: true));
+        });
+
+        app.MapPost("/api/demo/webrtc/answer", ([FromBody] DemoSessionStartResponse request, string sessionId, [FromServices] DemoSessionStore store) =>
+        {
+            store.SetAnswer(sessionId, request.SdpType, request.Sdp);
+            return Results.NoContent();
+        });
+
+        app.MapGet("/api/demo/webrtc/answer", (string sessionId, [FromServices] DemoSessionStore store) =>
+        {
+            var answer = store.TryConsumeAnswer(sessionId);
+            return answer is null
+                ? Results.NoContent()
+                : Results.Ok(new DemoSessionStartResponse(answer.Value.SdpType, answer.Value.Sdp));
+        });
+
+        app.MapPost("/api/demo/webrtc/stop", ([FromBody] DemoSessionStopRequest request, [FromServices] DemoSessionStore store) =>
+        {
+            store.Stop(request.SessionId);
+            return Results.NoContent();
+        });
+
+        app.MapPost("/api/demo/webrtc/ice/teacher", ([FromBody] WebRtcIceCandidateDto request, [FromServices] DemoSessionStore store) =>
+        {
+            store.EnqueueTeacherIce(request);
+            return Results.NoContent();
+        });
+
+        app.MapGet("/api/demo/webrtc/ice/teacher", (string sessionId, [FromServices] DemoSessionStore store) =>
+        {
+            return Results.Ok(store.DrainTeacherIce(sessionId));
+        });
+
+        // Student -> teacher ICE is pulled by the teacher.
+        app.MapPost("/api/demo/webrtc/ice/student", ([FromBody] WebRtcIceCandidateDto request, [FromServices] DemoSessionStore store) =>
+        {
+            store.EnqueueStudentIce(request);
+            return Results.NoContent();
+        });
+
+        app.MapGet("/api/demo/webrtc/ice/student", (string sessionId, [FromServices] DemoSessionStore store) =>
+        {
+            return Results.Ok(store.DrainStudentIce(sessionId));
+        });
         app.MapGet("/api/processes", () => Results.Ok(ProcessService.GetProcesses()));
         app.MapGet("/api/processes/{processId:int}", (int processId) =>
         {

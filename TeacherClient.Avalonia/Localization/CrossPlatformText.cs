@@ -88,6 +88,20 @@ internal static partial class CrossPlatformText
 
     public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
 
+    public static string DemonstrationMenu => IsUk ? "Демонстрація" : "Demonstration";
+
+    public static string StartDemonstrationOnSelectedStudents => IsUk ? "Почати демонстрацію на вибраних ПК" : "Start demonstration on selected PCs";
+
+    public static string StartDemonstrationOnAllOnlineStudents => IsUk ? "Почати демонстрацію на всіх онлайн ПК" : "Start demonstration on all online PCs";
+
+    public static string StopDemonstrationOnSelectedStudents => IsUk ? "Зупинити демонстрацію на вибраних ПК" : "Stop demonstration on selected PCs";
+
+    public static string StopDemonstrationOnAllOnlineStudents => IsUk ? "Зупинити демонстрацію на всіх онлайн ПК" : "Stop demonstration on all online PCs";
+
+    public static string DemonstrationStartFailed => IsUk ? "Не вдалося почати демонстрацію" : "Failed to start demonstration";
+
+    public static string DemonstrationStopFailed => IsUk ? "Не вдалося зупинити демонстрацію" : "Failed to stop demonstration";
+
     public static string SelectedStudentsMenu => IsUk ? "Вибрані ПК" : "Selected PCs";
 
     public static string AllOnlineStudentsMenu => IsUk ? "Всі онлайн ПК" : "All Online PCs";

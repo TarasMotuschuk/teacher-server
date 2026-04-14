@@ -216,6 +216,13 @@
           <MenuItem x:Name="ApplyCurrentDesktopIconsSelectedMenuItem" Header="Send current PC layout to selected PCs" Click="ApplyCurrentDesktopIconsSelectedMenuItem_OnClick" />
           <MenuItem x:Name="ApplyCurrentDesktopIconsAllMenuItem" Header="Send current PC layout to all online PCs" Click="ApplyCurrentDesktopIconsAllMenuItem_OnClick" />
         </MenuItem>
+        <MenuItem x:Name="DemonstrationMenuItem" Header="_Demonstration">
+          <MenuItem x:Name="StartDemonstrationSelectedMenuItem" Header="Start on selected PCs" Click="StartDemonstrationSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="StartDemonstrationAllMenuItem" Header="Start on all online PCs" Click="StartDemonstrationAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="StopDemonstrationSelectedMenuItem" Header="Stop on selected PCs" Click="StopDemonstrationSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="StopDemonstrationAllMenuItem" Header="Stop on all online PCs" Click="StopDemonstrationAllMenuItem_OnClick" />
+        </MenuItem>
         <MenuItem x:Name="PowerCommandsMenuItem" Header="_Power">
           <MenuItem x:Name="SelectedPowerMenuItem" Header="_Selected PCs">
             <MenuItem x:Name="ShutdownSelectedMenuItem" Header="Shut Down" Click="ShutdownSelectedMenuItem_OnClick" />

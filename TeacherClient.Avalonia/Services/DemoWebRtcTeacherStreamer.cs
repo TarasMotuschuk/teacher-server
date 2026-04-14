@@ -1,0 +1,207 @@
+using System.Net.Http.Json;
+using SIPSorcery.Media;
+using SIPSorcery.Net;
+using SIPSorceryMedia.FFmpeg;
+using Teacher.Common.Contracts;
+
+namespace TeacherClient.CrossPlatform.Services;
+
+public sealed class DemoWebRtcTeacherStreamer : IDisposable
+{
+    private readonly HttpClient _httpClient = new();
+    private readonly Dictionary<string, RTCPeerConnection> _pcs = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, VideoTestPatternSource> _videoSources = new(StringComparer.Ordinal);
+
+    public async Task StartAsync(string studentBaseUrl, string sharedSecret, string sessionId)
+    {
+        if (_pcs.ContainsKey(studentBaseUrl))
+        {
+            return;
+        }
+
+        FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, null, null);
+
+        var pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
+        _pcs[studentBaseUrl] = pc;
+
+        var testPattern = new VideoTestPatternSource(new FFmpegVideoEncoder());
+        testPattern.SetFrameRate(15);
+        _videoSources[studentBaseUrl] = testPattern;
+
+        var videoTrack = new MediaStreamTrack(testPattern.GetVideoSourceFormats(), MediaStreamStatusEnum.SendOnly);
+        pc.addTrack(videoTrack);
+        testPattern.OnVideoSourceEncodedSample += pc.SendVideo;
+        pc.OnVideoFormatsNegotiated += (formats) => testPattern.SetVideoSourceFormat(formats.First());
+
+        pc.onicecandidate += (cand) =>
+        {
+            if (cand is null)
+            {
+                return;
+            }
+
+            var dto = new WebRtcIceCandidateDto(sessionId, cand.candidate, cand.sdpMid, cand.sdpMLineIndex);
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"{studentBaseUrl}/api/demo/webrtc/ice/teacher")
+            {
+                Content = JsonContent.Create(dto),
+            };
+            req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+            _ = _httpClient.SendAsync(req);
+        };
+
+        pc.onconnectionstatechange += async (state) =>
+        {
+            if (state == RTCPeerConnectionState.connected)
+            {
+                await testPattern.StartVideo();
+            }
+            else if (state == RTCPeerConnectionState.closed || state == RTCPeerConnectionState.failed)
+            {
+                await testPattern.CloseVideo();
+            }
+        };
+
+        var offerInit = pc.createOffer();
+        await pc.setLocalDescription(offerInit);
+
+        var startReq = new DemoSessionStartRequest(
+            sessionId,
+            pc.localDescription.type.ToString(),
+            pc.localDescription.sdp.ToString(),
+            IncludeAudio: false,
+            AudioMutedByDefault: true,
+            FullscreenLock: true);
+
+        using (var req = new HttpRequestMessage(HttpMethod.Post, $"{studentBaseUrl}/api/demo/webrtc/start") { Content = JsonContent.Create(startReq) })
+        {
+            req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+            var resp = await _httpClient.SendAsync(req);
+            resp.EnsureSuccessStatusCode();
+        }
+
+        // Poll answer until available.
+        for (var i = 0; i < 80; i++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, $"{studentBaseUrl}/api/demo/webrtc/answer?sessionId={Uri.EscapeDataString(sessionId)}");
+            req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+            using var resp = await _httpClient.SendAsync(req);
+            if (resp.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                await Task.Delay(125);
+                continue;
+            }
+
+            resp.EnsureSuccessStatusCode();
+            var answer = await resp.Content.ReadFromJsonAsync<DemoSessionStartResponse>();
+            if (answer is null || string.IsNullOrWhiteSpace(answer.Sdp))
+            {
+                break;
+            }
+
+            var sdp = SDP.ParseSDPDescription(answer.Sdp);
+            var answerType = Enum.TryParse<SIPSorcery.SIP.App.SdpType>(answer.SdpType, ignoreCase: true, out var parsedAnswerType)
+                ? parsedAnswerType
+                : SIPSorcery.SIP.App.SdpType.answer;
+            var setRes = pc.SetRemoteDescription(answerType, sdp);
+            if (setRes != SetDescriptionResultEnum.OK)
+            {
+                pc.Close($"set remote failed {setRes}");
+            }
+            break;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            while (_pcs.TryGetValue(studentBaseUrl, out var current) && ReferenceEquals(current, pc))
+            {
+                try
+                {
+                    using var req = new HttpRequestMessage(HttpMethod.Get, $"{studentBaseUrl}/api/demo/webrtc/ice/student?sessionId={Uri.EscapeDataString(sessionId)}");
+                    req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+                    using var resp = await _httpClient.SendAsync(req);
+                    resp.EnsureSuccessStatusCode();
+                    var candidates = await resp.Content.ReadFromJsonAsync<List<WebRtcIceCandidateDto>>();
+                    if (candidates is not null)
+                    {
+                        foreach (var c in candidates)
+                        {
+                            if (c.SdpMLineIndex is null)
+                            {
+                                continue;
+                            }
+
+                            pc.addIceCandidate(new RTCIceCandidateInit { candidate = c.Candidate, sdpMid = c.SdpMid, sdpMLineIndex = (ushort)c.SdpMLineIndex.Value });
+                        }
+                    }
+                }
+                catch
+                {
+                }
+
+                await Task.Delay(250);
+            }
+        });
+    }
+
+    public async Task StopAsync(string studentBaseUrl, string sharedSecret, string sessionId)
+    {
+        if (_pcs.Remove(studentBaseUrl, out var pc))
+        {
+            try
+            {
+                pc.Close("teacher stop");
+            }
+            catch
+            {
+            }
+        }
+
+        if (_videoSources.Remove(studentBaseUrl, out var video))
+        {
+            try
+            {
+                await video.CloseVideo();
+                video.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+        var stopReq = new DemoSessionStopRequest(sessionId);
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{studentBaseUrl}/api/demo/webrtc/stop") { Content = JsonContent.Create(stopReq) };
+        req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
+        await _httpClient.SendAsync(req);
+    }
+
+    public void Dispose()
+    {
+        foreach (var pc in _pcs.Values)
+        {
+            try
+            {
+                pc.Close("dispose");
+            }
+            catch
+            {
+            }
+        }
+
+        foreach (var v in _videoSources.Values)
+        {
+            try
+            {
+                v.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+        _pcs.Clear();
+        _videoSources.Clear();
+        _httpClient.Dispose();
+    }
+}
+
+
