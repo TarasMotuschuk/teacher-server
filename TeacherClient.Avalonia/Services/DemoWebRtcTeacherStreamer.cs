@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Net.Http.Json;
+using FFmpeg.AutoGen;
 using SIPSorcery.Media;
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
@@ -42,7 +43,15 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
         }
 
-        FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, null, null);
+        EnsureFfmpegReady();
+        try
+        {
+            FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, null, null);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(BuildFfmpegErrorMessage(ex), ex);
+        }
 
         var pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
         _pcs[studentBaseUrl] = pc;
@@ -270,6 +279,77 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         }
 
         return "desktop";
+    }
+
+    private static void EnsureFfmpegReady()
+    {
+        // Demo start can happen long after app startup; make sure RootPath is configured
+        // and not pointing at an empty bundle directory.
+        FfmpegBootstrap.TryConfigureBundledLibraries();
+
+        var root = ffmpeg.RootPath;
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
+        // If RootPath is set but empty/invalid, clear it so SIPSorcery falls back to system lookup.
+        try
+        {
+            if (!Directory.Exists(root))
+            {
+                ffmpeg.RootPath = string.Empty;
+                return;
+            }
+
+            var hasCodec = Directory.EnumerateFiles(root, "libavcodec*.dylib").Any()
+                           || Directory.EnumerateFiles(root, "avcodec*.dll").Any();
+            var hasUtil = Directory.EnumerateFiles(root, "libavutil*.dylib").Any()
+                          || Directory.EnumerateFiles(root, "avutil*.dll").Any();
+            if (!hasCodec || !hasUtil)
+            {
+                ffmpeg.RootPath = string.Empty;
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static string BuildFfmpegErrorMessage(Exception ex)
+    {
+        var baseDir = AppContext.BaseDirectory;
+        var candidates = new[]
+        {
+            Path.Combine(baseDir, "ffmpeg"),
+            Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg")),
+        };
+
+        var root = string.IsNullOrWhiteSpace(ffmpeg.RootPath) ? "<empty>" : ffmpeg.RootPath;
+        var lines = new List<string>
+        {
+            $"FFmpeg initialization failed: {ex.Message}",
+            $"FFmpeg.AutoGen.ffmpeg.RootPath = {root}",
+            $"BaseDirectory = {baseDir}",
+            "Checked candidates:",
+        };
+
+        foreach (var c in candidates)
+        {
+            try
+            {
+                var exists = Directory.Exists(c);
+                var avcodec = exists ? Directory.EnumerateFiles(c, "libavcodec*.dylib").Any() : false;
+                var avutil = exists ? Directory.EnumerateFiles(c, "libavutil*.dylib").Any() : false;
+                lines.Add($"- {c} (exists={exists}, libavcodec={avcodec}, libavutil={avutil})");
+            }
+            catch
+            {
+                lines.Add($"- {c} (unreadable)");
+            }
+        }
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     public void Dispose()

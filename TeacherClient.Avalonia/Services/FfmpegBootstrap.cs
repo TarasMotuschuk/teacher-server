@@ -20,7 +20,7 @@ public static class FfmpegBootstrap
 
             foreach (var dir in candidates)
             {
-                if (Directory.Exists(dir))
+                if (Directory.Exists(dir) && LooksLikeFfmpegLibDirectory(dir))
                 {
                     ffmpeg.RootPath = dir;
                     return;
@@ -29,6 +29,20 @@ public static class FfmpegBootstrap
         }
         catch
         {
+        }
+    }
+
+    private static bool LooksLikeFfmpegLibDirectory(string dir)
+    {
+        try
+        {
+            // Minimal check: the two core libs SIPSorcery will load.
+            return Directory.EnumerateFiles(dir, "libavcodec*.dylib").Any()
+                   && Directory.EnumerateFiles(dir, "libavutil*.dylib").Any();
+        }
+        catch
+        {
+            return false;
         }
     }
 }
