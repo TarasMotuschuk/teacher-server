@@ -110,19 +110,23 @@ PY
   curl -fL "$asset_url" -o "$archive_path"
   unzip -q -o "$archive_path" -d "$extract_dir"
 
-  local found
-  found=0
-  while IFS= read -r -d '' f; do
-    cp -f "$f" "$FFMPEG_FRAMEWORKS_DIR/"
-    found=1
-  done < <(find "$extract_dir" -type f -name '*.dylib' -print0 2>/dev/null || true)
-
-  if [[ "$found" == "1" ]]; then
-    echo "Staged FFmpeg dylibs from downloaded bundle."
-    return 0
+  # Do not flatten: dylibs use @loader_path/../lib/...; keep the directory that contains libavcodec.
+  local first_codec
+  first_codec="$(find "$extract_dir" -name 'libavcodec*.dylib' 2>/dev/null | head -1)"
+  if [[ -z "$first_codec" ]]; then
+    echo "ERROR: Prebuilt FFmpeg archive contains no libavcodec*.dylib." >&2
+    return 1
   fi
 
-  return 1
+  local lib_root
+  lib_root="$(dirname "$first_codec")"
+  echo "Staging FFmpeg lib tree (no flatten): $lib_root -> Contents/Frameworks/ffmpeg/lib"
+  rm -rf "$FFMPEG_FRAMEWORKS_DIR/lib"
+  mkdir -p "$FFMPEG_FRAMEWORKS_DIR"
+  ditto --norsrc "$lib_root" "$FFMPEG_FRAMEWORKS_DIR/lib"
+
+  echo "Staged FFmpeg dylibs from downloaded bundle."
+  return 0
 }
 
 stage_ffmpeg_dylibs() {
@@ -237,19 +241,23 @@ make_ffmpeg_relocatable() {
     return
   fi
 
-  # Ensure the app can resolve @rpath to our bundled dylibs.
   install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$exe" 2>/dev/null || true
+  install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg/lib" "$exe" 2>/dev/null || true
 
-  # SIPSorcery calls avdevice_register_all(); any unresolved transitive dylib -> DllNotFoundException.
-  # Homebrew builds often use @rpath/... or @loader_path/../lib/... — we flatten all dylibs into one folder,
-  # so every bundled dependency must be rewritten to @loader_path/<basename> (same directory as this dylib).
+  # SIPSorcery calls avdevice_register_all(); unresolved dylibs -> DllNotFoundException.
+  # Process every dylib under Frameworks/ffmpeg (flat Homebrew copy or prebuilt lib/ tree).
   local pass
   for pass in 1 2 3 4 5 6; do
-    for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
+    local lib
+    while IFS= read -r -d '' lib; do
       [[ -f "$lib" ]] || continue
+      local lib_dir
+      lib_dir="$(dirname "$lib")"
+
       if [[ "$pass" == "1" ]]; then
         install_name_tool -add_rpath "@loader_path/." "$lib" 2>/dev/null || true
         install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$lib" 2>/dev/null || true
+        install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg/lib" "$lib" 2>/dev/null || true
       fi
 
       local base
@@ -267,17 +275,28 @@ make_ffmpeg_relocatable() {
 
         local dep_base
         dep_base="$(basename "$dep")"
-        if [[ ! -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
-          continue
-        fi
 
         if [[ "$dep" == "@loader_path/$dep_base" ]]; then
           continue
         fi
 
+        local resolved
+        resolved=""
+        if [[ -f "$lib_dir/$dep_base" ]]; then
+          resolved="$lib_dir/$dep_base"
+        elif [[ -f "$FFMPEG_FRAMEWORKS_DIR/lib/$dep_base" ]]; then
+          resolved="$FFMPEG_FRAMEWORKS_DIR/lib/$dep_base"
+        elif [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
+          resolved="$FFMPEG_FRAMEWORKS_DIR/$dep_base"
+        fi
+
+        if [[ -z "$resolved" ]]; then
+          continue
+        fi
+
         install_name_tool -change "$dep" "@loader_path/$dep_base" "$lib" 2>/dev/null || true
       done < <(otool -L "$lib" | tail -n +2 | awk '{print $1}')
-    done
+    done < <(find "$FFMPEG_FRAMEWORKS_DIR" -type f -name '*.dylib' -print0 2>/dev/null || true)
   done
 }
 

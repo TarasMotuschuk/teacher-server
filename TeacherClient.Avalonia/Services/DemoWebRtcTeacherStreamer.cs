@@ -288,8 +288,10 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         var baseDir = AppContext.BaseDirectory;
         var candidates = new[]
         {
+            Path.Combine(baseDir, "ffmpeg", "lib"),
             Path.Combine(baseDir, "ffmpeg"),
             Path.Combine(baseDir, "ffmpeg", "bin"),
+            Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg", "lib")),
             Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg")),
         };
 
@@ -308,11 +310,12 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             try
             {
                 var exists = Directory.Exists(c);
+                var search = OperatingSystem.IsMacOS() ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
                 var avcodec = exists
-                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avcodec*.dll" : "libavcodec*.dylib").Any()
+                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avcodec*.dll" : "libavcodec*.dylib", search).Any()
                     : false;
                 var avutil = exists
-                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avutil*.dll" : "libavutil*.dylib").Any()
+                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avutil*.dll" : "libavutil*.dylib", search).Any()
                     : false;
                 lines.Add($"- {c} (exists={exists}, avcodec={avcodec}, avutil={avutil})");
             }

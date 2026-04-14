@@ -9,26 +9,54 @@ public static class FfmpegBootstrap
     /// or <c>null</c> if none are present. Pass this to <c>SIPSorceryMedia.FFmpeg.FFmpegInit.Initialise(..., libPath, ...)</c>;
     /// that API only searches PATH or a fixed <c>FFmpeg/bin/x64</c> layout when <c>libPath</c> is null.
     /// </summary>
+    /// <returns>Directory containing native FFmpeg libraries, or <c>null</c>.</returns>
     public static string? TryGetBundledFfmpegLibDirectory()
     {
         try
         {
-            // Windows publishes next to the exe. macOS app bundles publish into Contents/MacOS.
             var baseDir = AppContext.BaseDirectory;
-
-            var candidates = new[]
+            var roots = new[]
             {
+                Path.Combine(baseDir, "ffmpeg", "lib"),
                 Path.Combine(baseDir, "ffmpeg"),
                 Path.Combine(baseDir, "ffmpeg", "bin"),
-                // macOS: put dylibs into Contents/Frameworks/ffmpeg
+                Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg", "lib")),
                 Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg")),
             };
 
-            foreach (var dir in candidates)
+            foreach (var root in roots)
             {
-                if (Directory.Exists(dir) && LooksLikeFfmpegLibDirectory(dir))
+                if (!Directory.Exists(root))
                 {
-                    return dir;
+                    continue;
+                }
+
+                if (OperatingSystem.IsWindows())
+                {
+                    if (LooksLikeFfmpegLibDirectoryWindows(root))
+                    {
+                        return root;
+                    }
+
+                    continue;
+                }
+
+                if (OperatingSystem.IsMacOS())
+                {
+                    var dir = FindMacOsFfmpegLibDirectory(root);
+                    if (dir is not null)
+                    {
+                        return dir;
+                    }
+
+                    continue;
+                }
+
+                // Linux / other Unix (.so next to the app)
+                if (Directory.EnumerateFiles(root, "libavcodec.so*", SearchOption.TopDirectoryOnly).Any()
+                    && Directory.EnumerateFiles(root, "libavutil.so*", SearchOption.TopDirectoryOnly).Any())
+                {
+                    return root;
                 }
             }
         }
@@ -48,23 +76,28 @@ public static class FfmpegBootstrap
         }
     }
 
-    private static bool LooksLikeFfmpegLibDirectory(string dir)
+    private static string? FindMacOsFfmpegLibDirectory(string root)
     {
-        try
+        foreach (var codecPath in Directory.EnumerateFiles(root, "libavcodec*.dylib", SearchOption.AllDirectories))
         {
-            // Minimal check: the two core libs SIPSorcery will load.
-            if (OperatingSystem.IsWindows())
+            var dir = Path.GetDirectoryName(codecPath);
+            if (dir is null)
             {
-                return Directory.EnumerateFiles(dir, "avcodec*.dll").Any()
-                       && Directory.EnumerateFiles(dir, "avutil*.dll").Any();
+                continue;
             }
 
-            return Directory.EnumerateFiles(dir, "libavcodec*.dylib").Any()
-                   && Directory.EnumerateFiles(dir, "libavutil*.dylib").Any();
+            if (Directory.GetFiles(dir, "libavutil*.dylib").Length > 0)
+            {
+                return dir;
+            }
         }
-        catch
-        {
-            return false;
-        }
+
+        return null;
+    }
+
+    private static bool LooksLikeFfmpegLibDirectoryWindows(string dir)
+    {
+        return Directory.EnumerateFiles(dir, "avcodec*.dll").Any()
+               && Directory.EnumerateFiles(dir, "avutil*.dll").Any();
     }
 }
