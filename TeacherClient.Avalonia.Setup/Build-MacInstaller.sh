@@ -43,6 +43,88 @@ ditto --norsrc "$PUBLISH_DIR" "$APP_DIR/Contents/MacOS"
 FFMPEG_FRAMEWORKS_DIR="$APP_DIR/Contents/Frameworks/ffmpeg"
 mkdir -p "$FFMPEG_FRAMEWORKS_DIR"
 
+# Download ColorsWind/FFmpeg-macOS (or similar) release asset; no Homebrew.
+try_stage_ffmpeg_from_prebuilt_zip() {
+  if ! command -v curl >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+    return 1
+  fi
+
+  local api_url asset_url dl_dir archive_path extract_dir json_path http_code
+  api_url="https://api.github.com/repos/ColorsWind/FFmpeg-macOS/releases/latest"
+  dl_dir="$SETUP_ROOT/artifacts/ffmpeg-macos"
+  archive_path="$dl_dir/ffmpeg-macos.zip"
+  extract_dir="$dl_dir/extract"
+  json_path="$dl_dir/release.json"
+  mkdir -p "$dl_dir"
+
+  local curl_headers
+  curl_headers=(
+    -H "Accept: application/vnd.github+json"
+    -H "User-Agent: ClassCommander-CI"
+  )
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    curl_headers+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  fi
+
+  http_code="$(curl -sS "${curl_headers[@]}" -o "$json_path" -w "%{http_code}" "$api_url" || true)"
+  if [[ "$http_code" != "200" || ! -s "$json_path" ]]; then
+    return 1
+  fi
+
+  asset_url="$(python3 - "$json_path" <<'PY'
+import json, sys
+path=sys.argv[1]
+with open(path, "r", encoding="utf-8") as f:
+    data=json.load(f)
+assets=data.get("assets") or []
+def score(name: str) -> int:
+    n=name.lower()
+    s=0
+    if "universal" in n: s += 10
+    if "shared" in n or "dylib" in n: s += 10
+    if n.endswith(".zip"): s += 5
+    return s
+best=None
+best_score=-1
+for a in assets:
+    name=a.get("name","")
+    url=a.get("browser_download_url","")
+    if not url:
+        continue
+    sc=score(name)
+    if sc>best_score:
+        best_score=sc
+        best=url
+if best:
+    print(best)
+PY
+)" || true
+
+  if [[ -z "$asset_url" ]]; then
+    return 1
+  fi
+
+  rm -rf "$extract_dir"
+  mkdir -p "$extract_dir"
+  echo "Downloading FFmpeg dylibs: $asset_url"
+  curl -fL "$asset_url" -o "$archive_path"
+  unzip -q -o "$archive_path" -d "$extract_dir"
+
+  local found
+  found=0
+  while IFS= read -r -d '' f; do
+    cp -f "$f" "$FFMPEG_FRAMEWORKS_DIR/"
+    found=1
+  done < <(find "$extract_dir" -type f -name '*.dylib' -print0 2>/dev/null || true)
+
+  if [[ "$found" == "1" ]]; then
+    echo "Staged FFmpeg dylibs from downloaded bundle."
+    return 0
+  fi
+
+  return 1
+}
+
 stage_ffmpeg_dylibs() {
   if [[ -n "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR:-}" && -d "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}" ]]; then
     echo "Staging FFmpeg dylibs from CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR=${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}"
@@ -50,7 +132,17 @@ stage_ffmpeg_dylibs() {
     return
   fi
 
-  # GitHub runners normally include Homebrew, but PATH can vary.
+  # GitHub Actions: never use Homebrew (unreliable/slow; not required). Prebuilt ZIP + install_name_tool only.
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "GITHUB_ACTIONS=true: skipping Homebrew; staging FFmpeg from prebuilt bundle only."
+    if try_stage_ffmpeg_from_prebuilt_zip; then
+      return
+    fi
+    echo "ERROR: FFmpeg dylibs could not be downloaded/extracted on CI. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR or ensure GITHUB_TOKEN can reach api.github.com." >&2
+    exit 2
+  fi
+
+  # Local builds: optional Homebrew (PATH can vary).
   if [[ -x "/opt/homebrew/bin/brew" ]]; then
     export PATH="/opt/homebrew/bin:$PATH"
   fi
@@ -130,80 +222,12 @@ stage_ffmpeg_dylibs() {
     fi
   fi
 
-  # Fallback: download a prebuilt shared FFmpeg dylib bundle (no Homebrew required).
-  if command -v curl >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
-    echo "Attempting to download prebuilt FFmpeg dylibs (no Homebrew)..."
-    local api_url asset_url dl_dir archive_path extract_dir json_path http_code
-    api_url="https://api.github.com/repos/ColorsWind/FFmpeg-macOS/releases/latest"
-    dl_dir="$SETUP_ROOT/artifacts/ffmpeg-macos"
-    archive_path="$dl_dir/ffmpeg-macos.zip"
-    extract_dir="$dl_dir/extract"
-    json_path="$dl_dir/release.json"
-    mkdir -p "$dl_dir"
-
-    local curl_headers
-    curl_headers=(
-      -H "Accept: application/vnd.github+json"
-      -H "User-Agent: ClassCommander-CI"
-    )
-    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-      curl_headers+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
-    fi
-
-    http_code="$(curl -sS "${curl_headers[@]}" -o "$json_path" -w "%{http_code}" "$api_url" || true)"
-    if [[ "$http_code" == "200" && -s "$json_path" ]]; then
-      asset_url="$(python3 - "$json_path" <<'PY'
-import json, sys
-path=sys.argv[1]
-with open(path, "r", encoding="utf-8") as f:
-    data=json.load(f)
-assets=data.get("assets") or []
-def score(name: str) -> int:
-    n=name.lower()
-    s=0
-    if "universal" in n: s += 10
-    if "shared" in n or "dylib" in n: s += 10
-    if n.endswith(".zip"): s += 5
-    return s
-best=None
-best_score=-1
-for a in assets:
-    name=a.get("name","")
-    url=a.get("browser_download_url","")
-    if not url:
-        continue
-    sc=score(name)
-    if sc>best_score:
-        best_score=sc
-        best=url
-if best:
-    print(best)
-PY
-)" || true
-    fi
-
-    if [[ -n "$asset_url" ]]; then
-      rm -rf "$extract_dir"
-      mkdir -p "$extract_dir"
-      echo "Downloading: $asset_url"
-      curl -fL "$asset_url" -o "$archive_path"
-      unzip -q -o "$archive_path" -d "$extract_dir"
-
-      local found
-      found=0
-      while IFS= read -r -d '' f; do
-        cp -f "$f" "$FFMPEG_FRAMEWORKS_DIR/"
-        found=1
-      done < <(find "$extract_dir" -type f -name '*.dylib' -print0 2>/dev/null || true)
-
-      if [[ "$found" == "1" ]]; then
-        echo "Staged FFmpeg dylibs from downloaded bundle."
-        return
-      fi
-    fi
+  # Local fallback: prebuilt ZIP (same as CI).
+  if try_stage_ffmpeg_from_prebuilt_zip; then
+    return
   fi
 
-  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR or ensure Homebrew+ffmpeg are available on the build machine." >&2
+  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR, install Homebrew ffmpeg, or ensure curl/python3 can download the prebuilt bundle." >&2
   exit 2
 }
 
