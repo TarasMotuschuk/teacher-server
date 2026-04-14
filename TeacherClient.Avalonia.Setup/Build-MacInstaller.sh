@@ -60,7 +60,16 @@ stage_ffmpeg_dylibs() {
     extract_dir="$dl_dir/extract"
     mkdir -p "$dl_dir"
 
-    asset_url="$(curl -fsSL "$api_url" | python3 - <<'PY'
+    local curl_headers
+    curl_headers=(
+      -H "Accept: application/vnd.github+json"
+      -H "User-Agent: ClassCommander-CI"
+    )
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      curl_headers+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+    fi
+
+    asset_url="$(curl -fsSL "${curl_headers[@]}" "$api_url" | python3 - <<'PY'
 import json, sys
 data=json.load(sys.stdin)
 assets=data.get("assets") or []
