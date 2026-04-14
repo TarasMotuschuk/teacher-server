@@ -153,6 +153,7 @@ jobs:
           CONFIGURATION: Release
           RUNTIME: osx-arm64
           VERSION: ${{ steps.version.outputs.value }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash TeacherClient.Avalonia.Setup/Build-MacInstaller.sh
 
       - name: Upload PKG artifact
