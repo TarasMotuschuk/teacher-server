@@ -217,9 +217,10 @@ make_ffmpeg_relocatable() {
   install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$exe" 2>/dev/null || true
 
   # SIPSorcery calls avdevice_register_all(); any unresolved transitive dylib -> DllNotFoundException.
-  # Multiple passes: rewrite Homebrew absolute paths to @rpath; add @loader_path so sibling dylibs resolve.
+  # Homebrew builds often use @rpath/... or @loader_path/../lib/... — we flatten all dylibs into one folder,
+  # so every bundled dependency must be rewritten to @loader_path/<basename> (same directory as this dylib).
   local pass
-  for pass in 1 2 3 4 5; do
+  for pass in 1 2 3 4 5 6; do
     for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
       [[ -f "$lib" ]] || continue
       if [[ "$pass" == "1" ]]; then
@@ -227,20 +228,31 @@ make_ffmpeg_relocatable() {
         install_name_tool -add_rpath "@executable_path/../Frameworks/ffmpeg" "$lib" 2>/dev/null || true
       fi
 
+      local base
       base="$(basename "$lib")"
-      install_name_tool -id "@rpath/$base" "$lib" 2>/dev/null || true
+      install_name_tool -id "@loader_path/$base" "$lib" 2>/dev/null || true
 
-      for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
+      local dep
+      while IFS= read -r dep; do
+        [[ -z "$dep" ]] && continue
         case "$dep" in
-          @*|/System/*|/usr/lib/*)
+          /System/*|/usr/lib/*)
             continue
             ;;
         esac
+
+        local dep_base
         dep_base="$(basename "$dep")"
-        if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
-          install_name_tool -change "$dep" "@rpath/$dep_base" "$lib" 2>/dev/null || true
+        if [[ ! -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
+          continue
         fi
-      done
+
+        if [[ "$dep" == "@loader_path/$dep_base" ]]; then
+          continue
+        fi
+
+        install_name_tool -change "$dep" "@loader_path/$dep_base" "$lib" 2>/dev/null || true
+      done < <(otool -L "$lib" | tail -n +2 | awk '{print $1}')
     done
   done
 }
