@@ -127,6 +127,7 @@ Fields (teacher side):
 - **Student destination folder**: base folder on student PCs used for bulk file/folder distribution.
 - **Student work base path** + **Student work folder name**: location used for provisioning and collecting student work folders.
 - **Language**: UI language (English / Ukrainian).
+- **Interface theme**: dark (default, matches the previous look) or light.
 - **Desktop icon auto-restore (min)**: student desktop icon auto-restore interval.
 - **Browser-lock check interval (s)**: how often student PCs check and enforce browser lock.
 

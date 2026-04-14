@@ -134,6 +134,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - a teacher-configured destination folder path used for bulk distribution on student PCs;
 - teacher-configured student work folder settings with automatic shared-folder provisioning on reachable student PCs;
 - user-selectable UI language with English and Ukrainian options;
+- user-selectable interface theme (dark or light), persisted alongside other teacher-side settings;
 - browse remote processes and terminate a selected process;
 - double-click process details with full metadata plus `Kill` and `Restart` actions;
 - browse local and remote file trees in dual panes;

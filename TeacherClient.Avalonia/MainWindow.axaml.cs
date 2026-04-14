@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -64,11 +66,14 @@ public partial class MainWindow : Window, IDisposable
     private DateTime _remoteTileLastPrimaryUtc;
     private string? _remoteTileLastPrimaryAgentId;
     private bool _disposed;
+    private bool _filesActivePanelIsRemote;
+    private int _suppressFilesPanelActivation;
 
     public MainWindow()
     {
         _clientSettings = _clientSettingsStore.Load();
         CrossPlatformText.SetLanguage(_clientSettings.Language);
+        AppUiThemeApplier.Apply(_clientSettings.Theme);
         InitializeComponent();
         ProcessesGrid.ItemsSource = _processes;
         LocalFilesGrid.ItemsSource = _localEntries;
@@ -196,6 +201,7 @@ public partial class MainWindow : Window, IDisposable
         _clientSettings = dialog.ToSettings();
         _clientSettingsStore.Save(_clientSettings);
         CrossPlatformText.SetLanguage(_clientSettings.Language);
+        AppUiThemeApplier.Apply(_clientSettings.Theme);
         ApplyLocalization();
         SetStatus(CrossPlatformText.SettingsSaved);
 
@@ -1533,7 +1539,16 @@ public partial class MainWindow : Window, IDisposable
             LocalPathTextBox.Text = info.FullName;
             SelectRoot(LocalDriveComboBox, info.FullName);
             UpdateLocalDriveSpace(info.FullName);
-            ReplaceItems(_localEntries, entries);
+            _suppressFilesPanelActivation++;
+            try
+            {
+                ReplaceItems(_localEntries, entries);
+            }
+            finally
+            {
+                _suppressFilesPanelActivation--;
+            }
+
             return Task.CompletedTask;
         }, CrossPlatformText.LocalBrowseError);
     }
@@ -1556,7 +1571,15 @@ public partial class MainWindow : Window, IDisposable
             SelectRoot(RemoteDriveComboBox, listing.CurrentPath);
             await UpdateRemoteDriveSpaceAsync(client, listing.CurrentPath);
             _remoteParentPath = listing.ParentPath;
-            ReplaceItems(_remoteEntries, listing.Entries);
+            _suppressFilesPanelActivation++;
+            try
+            {
+                ReplaceItems(_remoteEntries, listing.Entries);
+            }
+            finally
+            {
+                _suppressFilesPanelActivation--;
+            }
         }, CrossPlatformText.RemoteBrowseError);
     }
 
@@ -1606,24 +1629,46 @@ public partial class MainWindow : Window, IDisposable
         }
     }
 
-    private async void UploadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void FilesCopyButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
+        if (_filesActivePanelIsRemote)
         {
-            SetStatus(CrossPlatformText.ChooseLocalFileToUpload);
-            return;
-        }
+            if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
+            {
+                SetStatus(CrossPlatformText.ChooseRemoteFileToDownload);
+                return;
+            }
 
-        await RunBusyAsync(
-            async () =>
+            await RunBusyAsync(
+                async () =>
+                {
+                    var client = CreateClient();
+                    var progress = new Progress<TransferProgress>(value =>
+                        SetStatus(BuildTransferStatus(CrossPlatformText.DownloadArrow, entry.Name, value)));
+                    await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath(), progress);
+                    await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
+                    SetStatus(CrossPlatformText.Downloaded(entry.Name));
+                }, CrossPlatformText.DownloadError);
+        }
+        else
         {
-            var client = CreateClient();
-            var progress = new Progress<TransferProgress>(value =>
-                SetStatus(BuildTransferStatus(CrossPlatformText.UploadArrow, entry.Name, value)));
-            await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty, progress);
-            await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-            SetStatus(CrossPlatformText.Uploaded(entry.Name));
-        }, CrossPlatformText.UploadError);
+            if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
+            {
+                SetStatus(CrossPlatformText.ChooseLocalFileToUpload);
+                return;
+            }
+
+            await RunBusyAsync(
+                async () =>
+                {
+                    var client = CreateClient();
+                    var progress = new Progress<TransferProgress>(value =>
+                        SetStatus(BuildTransferStatus(CrossPlatformText.UploadArrow, entry.Name, value)));
+                    await client.UploadFileAsync(entry.FullPath, RemotePathTextBox.Text ?? string.Empty, progress);
+                    await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+                    SetStatus(CrossPlatformText.Uploaded(entry.Name));
+                }, CrossPlatformText.UploadError);
+        }
     }
 
     private async void SendToSelectedStudentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -2436,152 +2481,285 @@ public partial class MainWindow : Window, IDisposable
         await ClearConfiguredStudentWorkDirectoryAsync(targetAgents);
     }
 
-    private async void DownloadButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void LocalFilesPanelBorder_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry || entry.IsDirectory)
-        {
-            SetStatus(CrossPlatformText.ChooseRemoteFileToDownload);
-            return;
-        }
-
-        await RunBusyAsync(
-            async () =>
-        {
-            var client = CreateClient();
-            var progress = new Progress<TransferProgress>(value =>
-                SetStatus(BuildTransferStatus(CrossPlatformText.DownloadArrow, entry.Name, value)));
-            await client.DownloadRemoteFileAsync(entry.FullPath, LocalPathTextBox.Text ?? GetDefaultLocalPath(), progress);
-            await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
-            SetStatus(CrossPlatformText.Downloaded(entry.Name));
-        }, CrossPlatformText.DownloadError);
+        SetFilesActivePanel(isRemote: false);
     }
 
-    private async void OpenRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void RemoteFilesPanelBorder_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
-        {
-            SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
-            return;
-        }
-
-        await RunBusyAsync(
-            async () =>
-        {
-            var client = CreateClient();
-            await client.OpenRemoteEntryAsync(entry.FullPath);
-            SetStatus(CrossPlatformText.OpenedRemote(entry.Name));
-        }, CrossPlatformText.OpenRemoteError);
+        SetFilesActivePanel(isRemote: true);
     }
 
-    private void OpenLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void LocalFilesGrid_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
-        {
-            SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
-            return;
-        }
-
-        OpenLocalEntry(entry);
+        SetFilesActivePanel(isRemote: false);
     }
 
-    private async void RenameLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void RemoteFilesGrid_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
-        {
-            SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
-            return;
-        }
-
-        var newName = await TextInputDialog.ShowAsync(this, CrossPlatformText.RenameLocalEntryTitle, CrossPlatformText.EntryName, entry.Name);
-        if (string.IsNullOrWhiteSpace(newName))
-        {
-            return;
-        }
-
-        await RunBusyAsync(
-            async () =>
-        {
-            RenameLocalEntry(entry, newName);
-            await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
-            SetStatus(CrossPlatformText.RenamedLocalEntry(entry.Name, newName.Trim()));
-        }, CrossPlatformText.LocalRenameError);
+        SetFilesActivePanel(isRemote: true);
     }
 
-    private async void RenameRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void LocalFilesGrid_OnGotFocus(object? sender, RoutedEventArgs e)
     {
-        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
-        {
-            SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
-            return;
-        }
-
-        var newName = await TextInputDialog.ShowAsync(this, CrossPlatformText.RenameRemoteEntryTitle, CrossPlatformText.EntryName, entry.Name);
-        if (string.IsNullOrWhiteSpace(newName))
+        if (_suppressFilesPanelActivation != 0)
         {
             return;
         }
 
-        await RunBusyAsync(
-            async () =>
-        {
-            var client = CreateClient();
-            await client.RenameRemoteEntryAsync(entry.FullPath, newName.Trim());
-            await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-            SetStatus(CrossPlatformText.RenamedRemoteEntry(entry.Name, newName.Trim()));
-        }, CrossPlatformText.RemoteRenameError);
+        SetFilesActivePanel(isRemote: false);
     }
 
-    private async void DeleteLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void RemoteFilesGrid_OnGotFocus(object? sender, RoutedEventArgs e)
     {
-        if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
-        {
-            SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
-            return;
-        }
-
-        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.DeleteLocalEntryTitle, CrossPlatformText.DeleteLocalEntryPrompt(entry.Name)))
+        if (_suppressFilesPanelActivation != 0)
         {
             return;
         }
 
-        await RunBusyAsync(
-            async () =>
+        SetFilesActivePanel(isRemote: true);
+    }
+
+    private void LocalFilesGrid_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressFilesPanelActivation != 0)
         {
+            return;
+        }
+
+        if (LocalFilesGrid.SelectedItem is not null)
+        {
+            SetFilesActivePanel(isRemote: false);
+        }
+    }
+
+    private void RemoteFilesGrid_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressFilesPanelActivation != 0)
+        {
+            return;
+        }
+
+        if (RemoteFilesGrid.SelectedItem is not null)
+        {
+            SetFilesActivePanel(isRemote: true);
+        }
+    }
+
+    private void SetFilesActivePanel(bool isRemote)
+    {
+        _filesActivePanelIsRemote = isRemote;
+        ApplyFilesActivePanelChrome();
+    }
+
+    private void ApplyFilesActivePanelChrome()
+    {
+        var activeBrush = AppUiThemeApplier.GetBrushOrFallback("FilePanelBorderActiveBrush", Color.Parse("#2563EB"));
+        var inactiveBrush = AppUiThemeApplier.GetBrushOrFallback("FilePanelBorderInactiveBrush", Color.Parse("#334155"));
+
+        LocalFilesPanelBorder.BorderBrush = _filesActivePanelIsRemote ? inactiveBrush : activeBrush;
+        RemoteFilesPanelBorder.BorderBrush = _filesActivePanelIsRemote ? activeBrush : inactiveBrush;
+
+        ToolTip.SetTip(FilesOpenButton, CrossPlatformText.FilesToolbarActivePanelHint);
+        ToolTip.SetTip(FilesRenameButton, CrossPlatformText.FilesToolbarActivePanelHint);
+        ToolTip.SetTip(FilesDeleteButton, CrossPlatformText.FilesToolbarActivePanelHint);
+
+        ToolTip.SetTip(
+            FilesCopyButton,
+            _filesActivePanelIsRemote
+                ? CrossPlatformText.FilesCopyTooltipStudentPanel
+                : CrossPlatformText.FilesCopyTooltipTeacherPanel);
+
+        NewRemoteFolderButton.IsEnabled = _filesActivePanelIsRemote;
+        ToolTip.SetTip(
+            NewRemoteFolderButton,
+            _filesActivePanelIsRemote ? CrossPlatformText.NewRemoteFolder : CrossPlatformText.FilesNewFolderNeedsStudentPanel);
+    }
+
+    private async void FilesOpenButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_filesActivePanelIsRemote)
+        {
+            if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+            {
+                SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
+                return;
+            }
+
             if (entry.IsDirectory)
             {
-                Directory.Delete(entry.FullPath, recursive: true);
-            }
-            else
-            {
-                File.Delete(entry.FullPath);
+                await RunBusyAsync(
+                    async () =>
+                    {
+                        var client = CreateClient();
+                        await client.OpenRemoteEntryAsync(entry.FullPath);
+                        SetStatus(CrossPlatformText.OpenedRemote(entry.Name));
+                    }, CrossPlatformText.OpenRemoteError);
+                return;
             }
 
-            await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
-            SetStatus(CrossPlatformText.DeletedLocalEntry(entry.Name));
-        }, CrossPlatformText.LocalDeleteError);
+            var choice = await RemoteOpenChoiceDialog.ShowAsync(this);
+            if (choice is null)
+            {
+                return;
+            }
+
+            if (choice == RemoteFileOpenChoice.OnStudentPc)
+            {
+                await RunBusyAsync(
+                    async () =>
+                    {
+                        var client = CreateClient();
+                        await client.OpenRemoteEntryAsync(entry.FullPath);
+                        SetStatus(CrossPlatformText.OpenedRemote(entry.Name));
+                    }, CrossPlatformText.OpenRemoteError);
+                return;
+            }
+
+            await RunBusyAsync(
+                async () =>
+                {
+                    var client = CreateClient();
+                    var tempDir = GetRemoteOpenTempDirectory();
+                    Directory.CreateDirectory(tempDir);
+                    var progress = new Progress<TransferProgress>(value =>
+                        SetStatus(BuildTransferStatus(CrossPlatformText.DownloadArrow, entry.Name, value)));
+                    await client.DownloadRemoteFileAsync(entry.FullPath, tempDir, progress);
+                    var fileName = RemoteWindowsPath.GetFileName(entry.FullPath);
+                    if (string.IsNullOrWhiteSpace(fileName))
+                    {
+                        fileName = entry.Name;
+                    }
+
+                    var localPath = Path.Combine(tempDir, fileName);
+                    if (!File.Exists(localPath))
+                    {
+                        throw new FileNotFoundException($"Downloaded file not found at '{localPath}'.");
+                    }
+
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = localPath,
+                        UseShellExecute = true,
+                    });
+                    SetStatus(CrossPlatformText.OpenedLocalFromRemoteTemp(entry.Name));
+                }, CrossPlatformText.DownloadError);
+        }
+        else
+        {
+            if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+            {
+                SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
+                return;
+            }
+
+            OpenLocalEntry(entry);
+        }
     }
 
-    private async void DeleteRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void FilesRenameButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+        if (_filesActivePanelIsRemote)
         {
-            SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
-            return;
-        }
+            if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+            {
+                SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
+                return;
+            }
 
-        if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.DeleteRemoteEntryTitle, CrossPlatformText.DeleteRemoteEntryPrompt(entry.Name)))
-        {
-            return;
-        }
+            var newName = await TextInputDialog.ShowAsync(this, CrossPlatformText.RenameRemoteEntryTitle, CrossPlatformText.EntryName, entry.Name);
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                return;
+            }
 
-        await RunBusyAsync(
-            async () =>
+            await RunBusyAsync(
+                async () =>
+                {
+                    var client = CreateClient();
+                    await client.RenameRemoteEntryAsync(entry.FullPath, newName.Trim());
+                    await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+                    SetStatus(CrossPlatformText.RenamedRemoteEntry(entry.Name, newName.Trim()));
+                }, CrossPlatformText.RemoteRenameError);
+        }
+        else
         {
-            var client = CreateClient();
-            await client.DeleteRemoteEntryAsync(entry.FullPath);
-            await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
-            SetStatus(CrossPlatformText.DeletedRemoteEntry(entry.Name));
-        }, CrossPlatformText.RemoteDeleteError);
+            if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+            {
+                SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
+                return;
+            }
+
+            var newName = await TextInputDialog.ShowAsync(this, CrossPlatformText.RenameLocalEntryTitle, CrossPlatformText.EntryName, entry.Name);
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                return;
+            }
+
+            await RunBusyAsync(
+                async () =>
+                {
+                    RenameLocalEntry(entry, newName);
+                    await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
+                    SetStatus(CrossPlatformText.RenamedLocalEntry(entry.Name, newName.Trim()));
+                }, CrossPlatformText.LocalRenameError);
+        }
+    }
+
+    private async void FilesDeleteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_filesActivePanelIsRemote)
+        {
+            if (RemoteFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+            {
+                SetStatus(CrossPlatformText.ChooseRemoteEntryFirst);
+                return;
+            }
+
+            if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.DeleteRemoteEntryTitle, CrossPlatformText.DeleteRemoteEntryPrompt(entry.Name)))
+            {
+                return;
+            }
+
+            await RunBusyAsync(
+                async () =>
+                {
+                    var client = CreateClient();
+                    await client.DeleteRemoteEntryAsync(entry.FullPath);
+                    await LoadRemoteDirectoryAsync(RemotePathTextBox.Text);
+                    SetStatus(CrossPlatformText.DeletedRemoteEntry(entry.Name));
+                }, CrossPlatformText.RemoteDeleteError);
+        }
+        else
+        {
+            if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
+            {
+                SetStatus(CrossPlatformText.ChooseLocalEntryFirst);
+                return;
+            }
+
+            if (!await ConfirmationDialog.ShowAsync(this, CrossPlatformText.DeleteLocalEntryTitle, CrossPlatformText.DeleteLocalEntryPrompt(entry.Name)))
+            {
+                return;
+            }
+
+            await RunBusyAsync(
+                async () =>
+                {
+                    if (entry.IsDirectory)
+                    {
+                        Directory.Delete(entry.FullPath, recursive: true);
+                    }
+                    else
+                    {
+                        File.Delete(entry.FullPath);
+                    }
+
+                    await LoadLocalDirectoryAsync(LocalPathTextBox.Text);
+                    SetStatus(CrossPlatformText.DeletedLocalEntry(entry.Name));
+                }, CrossPlatformText.LocalDeleteError);
+        }
     }
 
     private async void NewRemoteFolderButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -2604,6 +2782,7 @@ public partial class MainWindow : Window, IDisposable
 
     private async void UpLocalButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        SetFilesActivePanel(isRemote: false);
         var current = LocalPathTextBox.Text;
         if (string.IsNullOrWhiteSpace(current))
         {
@@ -2619,6 +2798,7 @@ public partial class MainWindow : Window, IDisposable
 
     private async void UpRemoteButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        SetFilesActivePanel(isRemote: true);
         if (!string.IsNullOrWhiteSpace(_remoteParentPath))
         {
             await LoadRemoteDirectoryAsync(_remoteParentPath);
@@ -2632,6 +2812,7 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
+        SetFilesActivePanel(isRemote: false);
         await LoadLocalDirectoryAsync(root);
     }
 
@@ -2642,6 +2823,7 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
+        SetFilesActivePanel(isRemote: true);
         await LoadRemoteDirectoryAsync(root);
     }
 
@@ -2652,6 +2834,7 @@ public partial class MainWindow : Window, IDisposable
 
     private async void LocalFilesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
+        SetFilesActivePanel(isRemote: false);
         if (LocalFilesGrid.SelectedItem is not FileSystemEntryDto entry)
         {
             return;
@@ -2668,6 +2851,7 @@ public partial class MainWindow : Window, IDisposable
 
     private async void RemoteFilesGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
+        SetFilesActivePanel(isRemote: true);
         if (RemoteFilesGrid.SelectedItem is FileSystemEntryDto entry && entry.IsDirectory)
         {
             await LoadRemoteDirectoryAsync(entry.FullPath);
@@ -3811,6 +3995,25 @@ public partial class MainWindow : Window, IDisposable
         return text;
     }
 
+    private static Control CreateFileGridColumnHeader(string headerText)
+    {
+        var text = new TextBlock
+        {
+            Text = headerText,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        var chrome = new Border
+        {
+            Child = text,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Background = Brushes.Transparent,
+        };
+        ToolTip.SetTip(chrome, headerText);
+        return chrome;
+    }
+
     private static void SetGroupMenuTip(MenuItem? item, string? tip)
     {
         if (item is null || string.IsNullOrEmpty(tip))
@@ -4032,16 +4235,12 @@ public partial class MainWindow : Window, IDisposable
         ApplyTabButtonContent(RefreshProcessesButton, CrossPlatformText.Refresh, "Toolbar/processes/refresh.png", ToolbarGlyphKind.Refresh);
         ApplyTabButtonContent(KillProcessButton, CrossPlatformText.TerminateSelected, "Toolbar/processes/stop.png", ToolbarGlyphKind.Stop);
         ApplyTabButtonContent(RefreshFilesButton, CrossPlatformText.RefreshBoth, "Toolbar/files/refresh-both.png", ToolbarGlyphKind.Refresh);
-        ApplyTabButtonContent(UploadButton, CrossPlatformText.UploadArrow, "Toolbar/files/upload.png", ToolbarGlyphKind.Upload);
+        ApplyTabButtonContent(FilesCopyButton, CrossPlatformText.FilesToolbarCopy, "Toolbar/files/upload.png", ToolbarGlyphKind.Upload);
         ApplyTabButtonContent(SendToSelectedStudentsButton, CrossPlatformText.SendToSelectedStudents, "Toolbar/files/upload-group.png", ToolbarGlyphKind.UploadGroup);
         ApplyTabButtonContent(SendToAllOnlineStudentsButton, CrossPlatformText.SendToAllOnlineStudents, "Toolbar/files/broadcast.png", ToolbarGlyphKind.Broadcast);
-        ApplyTabButtonContent(DownloadButton, CrossPlatformText.DownloadArrow, "Toolbar/files/download.png", ToolbarGlyphKind.Download);
-        ApplyTabButtonContent(OpenLocalButton, CrossPlatformText.OpenLocal, "Toolbar/files/open-local.png", ToolbarGlyphKind.OpenRemote);
-        ApplyTabButtonContent(OpenRemoteButton, CrossPlatformText.OpenRemote, "Toolbar/files/open-remote.png", ToolbarGlyphKind.OpenRemote);
-        ApplyTabButtonContent(RenameLocalButton, CrossPlatformText.RenameLocal, "Toolbar/files/rename-local.png", ToolbarGlyphKind.Edit);
-        ApplyTabButtonContent(RenameRemoteButton, CrossPlatformText.RenameRemote, "Toolbar/files/rename-remote.png", ToolbarGlyphKind.Edit);
-        ApplyTabButtonContent(DeleteLocalButton, CrossPlatformText.DeleteLocal, "Toolbar/files/delete-local.png", ToolbarGlyphKind.Remove);
-        ApplyTabButtonContent(DeleteRemoteButton, CrossPlatformText.DeleteRemote, "Toolbar/files/delete-remote.png", ToolbarGlyphKind.Remove);
+        ApplyTabButtonContent(FilesOpenButton, CrossPlatformText.FilesToolbarOpen, "Toolbar/files/open-remote.png", ToolbarGlyphKind.OpenRemote);
+        ApplyTabButtonContent(FilesRenameButton, CrossPlatformText.FilesToolbarRename, "Toolbar/files/rename-local.png", ToolbarGlyphKind.Edit);
+        ApplyTabButtonContent(FilesDeleteButton, CrossPlatformText.FilesToolbarDelete, "Toolbar/files/delete-local.png", ToolbarGlyphKind.Remove);
         ApplyTabButtonContent(NewRemoteFolderButton, CrossPlatformText.NewRemoteFolder, "Toolbar/files/new-folder.png", ToolbarGlyphKind.NewFolder);
         TeacherPcTextBlock.Text = CrossPlatformText.TeacherPc;
         StudentPcTextBlock.Text = CrossPlatformText.StudentPc;
@@ -4104,21 +4303,23 @@ public partial class MainWindow : Window, IDisposable
 
         if (LocalFilesGrid.Columns.Count >= 5)
         {
-            LocalFilesGrid.Columns[0].Header = CrossPlatformText.Name;
-            LocalFilesGrid.Columns[1].Header = CrossPlatformText.Extension;
-            LocalFilesGrid.Columns[2].Header = CrossPlatformText.Attributes;
-            LocalFilesGrid.Columns[3].Header = CrossPlatformText.Size;
-            LocalFilesGrid.Columns[4].Header = CrossPlatformText.ModifiedUtc;
+            LocalFilesGrid.Columns[0].Header = CreateFileGridColumnHeader(CrossPlatformText.Name);
+            LocalFilesGrid.Columns[1].Header = CreateFileGridColumnHeader(CrossPlatformText.Extension);
+            LocalFilesGrid.Columns[2].Header = CreateFileGridColumnHeader(CrossPlatformText.Attributes);
+            LocalFilesGrid.Columns[3].Header = CreateFileGridColumnHeader(CrossPlatformText.Size);
+            LocalFilesGrid.Columns[4].Header = CreateFileGridColumnHeader(CrossPlatformText.ModifiedUtc);
         }
 
         if (RemoteFilesGrid.Columns.Count >= 5)
         {
-            RemoteFilesGrid.Columns[0].Header = CrossPlatformText.Name;
-            RemoteFilesGrid.Columns[1].Header = CrossPlatformText.Extension;
-            RemoteFilesGrid.Columns[2].Header = CrossPlatformText.Attributes;
-            RemoteFilesGrid.Columns[3].Header = CrossPlatformText.Size;
-            RemoteFilesGrid.Columns[4].Header = CrossPlatformText.ModifiedUtc;
+            RemoteFilesGrid.Columns[0].Header = CreateFileGridColumnHeader(CrossPlatformText.Name);
+            RemoteFilesGrid.Columns[1].Header = CreateFileGridColumnHeader(CrossPlatformText.Extension);
+            RemoteFilesGrid.Columns[2].Header = CreateFileGridColumnHeader(CrossPlatformText.Attributes);
+            RemoteFilesGrid.Columns[3].Header = CreateFileGridColumnHeader(CrossPlatformText.Size);
+            RemoteFilesGrid.Columns[4].Header = CreateFileGridColumnHeader(CrossPlatformText.ModifiedUtc);
         }
+
+        ApplyFilesActivePanelChrome();
 
         if (RegistryValuesGrid.Columns.Count >= 3)
         {
@@ -4162,7 +4363,7 @@ public partial class MainWindow : Window, IDisposable
         {
             Text = text,
             FontSize = 10,
-            Foreground = Brushes.White,
+            Foreground = AppUiThemeApplier.GetBrushOrFallback("TabActionForegroundBrush", Color.Parse("#F8FAFC")),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             MaxWidth = 116,
@@ -4239,6 +4440,16 @@ public partial class MainWindow : Window, IDisposable
             ToolbarGlyphKind.Fullscreen => "M7,14H5V19H10V17H8V14M7,10H5V5H10V7H8V10M17,14H19V19H14V17H16V14M17,10H19V5H14V7H16V10Z",
             _ => "M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z",
         };
+
+    private static string GetRemoteOpenTempDirectory()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return Path.Combine("/tmp", "ClassCommander");
+        }
+
+        return Path.Combine(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), "ClassCommander");
+    }
 
     private void OpenLocalEntry(FileSystemEntryDto entry)
     {

@@ -392,6 +392,11 @@ internal static partial class CrossPlatformText
 
     public static string OpenedRemote(string name) => IsUk ? $"Відкрито на учнівському ПК: {name}" : $"Opened on student PC: {name}";
 
+    public static string OpenedLocalFromRemoteTemp(string name) =>
+        IsUk
+            ? $"Файл скопійовано з учнівського ПК у тимчасову папку та відкрито локально: {name}"
+            : $"Copied from student PC to temp and opened locally: {name}";
+
     public static string Downloaded(string name) => IsUk ? $"Скачано {name}" : $"Downloaded {name}";
 
     public static string DeleteLocalEntryPrompt(string name) => IsUk ? $"Видалити локальний елемент {name}?" : $"Delete local entry {name}?";

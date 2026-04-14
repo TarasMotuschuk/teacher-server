@@ -9,7 +9,8 @@ public sealed record ClientSettings(
     string StudentWorkRootPath,
     string StudentWorkFolderName,
     int DesktopIconAutoRestoreMinutes,
-    int BrowserLockCheckIntervalSeconds)
+    int BrowserLockCheckIntervalSeconds,
+    AppUiTheme Theme)
 {
     public static ClientSettings Default { get; } = new(
         "change-this-secret",
@@ -18,5 +19,6 @@ public sealed record ClientSettings(
         @"C:\Users\Public\Documents",
         "StudentWorks",
         30,
-        60);
+        60,
+        AppUiTheme.Dark);
 }

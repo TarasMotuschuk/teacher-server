@@ -20,6 +20,7 @@ public partial class App : Application
         {
             var settings = new ClientSettingsStore().Load();
             CrossPlatformText.SetLanguage(settings.Language);
+            AppUiThemeApplier.Apply(settings.Theme);
             var splash = new SplashWindow();
             splash.Icon = AppIconLoader.Load();
             desktop.MainWindow = splash;
