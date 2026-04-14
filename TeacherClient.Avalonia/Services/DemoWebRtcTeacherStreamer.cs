@@ -1,6 +1,8 @@
+using System.Drawing;
 using System.Net.Http.Json;
 using SIPSorcery.Media;
 using SIPSorcery.Net;
+using SIPSorceryMedia.Abstractions;
 using SIPSorceryMedia.FFmpeg;
 using Teacher.Common.Contracts;
 
@@ -10,9 +12,17 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
 {
     private readonly HttpClient _httpClient = new();
     private readonly Dictionary<string, RTCPeerConnection> _pcs = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, VideoTestPatternSource> _videoSources = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IVideoSource> _videoSources = new(StringComparer.Ordinal);
 
-    public async Task StartAsync(string studentBaseUrl, string sharedSecret, string sessionId)
+    public async Task StartAsync(
+        string studentBaseUrl,
+        string sharedSecret,
+        string sessionId,
+        int captureX = 0,
+        int captureY = 0,
+        int captureWidth = 1280,
+        int captureHeight = 720,
+        int captureFps = 15)
     {
         if (_pcs.ContainsKey(studentBaseUrl))
         {
@@ -24,14 +34,27 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         var pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
         _pcs[studentBaseUrl] = pc;
 
-        var testPattern = new VideoTestPatternSource(new FFmpegVideoEncoder());
-        testPattern.SetFrameRate(15);
-        _videoSources[studentBaseUrl] = testPattern;
+        IVideoSource source;
+        try
+        {
+            var rect = new Rectangle(captureX, captureY, Math.Max(16, captureWidth), Math.Max(16, captureHeight));
+            source = new FFmpegScreenSource(GetScreenInputPath(), rect, captureFps);
+        }
+        catch
+        {
+            // Fallback: keep demonstration functional even if screen capture isn't available on this machine yet.
+            var testPattern = new VideoTestPatternSource(new FFmpegVideoEncoder());
+            testPattern.SetFrameRate(captureFps);
+            source = testPattern;
+        }
 
-        var videoTrack = new MediaStreamTrack(testPattern.GetVideoSourceFormats(), MediaStreamStatusEnum.SendOnly);
+        source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8 || format.Codec == VideoCodecsEnum.H264);
+        _videoSources[studentBaseUrl] = source;
+
+        var videoTrack = new MediaStreamTrack(source.GetVideoSourceFormats(), MediaStreamStatusEnum.SendOnly);
         pc.addTrack(videoTrack);
-        testPattern.OnVideoSourceEncodedSample += pc.SendVideo;
-        pc.OnVideoFormatsNegotiated += (formats) => testPattern.SetVideoSourceFormat(formats.First());
+        source.OnVideoSourceEncodedSample += pc.SendVideo;
+        pc.OnVideoFormatsNegotiated += (formats) => source.SetVideoSourceFormat(formats.First());
 
         pc.onicecandidate += (cand) =>
         {
@@ -53,11 +76,11 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         {
             if (state == RTCPeerConnectionState.connected)
             {
-                await testPattern.StartVideo();
+                await source.StartVideo();
             }
             else if (state == RTCPeerConnectionState.closed || state == RTCPeerConnectionState.failed)
             {
-                await testPattern.CloseVideo();
+                await source.CloseVideo();
             }
         };
 
@@ -161,7 +184,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             try
             {
                 await video.CloseVideo();
-                video.Dispose();
+                (video as IDisposable)?.Dispose();
             }
             catch
             {
@@ -172,6 +195,27 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         using var req = new HttpRequestMessage(HttpMethod.Post, $"{studentBaseUrl}/api/demo/webrtc/stop") { Content = JsonContent.Create(stopReq) };
         req.Headers.TryAddWithoutValidation("X-Teacher-Secret", sharedSecret);
         await _httpClient.SendAsync(req);
+    }
+
+    private static string GetScreenInputPath()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return "desktop";
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            // avfoundation: the screen capture device is typically index 1 ("Capture screen 0").
+            return "1";
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return ":0.0";
+        }
+
+        return "desktop";
     }
 
     public void Dispose()
@@ -191,7 +235,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         {
             try
             {
-                v.Dispose();
+                (v as IDisposable)?.Dispose();
             }
             catch
             {
@@ -203,5 +247,6 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         _httpClient.Dispose();
     }
 }
+
 
 

@@ -304,6 +304,8 @@ public partial class MainWindow : Window, IDisposable
         _demoSessionId ??= Guid.NewGuid().ToString("N");
         var sessionId = _demoSessionId;
 
+        var (capW, capH) = GetDemonstrationCaptureSize();
+
         await RunBusyAsync(async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
@@ -311,9 +313,23 @@ public partial class MainWindow : Window, IDisposable
                 var agent = targetAgents[index];
                 SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} ({index + 1}/{targetAgents.Count})");
                 var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
-                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
+                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureWidth: capW, captureHeight: capH);
             }
         }, CrossPlatformText.DemonstrationStartFailed);
+    }
+
+    private (int Width, int Height) GetDemonstrationCaptureSize()
+    {
+        var screen = Screens?.ScreenFromWindow(this) ?? Screens?.Primary;
+        if (screen is null)
+        {
+            return (1280, 720);
+        }
+
+        var area = screen.WorkingArea;
+        var w = Math.Max(320, area.Width);
+        var h = Math.Max(240, area.Height);
+        return ((int)w, (int)h);
     }
 
     private async Task StopDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
