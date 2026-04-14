@@ -14,6 +14,7 @@ public static class FfmpegBootstrap
             var candidates = new[]
             {
                 Path.Combine(baseDir, "ffmpeg"),
+                Path.Combine(baseDir, "ffmpeg", "bin"),
                 // macOS: put dylibs into Contents/Frameworks/ffmpeg
                 Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg")),
             };
@@ -37,6 +38,12 @@ public static class FfmpegBootstrap
         try
         {
             // Minimal check: the two core libs SIPSorcery will load.
+            if (OperatingSystem.IsWindows())
+            {
+                return Directory.EnumerateFiles(dir, "avcodec*.dll").Any()
+                       && Directory.EnumerateFiles(dir, "avutil*.dll").Any();
+            }
+
             return Directory.EnumerateFiles(dir, "libavcodec*.dylib").Any()
                    && Directory.EnumerateFiles(dir, "libavutil*.dylib").Any();
         }
