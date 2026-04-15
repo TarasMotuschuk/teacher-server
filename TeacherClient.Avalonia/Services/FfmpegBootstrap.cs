@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using FFmpeg.AutoGen;
+using SIPSorceryMedia.FFmpeg;
 
 namespace TeacherClient.CrossPlatform.Services;
 
@@ -31,6 +32,8 @@ public static class FfmpegBootstrap
 
     private static string? _macBundledLibDir;
     private static bool _macDllImportResolverRegistered;
+    private static readonly Lock InitSync = new();
+    private static bool _ffmpegInitialised;
 
     /// <summary>
     /// Returns the directory that contains FFmpeg shared libraries (DLLs / dylibs) when bundled with the app,
@@ -197,6 +200,30 @@ public static class FfmpegBootstrap
         if (dir is not null)
         {
             ffmpeg.RootPath = dir;
+        }
+    }
+
+    /// <summary>
+    /// Performs one-time FFmpeg native bootstrap for the current process and returns the bundled library directory
+    /// that was used for initialization, if any.
+    /// </summary>
+    public static string? EnsureInitialized()
+    {
+        lock (InitSync)
+        {
+            if (_ffmpegInitialised)
+            {
+                return TryGetBundledFfmpegLibDirectory();
+            }
+
+            RegisterMacOsFfmpegDllImportResolver();
+            TryConfigureBundledLibraries();
+            TryPreloadBundledFfmpegMacOS();
+
+            var bundledLibDir = TryGetBundledFfmpegLibDirectory();
+            FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, bundledLibDir, null);
+            _ffmpegInitialised = true;
+            return bundledLibDir;
         }
     }
 
