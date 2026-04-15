@@ -152,6 +152,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             }
 
             // Initialise FFmpeg once. Pass bundled lib directory — FFmpegInit ignores ffmpeg.RootPath unless libPath is set.
+            FfmpegBootstrap.RegisterMacOsFfmpegDllImportResolver();
             FfmpegBootstrap.TryConfigureBundledLibraries();
             var bundledLibDir = FfmpegBootstrap.TryGetBundledFfmpegLibDirectory();
             FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, bundledLibDir, null);

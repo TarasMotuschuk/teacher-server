@@ -43,6 +43,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
         }
 
+        FfmpegBootstrap.RegisterMacOsFfmpegDllImportResolver();
         FfmpegBootstrap.TryConfigureBundledLibraries();
         var bundledLibDir = FfmpegBootstrap.TryGetBundledFfmpegLibDirectory();
         try

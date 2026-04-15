@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using FFmpeg.AutoGen;
 
@@ -9,6 +10,9 @@ public static class FfmpegBootstrap
     {
         "libavutil", "libswresample", "libswscale", "libavcodec", "libavformat", "libavfilter", "libavdevice",
     };
+
+    private static string? _macBundledLibDir;
+    private static bool _macDllImportResolverRegistered;
 
     /// <summary>
     /// Returns the directory that contains FFmpeg shared libraries (DLLs / dylibs) when bundled with the app,
@@ -71,6 +75,37 @@ public static class FfmpegBootstrap
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Must run before any use of <see cref="ffmpeg"/> on macOS. FFmpeg.AutoGen asks the runtime to load
+    /// logical names like <c>avutil.59</c>; the on-disk file is <c>libavutil.59.dylib</c>. This resolver maps
+    /// <c>lib{libraryName}.dylib</c> under the bundled directory.
+    /// </summary>
+    public static void RegisterMacOsFfmpegDllImportResolver()
+    {
+        if (!OperatingSystem.IsMacOS() || _macDllImportResolverRegistered)
+        {
+            return;
+        }
+
+        var dir = TryGetBundledFfmpegLibDirectory();
+        if (string.IsNullOrEmpty(dir))
+        {
+            return;
+        }
+
+        _macBundledLibDir = dir;
+
+        try
+        {
+            var asm = Assembly.Load("FFmpeg.AutoGen");
+            NativeLibrary.SetDllImportResolver(asm, MacFfmpegDllImportResolver);
+            _macDllImportResolverRegistered = true;
+        }
+        catch
+        {
+        }
     }
 
     public static void TryConfigureBundledLibraries()
@@ -171,5 +206,28 @@ public static class FfmpegBootstrap
     {
         return Directory.EnumerateFiles(dir, "avcodec*.dll").Any()
                && Directory.EnumerateFiles(dir, "avutil*.dll").Any();
+    }
+
+    private static IntPtr MacFfmpegDllImportResolver(string libraryName, Assembly? assembly, DllImportSearchPath? searchPath)
+    {
+        if (string.IsNullOrEmpty(_macBundledLibDir))
+        {
+            return IntPtr.Zero;
+        }
+
+        var path = Path.Combine(_macBundledLibDir, $"lib{libraryName}.dylib");
+        if (!File.Exists(path))
+        {
+            return IntPtr.Zero;
+        }
+
+        try
+        {
+            return NativeLibrary.Load(path);
+        }
+        catch
+        {
+            return IntPtr.Zero;
+        }
     }
 }
