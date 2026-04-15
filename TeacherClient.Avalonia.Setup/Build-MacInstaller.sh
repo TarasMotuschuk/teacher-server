@@ -250,7 +250,8 @@ PY
   mkdir -p "$extract_dir"
 
   echo "Downloading Homebrew bottle ffmpeg@7 ($bottle_key)..."
-  if ! ghcr_fetch_blob "homebrew/core/ffmpeg@7" "$bottle_url" "$bottle_path"; then
+  # GHCR repo for versioned formula is homebrew/core/ffmpeg/7 (not ffmpeg@7).
+  if ! ghcr_fetch_blob "homebrew/core/ffmpeg/7" "$bottle_url" "$bottle_path"; then
     echo "WARNING: Failed to download ffmpeg@7 bottle blob." >&2
     return 1
   fi
