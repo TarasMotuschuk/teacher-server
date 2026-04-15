@@ -391,7 +391,7 @@ bash ./Build-MacInstaller.sh
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
 
-   FFmpeg shared libraries must match **FFmpeg.AutoGen 7** (FFmpeg 7 SONAMEs, e.g. `libavutil.59.dylib`). The script prefers **Homebrew** `ffmpeg` when available; on GitHub Actions it tries the ColorsWind/FFmpeg-macOS release ZIP first, then falls back to Homebrew because that repo’s `latest` build is FFmpeg 5 only. Override with `CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR` pointing at a directory tree that already contains the dylibs.
+   FFmpeg shared libraries must match **FFmpeg.AutoGen 7** (FFmpeg 7 SONAMEs, e.g. `libavutil.59.dylib`). The script prefers **Homebrew** `ffmpeg` when available; on GitHub Actions it tries the ColorsWind/FFmpeg-macOS release ZIP first, then falls back to Homebrew because that repo’s `latest` build is FFmpeg 5 only. CI workflows run `brew shellenv` and install `ffmpeg` before packaging so `brew` is on `PATH`. Override with `CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR` pointing at a directory tree that already contains the dylibs.
 
 4. The outputs are:
    - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)

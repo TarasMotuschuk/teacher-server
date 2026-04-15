@@ -138,14 +138,13 @@ PY
 
 # Returns 0 if dylibs were copied from a Homebrew ffmpeg keg, 1 otherwise.
 stage_ffmpeg_dylibs_from_homebrew() {
-  if [[ -x "/opt/homebrew/bin/brew" ]]; then
-    export PATH="/opt/homebrew/bin:$PATH"
-  fi
-  if [[ -x "/usr/local/bin/brew" ]]; then
-    export PATH="/usr/local/bin:$PATH"
-  fi
-  if [[ -x "/usr/local/Homebrew/bin/brew" ]]; then
-    export PATH="/usr/local/Homebrew/bin:$PATH"
+  # GitHub Actions (and other non-login shells): Homebrew exists but is not on PATH until shellenv runs.
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  elif [[ -x /usr/local/Homebrew/bin/brew ]]; then
+    eval "$(/usr/local/Homebrew/bin/brew shellenv)"
   fi
 
   local brew_bin
@@ -157,18 +156,23 @@ stage_ffmpeg_dylibs_from_homebrew() {
   fi
 
   if [[ -z "$brew_bin" ]]; then
+    echo "ERROR: Homebrew not found (no brew in PATH and no standard locations)." >&2
     return 1
   fi
 
   local prefix
   prefix="$("$brew_bin" --prefix ffmpeg 2>/dev/null || true)"
-  if [[ -z "$prefix" ]]; then
-    echo "Homebrew is available but ffmpeg is not installed. Installing ffmpeg..."
+  if [[ -z "$prefix" || ! -d "$prefix/lib" ]]; then
+    echo "Installing ffmpeg via Homebrew..."
     export HOMEBREW_NO_AUTO_UPDATE="${HOMEBREW_NO_AUTO_UPDATE:-1}"
-    "$brew_bin" install ffmpeg
+    if ! "$brew_bin" install ffmpeg; then
+      echo "ERROR: brew install ffmpeg failed." >&2
+      return 1
+    fi
     prefix="$("$brew_bin" --prefix ffmpeg 2>/dev/null || true)"
   fi
   if [[ -z "$prefix" || ! -d "$prefix/lib" ]]; then
+    echo "ERROR: ffmpeg keg has no lib directory at prefix=$prefix" >&2
     return 1
   fi
 
@@ -215,6 +219,12 @@ stage_ffmpeg_dylibs_from_homebrew() {
       done
     done
   done
+
+  if [[ ! -f "$FFMPEG_FRAMEWORKS_DIR/libavutil.59.dylib" ]]; then
+    echo "ERROR: After Homebrew staging, libavutil.59.dylib is missing (FFmpeg.AutoGen 7 needs FFmpeg 7). Contents:" >&2
+    ls -la "$FFMPEG_FRAMEWORKS_DIR" >&2 || true
+    return 1
+  fi
 
   return 0
 }
