@@ -3,10 +3,10 @@ using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
-using StudentAgent.UIHost.Services;
 using StudentAgent.Services;
 using StudentAgent.UI;
 using StudentAgent.UI.Localization;
+using StudentAgent.UIHost.Services;
 using Teacher.Common.Contracts;
 using TeacherClient.CrossPlatform.Services;
 
