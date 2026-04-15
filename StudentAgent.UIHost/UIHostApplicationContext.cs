@@ -136,18 +136,21 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     {
         try
         {
+            _logService.LogInfo($"Demo WebRTC: starting/refreshing for sessionId={sessionId}.");
             var port = Math.Max(1, SettingsStore.Current.Port);
             using var offerReq = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/demo/webrtc/offer?sessionId={Uri.EscapeDataString(sessionId)}");
             offerReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
             using var offerResp = await _httpClient.SendAsync(offerReq);
             if (!offerResp.IsSuccessStatusCode)
             {
+                _logService.LogWarning($"Demo WebRTC: offer request failed. HTTP {(int)offerResp.StatusCode}.");
                 return;
             }
 
             var offer = await offerResp.Content.ReadFromJsonAsync<DemoSessionStartRequest>();
             if (offer is null || string.IsNullOrWhiteSpace(offer.Sdp))
             {
+                _logService.LogWarning("Demo WebRTC: offer response is empty or invalid.");
                 return;
             }
 
@@ -155,6 +158,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             FfmpegBootstrap.RegisterMacOsFfmpegDllImportResolver();
             FfmpegBootstrap.TryConfigureBundledLibraries();
             var bundledLibDir = FfmpegBootstrap.TryGetBundledFfmpegLibDirectory();
+            _logService.LogInfo($"Demo WebRTC: initialising FFmpeg (bundledLibDir={bundledLibDir ?? "<null>"}).");
             FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, bundledLibDir, null);
 
             _demoVideoEndPoint = new FFmpegVideoEndPoint();
@@ -195,7 +199,19 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             var videoTrack = new MediaStreamTrack(_demoVideoEndPoint.GetVideoSinkFormats(), MediaStreamStatusEnum.RecvOnly);
             _demoPc.addTrack(videoTrack);
             _demoPc.OnVideoFrameReceived += _demoVideoEndPoint.GotVideoFrame;
-            _demoPc.OnVideoFormatsNegotiated += (formats) => _demoVideoEndPoint.SetVideoSinkFormat(formats.First());
+            _demoPc.OnVideoFormatsNegotiated += (formats) =>
+            {
+                try
+                {
+                    var chosen = formats.First();
+                    _logService.LogInfo($"Demo WebRTC: negotiated video format {chosen.Codec} {chosen.FormatID} {chosen.ClockRate}.");
+                    _demoVideoEndPoint.SetVideoSinkFormat(chosen);
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogWarning($"Demo WebRTC: failed to apply negotiated video formats: {ex.Message}");
+                }
+            };
 
             _demoPc.onicecandidate += (cand) =>
             {
@@ -212,6 +228,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             var offerType = Enum.TryParse<SIPSorcery.SIP.App.SdpType>(offer.SdpType, ignoreCase: true, out var parsedOfferType)
                 ? parsedOfferType
                 : SIPSorcery.SIP.App.SdpType.offer;
+            _logService.LogInfo($"Demo WebRTC: setting remote description (type={offerType}).");
             var setRes = _demoPc.SetRemoteDescription(offerType, sdpOffer);
             if (setRes != SetDescriptionResultEnum.OK)
             {
@@ -228,7 +245,14 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             })
             {
                 ansReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
-                await _httpClient.SendAsync(ansReq);
+                using var ansResp = await _httpClient.SendAsync(ansReq);
+                if (!ansResp.IsSuccessStatusCode)
+                {
+                    _logService.LogWarning($"Demo WebRTC: posting answer failed. HTTP {(int)ansResp.StatusCode}.");
+                    return;
+                }
+
+                _logService.LogInfo("Demo WebRTC: posted answer.");
             }
 
             _ = Task.Run(async () =>
