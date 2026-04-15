@@ -51,8 +51,8 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         string? bundledLibDir;
         try
         {
-            bundledLibDir = FfmpegBootstrap.EnsureInitialized();
-            _diagnosticLog.LogInfo($"Teacher demo FFmpeg initialised for {studentBaseUrl}. bundledLibDir={bundledLibDir ?? "<null>"}.");
+            bundledLibDir = FfmpegBootstrap.EnsureEncoderOnlyConfigured();
+            _diagnosticLog.LogInfo($"Teacher demo FFmpeg encoder bootstrap configured for {studentBaseUrl}. bundledLibDir={bundledLibDir ?? "<null>"}.");
         }
         catch (Exception ex)
         {

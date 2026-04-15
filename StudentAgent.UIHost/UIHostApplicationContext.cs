@@ -183,10 +183,11 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                 return;
             }
 
-            // Initialise FFmpeg once per process using the bundled native libraries.
-            var bundledLibDir = FfmpegBootstrap.EnsureInitialized();
-            _logService.LogInfo($"Demo WebRTC: initialising FFmpeg (bundledLibDir={bundledLibDir ?? "<null>"}).");
-            _demoDiagnosticLog.LogInfo($"Student demo FFmpeg initialised: bundledLibDir={bundledLibDir ?? "<null>"}.");
+            // For demo receive/render we do not require FFmpeg capture device registration (avdevice).
+            // Only ensure codec libraries are loadable from the bundled directory.
+            var bundledLibDir = FfmpegBootstrap.EnsureEncoderOnlyConfigured();
+            _logService.LogInfo($"Demo WebRTC: configuring FFmpeg codec bootstrap (bundledLibDir={bundledLibDir ?? "<null>"}).");
+            _demoDiagnosticLog.LogInfo($"Student demo FFmpeg codec bootstrap configured: bundledLibDir={bundledLibDir ?? "<null>"}.");
 
             _demoVideoEndPoint = new FFmpegVideoEndPoint();
             _demoVideoEndPoint.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8 || format.Codec == VideoCodecsEnum.H264);
