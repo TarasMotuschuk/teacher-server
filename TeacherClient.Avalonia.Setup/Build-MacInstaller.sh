@@ -176,6 +176,191 @@ PY
   return 0
 }
 
+detect_macos_bottle_key() {
+  local arch os_major
+  arch="$(uname -m)"
+  os_major="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1 || true)"
+
+  # GitHub Actions currently uses macos-14 (Sonoma) or newer.
+  case "${os_major:-}" in
+    14) echo "${arch/arm64/arm64_}sonoma" | sed 's/^x86_64_/sonoma/; s/^arm64_/arm64_/' ;;
+    15) echo "${arch/arm64/arm64_}sequoia" | sed 's/^x86_64_/sequoia/; s/^arm64_/arm64_/' ;;
+    26) echo "${arch/arm64/arm64_}tahoe" | sed 's/^x86_64_/tahoe/; s/^arm64_/arm64_/' ;;
+    *)  echo "" ;;
+  esac
+}
+
+ghcr_fetch_blob() {
+  local repo="$1"
+  local blob_url="$2"
+  local out_path="$3"
+
+  local token
+  token="$(curl -s "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")"
+  if [[ -z "$token" ]]; then
+    return 1
+  fi
+
+  curl -fsSL -H "Authorization: Bearer $token" -o "$out_path" "$blob_url"
+}
+
+try_stage_ffmpeg_from_homebrew_bottles() {
+  if ! command -v curl >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+    return 1
+  fi
+
+  local bottle_key
+  bottle_key="$(detect_macos_bottle_key)"
+  if [[ -z "$bottle_key" ]]; then
+    echo "WARNING: Cannot detect macOS bottle key; skipping Homebrew bottle staging." >&2
+    return 1
+  fi
+
+  local dl_dir api_json bottle_url bottle_sha bottle_path extract_dir
+  dl_dir="$SETUP_ROOT/artifacts/homebrew-bottles"
+  api_json="$dl_dir/ffmpeg@7.json"
+  bottle_path="$dl_dir/ffmpeg@7.tgz"
+  extract_dir="$dl_dir/extract"
+  mkdir -p "$dl_dir"
+
+  # Use FFmpeg 7.x bottle to match FFmpeg.AutoGen 7 (libavutil.59, libavcodec.61, ...).
+  if ! curl -fsSL -o "$api_json" "https://formulae.brew.sh/api/formula/ffmpeg@7.json"; then
+    return 1
+  fi
+
+  bottle_url="$(python3 - "$api_json" "$bottle_key" <<'PY'
+import json, sys
+path=sys.argv[1]
+key=sys.argv[2]
+with open(path, "r", encoding="utf-8") as f:
+    d=json.load(f)
+files=((d.get("bottle") or {}).get("stable") or {}).get("files") or {}
+item=files.get(key) or {}
+print(item.get("url",""))
+PY
+)" || true
+
+  if [[ -z "$bottle_url" ]]; then
+    echo "WARNING: No ffmpeg@7 bottle for key=$bottle_key." >&2
+    return 1
+  fi
+  bottle_sha="${bottle_url##*sha256:}"
+
+  rm -rf "$extract_dir"
+  mkdir -p "$extract_dir"
+
+  echo "Downloading Homebrew bottle ffmpeg@7 ($bottle_key)..."
+  if ! ghcr_fetch_blob "homebrew/core/ffmpeg@7" "$bottle_url" "$bottle_path"; then
+    echo "WARNING: Failed to download ffmpeg@7 bottle blob." >&2
+    return 1
+  fi
+
+  tar -xzf "$bottle_path" -C "$extract_dir"
+
+  local ff_lib_root
+  ff_lib_root="$(find "$extract_dir" -type f -name 'libavutil*.dylib' -path '*/lib/*' 2>/dev/null | head -1 | xargs -I{} dirname "{}")"
+  if [[ -z "$ff_lib_root" || ! -d "$ff_lib_root" ]]; then
+    echo "WARNING: ffmpeg@7 bottle extract contains no lib directory with libavutil." >&2
+    return 1
+  fi
+
+  echo "Staging FFmpeg dylibs from Homebrew bottles: $ff_lib_root -> Contents/Frameworks/ffmpeg/lib"
+  rm -rf "$FFMPEG_FRAMEWORKS_DIR/lib"
+  mkdir -p "$FFMPEG_FRAMEWORKS_DIR/lib"
+  cp -f "$ff_lib_root"/*.dylib "$FFMPEG_FRAMEWORKS_DIR/lib/" 2>/dev/null || true
+
+  # Pull dependency closure by reading otool output and downloading required bottles.
+  local changed
+  changed=1
+  while [[ "$changed" == "1" ]]; do
+    changed=0
+    local lib dep dep_base formula dep_json dep_url dep_blob dep_extract dep_lib_match repo
+    for lib in "$FFMPEG_FRAMEWORKS_DIR/lib"/*.dylib; do
+      [[ -f "$lib" ]] || continue
+      while IFS= read -r dep; do
+        [[ -z "$dep" ]] && continue
+        case "$dep" in
+          @*|/System/*|/usr/lib/*)
+            continue
+            ;;
+        esac
+
+        dep_base="$(basename "$dep")"
+        if [[ -f "$FFMPEG_FRAMEWORKS_DIR/lib/$dep_base" ]]; then
+          continue
+        fi
+
+        # Try to infer formula name from /opt/homebrew/opt/<formula>/... or /opt/homebrew/Cellar/<formula>/...
+        formula=""
+        if [[ "$dep" == /opt/homebrew/opt/*/* ]]; then
+          formula="$(echo "$dep" | cut -d/ -f5)"
+        elif [[ "$dep" == /opt/homebrew/Cellar/*/* ]]; then
+          formula="$(echo "$dep" | cut -d/ -f5)"
+        elif [[ "$dep" == /usr/local/opt/*/* ]]; then
+          formula="$(echo "$dep" | cut -d/ -f5)"
+        elif [[ "$dep" == /usr/local/Cellar/*/* ]]; then
+          formula="$(echo "$dep" | cut -d/ -f5)"
+        fi
+
+        if [[ -z "$formula" ]]; then
+          continue
+        fi
+
+        dep_json="$dl_dir/${formula}.json"
+        dep_blob="$dl_dir/${formula}.tgz"
+        dep_extract="$dl_dir/extract-${formula}"
+        if [[ ! -s "$dep_json" ]]; then
+          curl -fsSL -o "$dep_json" "https://formulae.brew.sh/api/formula/${formula}.json" || continue
+        fi
+
+        dep_url="$(python3 - "$dep_json" "$bottle_key" <<'PY'
+import json, sys
+path=sys.argv[1]
+key=sys.argv[2]
+with open(path, "r", encoding="utf-8") as f:
+    d=json.load(f)
+files=((d.get("bottle") or {}).get("stable") or {}).get("files") or {}
+item=files.get(key) or {}
+print(item.get("url",""))
+PY
+)" || true
+
+        if [[ -z "$dep_url" ]]; then
+          continue
+        fi
+
+        repo="homebrew/core/${formula}"
+        rm -rf "$dep_extract"
+        mkdir -p "$dep_extract"
+        if ! ghcr_fetch_blob "$repo" "$dep_url" "$dep_blob"; then
+          continue
+        fi
+        tar -xzf "$dep_blob" -C "$dep_extract" || continue
+
+        dep_lib_match="$(find "$dep_extract" -type f -name "$dep_base" 2>/dev/null | head -1 || true)"
+        if [[ -z "$dep_lib_match" ]]; then
+          continue
+        fi
+
+        cp -f "$dep_lib_match" "$FFMPEG_FRAMEWORKS_DIR/lib/$dep_base" 2>/dev/null || true
+        changed=1
+      done < <(otool -L "$lib" | tail -n +2 | awk '{print $1}')
+    done
+  done
+
+  ensure_ffmpeg_soname_symlinks "$FFMPEG_FRAMEWORKS_DIR/lib"
+
+  # Verify we at least have the expected FFmpeg 7 SONAME major.
+  if [[ ! -f "$FFMPEG_FRAMEWORKS_DIR/lib/libavutil.59.dylib" && -z "$(ls -1 "$FFMPEG_FRAMEWORKS_DIR/lib"/libavutil.59.*.dylib 2>/dev/null | head -1 || true)" ]]; then
+    echo "WARNING: Homebrew bottle staging did not produce libavutil.59*.dylib." >&2
+    ls -la "$FFMPEG_FRAMEWORKS_DIR/lib"/libavutil*.dylib 2>/dev/null || true
+    return 1
+  fi
+
+  echo "Staged FFmpeg dylibs from Homebrew bottles."
+  return 0
+}
+
 stage_ffmpeg_dylibs() {
   if [[ -n "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR:-}" && -d "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}" ]]; then
     echo "Staging FFmpeg dylibs from CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR=${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}"
@@ -189,11 +374,14 @@ stage_ffmpeg_dylibs() {
   fi
 
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-    echo "GITHUB_ACTIONS=true: staging FFmpeg from prebuilt bundle only."
+    echo "GITHUB_ACTIONS=true: staging FFmpeg (Homebrew bottles, then prebuilt ZIP)."
+    if try_stage_ffmpeg_from_homebrew_bottles; then
+      return
+    fi
     if try_stage_ffmpeg_from_prebuilt_zip; then
       return
     fi
-    echo "ERROR: Could not stage FFmpeg on CI. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR (FFmpeg 7 dylibs) or update the prebuilt ZIP source to an FFmpeg 7 bundle." >&2
+    echo "ERROR: Could not stage FFmpeg on CI. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR (FFmpeg 7 dylibs) or ensure the bottle/ZIP source provides FFmpeg 7 dylibs." >&2
     exit 2
   fi
 
