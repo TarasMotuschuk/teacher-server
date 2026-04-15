@@ -161,7 +161,16 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             _demoVideoEndPoint.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8 || format.Codec == VideoCodecsEnum.H264);
             _demoVideoEndPoint.OnVideoSinkDecodedSampleFaster += (RawImage rawImage) =>
             {
-                if (rawImage.PixelFormat != VideoPixelFormatsEnum.Rgb)
+                PixelFormat? pixelFormat = rawImage.PixelFormat switch
+                {
+                    // GDI+ "Format24bppRgb" is actually stored as BGR in memory; accept both.
+                    VideoPixelFormatsEnum.Rgb => PixelFormat.Format24bppRgb,
+                    VideoPixelFormatsEnum.Bgr => PixelFormat.Format24bppRgb,
+                    VideoPixelFormatsEnum.Bgra => PixelFormat.Format32bppArgb,
+                    _ => null,
+                };
+
+                if (pixelFormat is null)
                 {
                     return;
                 }
@@ -172,7 +181,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                     {
                         try
                         {
-                            using var bmp = new Bitmap(rawImage.Width, rawImage.Height, rawImage.Stride, PixelFormat.Format24bppRgb, rawImage.Sample);
+                            using var bmp = new Bitmap(rawImage.Width, rawImage.Height, rawImage.Stride, pixelFormat.Value, rawImage.Sample);
                             form.SetFrame((Bitmap)bmp.Clone());
                         }
                         catch
