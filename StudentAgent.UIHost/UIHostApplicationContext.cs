@@ -23,6 +23,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     private FFmpegVideoEndPoint? _demoVideoEndPoint;
     private bool _demoAuthWarningShown;
     private DateTime _lastDemoConnectivityWarningUtc;
+    private DateTime _lastDemoWebRtcInitAttemptUtc;
 
     public UIHostApplicationContext(AgentSettingsStore settingsStore, AgentLogService logService, ProcessService processService)
         : base(settingsStore, logService, processService)
@@ -123,7 +124,18 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                 _demoAuthWarningShown = false;
                 _activeDemoSessionId = status.SessionId;
                 ShowDemoForms();
+                _lastDemoWebRtcInitAttemptUtc = DateTime.MinValue;
                 await StartOrRefreshDemoWebRtcAsync(status.SessionId);
+            }
+            else
+            {
+                // If the demo session is active but WebRTC was never established (or was torn down),
+                // retry periodically so transient FFmpeg/init errors don't leave students stuck on a black screen.
+                if (_demoPc is null && DateTime.UtcNow - _lastDemoWebRtcInitAttemptUtc > TimeSpan.FromSeconds(5))
+                {
+                    _lastDemoWebRtcInitAttemptUtc = DateTime.UtcNow;
+                    await StartOrRefreshDemoWebRtcAsync(status.SessionId);
+                }
             }
         }
         catch
@@ -136,6 +148,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     {
         try
         {
+            _lastDemoWebRtcInitAttemptUtc = DateTime.UtcNow;
             _logService.LogInfo($"Demo WebRTC: starting/refreshing for sessionId={sessionId}.");
             var port = Math.Max(1, SettingsStore.Current.Port);
             using var offerReq = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/demo/webrtc/offer?sessionId={Uri.EscapeDataString(sessionId)}");

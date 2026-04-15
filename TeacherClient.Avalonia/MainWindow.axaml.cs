@@ -303,7 +303,10 @@ public partial class MainWindow : Window, IDisposable
 
     private async Task StartDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
     {
-        _demoSessionId ??= Guid.NewGuid().ToString("N");
+        // Always generate a fresh session id per start attempt.
+        // If a previous start attempt failed mid-way (e.g., FFmpeg init error), reusing the same session id
+        // prevents StudentAgent.UIHost from re-running the WebRTC answer flow.
+        _demoSessionId = Guid.NewGuid().ToString("N");
         var sessionId = _demoSessionId;
 
         var (capW, capH) = GetDemonstrationCaptureSize();
