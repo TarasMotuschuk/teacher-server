@@ -120,6 +120,13 @@ PY
 
   local lib_root
   lib_root="$(dirname "$first_codec")"
+  # ColorsWind/FFmpeg-macOS "latest" is FFmpeg 5 (libavutil.57). FFmpeg.AutoGen 7 needs FFmpeg 7 (libavutil.59).
+  if [[ ! -f "$lib_root/libavutil.59.dylib" ]]; then
+    echo "WARNING: Prebuilt ZIP is not FFmpeg.AutoGen-7-compatible (no libavutil.59.dylib in $lib_root). Skipping." >&2
+    ls -la "$lib_root"/libavutil*.dylib 2>/dev/null || true
+    return 1
+  fi
+
   echo "Staging FFmpeg lib tree (no flatten): $lib_root -> Contents/Frameworks/ffmpeg/lib"
   rm -rf "$FFMPEG_FRAMEWORKS_DIR/lib"
   mkdir -p "$FFMPEG_FRAMEWORKS_DIR"
@@ -129,24 +136,8 @@ PY
   return 0
 }
 
-stage_ffmpeg_dylibs() {
-  if [[ -n "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR:-}" && -d "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}" ]]; then
-    echo "Staging FFmpeg dylibs from CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR=${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}"
-    ditto --norsrc "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}/" "$FFMPEG_FRAMEWORKS_DIR"
-    return
-  fi
-
-  # GitHub Actions: never use Homebrew (unreliable/slow; not required). Prebuilt ZIP + install_name_tool only.
-  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-    echo "GITHUB_ACTIONS=true: skipping Homebrew; staging FFmpeg from prebuilt bundle only."
-    if try_stage_ffmpeg_from_prebuilt_zip; then
-      return
-    fi
-    echo "ERROR: FFmpeg dylibs could not be downloaded/extracted on CI. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR or ensure GITHUB_TOKEN can reach api.github.com." >&2
-    exit 2
-  fi
-
-  # Local builds: optional Homebrew (PATH can vary).
+# Returns 0 if dylibs were copied from a Homebrew ffmpeg keg, 1 otherwise.
+stage_ffmpeg_dylibs_from_homebrew() {
   if [[ -x "/opt/homebrew/bin/brew" ]]; then
     export PATH="/opt/homebrew/bin:$PATH"
   fi
@@ -165,73 +156,99 @@ stage_ffmpeg_dylibs() {
     if [[ -z "$brew_bin" && -x "/usr/local/Homebrew/bin/brew" ]]; then brew_bin="/usr/local/Homebrew/bin/brew"; fi
   fi
 
-  if [[ -n "$brew_bin" ]]; then
-    local prefix
-    prefix="$("$brew_bin" --prefix ffmpeg 2>/dev/null || true)"
-    if [[ -z "$prefix" ]]; then
-      echo "Homebrew is available but ffmpeg is not installed. Installing ffmpeg..."
-      "$brew_bin" install ffmpeg
-      prefix="$("$brew_bin" --prefix ffmpeg 2>/dev/null || true)"
-    fi
-    if [[ -n "$prefix" && -d "$prefix/lib" ]]; then
-      echo "Staging FFmpeg dylibs from Homebrew prefix: $prefix"
-      # e.g. /opt/homebrew — deps like libx264 live under /opt/homebrew/opt/x264/..., not under .../opt/ffmpeg/...
-      local brew_prefix
-      brew_prefix="$("$brew_bin" --prefix 2>/dev/null || true)"
-      if [[ -z "$brew_prefix" ]]; then
-        if [[ -d "/opt/homebrew" ]]; then brew_prefix="/opt/homebrew"; fi
-        if [[ -z "$brew_prefix" && -d "/usr/local" ]]; then brew_prefix="/usr/local"; fi
-      fi
-
-      # Copy the FFmpeg dylibs (plus swscale/swresample) that SIPSorcery loads.
-      cp -f "$prefix/lib/libavcodec"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-      cp -f "$prefix/lib/libavdevice"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-      cp -f "$prefix/lib/libavfilter"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-      cp -f "$prefix/lib/libavformat"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-      cp -f "$prefix/lib/libavutil"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-      cp -f "$prefix/lib/libswresample"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-      cp -f "$prefix/lib/libswscale"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-
-      # Homebrew ffmpeg dylibs depend on many other non-system dylibs (x264/vpx/openssl/...).
-      # Collect the full dependency closure so dlopen succeeds on machines without Homebrew.
-      local changed
-      changed=1
-      while [[ "$changed" == "1" ]]; do
-        changed=0
-        for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
-          [[ -f "$lib" ]] || continue
-          for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
-            case "$dep" in
-              @*|/System/*|/usr/lib/*)
-                continue
-                ;;
-            esac
-
-            local dep_base
-            dep_base="$(basename "$dep")"
-            if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
-              continue
-            fi
-
-            # Copy any Homebrew dylib dependency (x264, ssl, etc.), not only libs under the ffmpeg keg.
-            if [[ -f "$dep" && "$dep" == *.dylib && -n "$brew_prefix" && "$dep" == "$brew_prefix"* ]]; then
-              cp -f "$dep" "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
-              changed=1
-            fi
-          done
-        done
-      done
-
-      return
-    fi
+  if [[ -z "$brew_bin" ]]; then
+    return 1
   fi
 
-  # Local fallback: prebuilt ZIP (same as CI).
+  local prefix
+  prefix="$("$brew_bin" --prefix ffmpeg 2>/dev/null || true)"
+  if [[ -z "$prefix" ]]; then
+    echo "Homebrew is available but ffmpeg is not installed. Installing ffmpeg..."
+    export HOMEBREW_NO_AUTO_UPDATE="${HOMEBREW_NO_AUTO_UPDATE:-1}"
+    "$brew_bin" install ffmpeg
+    prefix="$("$brew_bin" --prefix ffmpeg 2>/dev/null || true)"
+  fi
+  if [[ -z "$prefix" || ! -d "$prefix/lib" ]]; then
+    return 1
+  fi
+
+  echo "Staging FFmpeg dylibs from Homebrew prefix: $prefix"
+  local brew_prefix
+  brew_prefix="$("$brew_bin" --prefix 2>/dev/null || true)"
+  if [[ -z "$brew_prefix" ]]; then
+    if [[ -d "/opt/homebrew" ]]; then brew_prefix="/opt/homebrew"; fi
+    if [[ -z "$brew_prefix" && -d "/usr/local" ]]; then brew_prefix="/usr/local"; fi
+  fi
+
+  mkdir -p "$FFMPEG_FRAMEWORKS_DIR"
+  cp -f "$prefix/lib/libavcodec"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+  cp -f "$prefix/lib/libavdevice"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+  cp -f "$prefix/lib/libavfilter"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+  cp -f "$prefix/lib/libavformat"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+  cp -f "$prefix/lib/libavutil"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+  cp -f "$prefix/lib/libswresample"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+  cp -f "$prefix/lib/libswscale"*.dylib "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+
+  local changed
+  changed=1
+  while [[ "$changed" == "1" ]]; do
+    changed=0
+    for lib in "$FFMPEG_FRAMEWORKS_DIR"/*.dylib; do
+      [[ -f "$lib" ]] || continue
+      for dep in $(otool -L "$lib" | awk '{print $1}' | tail -n +2); do
+        case "$dep" in
+          @*|/System/*|/usr/lib/*)
+            continue
+            ;;
+        esac
+
+        local dep_base
+        dep_base="$(basename "$dep")"
+        if [[ -f "$FFMPEG_FRAMEWORKS_DIR/$dep_base" ]]; then
+          continue
+        fi
+
+        if [[ -f "$dep" && "$dep" == *.dylib && -n "$brew_prefix" && "$dep" == "$brew_prefix"* ]]; then
+          cp -f "$dep" "$FFMPEG_FRAMEWORKS_DIR/" 2>/dev/null || true
+          changed=1
+        fi
+      done
+    done
+  done
+
+  return 0
+}
+
+stage_ffmpeg_dylibs() {
+  if [[ -n "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR:-}" && -d "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}" ]]; then
+    echo "Staging FFmpeg dylibs from CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR=${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}"
+    ditto --norsrc "${CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR}/" "$FFMPEG_FRAMEWORKS_DIR"
+    return
+  fi
+
+  # GitHub Actions: try the GitHub ZIP first; ColorsWind/FFmpeg-macOS only publishes FFmpeg 5, so we fall back to Homebrew.
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "GITHUB_ACTIONS=true: staging FFmpeg (prebuilt ZIP if FFmpeg 7-compatible, else Homebrew)."
+    if try_stage_ffmpeg_from_prebuilt_zip; then
+      return
+    fi
+    echo "Prebuilt bundle unavailable or wrong FFmpeg major; using Homebrew ffmpeg."
+    if stage_ffmpeg_dylibs_from_homebrew; then
+      return
+    fi
+    echo "ERROR: Could not stage FFmpeg on CI. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR, or ensure Homebrew can install ffmpeg." >&2
+    exit 2
+  fi
+
+  if stage_ffmpeg_dylibs_from_homebrew; then
+    return
+  fi
+
   if try_stage_ffmpeg_from_prebuilt_zip; then
     return
   fi
 
-  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR, install Homebrew ffmpeg, or ensure curl/python3 can download the prebuilt bundle." >&2
+  echo "ERROR: FFmpeg dylibs not found. Set CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR, install Homebrew ffmpeg, or ensure curl/python3 can download a FFmpeg 7-compatible prebuilt bundle." >&2
   exit 2
 }
 
