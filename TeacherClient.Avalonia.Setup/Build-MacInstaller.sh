@@ -235,6 +235,35 @@ stage_ffmpeg_dylibs() {
   exit 2
 }
 
+# FFmpeg.AutoGen 7 (via SIPSorceryMedia.FFmpeg) uses fixed SONAMEs — see TeacherClient.Avalonia FfmpegBootstrap.MacFfmpegAutogen7Dylibs.
+verify_ffmpeg_autogen7_dylibs() {
+  local lib_dir="$FFMPEG_FRAMEWORKS_DIR/lib"
+  if [[ ! -d "$lib_dir" ]]; then
+    lib_dir="$FFMPEG_FRAMEWORKS_DIR"
+  fi
+  local missing=0
+  local f
+  for f in \
+    libavutil.59.dylib \
+    libavcodec.61.dylib \
+    libavformat.61.dylib \
+    libavdevice.61.dylib \
+    libavfilter.10.dylib \
+    libpostproc.58.dylib \
+    libswresample.5.dylib \
+    libswscale.8.dylib; do
+    if [[ ! -f "$lib_dir/$f" ]]; then
+      echo "ERROR: Bundled FFmpeg must be FFmpeg 7-compatible (FFmpeg.AutoGen 7). Missing: $lib_dir/$f" >&2
+      missing=1
+    fi
+  done
+  if [[ "$missing" -ne 0 ]]; then
+    echo "Found libavutil matches:" >&2
+    ls -la "$lib_dir"/libavutil*.dylib 2>/dev/null || echo "(none)" >&2
+    exit 2
+  fi
+}
+
 make_ffmpeg_relocatable() {
   local exe="$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
   if [[ ! -f "$exe" ]]; then
@@ -325,6 +354,7 @@ codesign_app_bundle() {
 }
 
 stage_ffmpeg_dylibs
+verify_ffmpeg_autogen7_dylibs
 make_ffmpeg_relocatable
 
 INFO_PLIST_TEMPLATE="$SETUP_ROOT/Resources/Info.plist.template"

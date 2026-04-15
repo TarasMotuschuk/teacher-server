@@ -326,6 +326,16 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             }
         }
 
+        if (OperatingSystem.IsMacOS())
+        {
+            var macDiag = FfmpegBootstrap.BuildMacOsBundledFfmpegDiagnostics(bundledLibDirPassedToInit);
+            if (!string.IsNullOrEmpty(macDiag))
+            {
+                lines.Add(string.Empty);
+                lines.Add(macDiag);
+            }
+        }
+
         return string.Join(Environment.NewLine, lines);
     }
 
