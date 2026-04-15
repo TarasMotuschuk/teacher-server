@@ -6,7 +6,7 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class WindowsRawScreenVideoSource : IVideoSource, IDisposable
 {
-    private readonly FfmpegEncodedRawVideoSource _inner;
+    private readonly Vp8EncodedRawVideoSource _inner;
     private readonly WindowsScreenCaptureProducer _producer;
     private readonly Rectangle _captureArea;
     private readonly int _captureFps;
@@ -14,7 +14,7 @@ public sealed class WindowsRawScreenVideoSource : IVideoSource, IDisposable
 
     public WindowsRawScreenVideoSource(Rectangle captureArea, int captureFps)
     {
-        _inner = new FfmpegEncodedRawVideoSource();
+        _inner = new Vp8EncodedRawVideoSource();
         _producer = new WindowsScreenCaptureProducer();
         _captureArea = captureArea;
         _captureFps = captureFps;

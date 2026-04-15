@@ -1,39 +1,37 @@
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.FFmpeg;
+using SIPSorceryMedia.Encoders;
 
 namespace TeacherClient.CrossPlatform.Services;
 
 /// <summary>
-/// An <see cref="IVideoSource"/> that accepts externally captured raw frames and encodes them with FFmpeg.
-/// It deliberately does not perform any device capture on its own.
+/// Accepts externally captured raw frames and encodes VP8 via libvpx (no FFmpeg).
 /// </summary>
-public sealed class FfmpegEncodedRawVideoSource : IVideoSource, IDisposable
+public sealed class Vp8EncodedRawVideoSource : IVideoSource, IDisposable
 {
-    private readonly FFmpegVideoEncoder _encoder;
+    private readonly VpxVideoEncoder _encoder = new();
     private readonly object _sync = new();
     private readonly List<VideoFormat> _supportedFormats;
     private VideoFormat _selectedFormat;
     private bool _isPaused;
     private bool _isClosed;
 
-    public FfmpegEncodedRawVideoSource(VideoCodecsEnum preferredCodec = VideoCodecsEnum.H264)
+    public Vp8EncodedRawVideoSource(uint? targetKbps = 2500)
     {
-        FfmpegBootstrap.EnsureEncoderOnlyConfigured();
-        _encoder = new FFmpegVideoEncoder();
+        if (targetKbps is > 0)
+        {
+            _encoder.TargetKbps = targetKbps;
+        }
+
         _supportedFormats = _encoder.SupportedFormats
-            .Where(format => format.Codec == preferredCodec || (preferredCodec == VideoCodecsEnum.H264 && format.Codec == VideoCodecsEnum.VP8))
+            .Where(format => format.Codec == VideoCodecsEnum.VP8)
             .ToList();
 
         if (_supportedFormats.Count == 0)
         {
-            throw new NotSupportedException($"No supported FFmpeg video formats found for preferred codec {preferredCodec}.");
+            throw new NotSupportedException("VP8 is not available from VpxVideoEncoder.SupportedFormats.");
         }
 
-        _selectedFormat = _supportedFormats.FirstOrDefault(format => format.Codec == preferredCodec);
-        if (_selectedFormat.Codec != preferredCodec)
-        {
-            _selectedFormat = _supportedFormats[0];
-        }
+        _selectedFormat = _supportedFormats[0];
     }
 
     public event EncodedSampleDelegate? OnVideoSourceEncodedSample;
@@ -131,10 +129,7 @@ public sealed class FfmpegEncodedRawVideoSource : IVideoSource, IDisposable
         EncodeAndRaise(durationMilliseconds, rawImage.Width, rawImage.Height, rawImage.GetBuffer(), rawImage.PixelFormat);
     }
 
-    public void ForceKeyFrame()
-    {
-        _encoder.ForceKeyFrame();
-    }
+    public void ForceKeyFrame() => _encoder.ForceKeyFrame();
 
     public bool HasEncodedVideoSubscribers() => OnVideoSourceEncodedSample is not null;
 
@@ -149,6 +144,7 @@ public sealed class FfmpegEncodedRawVideoSource : IVideoSource, IDisposable
     public void Dispose()
     {
         _ = CloseVideo();
+        _encoder.Dispose();
     }
 
     private void EncodeAndRaise(uint durationMilliseconds, int width, int height, byte[] sample, VideoPixelFormatsEnum pixelFormat)
@@ -169,13 +165,12 @@ public sealed class FfmpegEncodedRawVideoSource : IVideoSource, IDisposable
                 return;
             }
 
-            // For video, the RTP clock is typically 90kHz.
             var durationRtpUnits = Math.Max(1u, durationMilliseconds * 90);
             OnVideoSourceEncodedSample?.Invoke(durationRtpUnits, encoded);
         }
         catch (Exception ex)
         {
-            OnVideoSourceError?.Invoke($"Raw video encode failed: {ex.Message}");
+            OnVideoSourceError?.Invoke($"VP8 raw encode failed: {ex.Message}");
         }
     }
 }

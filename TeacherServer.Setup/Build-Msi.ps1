@@ -24,24 +24,6 @@ $servicePublishScript = Join-Path $root "StudentAgent.Service\Publish-ServiceBun
 $fragmentGenerator = Join-Path $PSScriptRoot "Generate-WixFragment.ps1"
 $installerProject = Join-Path $PSScriptRoot "TeacherServer.Setup.wixproj"
 
-function Copy-FFmpegSharedLibrariesToPayload([string]$payloadDir) {
-    $ffmpegDir = Join-Path $payloadDir "ffmpeg"
-    New-Item -ItemType Directory -Force -Path $ffmpegDir | Out-Null
-
-    if ($env:CLASSCOMMANDER_FFMPEG_WINDOWS_DLL_DIR -and (Test-Path $env:CLASSCOMMANDER_FFMPEG_WINDOWS_DLL_DIR)) {
-        Copy-Item -Force -Path (Join-Path $env:CLASSCOMMANDER_FFMPEG_WINDOWS_DLL_DIR "*.dll") -Destination $ffmpegDir
-        return
-    }
-
-    $cacheDir = Join-Path $PSScriptRoot "artifacts\ffmpeg-win-shared"
-    $dllDir = Join-Path $cacheDir "bin"
-    if (-not (Test-Path $dllDir)) {
-        & (Join-Path $PSScriptRoot "Fetch-FFmpeg-Windows.ps1") -OutputDirectory $cacheDir
-    }
-
-    Copy-Item -Force -Path (Join-Path $dllDir "*.dll") -Destination $ffmpegDir
-}
-
 Write-Host "Publishing TeacherClient..."
 dotnet publish $teacherProject `
     -c $Configuration `
@@ -64,9 +46,6 @@ if ($LASTEXITCODE -ne 0) {
     throw "Publishing TeacherClient.Avalonia failed."
 }
 
-Write-Host "Staging FFmpeg shared libraries (TeacherClient.Avalonia)..."
-Copy-FFmpegSharedLibrariesToPayload $teacherAvaloniaPayloadDirectory
-
 Write-Host "Publishing StudentAgent service bundle..."
 & $servicePublishScript `
     -Configuration $Configuration `
@@ -76,9 +55,6 @@ Write-Host "Publishing StudentAgent service bundle..."
 if ($LASTEXITCODE -ne 0) {
     throw "Publishing StudentAgent service bundle failed."
 }
-
-Write-Host "Staging FFmpeg shared libraries (StudentAgent)..."
-Copy-FFmpegSharedLibrariesToPayload $studentPayloadDirectory
 
 Write-Host "Generating WiX payload fragments..."
 & $fragmentGenerator `

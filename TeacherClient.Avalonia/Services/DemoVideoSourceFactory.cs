@@ -1,7 +1,7 @@
 using System.Drawing;
 using SIPSorcery.Media;
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.FFmpeg;
+using SIPSorceryMedia.Encoders;
 
 namespace TeacherClient.CrossPlatform.Services;
 
@@ -19,7 +19,7 @@ public sealed class DemoVideoSourceFactory
             }
             catch (Exception ex)
             {
-                diagnosticLog.LogWarning($"Teacher demo macOS raw capture backend failed for {studentBaseUrl}: {ex.Message}. Falling back to FFmpegScreenSource.");
+                diagnosticLog.LogWarning($"Teacher demo macOS raw capture backend failed for {studentBaseUrl}: {ex.Message}. Falling back to test pattern.");
             }
         }
 
@@ -33,43 +33,21 @@ public sealed class DemoVideoSourceFactory
             }
             catch (Exception ex)
             {
-                diagnosticLog.LogWarning($"Teacher demo Windows raw capture backend failed for {studentBaseUrl}: {ex.Message}. Falling back to FFmpegScreenSource.");
+                diagnosticLog.LogWarning($"Teacher demo Windows raw capture backend failed for {studentBaseUrl}: {ex.Message}. Falling back to test pattern.");
             }
         }
 
         try
         {
-            var source = new FFmpegScreenSource(GetScreenInputPath(), captureArea, captureFps);
-            diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: FFmpegScreenSource input={GetScreenInputPath()}.");
-            return source;
-        }
-        catch
-        {
-            // Keep demo flow operational while we transition away from FFmpeg-based screen capture.
-            var fallback = new VideoTestPatternSource(new FFmpegVideoEncoder());
+            var fallback = new VideoTestPatternSource(new VpxVideoEncoder());
             fallback.SetFrameRate(captureFps);
-            diagnosticLog.LogWarning($"Teacher demo capture source fallback activated for {studentBaseUrl}: VideoTestPatternSource.");
+            diagnosticLog.LogWarning($"Teacher demo capture source fallback for {studentBaseUrl}: VideoTestPatternSource (VP8/libvpx).");
             return fallback;
         }
-    }
-
-    private static string GetScreenInputPath()
-    {
-        if (OperatingSystem.IsWindows())
+        catch (Exception ex)
         {
-            return "desktop";
+            diagnosticLog.LogError($"Teacher demo could not create any video source for {studentBaseUrl}: {ex.Message}");
+            throw;
         }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            return "1";
-        }
-
-        if (OperatingSystem.IsLinux())
-        {
-            return ":0.0";
-        }
-
-        return "desktop";
     }
 }

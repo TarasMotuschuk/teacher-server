@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Net.Http.Json;
-using FFmpeg.AutoGen;
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
 using Teacher.Common.Contracts;
@@ -48,18 +47,8 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
         }
 
-        string? bundledLibDir;
-        try
-        {
-            bundledLibDir = FfmpegBootstrap.EnsureEncoderOnlyConfigured();
-            _diagnosticLog.LogInfo($"Teacher demo FFmpeg encoder bootstrap configured for {studentBaseUrl}. bundledLibDir={bundledLibDir ?? "<null>"}.");
-        }
-        catch (Exception ex)
-        {
-            bundledLibDir = FfmpegBootstrap.TryGetBundledFfmpegLibDirectory();
-            _diagnosticLog.LogError($"Teacher demo FFmpeg init failed for {studentBaseUrl}: {ex}");
-            throw new InvalidOperationException(BuildFfmpegErrorMessage(ex, bundledLibDir), ex);
-        }
+        // Demo uses VP8 via libvpx (Vp8EncodedRawVideoSource).
+        _diagnosticLog.LogInfo($"Teacher demo WebRTC: VP8 encode via libvpx for {studentBaseUrl}.");
 
         RTCPeerConnection? pc = null;
         long localIceCandidates = 0;
@@ -69,7 +58,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
 
         try
         {
-            // While we transition away from FFmpeg on the student side, force VP8 to keep the pipeline deterministic.
+            // Force VP8 so teacher and student use the same codec.
             source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
 
             pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
@@ -346,61 +335,6 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             // Do not throw on verification failure; stop is still requested.
             _diagnosticLog.LogWarning($"Teacher demo stop verification could not confirm inactive state for {studentBaseUrl}.");
         }
-    }
-
-    private static string BuildFfmpegErrorMessage(Exception ex, string? bundledLibDirPassedToInit)
-    {
-        var baseDir = AppContext.BaseDirectory;
-        var candidates = new[]
-        {
-            Path.Combine(baseDir, "ffmpeg", "lib"),
-            Path.Combine(baseDir, "ffmpeg"),
-            Path.Combine(baseDir, "ffmpeg", "bin"),
-            Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg", "lib")),
-            Path.GetFullPath(Path.Combine(baseDir, "..", "Frameworks", "ffmpeg")),
-        };
-
-        var root = string.IsNullOrWhiteSpace(ffmpeg.RootPath) ? "<empty>" : ffmpeg.RootPath;
-        var lines = new List<string>
-        {
-            $"FFmpeg initialization failed: {ex.Message}",
-            $"Bundled lib dir passed to FFmpegInit.Initialise = {bundledLibDirPassedToInit ?? "<null> (searches PATH / FFmpeg/bin/x64 only)"}",
-            $"FFmpeg.AutoGen.ffmpeg.RootPath = {root}",
-            $"BaseDirectory = {baseDir}",
-            "Checked candidates:",
-        };
-
-        foreach (var c in candidates)
-        {
-            try
-            {
-                var exists = Directory.Exists(c);
-                var search = OperatingSystem.IsMacOS() ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-                var avcodec = exists
-                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avcodec*.dll" : "libavcodec*.dylib", search).Any()
-                    : false;
-                var avutil = exists
-                    ? Directory.EnumerateFiles(c, OperatingSystem.IsWindows() ? "avutil*.dll" : "libavutil*.dylib", search).Any()
-                    : false;
-                lines.Add($"- {c} (exists={exists}, avcodec={avcodec}, avutil={avutil})");
-            }
-            catch
-            {
-                lines.Add($"- {c} (unreadable)");
-            }
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            var macDiag = FfmpegBootstrap.BuildMacOsBundledFfmpegDiagnostics(bundledLibDirPassedToInit);
-            if (!string.IsNullOrEmpty(macDiag))
-            {
-                lines.Add(string.Empty);
-                lines.Add(macDiag);
-            }
-        }
-
-        return string.Join(Environment.NewLine, lines);
     }
 
     public void Dispose()

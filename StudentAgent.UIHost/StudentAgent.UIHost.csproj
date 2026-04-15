@@ -18,13 +18,11 @@
     <PackageReference Include="SIPSorcery" Version="10.0.3" />
     <PackageReference Include="SIPSorceryMedia.Abstractions" Version="8.0.12" />
     <PackageReference Include="SIPSorceryMedia.Encoders" Version="10.0.4" />
-    <PackageReference Include="SIPSorceryMedia.FFmpeg" Version="8.0.12" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\TeacherClient.Avalonia\Services\DemoDiagnosticLog.cs" Link="Shared\Services\DemoDiagnosticLog.cs" />
-    <Compile Include="..\TeacherClient.Avalonia\Services\FfmpegBootstrap.cs" Link="Shared\Services\FfmpegBootstrap.cs" />
     <Compile Include="..\StudentAgent.Shared\AgentOptions.cs" Link="Shared\AgentOptions.cs" />
     <Compile Include="..\StudentAgent.Shared\AgentRuntimeSettings.cs" Link="Shared\AgentRuntimeSettings.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\AgentLogService.cs" Link="Shared\Services\AgentLogService.cs" />

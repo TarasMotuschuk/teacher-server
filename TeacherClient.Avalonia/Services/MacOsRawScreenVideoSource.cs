@@ -6,7 +6,7 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class MacOsRawScreenVideoSource : IVideoSource, IDisposable
 {
-    private readonly FfmpegEncodedRawVideoSource _inner;
+    private readonly Vp8EncodedRawVideoSource _inner;
     private readonly MacOsScreenCaptureProducer _producer;
     private readonly Rectangle _captureArea;
     private readonly int _captureFps;
@@ -14,7 +14,7 @@ public sealed class MacOsRawScreenVideoSource : IVideoSource, IDisposable
 
     public MacOsRawScreenVideoSource(Rectangle captureArea, int captureFps)
     {
-        _inner = new FfmpegEncodedRawVideoSource();
+        _inner = new Vp8EncodedRawVideoSource();
         _producer = new MacOsScreenCaptureProducer();
         _captureArea = captureArea;
         _captureFps = captureFps;

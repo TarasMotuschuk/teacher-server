@@ -137,7 +137,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             else
             {
                 // If the demo session is active but WebRTC was never established (or was torn down),
-                // retry periodically so transient FFmpeg/init errors don't leave students stuck on a black screen.
+                // Retry periodically so transient WebRTC init errors don't leave students stuck on a black screen.
                 if (_demoPc is null && DateTime.UtcNow - _lastDemoWebRtcInitAttemptUtc > TimeSpan.FromSeconds(5))
                 {
                     _lastDemoWebRtcInitAttemptUtc = DateTime.UtcNow;
