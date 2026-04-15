@@ -56,15 +56,13 @@ public sealed class DemoSessionStore
         }
     }
 
-    public (string SdpType, string Sdp)? TryConsumeOffer(string sessionId)
+    public (string SdpType, string Sdp)? TryGetOffer(string sessionId)
     {
         if (!_sessions.TryGetValue(sessionId, out var state) || string.IsNullOrWhiteSpace(state.OfferSdpType) || string.IsNullOrWhiteSpace(state.OfferSdp))
         {
             return null;
         }
 
-        var next = state with { OfferSdpType = null, OfferSdp = null };
-        _sessions[sessionId] = next;
         return (state.OfferSdpType!, state.OfferSdp!);
     }
 
@@ -75,7 +73,13 @@ public sealed class DemoSessionStore
             return;
         }
 
-        _sessions[sessionId] = state with { AnswerSdpType = sdpType, AnswerSdp = sdp };
+        _sessions[sessionId] = state with
+        {
+            OfferSdpType = null,
+            OfferSdp = null,
+            AnswerSdpType = sdpType,
+            AnswerSdp = sdp,
+        };
     }
 
     public (string SdpType, string Sdp)? TryConsumeAnswer(string sessionId)

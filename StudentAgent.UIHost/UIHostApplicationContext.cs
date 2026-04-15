@@ -162,6 +162,12 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
             using var offerReq = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/demo/webrtc/offer?sessionId={Uri.EscapeDataString(sessionId)}");
             offerReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
             using var offerResp = await _httpClient.SendAsync(offerReq);
+            if (offerResp.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                _demoDiagnosticLog.LogInfo($"Student demo offer not available yet for sessionId={sessionId}.");
+                return;
+            }
+
             if (!offerResp.IsSuccessStatusCode)
             {
                 _logService.LogWarning($"Demo WebRTC: offer request failed. HTTP {(int)offerResp.StatusCode}.");
@@ -364,6 +370,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
         {
             _logService.LogWarning($"Demo WebRTC init failed: {ex.Message}");
             _demoDiagnosticLog.LogError($"Student demo WebRTC init failed for sessionId={sessionId}: {ex}");
+            CloseDemoWebRtcState();
         }
     }
 
@@ -381,6 +388,26 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     }
 
     private void CloseDemoForms()
+    {
+        CloseDemoWebRtcState();
+
+        foreach (var form in _demoForms.ToArray())
+        {
+            try
+            {
+                form.ForceClose();
+                form.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+        _demoForms.Clear();
+        _demoDiagnosticLog.LogInfo("Student demo fullscreen forms cleared.");
+    }
+
+    private void CloseDemoWebRtcState()
     {
         try
         {
@@ -401,21 +428,6 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
         catch
         {
         }
-
-        foreach (var form in _demoForms.ToArray())
-        {
-            try
-            {
-                form.ForceClose();
-                form.Dispose();
-            }
-            catch
-            {
-            }
-        }
-
-        _demoForms.Clear();
-        _demoDiagnosticLog.LogInfo("Student demo fullscreen forms cleared.");
     }
 
     private void RestoreDesktopIconsSilently()

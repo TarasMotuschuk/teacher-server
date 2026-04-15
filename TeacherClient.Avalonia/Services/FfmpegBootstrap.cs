@@ -218,7 +218,7 @@ public static class FfmpegBootstrap
 
             RegisterMacOsFfmpegDllImportResolver();
             TryConfigureBundledLibraries();
-            TryPreloadBundledFfmpegMacOS();
+            TryPreloadBundledFfmpegMacOS(includeAvDevice: true);
 
             var bundledLibDir = TryGetBundledFfmpegLibDirectory();
             FFmpegInit.Initialise(FfmpegLogLevelEnum.AV_LOG_ERROR, bundledLibDir, null);
@@ -228,11 +228,27 @@ public static class FfmpegBootstrap
     }
 
     /// <summary>
+    /// Prepares FFmpeg codec libraries for encode/decode use without touching capture/input-device registration.
+    /// This is the preferred bootstrap for custom raw-frame pipelines that should avoid loading <c>avdevice</c>.
+    /// </summary>
+    /// <returns>Directory containing native FFmpeg libraries, or <c>null</c>.</returns>
+    public static string? EnsureEncoderOnlyConfigured()
+    {
+        lock (InitSync)
+        {
+            RegisterMacOsFfmpegDllImportResolver();
+            TryConfigureBundledLibraries();
+            TryPreloadBundledFfmpegMacOS(includeAvDevice: false);
+            return TryGetBundledFfmpegLibDirectory();
+        }
+    }
+
+    /// <summary>
     /// Preload bundled <c>*.dylib</c> in a sensible order so transitive dependencies (e.g. codec libs) are in memory
     /// before FFmpeg.AutoGen loads <c>libavutil</c> — avoids "Unable to load ... avutil.xx" when files exist but dyld
     /// resolves dependencies lazily.
     /// </summary>
-    public static void TryPreloadBundledFfmpegMacOS()
+    public static void TryPreloadBundledFfmpegMacOS(bool includeAvDevice = true)
     {
         if (!OperatingSystem.IsMacOS())
         {
@@ -251,10 +267,15 @@ public static class FfmpegBootstrap
             return;
         }
 
-        static bool IsCoreLib(string fileName)
+        static bool IsCoreLib(string fileName, bool includeAvDevice)
         {
             foreach (var p in MacCoreFfmpegPrefixes)
             {
+                if (!includeAvDevice && string.Equals(p, "libavdevice", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 if (fileName.StartsWith(p, StringComparison.Ordinal))
                 {
                     return true;
@@ -267,7 +288,7 @@ public static class FfmpegBootstrap
         Array.Sort(paths, StringComparer.Ordinal);
         foreach (var path in paths)
         {
-            if (!IsCoreLib(Path.GetFileName(path)))
+            if (!IsCoreLib(Path.GetFileName(path), includeAvDevice))
             {
                 TryLoadOnce(path);
             }
@@ -275,7 +296,7 @@ public static class FfmpegBootstrap
 
         foreach (var path in paths)
         {
-            if (IsCoreLib(Path.GetFileName(path)))
+            if (IsCoreLib(Path.GetFileName(path), includeAvDevice))
             {
                 TryLoadOnce(path);
             }

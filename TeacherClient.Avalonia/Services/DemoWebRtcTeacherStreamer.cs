@@ -1,10 +1,8 @@
 using System.Drawing;
 using System.Net.Http.Json;
 using FFmpeg.AutoGen;
-using SIPSorcery.Media;
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.FFmpeg;
 using Teacher.Common.Contracts;
 
 namespace TeacherClient.CrossPlatform.Services;
@@ -15,6 +13,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
     private readonly Dictionary<string, RTCPeerConnection> _pcs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IVideoSource> _videoSources = new(StringComparer.Ordinal);
     private readonly DemoDiagnosticLog _diagnosticLog = new(GetTeacherDiagnosticLogPath());
+    private readonly DemoVideoSourceFactory _videoSourceFactory = new();
 
     public async Task StartAsync(
         string studentBaseUrl,
@@ -65,21 +64,8 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         RTCPeerConnection? pc = null;
         long localIceCandidates = 0;
         long remoteIceCandidates = 0;
-        IVideoSource source;
-        try
-        {
-            var rect = new Rectangle(captureX, captureY, Math.Max(16, captureWidth), Math.Max(16, captureHeight));
-            source = new FFmpegScreenSource(GetScreenInputPath(), rect, captureFps);
-            _diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: FFmpegScreenSource input={GetScreenInputPath()}.");
-        }
-        catch
-        {
-            // Fallback: keep demonstration functional even if screen capture isn't available on this machine yet.
-            var testPattern = new VideoTestPatternSource(new FFmpegVideoEncoder());
-            testPattern.SetFrameRate(captureFps);
-            source = testPattern;
-            _diagnosticLog.LogWarning($"Teacher demo capture source fallback activated for {studentBaseUrl}: VideoTestPatternSource.");
-        }
+        var rect = new Rectangle(captureX, captureY, Math.Max(16, captureWidth), Math.Max(16, captureHeight));
+        var source = _videoSourceFactory.CreateSource(rect, captureFps, _diagnosticLog, studentBaseUrl);
 
         try
         {
@@ -90,6 +76,29 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             var videoTrack = new MediaStreamTrack(source.GetVideoSourceFormats(), MediaStreamStatusEnum.SendOnly);
             pc.addTrack(videoTrack);
             source.OnVideoSourceEncodedSample += pc.SendVideo;
+            source.OnVideoSourceError += (message) =>
+            {
+                _diagnosticLog.LogError($"Teacher demo video source error for {studentBaseUrl}: {message}");
+            };
+
+            long rawFrames = 0;
+            long encodedSamples = 0;
+            source.OnVideoSourceRawSample += (_, width, height, _, pixelFormat) =>
+            {
+                var count = Interlocked.Increment(ref rawFrames);
+                if (count == 1 || count % 60 == 0)
+                {
+                    _diagnosticLog.LogInfo($"Teacher demo raw frames for {studentBaseUrl}: {count} ({width}x{height} {pixelFormat}).");
+                }
+            };
+            source.OnVideoSourceEncodedSample += (_, sample) =>
+            {
+                var count = Interlocked.Increment(ref encodedSamples);
+                if (count == 1 || count % 60 == 0)
+                {
+                    _diagnosticLog.LogInfo($"Teacher demo encoded samples for {studentBaseUrl}: {count} (bytes={sample?.Length ?? 0}).");
+                }
+            };
             pc.OnVideoFormatsNegotiated += (formats) => source.SetVideoSourceFormat(formats.First());
 
             pc.onicecandidate += (cand) =>
@@ -338,27 +347,6 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         }
     }
 
-    private static string GetScreenInputPath()
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return "desktop";
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            // avfoundation: the screen capture device is typically index 1 ("Capture screen 0").
-            return "1";
-        }
-
-        if (OperatingSystem.IsLinux())
-        {
-            return ":0.0";
-        }
-
-        return "desktop";
-    }
-
     private static string BuildFfmpegErrorMessage(Exception ex, string? bundledLibDirPassedToInit)
     {
         var baseDir = AppContext.BaseDirectory;
@@ -452,4 +440,3 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         return Path.Combine(baseDirectory, "logs", "demo-webrtc.log");
     }
 }
-

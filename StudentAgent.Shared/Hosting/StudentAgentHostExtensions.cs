@@ -85,7 +85,7 @@ public static class StudentAgentHostExtensions
 
         app.MapGet("/api/demo/webrtc/offer", (string sessionId, [FromServices] DemoSessionStore store) =>
         {
-            var offer = store.TryConsumeOffer(sessionId);
+            var offer = store.TryGetOffer(sessionId);
             return offer is null
                 ? Results.NoContent()
                 : Results.Ok(new DemoSessionStartRequest(sessionId, offer.Value.SdpType, offer.Value.Sdp, IncludeAudio: false, AudioMutedByDefault: true, FullscreenLock: true));
