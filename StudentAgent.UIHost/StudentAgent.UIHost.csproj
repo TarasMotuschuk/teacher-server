@@ -17,6 +17,7 @@
   <ItemGroup>
     <PackageReference Include="SIPSorcery" Version="10.0.3" />
     <PackageReference Include="SIPSorceryMedia.Abstractions" Version="8.0.12" />
+    <PackageReference Include="SIPSorceryMedia.Encoders" Version="10.0.4" />
     <PackageReference Include="SIPSorceryMedia.FFmpeg" Version="8.0.12" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />

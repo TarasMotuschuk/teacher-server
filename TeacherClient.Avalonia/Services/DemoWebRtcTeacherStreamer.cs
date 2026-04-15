@@ -69,7 +69,8 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
 
         try
         {
-            source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8 || format.Codec == VideoCodecsEnum.H264);
+            // While we transition away from FFmpeg on the student side, force VP8 to keep the pipeline deterministic.
+            source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
 
             pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
 

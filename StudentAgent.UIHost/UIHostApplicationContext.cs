@@ -1,8 +1,9 @@
 using System.Drawing.Imaging;
 using System.Net.Http.Json;
+using System.Runtime.InteropServices;
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.FFmpeg;
+using StudentAgent.UIHost.Services;
 using StudentAgent.Services;
 using StudentAgent.UI;
 using StudentAgent.UI.Localization;
@@ -21,7 +22,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     private readonly List<DemoFullscreenForm> _demoForms = [];
     private string? _activeDemoSessionId;
     private RTCPeerConnection? _demoPc;
-    private FFmpegVideoEndPoint? _demoVideoEndPoint;
+    private VpxVp8VideoEndPoint? _demoVideoEndPoint;
     private bool _demoAuthWarningShown;
     private DateTime _lastDemoConnectivityWarningUtc;
     private DateTime _lastDemoWebRtcInitAttemptUtc;
@@ -183,34 +184,24 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                 return;
             }
 
-            // For demo receive/render we do not require FFmpeg capture device registration (avdevice).
-            // Only ensure codec libraries are loadable from the bundled directory.
-            var bundledLibDir = FfmpegBootstrap.EnsureEncoderOnlyConfigured();
-            _logService.LogInfo($"Demo WebRTC: configuring FFmpeg codec bootstrap (bundledLibDir={bundledLibDir ?? "<null>"}).");
-            _demoDiagnosticLog.LogInfo($"Student demo FFmpeg codec bootstrap configured: bundledLibDir={bundledLibDir ?? "<null>"}.");
+            _demoVideoEndPoint = new VpxVp8VideoEndPoint();
+            _demoVideoEndPoint.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
+            _demoVideoEndPoint.OnDiagnostic += (msg) =>
+            {
+                _demoDiagnosticLog.LogInfo($"Student demo VP8 endpoint: {msg}");
+            };
 
-            _demoVideoEndPoint = new FFmpegVideoEndPoint();
-            _demoVideoEndPoint.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8 || format.Codec == VideoCodecsEnum.H264);
             long decodedFrames = 0;
-            _demoVideoEndPoint.OnVideoSinkDecodedSampleFaster += (RawImage rawImage) =>
+            _demoVideoEndPoint.OnDecodedFrame += (rtpTimestamp, width, height, sample, pixelFormat) =>
             {
                 var decodedCount = Interlocked.Increment(ref decodedFrames);
                 if (decodedCount == 1 || decodedCount % 100 == 0)
                 {
                     _demoDiagnosticLog.LogInfo(
-                        $"Student demo decoded frames={decodedCount}, pixelFormat={rawImage.PixelFormat}, size={rawImage.Width}x{rawImage.Height}, stride={rawImage.Stride}.");
+                        $"Student demo decoded frames={decodedCount}, pixelFormat={pixelFormat}, size={width}x{height}, bytes={sample?.Length ?? 0}.");
                 }
 
-                PixelFormat? pixelFormat = rawImage.PixelFormat switch
-                {
-                    // GDI+ "Format24bppRgb" is actually stored as BGR in memory; accept both.
-                    VideoPixelFormatsEnum.Rgb => PixelFormat.Format24bppRgb,
-                    VideoPixelFormatsEnum.Bgr => PixelFormat.Format24bppRgb,
-                    VideoPixelFormatsEnum.Bgra => PixelFormat.Format32bppArgb,
-                    _ => null,
-                };
-
-                if (pixelFormat is null)
+                if (sample is null || sample.Length == 0)
                 {
                     return;
                 }
@@ -221,7 +212,25 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                     {
                         try
                         {
-                            using var bmp = new Bitmap(rawImage.Width, rawImage.Height, rawImage.Stride, pixelFormat.Value, rawImage.Sample);
+                            using var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+                            var rect = new Rectangle(0, 0, width, height);
+                            var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+                            try
+                            {
+                                // NOTE: Format24bppRgb is BGR in memory.
+                                var stride = Math.Abs(data.Stride);
+                                var tightStride = width * 3;
+                                var rows = Math.Min(height, sample.Length / tightStride);
+                                for (var y = 0; y < rows; y++)
+                                {
+                                    Marshal.Copy(sample, y * tightStride, IntPtr.Add(data.Scan0, y * stride), tightStride);
+                                }
+                            }
+                            finally
+                            {
+                                bmp.UnlockBits(data);
+                            }
+
                             form.SetFrame((Bitmap)bmp.Clone());
                             if (decodedCount == 1 || decodedCount % 100 == 0)
                             {
@@ -422,7 +431,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
 
         try
         {
-            _demoVideoEndPoint?.CloseVideo().GetAwaiter().GetResult();
+            _demoVideoEndPoint?.Dispose();
             _demoVideoEndPoint = null;
             _demoDiagnosticLog.LogInfo("Student demo video endpoint closed.");
         }
