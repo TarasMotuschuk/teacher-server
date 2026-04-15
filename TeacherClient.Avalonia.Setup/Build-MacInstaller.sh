@@ -345,6 +345,8 @@ echo -n "APPL????" > "$APP_DIR/Contents/PkgInfo"
 chmod +x "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
 find "$APP_DIR" -name '._*' -delete
 find "$APP_DIR" -name '.DS_Store' -delete
+# CI downloads can leave com.apple.quarantine on dylibs; strip before codesign so dlopen works on user machines.
+xattr -cr "$APP_DIR/Contents/Frameworks" 2>/dev/null || true
 codesign_app_bundle
 ditto --norsrc "$APP_DIR" "$STAGING_DIR/$APP_NAME"
 

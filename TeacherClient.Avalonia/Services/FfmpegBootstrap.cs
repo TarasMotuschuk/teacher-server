@@ -1,9 +1,15 @@
+using System.Runtime.InteropServices;
 using FFmpeg.AutoGen;
 
 namespace TeacherClient.CrossPlatform.Services;
 
 public static class FfmpegBootstrap
 {
+    private static readonly string[] MacCoreFfmpegPrefixes =
+    {
+        "libavutil", "libswresample", "libswscale", "libavcodec", "libavformat", "libavfilter", "libavdevice",
+    };
+
     /// <summary>
     /// Returns the directory that contains FFmpeg shared libraries (DLLs / dylibs) when bundled with the app,
     /// or <c>null</c> if none are present. Pass this to <c>SIPSorceryMedia.FFmpeg.FFmpegInit.Initialise(..., libPath, ...)</c>;
@@ -73,6 +79,72 @@ public static class FfmpegBootstrap
         if (dir is not null)
         {
             ffmpeg.RootPath = dir;
+        }
+    }
+
+    /// <summary>
+    /// Preload bundled <c>*.dylib</c> in a sensible order so transitive dependencies (e.g. codec libs) are in memory
+    /// before FFmpeg.AutoGen loads <c>libavutil</c> — avoids "Unable to load ... avutil.xx" when files exist but dyld
+    /// resolves dependencies lazily.
+    /// </summary>
+    public static void TryPreloadBundledFfmpegMacOS()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        var dir = TryGetBundledFfmpegLibDirectory();
+        if (string.IsNullOrEmpty(dir))
+        {
+            return;
+        }
+
+        var paths = Directory.GetFiles(dir, "*.dylib");
+        if (paths.Length == 0)
+        {
+            return;
+        }
+
+        static bool IsCoreLib(string fileName)
+        {
+            foreach (var p in MacCoreFfmpegPrefixes)
+            {
+                if (fileName.StartsWith(p, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        Array.Sort(paths, StringComparer.Ordinal);
+        foreach (var path in paths)
+        {
+            if (!IsCoreLib(Path.GetFileName(path)))
+            {
+                TryLoadOnce(path);
+            }
+        }
+
+        foreach (var path in paths)
+        {
+            if (IsCoreLib(Path.GetFileName(path)))
+            {
+                TryLoadOnce(path);
+            }
+        }
+
+        static void TryLoadOnce(string path)
+        {
+            try
+            {
+                NativeLibrary.Load(path);
+            }
+            catch
+            {
+            }
         }
     }
 
