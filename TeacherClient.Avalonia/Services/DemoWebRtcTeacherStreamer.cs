@@ -47,8 +47,14 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
         }
 
-        // Demo uses VP8 via libvpx (Vp8EncodedRawVideoSource).
-        _diagnosticLog.LogInfo($"Teacher demo WebRTC: VP8 encode via libvpx for {studentBaseUrl}.");
+        if (OperatingSystem.IsMacOS())
+        {
+            _diagnosticLog.LogInfo($"Teacher demo WebRTC: H.264 encode via VideoToolbox for {studentBaseUrl}.");
+        }
+        else
+        {
+            _diagnosticLog.LogInfo($"Teacher demo WebRTC: VP8 encode via libvpx for {studentBaseUrl}.");
+        }
 
         RTCPeerConnection? pc = null;
         long localIceCandidates = 0;
@@ -58,8 +64,14 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
 
         try
         {
-            // Force VP8 so teacher and student use the same codec.
-            source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
+            if (OperatingSystem.IsMacOS())
+            {
+                source.RestrictFormats(format => format.Codec == VideoCodecsEnum.H264);
+            }
+            else
+            {
+                source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
+            }
 
             pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
 

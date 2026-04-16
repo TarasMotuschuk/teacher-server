@@ -8,7 +8,8 @@ namespace TeacherClient.CrossPlatform.Services;
 /// </summary>
 public sealed class Vp8EncodedRawVideoSource : IVideoSource, IDisposable
 {
-    private readonly VpxVideoEncoder _encoder = new();
+    private readonly IVideoEncoder _encoder;
+    private readonly bool _ownsEncoder;
     private readonly object _sync = new();
     private readonly List<VideoFormat> _supportedFormats;
     private VideoFormat _selectedFormat;
@@ -16,22 +17,33 @@ public sealed class Vp8EncodedRawVideoSource : IVideoSource, IDisposable
     private bool _isClosed;
 
     public Vp8EncodedRawVideoSource(uint? targetKbps = 2500)
+        : this(CreateDefaultVpxEncoder(targetKbps), ownsEncoder: true)
     {
-        if (targetKbps is > 0)
-        {
-            _encoder.TargetKbps = targetKbps;
-        }
+    }
 
-        _supportedFormats = _encoder.SupportedFormats
-            .Where(format => format.Codec == VideoCodecsEnum.VP8)
-            .ToList();
+    public Vp8EncodedRawVideoSource(IVideoEncoder encoder, bool ownsEncoder = true)
+    {
+        _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+        _ownsEncoder = ownsEncoder;
 
+        _supportedFormats = _encoder.SupportedFormats.ToList();
         if (_supportedFormats.Count == 0)
         {
-            throw new NotSupportedException("VP8 is not available from VpxVideoEncoder.SupportedFormats.");
+            throw new NotSupportedException("Encoder did not report any SupportedFormats.");
         }
 
         _selectedFormat = _supportedFormats[0];
+    }
+
+    private static VpxVideoEncoder CreateDefaultVpxEncoder(uint? targetKbps)
+    {
+        var encoder = new VpxVideoEncoder();
+        if (targetKbps is > 0)
+        {
+            encoder.TargetKbps = targetKbps;
+        }
+
+        return encoder;
     }
 
     public event EncodedSampleDelegate? OnVideoSourceEncodedSample;
@@ -144,7 +156,10 @@ public sealed class Vp8EncodedRawVideoSource : IVideoSource, IDisposable
     public void Dispose()
     {
         _ = CloseVideo();
-        _encoder.Dispose();
+        if (_ownsEncoder && _encoder is IDisposable d)
+        {
+            d.Dispose();
+        }
     }
 
     private void EncodeAndRaise(uint durationMilliseconds, int width, int height, byte[] sample, VideoPixelFormatsEnum pixelFormat)
@@ -170,7 +185,7 @@ public sealed class Vp8EncodedRawVideoSource : IVideoSource, IDisposable
         }
         catch (Exception ex)
         {
-            OnVideoSourceError?.Invoke($"VP8 raw encode failed: {ex.Message}");
+            OnVideoSourceError?.Invoke($"Video encode failed ({_selectedFormat.Codec}): {ex.Message}");
         }
     }
 }

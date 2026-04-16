@@ -19,8 +19,6 @@ PKG_DIR="$SETUP_ROOT/dist"
 PKG_PATH="$PKG_DIR/ClassCommander.Setup.pkg"
 ICON_PATH="$REPO_ROOT/Branding/ClassCommander-icon.icns"
 STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/classcommander-pkg.XXXXXX")"
-VPXMD_DST="$APP_DIR/Contents/MacOS/vpxmd.dylib"
-VPXMD_REPO_PATH="$SETUP_ROOT/Resources/vpxmd/$RUNTIME/vpxmd.dylib"
 
 cleanup() {
   rm -rf "$STAGING_DIR"
@@ -41,36 +39,6 @@ dotnet publish "$PROJECT_PATH" \
 
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 ditto --norsrc "$PUBLISH_DIR" "$APP_DIR/Contents/MacOS"
-
-stage_vpxmd_dylib() {
-  # SIPSorceryMedia.Encoders P/Invokes into a native library named "vpxmd".
-  # On macOS we satisfy that dependency by shipping a libvpx dylib renamed to vpxmd.dylib.
-  local src=""
-
-  if [[ -f "$VPXMD_REPO_PATH" ]]; then
-    src="$VPXMD_REPO_PATH"
-  elif [[ -n "${CLASSCOMMANDER_VPXMD_MACOS_DYLIB:-}" && -f "${CLASSCOMMANDER_VPXMD_MACOS_DYLIB:-}" ]]; then
-    src="$CLASSCOMMANDER_VPXMD_MACOS_DYLIB"
-  elif [[ -n "${CLASSCOMMANDER_LIBVPX_MACOS_DYLIB:-}" && -f "${CLASSCOMMANDER_LIBVPX_MACOS_DYLIB:-}" ]]; then
-    src="$CLASSCOMMANDER_LIBVPX_MACOS_DYLIB"
-  fi
-
-  if [[ -z "$src" ]]; then
-    echo "ERROR: Missing libvpx for VP8 (vpxmd.dylib)." >&2
-    echo "Provide one of:" >&2
-    echo " - $VPXMD_REPO_PATH (recommended for CI; add file to repo manually)" >&2
-    echo " - CLASSCOMMANDER_VPXMD_MACOS_DYLIB=/path/to/vpxmd.dylib" >&2
-    echo " - CLASSCOMMANDER_LIBVPX_MACOS_DYLIB=/path/to/libvpx.dylib (it will be staged as vpxmd.dylib)" >&2
-    exit 3
-  fi
-
-  echo "Staging VP8 native library: $src -> $VPXMD_DST"
-  cp -f "$src" "$VPXMD_DST"
-  chmod 644 "$VPXMD_DST" 2>/dev/null || true
-}
-
-stage_vpxmd_dylib
-
 
 codesign_app_bundle() {
   if ! command -v codesign >/dev/null 2>&1; then

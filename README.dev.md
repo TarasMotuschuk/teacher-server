@@ -391,9 +391,9 @@ bash ./Build-MacInstaller.sh
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
 
-   VP8 (demo WebRTC) requires shipping a native `vpxmd.dylib` in the `.app` bundle.
-   Recommended: commit it into the repo at `TeacherClient.Avalonia.Setup/Resources/vpxmd/osx-arm64/vpxmd.dylib` (and optionally `osx-x64`).
-   Alternative: provide it at build time via `CLASSCOMMANDER_VPXMD_MACOS_DYLIB` or `CLASSCOMMANDER_LIBVPX_MACOS_DYLIB`.
+   **Demonstration (WebRTC) codec note**:
+   - On **macOS**, the teacher client encodes demo video as **H.264 via VideoToolbox** (system framework; no extra `vpxmd.dylib` bundling).
+   - Student rendering on **Windows** decodes **H.264 via Media Foundation**.
 
 4. The outputs are:
    - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)

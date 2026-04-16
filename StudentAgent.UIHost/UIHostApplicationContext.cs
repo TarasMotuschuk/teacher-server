@@ -22,7 +22,7 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     private readonly List<DemoFullscreenForm> _demoForms = [];
     private string? _activeDemoSessionId;
     private RTCPeerConnection? _demoPc;
-    private VpxVp8VideoEndPoint? _demoVideoEndPoint;
+    private DemoWebRtcVideoReceiveEndPoint? _demoVideoEndPoint;
     private bool _demoAuthWarningShown;
     private DateTime _lastDemoConnectivityWarningUtc;
     private DateTime _lastDemoWebRtcInitAttemptUtc;
@@ -184,11 +184,11 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                 return;
             }
 
-            _demoVideoEndPoint = new VpxVp8VideoEndPoint();
-            _demoVideoEndPoint.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
+            _demoVideoEndPoint = new DemoWebRtcVideoReceiveEndPoint();
+            _demoVideoEndPoint.RestrictFormats(format => format.Codec is VideoCodecsEnum.VP8 or VideoCodecsEnum.H264);
             _demoVideoEndPoint.OnDiagnostic += (msg) =>
             {
-                _demoDiagnosticLog.LogInfo($"Student demo VP8 endpoint: {msg}");
+                _demoDiagnosticLog.LogInfo($"Student demo video endpoint: {msg}");
             };
 
             long decodedFrames = 0;
