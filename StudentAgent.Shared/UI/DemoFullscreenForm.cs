@@ -5,12 +5,19 @@ namespace StudentAgent.UI;
 public sealed class DemoFullscreenForm : Form
 {
     private readonly System.Windows.Forms.Timer _focusTimer;
+    private readonly System.Windows.Forms.Timer _watchdogTimer;
     private readonly Label _bannerLabel;
     private readonly Panel _videoHost;
     private readonly PictureBox _pictureBox;
     private bool _allowClose;
     private bool _disposed;
     private bool _bringPosted;
+    private DateTimeOffset _lastFrameUtc;
+    private bool _noSignalShown;
+
+    private const int WatchdogIntervalMs = 1000;
+    private static readonly TimeSpan NoSignalAfter = TimeSpan.FromSeconds(20);
+    private const Keys EmergencyExitChord = Keys.Control | Keys.Alt | Keys.Shift | Keys.Q;
 
     public DemoFullscreenForm(Screen screen)
     {
@@ -61,6 +68,11 @@ public sealed class DemoFullscreenForm : Form
         _focusTimer.Tick += (_, _) => ScheduleBringToFront();
         _focusTimer.Start();
 
+        _lastFrameUtc = DateTimeOffset.UtcNow;
+        _watchdogTimer = new System.Windows.Forms.Timer { Interval = WatchdogIntervalMs };
+        _watchdogTimer.Tick += (_, _) => WatchdogTick();
+        _watchdogTimer.Start();
+
         Shown += (_, _) => ScheduleBringToFront();
     }
 
@@ -78,6 +90,14 @@ public sealed class DemoFullscreenForm : Form
 
     public void SetFrame(Bitmap bitmap)
     {
+        _lastFrameUtc = DateTimeOffset.UtcNow;
+        if (_noSignalShown)
+        {
+            _noSignalShown = false;
+            _bannerLabel.Text = StudentAgentText.InputLockDemoStatusLine;
+            Text = _bannerLabel.Text;
+        }
+
         var old = _pictureBox.Image;
         _pictureBox.Image = bitmap;
         old?.Dispose();
@@ -97,6 +117,8 @@ public sealed class DemoFullscreenForm : Form
 
         _focusTimer.Stop();
         _focusTimer.Dispose();
+        _watchdogTimer.Stop();
+        _watchdogTimer.Dispose();
         base.OnFormClosing(e);
     }
 
@@ -113,6 +135,8 @@ public sealed class DemoFullscreenForm : Form
         {
             _focusTimer.Stop();
             _focusTimer.Dispose();
+            _watchdogTimer.Stop();
+            _watchdogTimer.Dispose();
         }
 
         base.Dispose(disposing);
@@ -120,6 +144,12 @@ public sealed class DemoFullscreenForm : Form
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
+        if (keyData == EmergencyExitChord)
+        {
+            ForceClose();
+            return true;
+        }
+
         return true;
     }
 
@@ -180,5 +210,29 @@ public sealed class DemoFullscreenForm : Form
         {
             _bringPosted = false;
         }
+    }
+
+    private void WatchdogTick()
+    {
+        if (_disposed || IsDisposed || Disposing || !IsHandleCreated || !Visible)
+        {
+            return;
+        }
+
+        if (_noSignalShown)
+        {
+            return;
+        }
+
+        var age = DateTimeOffset.UtcNow - _lastFrameUtc;
+        if (age < NoSignalAfter)
+        {
+            return;
+        }
+
+        _noSignalShown = true;
+        var msg = $"{StudentAgentText.InputLockDemoStatusLine} — no video signal. Emergency exit: Ctrl+Alt+Shift+Q.";
+        _bannerLabel.Text = msg;
+        Text = msg;
     }
 }

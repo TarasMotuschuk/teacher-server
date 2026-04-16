@@ -95,8 +95,8 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
             EnsureOutputCallbackLocked();
             EnsureSessionLocked(width, height);
 
-            using var output = new EncodedFrameAccumulator();
-            var reg = GCHandle.Alloc(output);
+            using var frameContext = new FrameEncodeContext();
+            var reg = GCHandle.Alloc(frameContext);
             try
             {
                 var frameUserData = GCHandle.ToIntPtr(reg);
@@ -140,6 +140,14 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
                             throw new InvalidOperationException($"VTCompressionSessionEncodeFrame failed: {st}.");
                         }
 
+                        var completeStatus = VTCompressionSessionCompleteFrames(_compressionSession, pts);
+                        if (completeStatus != 0)
+                        {
+                            throw new InvalidOperationException($"VTCompressionSessionCompleteFrames failed: {completeStatus}.");
+                        }
+
+                        _ = frameContext.WaitForCompletion(TimeSpan.FromSeconds(2));
+
                     }
                     finally
                     {
@@ -156,7 +164,7 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
                 reg.Free();
             }
 
-            return output.ToArray();
+            return frameContext.ToArray();
         }
     }
 
@@ -203,25 +211,34 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
         VTEncodeInfoFlags infoFlags,
         IntPtr sampleBuffer)
     {
-        _ = sourceFrameRefCon;
+        _ = outputCallbackRefCon;
+        _ = infoFlags;
 
-        if (outputCallbackRefCon == IntPtr.Zero || sampleBuffer == IntPtr.Zero || status != 0)
+        if (sourceFrameRefCon == IntPtr.Zero)
         {
             return;
         }
 
-        var handle = GCHandle.FromIntPtr(outputCallbackRefCon);
-        if (!handle.IsAllocated || handle.Target is not EncodedFrameAccumulator acc)
+        var handle = GCHandle.FromIntPtr(sourceFrameRefCon);
+        if (!handle.IsAllocated || handle.Target is not FrameEncodeContext frameContext)
         {
             return;
         }
 
         try
         {
-            AppendAnnexB(sampleBuffer, acc);
+            frameContext.Status = status;
+            if (sampleBuffer != IntPtr.Zero && status == 0)
+            {
+                AppendAnnexB(sampleBuffer, frameContext.Accumulator);
+            }
         }
         catch
         {
+        }
+        finally
+        {
+            frameContext.SignalCompletion();
         }
     }
 
@@ -556,6 +573,11 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
         out VTEncodeInfoFlags infoFlagsOut);
 
     [DllImport("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox")]
+    private static extern int VTCompressionSessionCompleteFrames(
+        IntPtr session,
+        CMTime completeUntilPresentationTimeStamp);
+
+    [DllImport("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox")]
     private static extern void VTCompressionSessionInvalidate(IntPtr session);
 
     [DllImport("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox")]
@@ -563,4 +585,25 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
 
     [DllImport("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox")]
     private static extern int VTSessionSetProperty(IntPtr session, IntPtr propertyKey, IntPtr propertyValue);
+
+    private sealed class FrameEncodeContext : IDisposable
+    {
+        private readonly ManualResetEventSlim _completed = new();
+
+        public EncodedFrameAccumulator Accumulator { get; } = new();
+
+        public int Status { get; set; }
+
+        public void SignalCompletion() => _completed.Set();
+
+        public bool WaitForCompletion(TimeSpan timeout) => _completed.Wait(timeout);
+
+        public byte[] ToArray() => Accumulator.ToArray();
+
+        public void Dispose()
+        {
+            _completed.Dispose();
+            Accumulator.Dispose();
+        }
+    }
 }
