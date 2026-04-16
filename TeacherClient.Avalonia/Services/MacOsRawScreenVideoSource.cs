@@ -50,6 +50,7 @@ public sealed class MacOsRawScreenVideoSource : IVideoSource, IDisposable
 
     public async Task StartVideo()
     {
+        MacOsScreenCaptureProducer.EnsureScreenCaptureAccess();
         await _inner.StartVideo();
 
         if (!_started)

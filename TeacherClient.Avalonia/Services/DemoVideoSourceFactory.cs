@@ -11,6 +11,15 @@ public sealed class DemoVideoSourceFactory
     {
         if (OperatingSystem.IsMacOS())
         {
+            if (!MacOsScreenCaptureProducer.HasScreenCaptureAccess())
+            {
+                var message =
+                    "macOS Screen Recording permission is not granted for ClassCommander. " +
+                    "Open System Settings -> Privacy & Security -> Screen Recording, enable ClassCommander, then relaunch the app.";
+                diagnosticLog.LogError($"Teacher demo macOS screen recording permission missing for {studentBaseUrl}: {message}");
+                throw new InvalidOperationException(message);
+            }
+
             try
             {
                 var raw = new MacOsRawScreenVideoSource(captureArea, captureFps);

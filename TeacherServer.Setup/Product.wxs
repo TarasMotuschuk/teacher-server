@@ -99,10 +99,22 @@
 
     <Component Id="TeacherClientMainComponent" Directory="TEACHERDIR" Guid="*">
       <File Id="TeacherClientExe" Source="$(var.TeacherPayloadDir)\TeacherClient.exe" KeyPath="yes" />
+      <firewall:FirewallException Id="TeacherClientFirewallRule"
+                                  Name="ClassCommander Teacher Client"
+                                  Description="Allows the teacher client to communicate with classroom agents and run live demonstrations."
+                                  Program="[#TeacherClientExe]"
+                                  Profile="all"
+                                  Scope="any" />
     </Component>
 
     <Component Id="TeacherClientAvaloniaMainComponent" Directory="TEACHERAVALONIADIR" Guid="*">
       <File Id="TeacherClientAvaloniaExe" Source="$(var.TeacherAvaloniaPayloadDir)\TeacherClient.Avalonia.exe" KeyPath="yes" />
+      <firewall:FirewallException Id="TeacherClientAvaloniaFirewallRule"
+                                  Name="ClassCommander Teacher Client (Avalonia)"
+                                  Description="Allows the Avalonia teacher client to communicate with classroom agents and run live demonstrations."
+                                  Program="[#TeacherClientAvaloniaExe]"
+                                  Profile="all"
+                                  Scope="any" />
     </Component>
 
     <Component Id="TeacherDesktopShortcutAvaloniaComponent" Directory="DesktopFolder" Guid="*">
@@ -167,4 +179,3 @@
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
-

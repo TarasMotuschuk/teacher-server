@@ -11,6 +11,9 @@ RUNTIME="${RUNTIME:-osx-arm64}"
 APP_NAME="${APP_NAME:-ClassCommander.app}"
 PRODUCT_NAME="${PRODUCT_NAME:-ClassCommander}"
 BUNDLE_ID="${BUNDLE_ID:-com.tarasmotuschuk.teacherclient.avalonia}"
+SIGNING_MODE="${SIGNING_MODE:-adhoc}"
+APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:-Apple Development}"
+PKG_SIGN_IDENTITY="${PKG_SIGN_IDENTITY:-}"
 DEFAULT_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$REPO_ROOT/Directory.Build.props" | head -n 1)"
 VERSION="${VERSION:-${DEFAULT_VERSION:-1.0.0}}"
 PUBLISH_DIR="$SETUP_ROOT/artifacts/publish"
@@ -46,16 +49,35 @@ codesign_app_bundle() {
     return
   fi
 
-  echo "Codesigning app bundle (ad-hoc)..."
+  case "$SIGNING_MODE" in
+    none)
+      echo "Skipping app signing (SIGNING_MODE=none)."
+      return
+      ;;
+    adhoc)
+      echo "Codesigning app bundle (ad-hoc)..."
+      codesign --force --deep --sign - --timestamp=none "$APP_DIR" >/dev/null 2>&1 || {
+        echo "ERROR: codesign failed for $APP_DIR" >&2
+        codesign --force --deep --sign - --timestamp=none --verbose=4 "$APP_DIR" || true
+        exit 3
+      }
+      ;;
+    apple-development)
+      echo "Codesigning app bundle (Apple Development: $APP_SIGN_IDENTITY)..."
+      codesign --force --deep --options runtime --timestamp --sign "$APP_SIGN_IDENTITY" "$APP_DIR" >/dev/null 2>&1 || {
+        echo "ERROR: codesign failed for $APP_DIR" >&2
+        codesign --force --deep --options runtime --timestamp --sign "$APP_SIGN_IDENTITY" --verbose=4 "$APP_DIR" || true
+        exit 3
+      }
+      ;;
+    *)
+      echo "ERROR: Unknown SIGNING_MODE '$SIGNING_MODE'. Use none, adhoc, or apple-development." >&2
+      exit 3
+      ;;
+  esac
 
   # Self-contained .NET publish includes multiple nested Mach-O binaries under Contents/MacOS.
   # Sign the whole bundle deeply so all nested code gets a consistent signature.
-  codesign --force --deep --sign - --timestamp=none "$APP_DIR" >/dev/null 2>&1 || {
-    echo "ERROR: codesign failed for $APP_DIR" >&2
-    codesign --force --deep --sign - --timestamp=none --verbose=4 "$APP_DIR" || true
-    exit 3
-  }
-
   # Fail early in CI if the bundle is still invalid.
   codesign --verify --deep --strict "$APP_DIR" >/dev/null 2>&1 || {
     echo "ERROR: codesign verification failed for $APP_DIR" >&2
@@ -95,6 +117,17 @@ pkgbuild \
   --identifier "$BUNDLE_ID" \
   --version "$VERSION" \
   "$PKG_PATH"
+
+if [[ "$SIGNING_MODE" == "apple-development" && -n "$PKG_SIGN_IDENTITY" ]]; then
+  if ! command -v productsign >/dev/null 2>&1; then
+    echo "WARNING: productsign is not available; leaving installer unsigned."
+  else
+    SIGNED_PKG_PATH="$PKG_DIR/ClassCommander.Setup.signed.pkg"
+    echo "Signing installer package ($PKG_SIGN_IDENTITY)..."
+    productsign --sign "$PKG_SIGN_IDENTITY" "$PKG_PATH" "$SIGNED_PKG_PATH"
+    mv "$SIGNED_PKG_PATH" "$PKG_PATH"
+  fi
+fi
 
 echo
 echo "Done."

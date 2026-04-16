@@ -12,6 +12,26 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
     private CancellationTokenSource? _cts;
     private Task? _loopTask;
 
+    public static bool HasScreenCaptureAccess()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            return false;
+        }
+
+        return CGPreflightScreenCaptureAccess();
+    }
+
+    public static void EnsureScreenCaptureAccess()
+    {
+        if (!HasScreenCaptureAccess())
+        {
+            throw new InvalidOperationException(
+                "macOS Screen Recording permission is not granted for ClassCommander. " +
+                "Open System Settings -> Privacy & Security -> Screen Recording, enable ClassCommander, then relaunch the app.");
+        }
+    }
+
     public void Start(Rectangle captureArea, int captureFps, Action<uint, int, int, byte[], VideoPixelFormatsEnum> onFrame)
     {
         if (!OperatingSystem.IsMacOS())
@@ -23,6 +43,8 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
         {
             throw new ArgumentNullException(nameof(onFrame));
         }
+
+        EnsureScreenCaptureAccess();
 
         lock (_sync)
         {
@@ -245,4 +267,8 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
 
     [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static extern void CFRelease(IntPtr cf);
+
+    [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+    [return: MarshalAs(UnmanagedType.I1)]
+    private static extern bool CGPreflightScreenCaptureAccess();
 }
