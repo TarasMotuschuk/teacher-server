@@ -128,11 +128,13 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
                         var flags = _forceKeyFrame ? VTEncodeInfoFlags.kVTEncodeInfo_FrameIsForcedKeyFrame : 0;
                         _forceKeyFrame = false;
 
+                        var duration = CMTimeMake(1, _timebaseFps);
                         var st = VTCompressionSessionEncodeFrame(
                             _compressionSession,
-                            pts,
                             pixelBuffer,
-                            flags,
+                            pts,
+                            duration,
+                            IntPtr.Zero,
                             frameUserData,
                             out _);
                         if (st != 0)
@@ -566,9 +568,10 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
     [DllImport("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox")]
     private static extern int VTCompressionSessionEncodeFrame(
         IntPtr session,
-        CMTime presentationTimeStamp,
         IntPtr imageBuffer,
-        VTEncodeInfoFlags encodeFlags,
+        CMTime presentationTimeStamp,
+        CMTime duration,
+        IntPtr frameProperties,
         IntPtr sourceFrameRefCon,
         out VTEncodeInfoFlags infoFlagsOut);
 
