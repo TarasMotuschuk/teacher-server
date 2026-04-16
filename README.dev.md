@@ -391,7 +391,9 @@ bash ./Build-MacInstaller.sh
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
 
-   FFmpeg shared libraries must match **FFmpeg.AutoGen 7** (FFmpeg 7 SONAMEs, e.g. `libavutil.59.dylib`). Some FFmpeg 7 bundles ship only the “real name” (e.g. `libavutil.59.39.100.dylib`); the packaging script creates SONAME symlinks automatically. On GitHub Actions, Homebrew is not assumed to exist — the build relies on either a compatible prebuilt ZIP or `CLASSCOMMANDER_FFMPEG_MACOS_LIB_DIR` pointing at a directory tree that already contains the dylibs.
+   VP8 (demo WebRTC) requires shipping a native `vpxmd.dylib` in the `.app` bundle.
+   Recommended: commit it into the repo at `TeacherClient.Avalonia.Setup/Resources/vpxmd/osx-arm64/vpxmd.dylib` (and optionally `osx-x64`).
+   Alternative: provide it at build time via `CLASSCOMMANDER_VPXMD_MACOS_DYLIB` or `CLASSCOMMANDER_LIBVPX_MACOS_DYLIB`.
 
 4. The outputs are:
    - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)
