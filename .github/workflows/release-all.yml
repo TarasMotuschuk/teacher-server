@@ -151,9 +151,15 @@ jobs:
       - name: Import Apple Development signing certificate
         shell: bash
         env:
+          SIGNING_MODE: none
           MACOS_APP_CERT_BASE64: ${{ secrets.MACOS_APP_CERT_BASE64 }}
           MACOS_APP_CERT_PASSWORD: ${{ secrets.MACOS_APP_CERT_PASSWORD }}
         run: |
+          if [[ "$SIGNING_MODE" == "none" ]]; then
+            echo "Skipping Apple Development certificate import because signing is disabled for diagnostics."
+            exit 0
+          fi
+
           if [[ -z "$MACOS_APP_CERT_BASE64" || -z "$MACOS_APP_CERT_PASSWORD" ]]; then
             echo "Skipping Apple Development certificate import because signing secrets are not set."
             exit 0
@@ -178,7 +184,7 @@ jobs:
           RUNTIME: osx-arm64
           VERSION: ${{ steps.version.outputs.value }}
           GITHUB_TOKEN: ${{ github.token }}
-          SIGNING_MODE: auto
+          SIGNING_MODE: none
         run: bash TeacherClient.Avalonia.Setup/Build-MacInstaller.sh
 
       - name: Upload PKG artifact
