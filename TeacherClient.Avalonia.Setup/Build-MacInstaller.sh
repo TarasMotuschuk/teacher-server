@@ -51,9 +51,8 @@ codesign_app_bundle() {
 
   if [[ "$SIGNING_MODE" == "auto" ]]; then
     if command -v security >/dev/null 2>&1; then
-      APP_SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | awk '
-        /Apple Development:/ { sub(/^ *[0-9]+\\) /, ""); print; exit }
-        /Apple Development / { sub(/^ *[0-9]+\\) /, ""); print; exit }
+      APP_SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '
+        /Apple Development:/ && NF >= 2 { print $2; exit }
       ')"
       if [[ -n "$APP_SIGN_IDENTITY" ]]; then
         SIGNING_MODE="apple-development"
