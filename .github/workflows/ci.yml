@@ -100,12 +100,16 @@ jobs:
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Import Apple Development signing certificate
-        if: ${{ secrets.MACOS_APP_CERT_BASE64 != '' && secrets.MACOS_APP_CERT_PASSWORD != '' }}
         shell: bash
         env:
           MACOS_APP_CERT_BASE64: ${{ secrets.MACOS_APP_CERT_BASE64 }}
           MACOS_APP_CERT_PASSWORD: ${{ secrets.MACOS_APP_CERT_PASSWORD }}
         run: |
+          if [[ -z "$MACOS_APP_CERT_BASE64" || -z "$MACOS_APP_CERT_PASSWORD" ]]; then
+            echo "Skipping Apple Development certificate import because signing secrets are not set."
+            exit 0
+          fi
+
           KEYCHAIN_PATH="$RUNNER_TEMP/classcommander-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
           CERT_PATH="$RUNNER_TEMP/classcommander-signing-cert.p12"
