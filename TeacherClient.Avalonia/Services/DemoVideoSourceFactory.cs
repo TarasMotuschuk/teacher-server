@@ -11,7 +11,7 @@ public sealed class DemoVideoSourceFactory
     {
         if (OperatingSystem.IsMacOS())
         {
-            if (!MacOsScreenCaptureProducer.HasScreenCaptureAccess(requestIfMissing: true))
+            if (!MacOsScreenCaptureProducer.HasScreenCaptureAccess())
             {
                 var message =
                     "macOS Screen Recording permission is not granted for ClassCommander. " +
