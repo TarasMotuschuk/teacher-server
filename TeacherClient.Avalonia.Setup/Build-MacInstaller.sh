@@ -11,7 +11,7 @@ RUNTIME="${RUNTIME:-osx-arm64}"
 APP_NAME="${APP_NAME:-ClassCommander.app}"
 PRODUCT_NAME="${PRODUCT_NAME:-ClassCommander}"
 BUNDLE_ID="${BUNDLE_ID:-com.tarasmotuschuk.teacherclient.avalonia}"
-SIGNING_MODE="${SIGNING_MODE:-adhoc}"
+SIGNING_MODE="${SIGNING_MODE:-none}"
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:-}"
 PKG_SIGN_IDENTITY="${PKG_SIGN_IDENTITY:-}"
 DEFAULT_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$REPO_ROOT/Directory.Build.props" | head -n 1)"
@@ -51,21 +51,6 @@ codesign_app_bundle() {
     return
   fi
 
-  if [[ "$SIGNING_MODE" == "auto" ]]; then
-    if command -v security >/dev/null 2>&1; then
-      APP_SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '
-        /Apple Development:/ && NF >= 2 { print $2; exit }
-      ')"
-      if [[ -n "$APP_SIGN_IDENTITY" ]]; then
-        SIGNING_MODE="apple-development"
-      else
-        SIGNING_MODE="adhoc"
-      fi
-    else
-      SIGNING_MODE="adhoc"
-    fi
-  fi
-
   case "$SIGNING_MODE" in
     none)
       echo "Skipping app signing (SIGNING_MODE=none)."
@@ -81,7 +66,7 @@ codesign_app_bundle() {
       ;;
     apple-development)
       if [[ -z "$APP_SIGN_IDENTITY" ]]; then
-        echo "ERROR: SIGNING_MODE=apple-development requires APP_SIGN_IDENTITY or a local Apple Development certificate in Keychain." >&2
+        echo "ERROR: SIGNING_MODE=apple-development requires APP_SIGN_IDENTITY to be set explicitly." >&2
         exit 3
       fi
       echo "Codesigning app bundle ($target_app_dir, Apple Development: $APP_SIGN_IDENTITY)..."

@@ -31,4 +31,6 @@ For macOS signing in GitHub Actions, export your Apple Development certificate a
 - `MACOS_APP_CERT_BASE64`
 - `MACOS_APP_CERT_PASSWORD`
 
-The workflow imports that certificate into a temporary keychain and sets `SIGNING_MODE=auto`, so the build uses Apple Development signing when the secret is present and falls back to ad-hoc signing for local dev builds when it is not.
+Set `SIGNING_MODE=apple-development` and provide the exact certificate name in `APP_SIGN_IDENTITY` if you want a signed build. If you also want the installer signed, provide `PKG_SIGN_IDENTITY`. Without an explicit signing mode, the script now leaves the build unsigned.
+
+The workflow imports the certificate into a temporary keychain, but the build now uses the identity you pass explicitly instead of auto-detecting it from the keychain.
