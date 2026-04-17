@@ -44,6 +44,8 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 ditto --norsrc "$PUBLISH_DIR" "$APP_DIR/Contents/MacOS"
 
 codesign_app_bundle() {
+  local target_app_dir="${1:-$APP_DIR}"
+
   if ! command -v codesign >/dev/null 2>&1; then
     echo "WARNING: codesign is not available; skipping app signing."
     return
@@ -70,10 +72,10 @@ codesign_app_bundle() {
       return
       ;;
     adhoc)
-      echo "Codesigning app bundle (ad-hoc)..."
-      codesign --force --deep --sign - --timestamp=none "$APP_DIR" >/dev/null 2>&1 || {
-        echo "ERROR: codesign failed for $APP_DIR" >&2
-        codesign --force --deep --sign - --timestamp=none --verbose=4 "$APP_DIR" || true
+      echo "Codesigning app bundle ($target_app_dir, ad-hoc)..."
+      codesign --force --deep --sign - --timestamp=none "$target_app_dir" >/dev/null 2>&1 || {
+        echo "ERROR: codesign failed for $target_app_dir" >&2
+        codesign --force --deep --sign - --timestamp=none --verbose=4 "$target_app_dir" || true
         exit 3
       }
       ;;
@@ -82,10 +84,10 @@ codesign_app_bundle() {
         echo "ERROR: SIGNING_MODE=apple-development requires APP_SIGN_IDENTITY or a local Apple Development certificate in Keychain." >&2
         exit 3
       fi
-      echo "Codesigning app bundle (Apple Development: $APP_SIGN_IDENTITY)..."
-      codesign --force --deep --options runtime --timestamp --sign "$APP_SIGN_IDENTITY" "$APP_DIR" >/dev/null 2>&1 || {
-        echo "ERROR: codesign failed for $APP_DIR" >&2
-        codesign --force --deep --options runtime --timestamp --sign "$APP_SIGN_IDENTITY" --verbose=4 "$APP_DIR" || true
+      echo "Codesigning app bundle ($target_app_dir, Apple Development: $APP_SIGN_IDENTITY)..."
+      codesign --force --deep --options runtime --timestamp --sign "$APP_SIGN_IDENTITY" "$target_app_dir" >/dev/null 2>&1 || {
+        echo "ERROR: codesign failed for $target_app_dir" >&2
+        codesign --force --deep --options runtime --timestamp --sign "$APP_SIGN_IDENTITY" --verbose=4 "$target_app_dir" || true
         exit 3
       }
       ;;
@@ -98,9 +100,9 @@ codesign_app_bundle() {
   # Self-contained .NET publish includes multiple nested Mach-O binaries under Contents/MacOS.
   # Sign the whole bundle deeply so all nested code gets a consistent signature.
   # Fail early in CI if the bundle is still invalid.
-  codesign --verify --deep --strict "$APP_DIR" >/dev/null 2>&1 || {
-    echo "ERROR: codesign verification failed for $APP_DIR" >&2
-    codesign --verify --deep --strict --verbose=4 "$APP_DIR" || true
+  codesign --verify --deep --strict "$target_app_dir" >/dev/null 2>&1 || {
+    echo "ERROR: codesign verification failed for $target_app_dir" >&2
+    codesign --verify --deep --strict --verbose=4 "$target_app_dir" || true
     exit 3
   }
 }
@@ -128,6 +130,7 @@ find "$APP_DIR" -name '.DS_Store' -delete
 xattr -cr "$APP_DIR/Contents/Frameworks" 2>/dev/null || true
 codesign_app_bundle
 ditto --norsrc "$APP_DIR" "$STAGING_DIR/$APP_NAME"
+codesign_app_bundle "$STAGING_DIR/$APP_NAME"
 
 echo "Building macOS installer package..."
 pkgbuild \

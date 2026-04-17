@@ -14,7 +14,7 @@ public sealed class MacOsRawScreenVideoSource : IVideoSource, IDisposable
 
     public MacOsRawScreenVideoSource(Rectangle captureArea, int captureFps)
     {
-        _inner = new Vp8EncodedRawVideoSource(new VideoToolboxH264VideoEncoder(captureFps));
+        _inner = new Vp8EncodedRawVideoSource();
         _producer = new MacOsScreenCaptureProducer();
         _captureArea = captureArea;
         _captureFps = captureFps;
