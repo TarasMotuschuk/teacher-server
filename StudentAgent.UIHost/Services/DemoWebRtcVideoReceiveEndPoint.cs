@@ -13,6 +13,12 @@ namespace StudentAgent.UIHost.Services;
 public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
 {
     private static readonly Guid ClsidCmsH264DecoderMft = new("62CE7E72-4C71-4D20-B15D-452831A87D9D");
+
+    // IID of IMFTransform (mftransform.h). Hard-coded so we don't depend on whether
+    // Vortice's generated IMFTransform class exposes the right [Guid] metadata.
+    private static readonly Guid IidImfTransform = new("BF94C121-5B05-4E6F-8000-BA598961414D");
+
+    private const uint CLSCTX_INPROC_SERVER = 0x1;
     private const int H264FormatId = 100;
 
     private readonly object _sync = new();
@@ -256,8 +262,20 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
             return;
         }
 
-        var unk = (IMFTransform)Activator.CreateInstance(Type.GetTypeFromCLSID(ClsidCmsH264DecoderMft, throwOnError: true))!;
-        _h264Decoder = unk;
+        // Activator.CreateInstance(Type.GetTypeFromCLSID(...)) returns a generic
+        // System.__ComObject RCW which the CLR refuses to cast to Vortice's
+        // SharpGen-generated IMFTransform class (that class is not [ComImport]).
+        // Call CoCreateInstance directly, asking for IID_IMFTransform, and wrap the
+        // resulting native pointer via the SharpGen.Runtime.ComObject(IntPtr) ctor.
+        var clsid = ClsidCmsH264DecoderMft;
+        var iid = IidImfTransform;
+        var hr = CoCreateInstance(ref clsid, IntPtr.Zero, CLSCTX_INPROC_SERVER, ref iid, out var nativeTransform);
+        if (hr != 0 || nativeTransform == IntPtr.Zero)
+        {
+            throw new InvalidOperationException($"CoCreateInstance(CMS H264 Decoder MFT, IID_IMFTransform) failed: 0x{hr:X8}");
+        }
+
+        _h264Decoder = new IMFTransform(nativeTransform);
 
         _h264Decoder.ProcessMessage(TMessageType.MessageNotifyBeginStreaming, UIntPtr.Zero);
         _h264Decoder.ProcessMessage(TMessageType.MessageNotifyStartOfStream, UIntPtr.Zero);
@@ -480,6 +498,14 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
             }
         }
     }
+
+    [DllImport("ole32.dll", ExactSpelling = true, PreserveSig = true)]
+    private static extern int CoCreateInstance(
+        ref Guid rclsid,
+        IntPtr pUnkOuter,
+        uint dwClsContext,
+        ref Guid riid,
+        out IntPtr ppv);
 
     // RFC 7741: VP8 payload descriptor (minimal parsing).
     private static bool TryStripVp8PayloadDescriptor(byte[] payload, out byte[] stripped)
