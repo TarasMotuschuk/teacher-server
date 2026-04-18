@@ -40,6 +40,11 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
     private long _h264DecodeAttempts;
     private long _h264DecodeSuccess;
     private long _h264DecodeFailures;
+    private long _h264ProcessInputCalls;
+    private long _h264NeedMoreInput;
+    private long _h264StreamChanges;
+    private long _h264OutputSamples;
+    private long _h264NvConvertFailures;
 
     public DemoWebRtcVideoReceiveEndPoint()
     {
@@ -183,6 +188,11 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
 
                 using var inputSample = CreateSampleFromBytes(payload);
                 _h264Decoder.ProcessInput(_h264InputStreamId, inputSample, 0);
+                var inputCalls = Interlocked.Increment(ref _h264ProcessInputCalls);
+                if (inputCalls == 1)
+                {
+                    OnDiagnostic?.Invoke($"H264 ProcessInput #1 accepted: payloadBytes={payload.Length}.");
+                }
 
                 while (true)
                 {
@@ -196,23 +206,37 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
 
                     if (hr == ResultCode.TransformNeedMoreInput)
                     {
+                        var nmi = Interlocked.Increment(ref _h264NeedMoreInput);
+                        if (nmi == 1 || nmi % 100 == 0)
+                        {
+                            OnDiagnostic?.Invoke($"H264 ProcessOutput: NEED_MORE_INPUT #{nmi} (inputCalls={inputCalls}).");
+                        }
+
                         return;
                     }
 
                     if (hr == ResultCode.TransformStreamChange)
                     {
                         ConfigureH264DecoderOutputTypeLocked();
+                        var sc = Interlocked.Increment(ref _h264StreamChanges);
+                        OnDiagnostic?.Invoke($"H264 ProcessOutput: STREAM_CHANGE #{sc}, nv12={_nv12Width}x{_nv12Height}.");
                         continue;
                     }
 
                     if (hr.Failure)
                     {
-                        throw new InvalidOperationException($"H264 ProcessOutput failed: {hr}");
+                        throw new InvalidOperationException($"H264 ProcessOutput failed: {hr} (inputCalls={inputCalls}).");
                     }
 
                     if (outSample is null)
                     {
                         continue;
+                    }
+
+                    var outCount = Interlocked.Increment(ref _h264OutputSamples);
+                    if (outCount == 1)
+                    {
+                        OnDiagnostic?.Invoke($"H264 ProcessOutput: first output sample emitted (nv12={_nv12Width}x{_nv12Height}).");
                     }
 
                     if (_nv12Width <= 0 || _nv12Height <= 0)
@@ -222,6 +246,12 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
 
                     if (!TryGetBgr24FromNv12Sample(outSample, _nv12Width, _nv12Height, out var bgr) || bgr.Length == 0)
                     {
+                        var nv = Interlocked.Increment(ref _h264NvConvertFailures);
+                        if (nv == 1 || nv % 50 == 0)
+                        {
+                            OnDiagnostic?.Invoke($"H264 NV12->BGR conversion failed #{nv} ({_nv12Width}x{_nv12Height}).");
+                        }
+
                         continue;
                     }
 
