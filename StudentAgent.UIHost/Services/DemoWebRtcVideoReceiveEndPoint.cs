@@ -306,9 +306,7 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
         }
 
         _h264Decoder = new IMFTransform(nativeTransform);
-
-        _h264Decoder.ProcessMessage(TMessageType.MessageNotifyBeginStreaming, UIntPtr.Zero);
-        _h264Decoder.ProcessMessage(TMessageType.MessageNotifyStartOfStream, UIntPtr.Zero);
+        OnDiagnostic?.Invoke("H264 decoder created: CMS H264 Decoder MFT.");
 
         _h264Decoder.GetStreamCount(out var inputs, out var outputs);
         if (inputs != 1 || outputs != 1)
@@ -319,14 +317,29 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
         _h264InputStreamId = 0;
         _h264OutputStreamId = 0;
 
+        // Required call order for MS CMS H.264 Decoder MFT:
+        //   1. SetInputType (H264)
+        //   2. SetOutputType (some default; real NV12 size arrives via STREAM_CHANGE)
+        //   3. ProcessMessage(BEGIN_STREAMING)
+        //   4. ProcessMessage(START_OF_STREAM)
+        //   5. ProcessInput
+        // Calling BEGIN_STREAMING before any media types are set leaves the decoder
+        // with no allocated buffers, and the first ProcessInput access-violates
+        // inside the MFT, killing the host process silently.
         using (var inputType = MediaFactory.MFCreateMediaType())
         {
             inputType.Set(MediaTypeAttributeKeys.MajorType, MediaTypeGuids.Video);
             inputType.Set(MediaTypeAttributeKeys.Subtype, VideoFormatGuids.H264);
             _h264Decoder.SetInputType(_h264InputStreamId, inputType, 0);
         }
+        OnDiagnostic?.Invoke("H264 decoder: SetInputType(H264) OK.");
 
         ConfigureH264DecoderOutputTypeLocked();
+        OnDiagnostic?.Invoke($"H264 decoder: initial SetOutputType OK (nv12={_nv12Width}x{_nv12Height}).");
+
+        _h264Decoder.ProcessMessage(TMessageType.MessageNotifyBeginStreaming, UIntPtr.Zero);
+        _h264Decoder.ProcessMessage(TMessageType.MessageNotifyStartOfStream, UIntPtr.Zero);
+        OnDiagnostic?.Invoke("H264 decoder: BEGIN_STREAMING + START_OF_STREAM dispatched.");
     }
 
     private void ConfigureH264DecoderOutputTypeLocked()
