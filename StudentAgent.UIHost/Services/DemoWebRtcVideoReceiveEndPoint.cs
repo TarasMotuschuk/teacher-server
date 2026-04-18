@@ -37,6 +37,9 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
     private int _h264OutputStreamId;
     private int _nv12Width;
     private int _nv12Height;
+    private bool _h264MftProvidesSamples;
+    private int _h264OutputSampleSize;
+    private int _h264OutputAlignment;
     private long _h264DecodeAttempts;
     private long _h264DecodeSuccess;
     private long _h264DecodeFailures;
@@ -196,16 +199,32 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
 
                 while (true)
                 {
+                    // When the MFT does NOT set MFT_OUTPUT_STREAM_PROVIDES_SAMPLES
+                    // (default for the CMS H.264 Decoder), the caller must provide
+                    // a sample with a buffer of at least cbSize bytes; passing a
+                    // null sample makes ProcessOutput return E_INVALIDARG, after
+                    // which the MFT stays stuck in MF_E_NOTACCEPTING forever.
+                    IMFSample? callerSample = _h264MftProvidesSamples ? null : CreateOutputSampleLocked();
                     var buffer = new OutputDataBuffer
                     {
                         StreamID = _h264OutputStreamId,
+                        Sample = callerSample!,
                     };
 
-                    var hr = _h264Decoder.ProcessOutput(ProcessOutputFlags.None, 1, ref buffer, out _);
-                    using var outSample = buffer.Sample;
+                    SharpGen.Runtime.Result hr;
+                    try
+                    {
+                        hr = _h264Decoder.ProcessOutput(ProcessOutputFlags.None, 1, ref buffer, out _);
+                    }
+                    catch
+                    {
+                        callerSample?.Dispose();
+                        throw;
+                    }
 
                     if (hr == ResultCode.TransformNeedMoreInput)
                     {
+                        callerSample?.Dispose();
                         var nmi = Interlocked.Increment(ref _h264NeedMoreInput);
                         if (nmi == 1 || nmi % 100 == 0)
                         {
@@ -217,49 +236,72 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
 
                     if (hr == ResultCode.TransformStreamChange)
                     {
+                        callerSample?.Dispose();
                         ConfigureH264DecoderOutputTypeLocked();
+                        RefreshOutputStreamInfoLocked();
                         var sc = Interlocked.Increment(ref _h264StreamChanges);
-                        OnDiagnostic?.Invoke($"H264 ProcessOutput: STREAM_CHANGE #{sc}, nv12={_nv12Width}x{_nv12Height}.");
+                        OnDiagnostic?.Invoke(
+                            $"H264 ProcessOutput: STREAM_CHANGE #{sc}, nv12={_nv12Width}x{_nv12Height}, " +
+                            $"providesSamples={_h264MftProvidesSamples}, cbSize={_h264OutputSampleSize}.");
                         continue;
                     }
 
                     if (hr.Failure)
                     {
+                        callerSample?.Dispose();
                         throw new InvalidOperationException($"H264 ProcessOutput failed: {hr} (inputCalls={inputCalls}).");
                     }
 
-                    if (outSample is null)
-                    {
-                        continue;
-                    }
+                    // Prefer the pre-allocated caller sample (MFT wrote into its buffer);
+                    // otherwise fall back to whatever the MFT populated.
+                    IMFSample? sampleToUse = callerSample ?? buffer.Sample;
 
-                    var outCount = Interlocked.Increment(ref _h264OutputSamples);
-                    if (outCount == 1)
+                    try
                     {
-                        OnDiagnostic?.Invoke($"H264 ProcessOutput: first output sample emitted (nv12={_nv12Width}x{_nv12Height}).");
-                    }
-
-                    if (_nv12Width <= 0 || _nv12Height <= 0)
-                    {
-                        continue;
-                    }
-
-                    if (!TryGetBgr24FromNv12Sample(outSample, _nv12Width, _nv12Height, out var bgr) || bgr.Length == 0)
-                    {
-                        var nv = Interlocked.Increment(ref _h264NvConvertFailures);
-                        if (nv == 1 || nv % 50 == 0)
+                        if (sampleToUse is null)
                         {
-                            OnDiagnostic?.Invoke($"H264 NV12->BGR conversion failed #{nv} ({_nv12Width}x{_nv12Height}).");
+                            continue;
                         }
 
-                        continue;
-                    }
+                        var outCount = Interlocked.Increment(ref _h264OutputSamples);
+                        if (outCount == 1)
+                        {
+                            OnDiagnostic?.Invoke($"H264 ProcessOutput: first output sample emitted (nv12={_nv12Width}x{_nv12Height}).");
+                        }
 
-                    OnDecodedFrame?.Invoke(rtpTimestamp, _nv12Width, _nv12Height, bgr, VideoPixelFormatsEnum.Bgr);
-                    var ok = Interlocked.Increment(ref _h264DecodeSuccess);
-                    if (ok == 1 || ok % 100 == 0)
+                        if (_nv12Width <= 0 || _nv12Height <= 0)
+                        {
+                            continue;
+                        }
+
+                        if (!TryGetBgr24FromNv12Sample(sampleToUse, _nv12Width, _nv12Height, out var bgr) || bgr.Length == 0)
+                        {
+                            var nv = Interlocked.Increment(ref _h264NvConvertFailures);
+                            if (nv == 1 || nv % 50 == 0)
+                            {
+                                OnDiagnostic?.Invoke($"H264 NV12->BGR conversion failed #{nv} ({_nv12Width}x{_nv12Height}).");
+                            }
+
+                            continue;
+                        }
+
+                        OnDecodedFrame?.Invoke(rtpTimestamp, _nv12Width, _nv12Height, bgr, VideoPixelFormatsEnum.Bgr);
+                        var ok = Interlocked.Increment(ref _h264DecodeSuccess);
+                        if (ok == 1 || ok % 100 == 0)
+                        {
+                            OnDiagnostic?.Invoke($"H264 decode success #{ok}: {_nv12Width}x{_nv12Height}, bytes={bgr.Length}.");
+                        }
+                    }
+                    finally
                     {
-                        OnDiagnostic?.Invoke($"H264 decode success #{ok}: {_nv12Width}x{_nv12Height}, bytes={bgr.Length}.");
+                        if (callerSample is not null)
+                        {
+                            callerSample.Dispose();
+                        }
+                        else
+                        {
+                            buffer.Sample?.Dispose();
+                        }
                     }
                 }
             }
@@ -335,11 +377,61 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
         OnDiagnostic?.Invoke("H264 decoder: SetInputType(H264) OK.");
 
         ConfigureH264DecoderOutputTypeLocked();
-        OnDiagnostic?.Invoke($"H264 decoder: initial SetOutputType OK (nv12={_nv12Width}x{_nv12Height}).");
+        RefreshOutputStreamInfoLocked();
+        OnDiagnostic?.Invoke(
+            $"H264 decoder: initial SetOutputType OK (nv12={_nv12Width}x{_nv12Height}, " +
+            $"providesSamples={_h264MftProvidesSamples}, cbSize={_h264OutputSampleSize}, alignment={_h264OutputAlignment}).");
 
         _h264Decoder.ProcessMessage(TMessageType.MessageNotifyBeginStreaming, UIntPtr.Zero);
         _h264Decoder.ProcessMessage(TMessageType.MessageNotifyStartOfStream, UIntPtr.Zero);
         OnDiagnostic?.Invoke("H264 decoder: BEGIN_STREAMING + START_OF_STREAM dispatched.");
+    }
+
+    private void RefreshOutputStreamInfoLocked()
+    {
+        if (_h264Decoder is null)
+        {
+            return;
+        }
+
+        var info = _h264Decoder.GetOutputStreamInfo(_h264OutputStreamId);
+        _h264MftProvidesSamples =
+            (info.Flags & (int)OutputStreamInfoFlags.OutputStreamProvidesSamples) != 0;
+        _h264OutputSampleSize = info.Size;
+        _h264OutputAlignment = info.Alignment;
+    }
+
+    private IMFSample CreateOutputSampleLocked()
+    {
+        // Compute a floor for the sample size: for NV12, w*h*3/2 is the minimum
+        // packed payload. Some MFT builds report cbSize=0 until the first
+        // STREAM_CHANGE; fall back to the NV12 dimensions when that happens.
+        var size = _h264OutputSampleSize;
+        if (size <= 0 && _nv12Width > 0 && _nv12Height > 0)
+        {
+            size = checked(_nv12Width * _nv12Height * 3 / 2);
+        }
+
+        if (size <= 0)
+        {
+            size = 1920 * 1080 * 3 / 2;
+        }
+
+        IMFMediaBuffer mediaBuffer = _h264OutputAlignment > 0
+            ? MediaFactory.MFCreateAlignedMemoryBuffer(size, _h264OutputAlignment)
+            : MediaFactory.MFCreateMemoryBuffer(size);
+
+        var sample = MediaFactory.MFCreateSample();
+        try
+        {
+            sample.AddBuffer(mediaBuffer);
+        }
+        finally
+        {
+            mediaBuffer.Dispose();
+        }
+
+        return sample;
     }
 
     private void ConfigureH264DecoderOutputTypeLocked()
