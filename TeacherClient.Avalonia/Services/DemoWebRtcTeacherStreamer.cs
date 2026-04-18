@@ -47,7 +47,12 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             throw new InvalidOperationException($"Cannot reach student agent at {studentBaseUrl}. {ex.Message}", ex);
         }
 
-        _diagnosticLog.LogInfo($"Teacher demo WebRTC: VP8 encode via libvpx for {studentBaseUrl}.");
+        // SIPSorceryMedia.Encoders does not ship a macOS libvpx dylib, so macOS teachers
+        // encode H.264 via VideoToolbox (see MacOsVideoToolboxH264Encoder). Windows/Linux
+        // still use the bundled libvpx VP8 encoder.
+        var preferredCodec = OperatingSystem.IsMacOS() ? VideoCodecsEnum.H264 : VideoCodecsEnum.VP8;
+        var encoderDescription = OperatingSystem.IsMacOS() ? "H264 via VideoToolbox" : "VP8 via libvpx";
+        _diagnosticLog.LogInfo($"Teacher demo WebRTC: {encoderDescription} encode for {studentBaseUrl}.");
 
         RTCPeerConnection? pc = null;
         long localIceCandidates = 0;
@@ -57,7 +62,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
 
         try
         {
-            source.RestrictFormats(format => format.Codec == VideoCodecsEnum.VP8);
+            source.RestrictFormats(format => format.Codec == preferredCodec);
 
             pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
 

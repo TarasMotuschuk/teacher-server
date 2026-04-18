@@ -14,7 +14,10 @@ public sealed class MacOsRawScreenVideoSource : IVideoSource, IDisposable
 
     public MacOsRawScreenVideoSource(Rectangle captureArea, int captureFps)
     {
-        _inner = new Vp8EncodedRawVideoSource();
+        // SIPSorceryMedia.Encoders ships a Windows-only libvpx native (vpxmd.dll) and no
+        // macOS dylib, so VP8 is unavailable here. Use VideoToolbox's hardware H.264 instead.
+        var encoder = new VideoToolboxH264VideoEncoder(captureFps);
+        _inner = new Vp8EncodedRawVideoSource(encoder, ownsEncoder: true);
         _producer = new MacOsScreenCaptureProducer();
         _captureArea = captureArea;
         _captureFps = captureFps;

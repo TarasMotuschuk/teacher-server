@@ -1,19 +1,26 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+
 using SIPSorceryMedia.Abstractions;
 
 namespace TeacherClient.CrossPlatform.Services;
 
 /// <summary>
-/// macOS H.264 encoder using VideoToolbox (hardware where available). Produces Annex B elementary stream chunks suitable for SIPSorcery's H264 packetizer.
+/// macOS H.264 encoder backed by VideoToolbox. Consumes tightly-packed BGRA frames
+/// and emits an Annex-B elementary stream (with SPS/PPS prepended on keyframes)
+/// suitable for SIPSorcery's H264 RTP packetizer on the student side.
 /// </summary>
+[SupportedOSPlatform("macos")]
 public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
 {
-    // Keep aligned with SIPSorcery's suggested H.264 dynamic payload type for WebRTC samples in this repo.
     private const int H264FormatId = 100;
 
     private const string DefaultH264Fmtp =
         "packetization-mode=1;profile-level-id=42e01f;level-asymmetry-allowed=1";
+
+    private static readonly byte[] AnnexBStartCode = [0x00, 0x00, 0x00, 0x01];
+    private static readonly Lazy<VideoToolboxConstants> SharedConstants = new(VideoToolboxConstants.Resolve);
 
     private readonly object _sync = new();
     private readonly List<VideoFormat> _supportedFormats =
@@ -35,6 +42,11 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
 
     public VideoToolboxH264VideoEncoder(int captureFps = 15)
     {
+        if (!OperatingSystem.IsMacOS())
+        {
+            throw new PlatformNotSupportedException($"{nameof(VideoToolboxH264VideoEncoder)} requires macOS.");
+        }
+
         _requestedFps = Math.Clamp(captureFps, 1, 60);
     }
 
@@ -66,11 +78,6 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
         if (pixelFormat != VideoPixelFormatsEnum.Bgra)
         {
             throw new NotSupportedException($"Unsupported pixel format {pixelFormat}. Expected BGRA.");
-        }
-
-        if (!OperatingSystem.IsMacOS())
-        {
-            throw new PlatformNotSupportedException($"{nameof(VideoToolboxH264VideoEncoder)} is only supported on macOS.");
         }
 
         if (width <= 0 || height <= 0)
@@ -125,21 +132,36 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
                     try
                     {
                         var pts = CMTimeMake(Interlocked.Increment(ref _frameIndex) - 1, _timebaseFps);
-                        var flags = _forceKeyFrame ? VTEncodeInfoFlags.kVTEncodeInfo_FrameIsForcedKeyFrame : 0;
-                        _forceKeyFrame = false;
-
                         var duration = CMTimeMake(1, _timebaseFps);
-                        var st = VTCompressionSessionEncodeFrame(
-                            _compressionSession,
-                            pixelBuffer,
-                            pts,
-                            duration,
-                            IntPtr.Zero,
-                            frameUserData,
-                            out _);
-                        if (st != 0)
+
+                        var framePropsDict = IntPtr.Zero;
+                        if (_forceKeyFrame)
                         {
-                            throw new InvalidOperationException($"VTCompressionSessionEncodeFrame failed: {st}.");
+                            framePropsDict = CreateForceKeyFrameFrameProperties();
+                            _forceKeyFrame = false;
+                        }
+
+                        try
+                        {
+                            var st = VTCompressionSessionEncodeFrame(
+                                _compressionSession,
+                                pixelBuffer,
+                                pts,
+                                duration,
+                                framePropsDict,
+                                frameUserData,
+                                out _);
+                            if (st != 0)
+                            {
+                                throw new InvalidOperationException($"VTCompressionSessionEncodeFrame failed: {st}.");
+                            }
+                        }
+                        finally
+                        {
+                            if (framePropsDict != IntPtr.Zero)
+                            {
+                                CFRelease(framePropsDict);
+                            }
                         }
 
                         var completeStatus = VTCompressionSessionCompleteFrames(_compressionSession, pts);
@@ -149,7 +171,6 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
                         }
 
                         _ = frameContext.WaitForCompletion(TimeSpan.FromSeconds(2));
-
                     }
                     finally
                     {
@@ -174,10 +195,10 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
         EncodeVideo(rawImage.Width, rawImage.Height, rawImage.GetBuffer(), rawImage.PixelFormat, codec);
 
     public IEnumerable<VideoSample> DecodeVideo(byte[] encodedSample, VideoPixelFormatsEnum pixelFormat, VideoCodecsEnum codec) =>
-        throw new NotSupportedException();
+        throw new NotSupportedException("VideoToolboxH264VideoEncoder is encode-only; decode is handled on the student agent.");
 
     public IEnumerable<RawImage> DecodeVideoFaster(byte[] encodedSample, VideoPixelFormatsEnum pixelFormat, VideoCodecsEnum codec) =>
-        throw new NotSupportedException();
+        throw new NotSupportedException("VideoToolboxH264VideoEncoder is encode-only; decode is handled on the student agent.");
 
     public void ForceKeyFrame()
     {
@@ -282,11 +303,13 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
 
         _compressionSession = session;
 
-        SetNumber(_compressionSession, "RealTime", 1);
-        SetNumber(_compressionSession, "AllowFrameReordering", 0);
-        SetNumber(_compressionSession, "MaxKeyFrameInterval", 60);
-        SetNumber(_compressionSession, "AverageBitRate", 2_500_000);
-        SetString(_compressionSession, "ProfileLevel", "H264_Baseline_AutoLevel");
+        var keys = SharedConstants.Value;
+        SetSessionCFProperty(keys.RealTime, keys.CFBooleanTrue);
+        SetSessionCFProperty(keys.AllowFrameReordering, keys.CFBooleanFalse);
+        SetSessionCFProperty(keys.ProfileLevel, keys.ProfileLevelH264BaselineAutoLevel);
+        SetSessionInt32Property(keys.AverageBitRate, 2_500_000);
+        SetSessionInt32Property(keys.ExpectedFrameRate, _timebaseFps);
+        SetSessionInt32Property(keys.MaxKeyFrameInterval, Math.Max(1, _timebaseFps * 2));
 
         var prep = VTCompressionSessionPrepareToEncodeFrames(_compressionSession);
         if (prep != 0)
@@ -312,91 +335,84 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
 
     private static IntPtr CreateEncoderSpecificationPreferHardware()
     {
-        var key = CFStringCreateWithCString(IntPtr.Zero, "EnableHardwareAcceleratedVideoEncoder", kCFStringEncodingUTF8);
-        var val = CreateCfInt32(1);
-        if (key == IntPtr.Zero || val == IntPtr.Zero)
+        var keys = SharedConstants.Value;
+        var dictKeys = new[] { keys.EncoderSpecEnableHardware };
+        var dictValues = new[] { keys.CFBooleanTrue };
+        return CFDictionaryCreate(
+            IntPtr.Zero,
+            dictKeys,
+            dictValues,
+            1,
+            keys.DictionaryKeyCallbacks,
+            keys.DictionaryValueCallbacks);
+    }
+
+    private static IntPtr CreateForceKeyFrameFrameProperties()
+    {
+        var keys = SharedConstants.Value;
+        var dictKeys = new[] { keys.ForceKeyFrameFrameOption };
+        var dictValues = new[] { keys.CFBooleanTrue };
+        return CFDictionaryCreate(
+            IntPtr.Zero,
+            dictKeys,
+            dictValues,
+            1,
+            keys.DictionaryKeyCallbacks,
+            keys.DictionaryValueCallbacks);
+    }
+
+    private void SetSessionCFProperty(IntPtr key, IntPtr cfValue)
+    {
+        var status = VTSessionSetProperty(_compressionSession, key, cfValue);
+        if (status != 0)
         {
-            if (key != IntPtr.Zero)
-            {
-                CFRelease(key);
-            }
+            throw new InvalidOperationException($"VTSessionSetProperty failed (key=0x{key:X}): status={status}.");
+        }
+    }
 
-            if (val != IntPtr.Zero)
-            {
-                CFRelease(val);
-            }
-
-            return IntPtr.Zero;
+    private void SetSessionInt32Property(IntPtr key, int value)
+    {
+        var cfNum = CreateCfInt32(value);
+        if (cfNum == IntPtr.Zero)
+        {
+            throw new InvalidOperationException($"CFNumberCreate(Int32={value}) returned NULL.");
         }
 
-        var keys = new[] { key };
-        var vals = new[] { val };
-        var spec = CFDictionaryCreate(IntPtr.Zero, keys, vals, 1, IntPtr.Zero, IntPtr.Zero);
-        CFRelease(key);
-        CFRelease(val);
-        return spec;
+        try
+        {
+            var status = VTSessionSetProperty(_compressionSession, key, cfNum);
+            if (status != 0)
+            {
+                throw new InvalidOperationException($"VTSessionSetProperty failed (key=0x{key:X}, value={value}): status={status}.");
+            }
+        }
+        finally
+        {
+            CFRelease(cfNum);
+        }
     }
 
     private static IntPtr CreateCfInt32(int value)
     {
-        var v = value;
         var p = Marshal.AllocHGlobal(sizeof(int));
-        Marshal.WriteInt32(p, v);
-        var n = CFNumberCreate(IntPtr.Zero, CFNumberType.kCFNumberSInt32Type, p);
-        Marshal.FreeHGlobal(p);
-        return n;
-    }
-
-    private static void SetNumber(IntPtr session, string keyName, int value)
-    {
-        var key = CFStringCreateWithCString(IntPtr.Zero, keyName, kCFStringEncodingUTF8);
-        var val = CreateCfInt32(value);
-        if (key == IntPtr.Zero || val == IntPtr.Zero)
+        try
         {
-            if (key != IntPtr.Zero)
-            {
-                CFRelease(key);
-            }
-
-            if (val != IntPtr.Zero)
-            {
-                CFRelease(val);
-            }
-
-            return;
+            Marshal.WriteInt32(p, value);
+            return CFNumberCreate(IntPtr.Zero, CFNumberType.kCFNumberSInt32Type, p);
         }
-
-        _ = VTSessionSetProperty(session, key, val);
-        CFRelease(key);
-        CFRelease(val);
-    }
-
-    private static void SetString(IntPtr session, string keyName, string value)
-    {
-        var key = CFStringCreateWithCString(IntPtr.Zero, keyName, kCFStringEncodingUTF8);
-        var val = CFStringCreateWithCString(IntPtr.Zero, value, kCFStringEncodingUTF8);
-        if (key == IntPtr.Zero || val == IntPtr.Zero)
+        finally
         {
-            if (key != IntPtr.Zero)
-            {
-                CFRelease(key);
-            }
-
-            if (val != IntPtr.Zero)
-            {
-                CFRelease(val);
-            }
-
-            return;
+            Marshal.FreeHGlobal(p);
         }
-
-        _ = VTSessionSetProperty(session, key, val);
-        CFRelease(key);
-        CFRelease(val);
     }
 
     private static void AppendAnnexB(IntPtr sampleBuffer, EncodedFrameAccumulator acc)
     {
+        if (IsKeyFrameSample(sampleBuffer))
+        {
+            AppendParameterSets(sampleBuffer, acc.Stream);
+        }
+
         var dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer);
         if (dataBuffer == IntPtr.Zero)
         {
@@ -409,8 +425,8 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
             return;
         }
 
-        var tmp = new byte[totalLen];
-        var tmpHandle = GCHandle.Alloc(tmp, GCHandleType.Pinned);
+        var avcc = new byte[totalLen];
+        var tmpHandle = GCHandle.Alloc(avcc, GCHandleType.Pinned);
         try
         {
             var copy = CMBlockBufferCopyDataBytes(dataBuffer, 0, (nuint)totalLen, tmpHandle.AddrOfPinnedObject());
@@ -424,26 +440,66 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
             tmpHandle.Free();
         }
 
-        if (TryConvertAvccToAnnexB(tmp, acc.Stream))
+        WriteAvccAsAnnexB(avcc, acc.Stream);
+    }
+
+    private static bool IsKeyFrameSample(IntPtr sampleBuffer)
+    {
+        var attachmentsArray = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false);
+        if (attachmentsArray == IntPtr.Zero || CFArrayGetCount(attachmentsArray) <= 0)
+        {
+            return true;
+        }
+
+        var dict = CFArrayGetValueAtIndex(attachmentsArray, 0);
+        if (dict == IntPtr.Zero)
+        {
+            return true;
+        }
+
+        var keys = SharedConstants.Value;
+        var notSync = CFDictionaryGetValue(dict, keys.CMSampleAttachmentKeyNotSync);
+        if (notSync == IntPtr.Zero)
+        {
+            return true;
+        }
+
+        return notSync != keys.CFBooleanTrue;
+    }
+
+    private static void AppendParameterSets(IntPtr sampleBuffer, MemoryStream output)
+    {
+        var formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer);
+        if (formatDesc == IntPtr.Zero)
         {
             return;
         }
 
-        acc.Stream.Write(tmp);
+        var probe = CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
+            formatDesc, 0, out _, out _, out var paramSetCount, out _);
+        if (probe != 0)
+        {
+            return;
+        }
+
+        for (nuint i = 0; i < paramSetCount; i++)
+        {
+            var psStatus = CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
+                formatDesc, i, out var psPtr, out var psSize, out _, out _);
+            if (psStatus != 0 || psPtr == IntPtr.Zero || psSize == 0)
+            {
+                continue;
+            }
+
+            output.Write(AnnexBStartCode, 0, AnnexBStartCode.Length);
+            var psBytes = new byte[checked((int)psSize)];
+            Marshal.Copy(psPtr, psBytes, 0, psBytes.Length);
+            output.Write(psBytes, 0, psBytes.Length);
+        }
     }
 
-    private static bool TryConvertAvccToAnnexB(ReadOnlySpan<byte> avcc, MemoryStream dst)
+    private static void WriteAvccAsAnnexB(ReadOnlySpan<byte> avcc, MemoryStream dst)
     {
-        if (avcc.Length < 4)
-        {
-            return false;
-        }
-
-        if (avcc.Length >= 4 && avcc[0] == 0x00 && avcc[1] == 0x00 && (avcc[2] == 0x01 || (avcc[2] == 0x00 && avcc[3] == 0x01)))
-        {
-            return false;
-        }
-
         var idx = 0;
         while (idx + 4 <= avcc.Length)
         {
@@ -451,18 +507,13 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
             idx += 4;
             if (nalLen <= 0 || idx + nalLen > avcc.Length)
             {
-                return false;
+                return;
             }
 
-            dst.WriteByte(0x00);
-            dst.WriteByte(0x00);
-            dst.WriteByte(0x00);
-            dst.WriteByte(0x01);
+            dst.Write(AnnexBStartCode, 0, AnnexBStartCode.Length);
             dst.Write(avcc.Slice(idx, nalLen));
             idx += nalLen;
         }
-
-        return idx == avcc.Length;
     }
 
     private sealed class EncodedFrameAccumulator : IDisposable
@@ -505,18 +556,107 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
     }
 
     private const uint kCVPixelFormatType_32BGRA = 0x42475241; // 'BGRA'
-    private const uint kCMVideoCodecType_H264 = 0x61766331; // 'avc1'
+    private const uint kCMVideoCodecType_H264 = 0x61766331;   // 'avc1'
 
-    private const int kCFStringEncodingUTF8 = 0x08000100;
+    #region Core Foundation / VideoToolbox constants resolved via dlsym
 
-    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
-    private static extern IntPtr CFStringCreateWithCString(IntPtr allocator, string cStr, int encoding);
+    private sealed class VideoToolboxConstants
+    {
+        public IntPtr CFBooleanTrue { get; init; }
+        public IntPtr CFBooleanFalse { get; init; }
+        public IntPtr DictionaryKeyCallbacks { get; init; }
+        public IntPtr DictionaryValueCallbacks { get; init; }
+
+        public IntPtr RealTime { get; init; }
+        public IntPtr AllowFrameReordering { get; init; }
+        public IntPtr ProfileLevel { get; init; }
+        public IntPtr ProfileLevelH264BaselineAutoLevel { get; init; }
+        public IntPtr AverageBitRate { get; init; }
+        public IntPtr ExpectedFrameRate { get; init; }
+        public IntPtr MaxKeyFrameInterval { get; init; }
+        public IntPtr ForceKeyFrameFrameOption { get; init; }
+        public IntPtr EncoderSpecEnableHardware { get; init; }
+
+        public IntPtr CMSampleAttachmentKeyNotSync { get; init; }
+
+        public static VideoToolboxConstants Resolve()
+        {
+            var cf = Dlopen("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation");
+            var cm = Dlopen("/System/Library/Frameworks/CoreMedia.framework/CoreMedia");
+            var vt = Dlopen("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox");
+
+            return new VideoToolboxConstants
+            {
+                CFBooleanTrue = DereferenceSymbol(cf, "kCFBooleanTrue"),
+                CFBooleanFalse = DereferenceSymbol(cf, "kCFBooleanFalse"),
+                DictionaryKeyCallbacks = Dlsym(cf, "kCFTypeDictionaryKeyCallBacks"),
+                DictionaryValueCallbacks = Dlsym(cf, "kCFTypeDictionaryValueCallBacks"),
+
+                RealTime = DereferenceSymbol(vt, "kVTCompressionPropertyKey_RealTime"),
+                AllowFrameReordering = DereferenceSymbol(vt, "kVTCompressionPropertyKey_AllowFrameReordering"),
+                ProfileLevel = DereferenceSymbol(vt, "kVTCompressionPropertyKey_ProfileLevel"),
+                ProfileLevelH264BaselineAutoLevel = DereferenceSymbol(vt, "kVTProfileLevel_H264_Baseline_AutoLevel"),
+                AverageBitRate = DereferenceSymbol(vt, "kVTCompressionPropertyKey_AverageBitRate"),
+                ExpectedFrameRate = DereferenceSymbol(vt, "kVTCompressionPropertyKey_ExpectedFrameRate"),
+                MaxKeyFrameInterval = DereferenceSymbol(vt, "kVTCompressionPropertyKey_MaxKeyFrameInterval"),
+                ForceKeyFrameFrameOption = DereferenceSymbol(vt, "kVTEncodeFrameOptionKey_ForceKeyFrame"),
+                EncoderSpecEnableHardware = DereferenceSymbol(vt, "kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder"),
+
+                CMSampleAttachmentKeyNotSync = DereferenceSymbol(cm, "kCMSampleAttachmentKey_NotSync"),
+            };
+        }
+
+        private static IntPtr Dlopen(string path)
+        {
+            const int RTLD_NOW = 2;
+            var handle = dlopen(path, RTLD_NOW);
+            if (handle == IntPtr.Zero)
+            {
+                throw new InvalidOperationException($"dlopen('{path}') failed.");
+            }
+
+            return handle;
+        }
+
+        private static IntPtr Dlsym(IntPtr handle, string symbol)
+        {
+            var addr = dlsym(handle, symbol);
+            if (addr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException($"dlsym('{symbol}') not found.");
+            }
+
+            return addr;
+        }
+
+        private static IntPtr DereferenceSymbol(IntPtr handle, string symbol)
+            => Marshal.ReadIntPtr(Dlsym(handle, symbol));
+    }
+
+    #endregion
+
+    #region P/Invoke
+
+    [DllImport("/usr/lib/libSystem.dylib", EntryPoint = "dlopen")]
+    private static extern IntPtr dlopen([MarshalAs(UnmanagedType.LPStr)] string path, int mode);
+
+    [DllImport("/usr/lib/libSystem.dylib", EntryPoint = "dlsym")]
+    private static extern IntPtr dlsym(IntPtr handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
 
     [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static extern IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, IntPtr valuePtr);
 
     [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static extern IntPtr CFDictionaryCreate(IntPtr allocator, IntPtr[] keys, IntPtr[] values, nint numValues, IntPtr keyCallBacks, IntPtr valueCallBacks);
+
+    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern IntPtr CFDictionaryGetValue(IntPtr theDict, IntPtr key);
+
+    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern nint CFArrayGetCount(IntPtr theArray);
+
+    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern IntPtr CFArrayGetValueAtIndex(IntPtr theArray, nint index);
 
     [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static extern void CFRelease(IntPtr cf);
@@ -528,10 +668,25 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
     private static extern IntPtr CMSampleBufferGetDataBuffer(IntPtr sbuf);
 
     [DllImport("/System/Library/Frameworks/CoreMedia.framework/CoreMedia")]
+    private static extern IntPtr CMSampleBufferGetFormatDescription(IntPtr sbuf);
+
+    [DllImport("/System/Library/Frameworks/CoreMedia.framework/CoreMedia")]
+    private static extern IntPtr CMSampleBufferGetSampleAttachmentsArray(IntPtr sbuf, [MarshalAs(UnmanagedType.I1)] bool createIfNecessary);
+
+    [DllImport("/System/Library/Frameworks/CoreMedia.framework/CoreMedia")]
     private static extern int CMBlockBufferGetDataLength(IntPtr blockBuffer);
 
     [DllImport("/System/Library/Frameworks/CoreMedia.framework/CoreMedia")]
     private static extern int CMBlockBufferCopyDataBytes(IntPtr blockBuffer, nuint offset, nuint length, IntPtr dataPointer);
+
+    [DllImport("/System/Library/Frameworks/CoreMedia.framework/CoreMedia")]
+    private static extern int CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
+        IntPtr videoDesc,
+        nuint parameterSetIndex,
+        out IntPtr parameterSetPointerOut,
+        out nuint parameterSetSizeOut,
+        out nuint parameterSetCountOut,
+        out int nalUnitHeaderLengthOut);
 
     [DllImport("/System/Library/Frameworks/CoreVideo.framework/CoreVideo")]
     private static extern int CVPixelBufferCreateWithBytes(
@@ -588,6 +743,8 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
 
     [DllImport("/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox")]
     private static extern int VTSessionSetProperty(IntPtr session, IntPtr propertyKey, IntPtr propertyValue);
+
+    #endregion
 
     private sealed class FrameEncodeContext : IDisposable
     {
