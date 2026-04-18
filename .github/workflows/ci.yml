@@ -135,7 +135,12 @@ jobs:
           RUNTIME: osx-arm64
           VERSION: ${{ steps.version.outputs.value }}
           GITHUB_TOKEN: ${{ github.token }}
-          SIGNING_MODE: none
+          # adhoc: apply an ad-hoc codesign to the .app so Gatekeeper reports
+          # "unidentified developer" (bypassable) instead of "damaged" (blocked).
+          # Does not require Apple Developer Program membership. A Developer ID
+          # signed + notarized build is still needed for frictionless install on
+          # other Macs; ad-hoc is only suitable for local/manual testing.
+          SIGNING_MODE: adhoc
         run: bash TeacherClient.Avalonia.Setup/Build-MacInstaller.sh
 
       - name: Upload .pkg

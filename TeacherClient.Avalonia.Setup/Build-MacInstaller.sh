@@ -115,7 +115,16 @@ find "$APP_DIR" -name '.DS_Store' -delete
 xattr -cr "$APP_DIR/Contents/Frameworks" 2>/dev/null || true
 codesign_app_bundle
 ditto --norsrc "$APP_DIR" "$STAGING_DIR/$APP_NAME"
-codesign_app_bundle "$STAGING_DIR/$APP_NAME"
+# Re-signing the staged copy would churn cdhash for no reason and break TCC grants
+# between rebuilds of identical content (ad-hoc). ditto preserves the signature, so
+# we only verify here instead of signing again.
+if [[ "$SIGNING_MODE" != "none" ]] && command -v codesign >/dev/null 2>&1; then
+  codesign --verify --deep --strict "$STAGING_DIR/$APP_NAME" >/dev/null 2>&1 || {
+    echo "ERROR: codesign verification failed for $STAGING_DIR/$APP_NAME after ditto" >&2
+    codesign --verify --deep --strict --verbose=4 "$STAGING_DIR/$APP_NAME" || true
+    exit 3
+  }
+fi
 
 echo "Building macOS installer package..."
 pkgbuild \
