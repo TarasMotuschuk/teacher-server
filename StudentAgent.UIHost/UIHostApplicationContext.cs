@@ -20,6 +20,12 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     private readonly System.Windows.Forms.Timer _demoPollTimer;
     private readonly HttpClient _httpClient = new();
     private readonly List<DemoFullscreenForm> _demoForms = [];
+    private readonly object _demoFrameLock = new();
+    private byte[]? _latestDemoBgr;
+    private int _latestDemoW;
+    private int _latestDemoH;
+    private int _demoFramePumpPosted;
+    private long _demoRenderedFrameCount;
     private string? _activeDemoSessionId;
     private RTCPeerConnection? _demoPc;
     private DemoWebRtcVideoReceiveEndPoint? _demoVideoEndPoint;
@@ -206,42 +212,17 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
                     return;
                 }
 
-                foreach (var form in _demoForms)
+                // Coalesce to the latest frame only. Per-frame BeginInvoke queues one delegate per
+                // decoded frame; at 10–20 fps the WinForms queue can run minutes behind, showing
+                // large end-to-end latency (e.g. 5–10+ seconds) even when network and decode are fast.
+                lock (_demoFrameLock)
                 {
-                    form.BeginInvoke(new Action(() =>
-                    {
-                        try
-                        {
-                            using var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-                            var rect = new Rectangle(0, 0, width, height);
-                            var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
-                            try
-                            {
-                                // NOTE: Format24bppRgb is BGR in memory.
-                                var stride = Math.Abs(data.Stride);
-                                var tightStride = width * 3;
-                                var rows = Math.Min(height, sample.Length / tightStride);
-                                for (var y = 0; y < rows; y++)
-                                {
-                                    Marshal.Copy(sample, y * tightStride, IntPtr.Add(data.Scan0, y * stride), tightStride);
-                                }
-                            }
-                            finally
-                            {
-                                bmp.UnlockBits(data);
-                            }
-
-                            form.SetFrame((Bitmap)bmp.Clone());
-                            if (decodedCount == 1 || decodedCount % 100 == 0)
-                            {
-                                _demoDiagnosticLog.LogInfo($"Student demo rendered frame #{decodedCount} to fullscreen form.");
-                            }
-                        }
-                        catch
-                        {
-                        }
-                    }));
+                    _latestDemoBgr = sample;
+                    _latestDemoW = width;
+                    _latestDemoH = height;
                 }
+
+                TryBeginInvokePostedDemoFramePump();
             };
 
             _demoPc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
@@ -437,6 +418,109 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
         }
         catch
         {
+        }
+
+        lock (_demoFrameLock)
+        {
+            _latestDemoBgr = null;
+        }
+
+        Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+    }
+
+    private void TryBeginInvokePostedDemoFramePump()
+    {
+        if (_demoForms.Count == 0)
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _demoFramePumpPosted, 1, 0) != 0)
+        {
+            return;
+        }
+
+        var form = _demoForms[0];
+        if (!form.IsHandleCreated || form.IsDisposed)
+        {
+            Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+            return;
+        }
+
+        try
+        {
+            form.BeginInvoke(PostedDemoFramePump);
+        }
+        catch
+        {
+            Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+        }
+    }
+
+    private void PostedDemoFramePump()
+    {
+        byte[]? bgr;
+        int w;
+        int h;
+        lock (_demoFrameLock)
+        {
+            bgr = _latestDemoBgr;
+            _latestDemoBgr = null;
+            w = _latestDemoW;
+            h = _latestDemoH;
+        }
+
+        if (bgr is not null && w > 0 && h > 0)
+        {
+            try
+            {
+                using var bmp = new Bitmap(w, h, PixelFormat.Format24bppRgb);
+                var rect = new Rectangle(0, 0, w, h);
+                var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+                try
+                {
+                    var stride = Math.Abs(data.Stride);
+                    var tightStride = w * 3;
+                    var rows = Math.Min(h, bgr.Length / tightStride);
+                    for (var y = 0; y < rows; y++)
+                    {
+                        Marshal.Copy(bgr, y * tightStride, IntPtr.Add(data.Scan0, y * stride), tightStride);
+                    }
+                }
+                finally
+                {
+                    bmp.UnlockBits(data);
+                }
+
+                foreach (var form in _demoForms)
+                {
+                    if (!form.IsHandleCreated || form.IsDisposed)
+                    {
+                        continue;
+                    }
+
+                    form.SetFrame((Bitmap)bmp.Clone());
+                }
+
+                var n = Interlocked.Increment(ref _demoRenderedFrameCount);
+                if (n == 1 || n % 100 == 0)
+                {
+                    _demoDiagnosticLog.LogInfo($"Student demo presented frame #{n} to fullscreen form(s), size={w}x{h}.");
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+
+        lock (_demoFrameLock)
+        {
+            if (_latestDemoBgr is not null)
+            {
+                TryBeginInvokePostedDemoFramePump();
+            }
         }
     }
 
