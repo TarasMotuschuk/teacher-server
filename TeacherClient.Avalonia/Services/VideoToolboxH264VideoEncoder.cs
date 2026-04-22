@@ -164,12 +164,10 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
                             }
                         }
 
-                        var completeStatus = VTCompressionSessionCompleteFrames(_compressionSession, pts);
-                        if (completeStatus != 0)
-                        {
-                            throw new InvalidOperationException($"VTCompressionSessionCompleteFrames failed: {completeStatus}.");
-                        }
-
+                        // Do not call VTCompressionSessionCompleteFrames per frame. That API drains
+                        // the encoder to the given timestamp and causes multi-frame backlog (10s+
+                        // end-to-end delay) when invoked after every EncodeFrame. The output callback
+                        // is sufficient for real-time streaming; call CompleteFrames only on teardown.
                         _ = frameContext.WaitForCompletion(TimeSpan.FromSeconds(2));
                     }
                     finally
@@ -309,7 +307,8 @@ public sealed class VideoToolboxH264VideoEncoder : IVideoEncoder, IDisposable
         SetSessionCFProperty(keys.ProfileLevel, keys.ProfileLevelH264BaselineAutoLevel);
         SetSessionInt32Property(keys.AverageBitRate, 2_500_000);
         SetSessionInt32Property(keys.ExpectedFrameRate, _timebaseFps);
-        SetSessionInt32Property(keys.MaxKeyFrameInterval, Math.Max(1, _timebaseFps * 2));
+        // One keyframe per second: faster join/recovery; bandwidth increase is small at classroom bitrates.
+        SetSessionInt32Property(keys.MaxKeyFrameInterval, Math.Max(1, _timebaseFps));
 
         var prep = VTCompressionSessionPrepareToEncodeFrames(_compressionSession);
         if (prep != 0)

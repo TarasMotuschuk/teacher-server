@@ -213,6 +213,10 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
                         expectedTightRow);
                 }
 
+                // CGDisplayCreateImageForRect does not include the system pointer; draw a small
+                // crosshair at the current mouse position so students see where the teacher is pointing.
+                TryCompositeSystemMouseCursor(captureArea, width, height, bgraTight);
+
                 return true;
             }
             finally
@@ -224,6 +228,93 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
         {
             CGImageRelease(image);
         }
+    }
+
+    /// <summary>
+    /// CG display capture does not include the pointer. Composite a simple crosshair for classroom demo.
+    /// Coordinates: same global space as <see cref="CGDisplayCreateImageForRect"/> (Quartz, Y up).
+    /// </summary>
+    private static void TryCompositeSystemMouseCursor(
+        Rectangle captureArea,
+        int width,
+        int height,
+        byte[] bgraTight)
+    {
+        if (bgraTight.Length < checked(width * height * 4))
+        {
+            return;
+        }
+
+        var displayId = CGMainDisplayID();
+        if (displayId == 0)
+        {
+            return;
+        }
+
+        var ev = CGEventCreate(IntPtr.Zero);
+        if (ev == IntPtr.Zero)
+        {
+            return;
+        }
+
+        CGPoint pt;
+        try
+        {
+            pt = CGEventGetLocation(ev);
+        }
+        finally
+        {
+            CFRelease(ev);
+        }
+
+        var capRect = new CGRect(captureArea.X, captureArea.Y, width, height);
+        var x = (int)Math.Floor(pt.X - capRect.X);
+        // Buffer row 0 = top of image. Quartz Y increases upward.
+        var y = (int)Math.Floor((capRect.Y + capRect.Height) - pt.Y);
+        if (x < 2 || y < 2 || x >= width - 2 || y >= height - 2)
+        {
+            return;
+        }
+
+        DrawCrosshairBgra(bgraTight, width, height, x, y);
+    }
+
+    private static void DrawCrosshairBgra(byte[] bgra, int w, int h, int cx, int cy)
+    {
+        const int half = 8;
+
+        void SetPixel(int px, int py, byte b, byte gr, byte r, byte a)
+        {
+            if (px < 0 || py < 0 || px >= w || py >= h)
+            {
+                return;
+            }
+
+            var o = (py * w + px) * 4;
+            bgra[o] = b;
+            bgra[o + 1] = gr;
+            bgra[o + 2] = r;
+            bgra[o + 3] = a;
+        }
+
+        for (var d = -half - 1; d <= half + 1; d++)
+        {
+            SetPixel(cx + d, cy, 0, 0, 0, 255);
+            SetPixel(cx, cy + d, 0, 0, 0, 255);
+        }
+
+        for (var d = -half; d <= half; d++)
+        {
+            SetPixel(cx + d, cy, 255, 255, 255, 255);
+            SetPixel(cx, cy + d, 255, 255, 255, 255);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct CGPoint
+    {
+        public readonly double X;
+        public readonly double Y;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -267,6 +358,12 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
 
     [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static extern void CFRelease(IntPtr cf);
+
+    [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+    private static extern IntPtr CGEventCreate(IntPtr source);
+
+    [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+    private static extern CGPoint CGEventGetLocation(IntPtr ev);
 
     [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
     [return: MarshalAs(UnmanagedType.I1)]

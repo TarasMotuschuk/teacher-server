@@ -570,8 +570,13 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
                     twoD.Lock2D(out var scan0, out var pitch);
                     try
                     {
+                        if (!TryCopyNv12TightFromPlanar2D(scan0, pitch, width, height, out var nvTight) || nvTight is null)
+                        {
+                            return false;
+                        }
+
                         bgr = new byte[checked(width * height * 3)];
-                        CopyNv12ToBgr(scan0, pitch, width, height, bgr);
+                        CopyTightNv12ToBgr24(nvTight, width, height, bgr);
                         return true;
                     }
                     finally
@@ -590,8 +595,10 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
                     return false;
                 }
 
+                var nvTight = new byte[expected];
+                Marshal.Copy(ptr, nvTight, 0, expected);
                 bgr = new byte[checked(width * height * 3)];
-                CopyNv12ToBgr(ptr, width, width, height, bgr);
+                CopyTightNv12ToBgr24(nvTight, width, height, bgr);
                 return true;
             }
             finally
@@ -601,23 +608,65 @@ public sealed class DemoWebRtcVideoReceiveEndPoint : IDisposable
         }
     }
 
-    private static void CopyNv12ToBgr(nint basePtr, int yStride, int width, int height, byte[] bgr)
+    /// <summary>
+    /// Packs NV12 with arbitrary row stride (typical of MF) into a tight w*h*3/2 array for a fast
+    /// managed conversion, avoiding per-pixel <see cref="Marshal.ReadByte"/> in the BGR path.
+    /// </summary>
+    private static bool TryCopyNv12TightFromPlanar2D(
+        nint basePtr,
+        int yStride,
+        int width,
+        int height,
+        out byte[]? tight)
     {
-        var uvOffset = yStride * height;
+        tight = null;
+        if (height % 2 != 0)
+        {
+            return false;
+        }
+
+        if (yStride < width)
+        {
+            return false;
+        }
+
+        var ySize = width * height;
+        var halfH = height / 2;
+        var total = ySize + (width * halfH);
+        if (basePtr == nint.Zero)
+        {
+            return false;
+        }
+
+        var d = new byte[total];
+        for (var y = 0; y < height; y++)
+        {
+            Marshal.Copy(nint.Add(basePtr, y * yStride), d, y * width, width);
+        }
+
+        var uvBase = nint.Add(basePtr, yStride * height);
+        for (var y2 = 0; y2 < halfH; y2++)
+        {
+            Marshal.Copy(nint.Add(uvBase, y2 * yStride), d, ySize + (y2 * width), width);
+        }
+
+        tight = d;
+        return true;
+    }
+
+    private static void CopyTightNv12ToBgr24(byte[] nv12, int width, int height, byte[] bgr)
+    {
+        var ySize = width * height;
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
-                var yVal = Marshal.ReadByte(basePtr + (y * yStride) + x);
-                var uvRow = (y / 2) * yStride;
-                var uvCol = (x / 2) * 2;
-                var u = Marshal.ReadByte(basePtr + uvOffset + uvRow + uvCol);
-                var v = Marshal.ReadByte(basePtr + uvOffset + uvRow + uvCol + 1);
+                var yV = nv12[(y * width) + x];
+                var uvi = ySize + ((y / 2) * width) + ((x / 2) * 2);
+                var d = (int)nv12[uvi] - 128;
+                var e = (int)nv12[uvi + 1] - 128;
 
-                var c = yVal - 16;
-                var d = u - 128;
-                var e = v - 128;
-
+                var c = (int)yV - 16;
                 var r = (298 * c + 409 * e + 128) >> 8;
                 var g = (298 * c - 100 * d - 208 * e + 128) >> 8;
                 var b = (298 * c + 516 * d + 128) >> 8;

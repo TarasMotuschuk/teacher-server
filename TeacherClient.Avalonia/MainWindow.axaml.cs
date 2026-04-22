@@ -335,9 +335,21 @@ public partial class MainWindow : Window, IDisposable
         }
 
         var area = screen.WorkingArea;
-        var w = Math.Max(320, area.Width);
-        var h = Math.Max(240, area.Height);
-        return ((int)w, (int)h);
+        var w = Math.Max(320, (int)area.Width);
+        var h = Math.Max(240, (int)area.Height);
+
+        // Full native resolution explodes H.264 encoding cost, bit rate, and student NV12->BGR
+        // conversion (millions of pixels per frame at 10–20 fps). Cap for responsive demo.
+        const int maxW = 1920;
+        const int maxH = 1080;
+        if (w > maxW || h > maxH)
+        {
+            var scale = Math.Min((double)maxW / w, (double)maxH / h);
+            w = Math.Max(16, (int)Math.Round(w * scale));
+            h = Math.Max(16, (int)Math.Round(h * scale));
+        }
+
+        return (w, h);
     }
 
     private async Task StopDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
