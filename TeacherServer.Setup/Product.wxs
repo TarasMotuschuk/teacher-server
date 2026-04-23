@@ -206,6 +206,8 @@
     </Component>
 
     <ui:WixUI Id="WixUI_FeatureTree" />
+    <!-- Include standard MSI progress/error text so placeholders like [1], [2] are formatted. -->
+    <UIRef Id="WixUI_ErrorProgressText" />
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
   </Package>
 </Wix>
