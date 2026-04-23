@@ -90,6 +90,27 @@ internal static partial class CrossPlatformText
 
     public static string DemonstrationMenu => IsUk ? "Демонстрація" : "Demonstration";
 
+    public static string DemonstrationSourceDialogTitle => IsUk ? "Джерело демонстрації" : "Demonstration source";
+
+    public static string DemonstrationSourcePrompt => IsUk ? "Оберіть, що демонструвати:" : "Choose what to demonstrate:";
+
+    public static string DemonstrationSourceScreenOption => IsUk ? "Весь екран" : "Full screen";
+
+    public static string DemonstrationSourceWindowOption => IsUk ? "Певне вікно" : "Specific window";
+
+    public static string DemonstrationSourceWindowListLabel => IsUk ? "Список вікон" : "Window list";
+
+    public static string DemonstrationSourceLoadingWindows => IsUk ? "Завантаження вікон…" : "Loading windows…";
+
+    public static string DemonstrationSourceNoWindowsFound => IsUk ? "Вікна не знайдено." : "No windows found.";
+
+    public static string DemonstrationSourceWindowsFound(int count) => IsUk ? $"Знайдено вікон: {count}." : $"{count} windows found.";
+
+    public static string DemonstrationSourceEnumerateFailed(string message) =>
+        IsUk ? $"Не вдалося отримати список вікон: {message}" : $"Failed to enumerate windows: {message}";
+
+    public static string DemonstrationSourceStart => IsUk ? "Почати" : "Start";
+
     public static string StartDemonstrationOnSelectedStudents => IsUk ? "Почати демонстрацію на вибраних ПК" : "Start demonstration on selected PCs";
 
     public static string StartDemonstrationOnAllOnlineStudents => IsUk ? "Почати демонстрацію на всіх онлайн ПК" : "Start demonstration on all online PCs";

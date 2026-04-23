@@ -4,19 +4,19 @@
         Width="720"
         Height="520"
         WindowStartupLocation="CenterOwner"
-        Title="Demonstration source">
+        Title="">
   <Grid RowDefinitions="Auto,*,Auto" Margin="16">
     <StackPanel Spacing="10">
-      <TextBlock Text="Choose what to demonstrate:" FontWeight="SemiBold" />
+      <TextBlock x:Name="PromptTextBlock" FontWeight="SemiBold" />
       <StackPanel Orientation="Horizontal" Spacing="16">
-        <RadioButton x:Name="ScreenRadio" Content="Full screen" IsChecked="True" Checked="ModeRadio_OnChecked" />
-        <RadioButton x:Name="WindowRadio" Content="Specific window" Checked="ModeRadio_OnChecked" />
+        <RadioButton x:Name="ScreenRadio" IsChecked="True" Checked="ModeRadio_OnChecked" />
+        <RadioButton x:Name="WindowRadio" Checked="ModeRadio_OnChecked" />
       </StackPanel>
     </StackPanel>
 
     <Border Grid.Row="1" Margin="0,16,0,0" Padding="12" BorderThickness="1" BorderBrush="#334455" CornerRadius="6">
       <Grid RowDefinitions="Auto,*">
-        <TextBlock x:Name="WindowListLabel" Text="Window list" FontWeight="SemiBold" />
+        <TextBlock x:Name="WindowListLabel" FontWeight="SemiBold" />
         <ListBox x:Name="WindowsListBox" Grid.Row="1" Margin="0,10,0,0" />
       </Grid>
     </Border>
@@ -27,8 +27,8 @@
                 Spacing="10"
                 Margin="0,16,0,0">
       <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Margin="0,0,16,0" />
-      <Button x:Name="CancelButton" Width="100" Content="Cancel" Click="CancelButton_OnClick" />
-      <Button x:Name="OkButton" Width="120" Content="Start" Click="OkButton_OnClick" />
+      <Button x:Name="CancelButton" Width="100" Click="CancelButton_OnClick" />
+      <Button x:Name="OkButton" Width="120" Click="OkButton_OnClick" />
     </StackPanel>
   </Grid>
 </Window>

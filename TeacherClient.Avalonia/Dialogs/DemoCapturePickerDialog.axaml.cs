@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
 using TeacherClient.CrossPlatform.Services;
 
@@ -13,6 +14,13 @@ public partial class DemoCapturePickerDialog : Window
     public DemoCapturePickerDialog()
     {
         InitializeComponent();
+        Title = CrossPlatformText.DemonstrationSourceDialogTitle;
+        PromptTextBlock.Text = CrossPlatformText.DemonstrationSourcePrompt;
+        ScreenRadio.Content = CrossPlatformText.DemonstrationSourceScreenOption;
+        WindowRadio.Content = CrossPlatformText.DemonstrationSourceWindowOption;
+        WindowListLabel.Text = CrossPlatformText.DemonstrationSourceWindowListLabel;
+        OkButton.Content = CrossPlatformText.DemonstrationSourceStart;
+        CancelButton.Content = CrossPlatformText.Cancel;
         WindowsListBox.SelectionChanged += (_, _) => UpdateUiState();
         UpdateUiState();
         _ = LoadWindowsAsync();
@@ -28,15 +36,17 @@ public partial class DemoCapturePickerDialog : Window
     {
         try
         {
-            StatusTextBlock.Text = "Loading windows…";
+            StatusTextBlock.Text = CrossPlatformText.DemonstrationSourceLoadingWindows;
             await Task.Yield();
             _windows = _enumerator.GetTopLevelWindows();
             WindowsListBox.ItemsSource = _windows.Select(w => w.Title).ToList();
-            StatusTextBlock.Text = _windows.Count == 0 ? "No windows found." : $"{_windows.Count} windows found.";
+            StatusTextBlock.Text = _windows.Count == 0
+                ? CrossPlatformText.DemonstrationSourceNoWindowsFound
+                : CrossPlatformText.DemonstrationSourceWindowsFound(_windows.Count);
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = $"Failed to enumerate windows: {ex.Message}";
+            StatusTextBlock.Text = CrossPlatformText.DemonstrationSourceEnumerateFailed(ex.Message);
         }
         finally
         {
