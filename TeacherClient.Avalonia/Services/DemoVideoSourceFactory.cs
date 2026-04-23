@@ -7,7 +7,7 @@ namespace TeacherClient.CrossPlatform.Services;
 
 public sealed class DemoVideoSourceFactory
 {
-    public IVideoSource CreateSource(Rectangle captureArea, int captureFps, DemoDiagnosticLog diagnosticLog, string studentBaseUrl)
+    public IVideoSource CreateSource(DemoCaptureTarget target, int captureFps, DemoDiagnosticLog diagnosticLog, string studentBaseUrl)
     {
         if (OperatingSystem.IsMacOS())
         {
@@ -22,9 +22,19 @@ public sealed class DemoVideoSourceFactory
 
             try
             {
-                var raw = new MacOsRawScreenVideoSource(captureArea, captureFps);
-                diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: MacOsRawScreenVideoSource raw=BGRA.");
-                return raw;
+                if (target.Kind == DemoCaptureTargetKind.Window && target.PlatformWindowId is long windowId)
+                {
+                    var raw = new MacOsRawWindowVideoSource(windowId, target.WindowTitle, captureFps);
+                    diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: MacOsRawWindowVideoSource windowId={windowId}.");
+                    return raw;
+                }
+                else
+                {
+                    var captureArea = new Rectangle(target.CaptureX, target.CaptureY, target.CaptureWidth, target.CaptureHeight);
+                    var raw = new MacOsRawScreenVideoSource(captureArea, captureFps);
+                    diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: MacOsRawScreenVideoSource raw=BGRA.");
+                    return raw;
+                }
             }
             catch (Exception ex)
             {
@@ -36,9 +46,19 @@ public sealed class DemoVideoSourceFactory
         {
             try
             {
-                var raw = new WindowsRawScreenVideoSource(captureArea, captureFps);
-                diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: WindowsRawScreenVideoSource raw=BGRA.");
-                return raw;
+                if (target.Kind == DemoCaptureTargetKind.Window && target.PlatformWindowId is long hwnd)
+                {
+                    var raw = new WindowsRawWindowVideoSource((nint)hwnd, target.WindowTitle, captureFps);
+                    diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: WindowsRawWindowVideoSource hwnd=0x{hwnd:X}.");
+                    return raw;
+                }
+                else
+                {
+                    var captureArea = new Rectangle(target.CaptureX, target.CaptureY, target.CaptureWidth, target.CaptureHeight);
+                    var raw = new WindowsRawScreenVideoSource(captureArea, captureFps);
+                    diagnosticLog.LogInfo($"Teacher demo capture source created for {studentBaseUrl}: WindowsRawScreenVideoSource raw=BGRA.");
+                    return raw;
+                }
             }
             catch (Exception ex)
             {

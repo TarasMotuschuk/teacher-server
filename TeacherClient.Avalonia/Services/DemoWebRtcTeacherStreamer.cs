@@ -18,6 +18,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         string studentBaseUrl,
         string sharedSecret,
         string sessionId,
+        DemoCaptureTarget? captureTarget = null,
         int captureX = 0,
         int captureY = 0,
         int captureWidth = 1280,
@@ -57,8 +58,13 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         RTCPeerConnection? pc = null;
         long localIceCandidates = 0;
         long remoteIceCandidates = 0;
-        var rect = new Rectangle(captureX, captureY, Math.Max(16, captureWidth), Math.Max(16, captureHeight));
-        var source = _videoSourceFactory.CreateSource(rect, captureFps, _diagnosticLog, studentBaseUrl);
+        var target = captureTarget ?? new DemoCaptureTarget(
+            DemoCaptureTargetKind.Screen,
+            captureX,
+            captureY,
+            Math.Max(16, captureWidth),
+            Math.Max(16, captureHeight));
+        var source = _videoSourceFactory.CreateSource(target, captureFps, _diagnosticLog, studentBaseUrl);
 
         try
         {

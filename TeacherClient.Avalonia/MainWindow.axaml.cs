@@ -309,7 +309,16 @@ public partial class MainWindow : Window, IDisposable
         _demoSessionId = Guid.NewGuid().ToString("N");
         var sessionId = _demoSessionId;
 
+        var picked = await DemoCapturePickerDialog.ShowAsync(this);
+        if (picked is null)
+        {
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: cancelled");
+            return;
+        }
+
         var (capW, capH) = GetDemonstrationCaptureSize();
+        var screenTarget = new DemoCaptureTarget(DemoCaptureTargetKind.Screen, 0, 0, capW, capH);
+        var target = picked.Kind == DemoCaptureTargetKind.Window ? picked : screenTarget;
         SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
 
         await RunBusyAsync(async () =>
@@ -319,7 +328,7 @@ public partial class MainWindow : Window, IDisposable
                 var agent = targetAgents[index];
                 var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
                 SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
-                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureWidth: capW, captureHeight: capH);
+                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureTarget: target, captureWidth: capW, captureHeight: capH);
             }
 
             SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
