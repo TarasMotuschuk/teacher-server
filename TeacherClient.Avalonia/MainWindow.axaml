@@ -203,6 +203,12 @@
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />
           <Separator />
+          <MenuItem x:Name="ClearBrowserHistoryCacheSelectedMenuItem" Header="Clear browser history + cache on selected PCs" Click="ClearBrowserHistoryCacheSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearBrowserHistoryCacheAllMenuItem" Header="Clear browser history + cache on all online PCs" Click="ClearBrowserHistoryCacheAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="ClearBrowserCookiesSelectedMenuItem" Header="Clear browser cookies on selected PCs" Click="ClearBrowserCookiesSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearBrowserCookiesAllMenuItem" Header="Clear browser cookies on all online PCs" Click="ClearBrowserCookiesAllMenuItem_OnClick" />
+          <Separator />
           <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
           <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>

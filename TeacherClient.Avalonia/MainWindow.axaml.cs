@@ -2474,6 +2474,170 @@ public partial class MainWindow : Window, IDisposable
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
+    private async void ClearBrowserHistoryCacheSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserHistoryCacheOnAgentsAsync(targetAgents);
+    }
+
+    private async void ClearBrowserHistoryCacheAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserHistoryCacheOnAgentsAsync(targetAgents);
+    }
+
+    private async Task ClearBrowserHistoryCacheOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var confirmed = await ConfirmationDialog.ShowAsync(
+            this,
+            CrossPlatformText.ClearBrowserHistoryCacheConfirmTitle,
+            CrossPlatformText.ClearBrowserHistoryCacheConfirmMessage);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failures = new List<string>();
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(CrossPlatformText.ClearBrowserHistoryCacheBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+
+                try
+                {
+                    using var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var result = await client.ClearBrowserHistoryAndCacheAsync();
+                    if (result.Success)
+                    {
+                        succeeded++;
+                    }
+                    else
+                    {
+                        failures.Add($"{agent.MachineName}: {result.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }, CrossPlatformText.BulkBrowserCleanupError);
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.ClearBrowserHistoryCacheBulkCompleted(succeeded)
+            : CrossPlatformText.ClearBrowserHistoryCacheBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.BulkBrowserCleanupError,
+                string.Join(Environment.NewLine, failures.Take(25)));
+        }
+    }
+
+    private async void ClearBrowserCookiesSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserCookiesOnAgentsAsync(targetAgents);
+    }
+
+    private async void ClearBrowserCookiesAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserCookiesOnAgentsAsync(targetAgents);
+    }
+
+    private async Task ClearBrowserCookiesOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var confirmed = await ConfirmationDialog.ShowAsync(
+            this,
+            CrossPlatformText.ClearBrowserCookiesConfirmTitle,
+            CrossPlatformText.ClearBrowserCookiesConfirmMessage);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failures = new List<string>();
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(CrossPlatformText.ClearBrowserCookiesBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+
+                try
+                {
+                    using var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var result = await client.ClearBrowserCookiesAsync();
+                    if (result.Success)
+                    {
+                        succeeded++;
+                    }
+                    else
+                    {
+                        failures.Add($"{agent.MachineName}: {result.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }, CrossPlatformText.BulkCookiesCleanupError);
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.ClearBrowserCookiesBulkCompleted(succeeded)
+            : CrossPlatformText.ClearBrowserCookiesBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.BulkCookiesCleanupError,
+                string.Join(Environment.NewLine, failures.Take(25)));
+        }
+    }
+
     private async void UpdateSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = GetSelectedAgents();
@@ -4323,6 +4487,10 @@ public partial class MainWindow : Window, IDisposable
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
         RunCommandSelectedMenuItem.Header = CrossPlatformText.RunCommandOnSelectedStudents;
         RunCommandAllMenuItem.Header = CrossPlatformText.RunCommandOnAllOnlineStudents;
+        ClearBrowserHistoryCacheSelectedMenuItem.Header = CrossPlatformText.ClearBrowserHistoryCacheSelected;
+        ClearBrowserHistoryCacheAllMenuItem.Header = CrossPlatformText.ClearBrowserHistoryCacheAllOnline;
+        ClearBrowserCookiesSelectedMenuItem.Header = CrossPlatformText.ClearBrowserCookiesSelected;
+        ClearBrowserCookiesAllMenuItem.Header = CrossPlatformText.ClearBrowserCookiesAllOnline;
         RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
         ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         PowerCommandsMenuItem.Header = CrossPlatformText.PowerCommandsMenu;

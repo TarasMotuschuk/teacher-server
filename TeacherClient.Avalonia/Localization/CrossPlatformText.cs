@@ -84,6 +84,62 @@ internal static partial class CrossPlatformText
 
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
 
+    public static string ClearBrowserHistoryCacheSelected => IsUk
+        ? "Очистити історію браузера та кеш на вибраних ПК"
+        : "Clear browser history + cache on selected PCs";
+
+    public static string ClearBrowserHistoryCacheAllOnline => IsUk
+        ? "Очистити історію браузера та кеш на всіх онлайн ПК"
+        : "Clear browser history + cache on all online PCs";
+
+    public static string ClearBrowserHistoryCacheConfirmTitle => IsUk ? "Очистка браузера" : "Browser cleanup";
+
+    public static string ClearBrowserHistoryCacheConfirmMessage => IsUk
+        ? "Це закриє Chrome/Edge/Firefox/Opera на учнівському ПК і очистить історію та кеш. Збережені паролі та файли завантажень не видаляються. Продовжити?"
+        : "This will close Chrome/Edge/Firefox/Opera on the student PC and clear history and cache. Saved passwords and downloaded files will not be removed. Continue?";
+
+    public static string ClearBrowserHistoryCacheBulkProgress(string machine, int index, int total) => IsUk
+        ? $"Очистка браузера: {machine} ({index}/{total})"
+        : $"Browser cleanup: {machine} ({index}/{total})";
+
+    public static string ClearBrowserHistoryCacheBulkCompleted(int succeeded) => IsUk
+        ? $"Очистку браузера виконано на {succeeded} ПК."
+        : $"Browser cleanup completed on {succeeded} PCs.";
+
+    public static string ClearBrowserHistoryCacheBulkCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Очистку браузера виконано: {succeeded} успішно, {failures} з помилками."
+        : $"Browser cleanup completed: {succeeded} succeeded, {failures} failed.";
+
+    public static string BulkBrowserCleanupError => IsUk ? "Помилка групової очистки браузера" : "Bulk browser cleanup error";
+
+    public static string ClearBrowserCookiesSelected => IsUk
+        ? "Очистити cookies браузера на вибраних ПК"
+        : "Clear browser cookies on selected PCs";
+
+    public static string ClearBrowserCookiesAllOnline => IsUk
+        ? "Очистити cookies браузера на всіх онлайн ПК"
+        : "Clear browser cookies on all online PCs";
+
+    public static string ClearBrowserCookiesConfirmTitle => IsUk ? "Очистка cookies" : "Cookies cleanup";
+
+    public static string ClearBrowserCookiesConfirmMessage => IsUk
+        ? "Це закриє Chrome/Edge/Firefox/Opera на учнівському ПК і очистить cookies (може знадобитися повторний вхід на сайти). Збережені паролі та файли завантажень не видаляються. Продовжити?"
+        : "This will close Chrome/Edge/Firefox/Opera on the student PC and clear cookies (sites may require sign-in again). Saved passwords and downloaded files will not be removed. Continue?";
+
+    public static string ClearBrowserCookiesBulkProgress(string machine, int index, int total) => IsUk
+        ? $"Очистка cookies: {machine} ({index}/{total})"
+        : $"Cookies cleanup: {machine} ({index}/{total})";
+
+    public static string ClearBrowserCookiesBulkCompleted(int succeeded) => IsUk
+        ? $"Очистку cookies виконано на {succeeded} ПК."
+        : $"Cookies cleanup completed on {succeeded} PCs.";
+
+    public static string ClearBrowserCookiesBulkCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Очистку cookies виконано: {succeeded} успішно, {failures} з помилками."
+        : $"Cookies cleanup completed: {succeeded} succeeded, {failures} failed.";
+
+    public static string BulkCookiesCleanupError => IsUk ? "Помилка групової очистки cookies" : "Bulk cookies cleanup error";
+
     public static string DesktopIconsMenu => IsUk ? "Іконки робочого стола" : "Desktop Icons";
 
     public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
