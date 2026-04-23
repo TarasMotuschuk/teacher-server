@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Net.Http.Json;
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
