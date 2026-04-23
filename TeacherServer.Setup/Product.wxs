@@ -38,8 +38,7 @@
       and preventing MSI from cleaning up the install directory.
     -->
     <InstallExecuteSequence>
-      <Custom Action="CloseStudentAgentUiHost" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
-      <Custom Action="CloseStudentAgentVncHost" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="WixCloseApplications" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
