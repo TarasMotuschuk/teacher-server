@@ -38,8 +38,8 @@
       and preventing MSI from cleaning up the install directory.
     -->
     <InstallExecuteSequence>
-      <Custom Action="CloseStudentAgentUiHost" After="StopServices">REMOVE="ALL"</Custom>
-      <Custom Action="CloseStudentAgentVncHost" After="StopServices">REMOVE="ALL"</Custom>
+      <Custom Action="CloseStudentAgentUiHost" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="CloseStudentAgentVncHost" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
@@ -89,15 +89,14 @@
     -->
     <Component Id="InstallFolderCleanupComponent" Directory="INSTALLFOLDER" Guid="*">
       <CreateFolder />
-      <util:RemoveFolderEx Directory="INSTALLFOLDER" On="uninstall" />
+      <util:RemoveFolderEx Property="INSTALLFOLDER" On="uninstall" />
       <RegistryValue Root="HKLM" Key="Software\MTD\TeacherServer" Name="InstallFolderCleanup" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <!-- Best-effort cleanup of registry keys on uninstall. -->
     <Component Id="TeacherServerRegistryCleanupComponent" Directory="INSTALLFOLDER" Guid="*">
-      <RegistryKey Root="HKLM" Key="Software\MTD\TeacherServer" Action="removeOnUninstall">
-        <RegistryValue Name="RegistryCleanup" Type="integer" Value="1" KeyPath="yes" />
-      </RegistryKey>
+      <RegistryValue Root="HKLM" Key="Software\MTD\TeacherServer" Name="RegistryCleanup" Type="integer" Value="1" KeyPath="yes" />
+      <RemoveRegistryKey Root="HKLM" Key="Software\MTD\TeacherServer" Action="removeOnUninstall" />
     </Component>
 
     <StandardDirectory Id="DesktopFolder" />
