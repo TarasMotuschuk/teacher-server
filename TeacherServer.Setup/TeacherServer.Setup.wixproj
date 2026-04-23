@@ -22,9 +22,4 @@
     <Content Include="Resources\License.rtf" />
   </ItemGroup>
   
-  <ItemGroup>
-    <WixExtension Include="WixToolset.Firewall.wixext" />
-    <WixExtension Include="WixToolset.UI.wixext" />
-    <WixExtension Include="WixToolset.Util.wixext" />
-  </ItemGroup>
 </Project>

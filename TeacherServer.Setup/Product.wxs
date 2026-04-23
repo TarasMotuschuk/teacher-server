@@ -32,6 +32,8 @@
                            RebootPrompt="no"
                            TerminateProcess="1" />
 
+    <CustomActionRef Id="WixCloseApplications" />
+
     <!--
       Ensure per-session processes are terminated AFTER services stop.
       Otherwise the service can relaunch UIHost/VncHost mid-uninstall, leaving the EXEs locked
