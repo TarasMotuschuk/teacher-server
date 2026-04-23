@@ -44,7 +44,6 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="COMPANYFOLDER" Name="MTD">
         <Directory Id="INSTALLFOLDER" Name="TeacherServer">
-        <Directory Id="TEACHERDIR" Name="Teacher" />
         <Directory Id="TEACHERAVALONIADIR" Name="TeacherAvalonia" />
         <Directory Id="STUDENTDIR" Name="Student" />
         </Directory>
@@ -106,12 +105,10 @@
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the Windows teacher clients (legacy WinForms and primary Avalonia)." Level="2" AllowAdvertise="no">
-      <ComponentRef Id="TeacherClientMainComponent" />
+    <Feature Id="TeacherFeature" Title="Teacher workstation tools" Description="Install the teacher client (Avalonia)." Level="2" AllowAdvertise="no">
       <ComponentRef Id="TeacherClientAvaloniaMainComponent" />
       <ComponentRef Id="TeacherDesktopShortcutAvaloniaComponent" />
       <ComponentRef Id="TeacherStartMenuShortcutAvaloniaComponent" />
-      <ComponentGroupRef Id="TeacherPayloadGroup" />
       <ComponentGroupRef Id="TeacherAvaloniaPayloadGroup" />
     </Feature>
 
@@ -124,16 +121,6 @@
       <ComponentRef Id="TeacherServerRegistryCleanupComponent" />
       <ComponentGroupRef Id="StudentPayloadGroup" />
     </Feature>
-
-    <Component Id="TeacherClientMainComponent" Directory="TEACHERDIR" Guid="*">
-      <File Id="TeacherClientExe" Source="$(var.TeacherPayloadDir)\TeacherClient.exe" KeyPath="yes" />
-      <firewall:FirewallException Id="TeacherClientFirewallRule"
-                                  Name="ClassCommander Teacher Client"
-                                  Description="Allows the teacher client to communicate with classroom agents and run live demonstrations."
-                                  Program="[#TeacherClientExe]"
-                                  Profile="all"
-                                  Scope="any" />
-    </Component>
 
     <Component Id="TeacherClientAvaloniaMainComponent" Directory="TEACHERAVALONIADIR" Guid="*">
       <File Id="TeacherClientAvaloniaExe" Source="$(var.TeacherAvaloniaPayloadDir)\TeacherClient.Avalonia.exe" KeyPath="yes" />
