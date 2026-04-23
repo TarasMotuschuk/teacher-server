@@ -93,6 +93,13 @@
       <RegistryValue Root="HKLM" Key="Software\MTD\TeacherServer" Name="InstallFolderCleanup" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
+    <!-- Best-effort cleanup of registry keys on uninstall. -->
+    <Component Id="TeacherServerRegistryCleanupComponent" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryKey Root="HKLM" Key="Software\MTD\TeacherServer" Action="removeOnUninstall">
+        <RegistryValue Name="RegistryCleanup" Type="integer" Value="1" KeyPath="yes" />
+      </RegistryKey>
+    </Component>
+
     <StandardDirectory Id="DesktopFolder" />
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -116,6 +123,7 @@
       <ComponentRef Id="StudentVncHostMainComponent" />
       <ComponentRef Id="StudentAgentDataDirComponent" />
       <ComponentRef Id="InstallFolderCleanupComponent" />
+      <ComponentRef Id="TeacherServerRegistryCleanupComponent" />
       <ComponentGroupRef Id="StudentPayloadGroup" />
     </Feature>
 
