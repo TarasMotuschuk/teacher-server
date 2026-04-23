@@ -32,6 +32,16 @@
                            RebootPrompt="no"
                            TerminateProcess="1" />
 
+    <!--
+      Ensure per-session processes are terminated AFTER services stop.
+      Otherwise the service can relaunch UIHost/VncHost mid-uninstall, leaving the EXEs locked
+      and preventing MSI from cleaning up the install directory.
+    -->
+    <InstallExecuteSequence>
+      <Custom Action="CloseStudentAgentUiHost" After="StopServices">REMOVE="ALL"</Custom>
+      <Custom Action="CloseStudentAgentVncHost" After="StopServices">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="COMPANYFOLDER" Name="MTD">
         <Directory Id="INSTALLFOLDER" Name="TeacherServer">
@@ -72,6 +82,17 @@
       <RegistryValue Root="HKLM" Key="Software\MTD\TeacherServer" Name="StudentAgentDataDir" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
+    <!--
+      Best-effort cleanup of the Program Files install root on uninstall.
+      MSI removes installed files automatically, but any locked EXEs (e.g. UIHost still running)
+      or extra artifacts can leave the directory behind. RemoveFolderEx is recursive.
+    -->
+    <Component Id="InstallFolderCleanupComponent" Directory="INSTALLFOLDER" Guid="*">
+      <CreateFolder />
+      <util:RemoveFolderEx Directory="INSTALLFOLDER" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="Software\MTD\TeacherServer" Name="InstallFolderCleanup" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
     <StandardDirectory Id="DesktopFolder" />
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -94,6 +115,7 @@
       <ComponentRef Id="StudentUiHostMainComponent" />
       <ComponentRef Id="StudentVncHostMainComponent" />
       <ComponentRef Id="StudentAgentDataDirComponent" />
+      <ComponentRef Id="InstallFolderCleanupComponent" />
       <ComponentGroupRef Id="StudentPayloadGroup" />
     </Feature>
 
