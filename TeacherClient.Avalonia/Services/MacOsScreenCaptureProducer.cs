@@ -231,8 +231,7 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
     }
 
     /// <summary>
-    /// CG display capture does not include the pointer. Composite a simple crosshair for classroom demo.
-    /// Coordinates: same global space as <see cref="CGDisplayCreateImageForRect"/> (Quartz, Y up).
+    /// CG display capture does not include the pointer. Composite a simple cursor overlay for classroom demo.
     /// </summary>
     private static void TryCompositeSystemMouseCursor(
         Rectangle captureArea,
@@ -251,6 +250,10 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
             return;
         }
 
+        // Convert Quartz (origin bottom-left) mouse coordinates into a top-left coordinate
+        // system that matches how the app chooses capture rectangles.
+        var displayBounds = CGDisplayBounds(displayId);
+
         var ev = CGEventCreate(IntPtr.Zero);
         if (ev == IntPtr.Zero)
         {
@@ -267,22 +270,33 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
             CFRelease(ev);
         }
 
-        var capRect = new CGRect(captureArea.X, captureArea.Y, width, height);
-        var x = (int)Math.Floor(pt.X - capRect.X);
-        // Buffer row 0 = top of image. Quartz Y increases upward.
-        var y = (int)Math.Floor((capRect.Y + capRect.Height) - pt.Y);
-        if (x < 2 || y < 2 || x >= width - 2 || y >= height - 2)
+        // Quartz global coordinates: origin bottom-left. Convert to display-local top-left.
+        var mouseXTopLeft = pt.X - displayBounds.X;
+        var mouseYTopLeft = (displayBounds.Height - (pt.Y - displayBounds.Y));
+
+        // captureArea is chosen in the same "top-left" space (0,0 at top-left of the main screen).
+        // Map into capture-relative coordinates and scale into CGImage pixel space.
+        var relX = mouseXTopLeft - captureArea.X;
+        var relY = mouseYTopLeft - captureArea.Y;
+
+        // Coordinate normalization:
+        // - captureArea is in logical units (often points).
+        // - CGImage dimensions are in pixels.
+        var scaleX = captureArea.Width > 0 ? (double)width / captureArea.Width : 1.0;
+        var scaleY = captureArea.Height > 0 ? (double)height / captureArea.Height : 1.0;
+
+        var x = (int)Math.Round(relX * scaleX);
+        var y = (int)Math.Round(relY * scaleY);
+        if (x < 0 || y < 0 || x >= width || y >= height)
         {
             return;
         }
 
-        DrawCrosshairBgra(bgraTight, width, height, x, y);
+        DrawArrowCursorBgra(bgraTight, width, height, x, y);
     }
 
-    private static void DrawCrosshairBgra(byte[] bgra, int w, int h, int cx, int cy)
+    private static void DrawArrowCursorBgra(byte[] bgra, int w, int h, int tipX, int tipY)
     {
-        const int half = 8;
-
         void SetPixel(int px, int py, byte b, byte gr, byte r, byte a)
         {
             if (px < 0 || py < 0 || px >= w || py >= h)
@@ -297,16 +311,39 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
             bgra[o + 3] = a;
         }
 
-        for (var d = -half - 1; d <= half + 1; d++)
+        // Simple arrow cursor:
+        // - Tip at (tipX, tipY).
+        // - White fill with black outline, similar to a standard pointer.
+        const int arrowH = 18;
+        const int arrowW = 12;
+
+        // Outline (black) slightly larger than fill.
+        for (var dy = 0; dy < arrowH; dy++)
         {
-            SetPixel(cx + d, cy, 0, 0, 0, 255);
-            SetPixel(cx, cy + d, 0, 0, 0, 255);
+            var rowW = Math.Max(1, (arrowW * (arrowH - dy)) / arrowH);
+            for (var dx = 0; dx < rowW; dx++)
+            {
+                SetPixel(tipX + dx, tipY + dy, 0, 0, 0, 255);
+                SetPixel(tipX + dx + 1, tipY + dy, 0, 0, 0, 255);
+                SetPixel(tipX + dx, tipY + dy + 1, 0, 0, 0, 255);
+            }
         }
 
-        for (var d = -half; d <= half; d++)
+        // Fill (white) triangle.
+        for (var dy = 0; dy < arrowH; dy++)
         {
-            SetPixel(cx + d, cy, 255, 255, 255, 255);
-            SetPixel(cx, cy + d, 255, 255, 255, 255);
+            var rowW = Math.Max(1, (arrowW * (arrowH - dy)) / arrowH);
+            for (var dx = 0; dx < rowW; dx++)
+            {
+                SetPixel(tipX + dx, tipY + dy, 255, 255, 255, 255);
+            }
+        }
+
+        // Tail/stem.
+        for (var dy = arrowH - 2; dy < arrowH + 10; dy++)
+        {
+            SetPixel(tipX + 3, tipY + dy, 0, 0, 0, 255);
+            SetPixel(tipX + 4, tipY + dy, 255, 255, 255, 255);
         }
     }
 
@@ -364,6 +401,9 @@ public sealed class MacOsScreenCaptureProducer : IDisposable
 
     [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
     private static extern CGPoint CGEventGetLocation(IntPtr ev);
+
+    [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+    private static extern CGRect CGDisplayBounds(uint display);
 
     [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
     [return: MarshalAs(UnmanagedType.I1)]
