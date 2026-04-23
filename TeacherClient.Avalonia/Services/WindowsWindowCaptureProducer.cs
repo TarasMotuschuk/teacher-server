@@ -74,7 +74,13 @@ public sealed class WindowsWindowCaptureProducer : IDisposable
 
         if (loop is not null)
         {
-            try { await loop.ConfigureAwait(false); } catch { }
+            try
+            {
+                await loop.ConfigureAwait(false);
+            }
+            catch
+            {
+            }
         }
     }
 
@@ -99,8 +105,14 @@ public sealed class WindowsWindowCaptureProducer : IDisposable
             var delay = nextTickMs - now;
             if (delay > 0)
             {
-                try { await Task.Delay((int)Math.Min(int.MaxValue, delay), ct).ConfigureAwait(false); }
-                catch { break; }
+                try
+                {
+                    await Task.Delay((int)Math.Min(int.MaxValue, delay), ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    break;
+                }
             }
 
             nextTickMs += frameDurationMs;
@@ -161,7 +173,13 @@ public sealed class WindowsWindowCaptureProducer : IDisposable
         }
         finally
         {
-            try { gfx.ReleaseHdc(hdc); } catch { }
+            try
+            {
+                gfx.ReleaseHdc(hdc);
+            }
+            catch
+            {
+            }
         }
 
         return TryGetBgraTight(bitmap, out bgraTight);

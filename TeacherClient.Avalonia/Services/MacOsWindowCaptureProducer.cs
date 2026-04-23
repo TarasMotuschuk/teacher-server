@@ -60,12 +60,27 @@ public sealed class MacOsWindowCaptureProducer : IDisposable
             return;
         }
 
-        try { cts.Cancel(); } catch { }
-        finally { cts.Dispose(); }
+        try
+        {
+            cts.Cancel();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            cts.Dispose();
+        }
 
         if (loop is not null)
         {
-            try { await loop.ConfigureAwait(false); } catch { }
+            try
+            {
+                await loop.ConfigureAwait(false);
+            }
+            catch
+            {
+            }
         }
     }
 
@@ -90,8 +105,14 @@ public sealed class MacOsWindowCaptureProducer : IDisposable
             var delay = nextTickMs - now;
             if (delay > 0)
             {
-                try { await Task.Delay((int)Math.Min(int.MaxValue, delay), ct).ConfigureAwait(false); }
-                catch { break; }
+                try
+                {
+                    await Task.Delay((int)Math.Min(int.MaxValue, delay), ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    break;
+                }
             }
 
             nextTickMs += frameDurationMs;
