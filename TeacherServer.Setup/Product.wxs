@@ -32,7 +32,7 @@
                            RebootPrompt="no"
                            TerminateProcess="1" />
 
-    <CustomActionRef Id="WixCloseApplications" />
+    <CustomActionRef Id="Wix5CloseApplications_X64" />
 
     <!--
       Ensure per-session processes are terminated AFTER services stop.
@@ -40,7 +40,7 @@
       and preventing MSI from cleaning up the install directory.
     -->
     <InstallExecuteSequence>
-      <Custom Action="WixCloseApplications" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="Wix5CloseApplications_X64" After="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
