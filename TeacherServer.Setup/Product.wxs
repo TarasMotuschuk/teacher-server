@@ -171,6 +171,12 @@
 
     <Component Id="StudentUiHostMainComponent" Directory="STUDENTDIR" Guid="*">
       <File Id="StudentAgentUiHostExe" Source="$(var.StudentPayloadDir)\StudentAgent.UIHost.exe" KeyPath="yes" />
+      <firewall:FirewallException Id="StudentAgentUiHostFirewallRule"
+                                  Name="ClassCommander StudentAgent UI Host"
+                                  Description="Allows the student session UI host to receive live demo media connections."
+                                  Program="[#StudentAgentUiHostExe]"
+                                  Profile="all"
+                                  Scope="any" />
     </Component>
 
     <Component Id="StudentVncHostMainComponent" Directory="STUDENTDIR" Guid="*">
