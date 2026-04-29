@@ -40,7 +40,7 @@ public sealed class ClientSettingsStore
             try
             {
                 var json = File.ReadAllText(_storagePath);
-                var settings = JsonSerializer.Deserialize<ClientSettings>(json);
+                var settings = JsonSerializer.Deserialize<ClientSettings>(json, JsonOptions);
                 return Normalize(settings);
             }
             catch

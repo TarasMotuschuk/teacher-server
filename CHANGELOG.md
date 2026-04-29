@@ -6,6 +6,18 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- **Classroom demonstration (preview)**: `TeacherClient.Avalonia` can start/stop a **fullscreen demonstration lock** on selected or all online student PCs using **WebRTC** signaling through the student service, with the incoming video rendered in the student session.
+
+### Changed
+
+- **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.
+
+### Removed
+
+- **macOS packaging**: removed the `vpxmd.dylib` staging requirement from `TeacherClient.Avalonia.Setup/Build-MacInstaller.sh` (VP8/libvpx is no longer the macOS demo codec path).
+
 ## [1.0.17] - 2026-04-13
 
 ### Added

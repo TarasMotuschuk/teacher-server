@@ -203,6 +203,12 @@
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />
           <Separator />
+          <MenuItem x:Name="ClearBrowserHistoryCacheSelectedMenuItem" Header="Clear browser history + cache on selected PCs" Click="ClearBrowserHistoryCacheSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearBrowserHistoryCacheAllMenuItem" Header="Clear browser history + cache on all online PCs" Click="ClearBrowserHistoryCacheAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="ClearBrowserCookiesSelectedMenuItem" Header="Clear browser cookies on selected PCs" Click="ClearBrowserCookiesSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearBrowserCookiesAllMenuItem" Header="Clear browser cookies on all online PCs" Click="ClearBrowserCookiesAllMenuItem_OnClick" />
+          <Separator />
           <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
           <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>
@@ -215,6 +221,13 @@
           <Separator />
           <MenuItem x:Name="ApplyCurrentDesktopIconsSelectedMenuItem" Header="Send current PC layout to selected PCs" Click="ApplyCurrentDesktopIconsSelectedMenuItem_OnClick" />
           <MenuItem x:Name="ApplyCurrentDesktopIconsAllMenuItem" Header="Send current PC layout to all online PCs" Click="ApplyCurrentDesktopIconsAllMenuItem_OnClick" />
+        </MenuItem>
+        <MenuItem x:Name="DemonstrationMenuItem" Header="_Demonstration">
+          <MenuItem x:Name="StartDemonstrationSelectedMenuItem" Header="Start on selected PCs" Click="StartDemonstrationSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="StartDemonstrationAllMenuItem" Header="Start on all online PCs" Click="StartDemonstrationAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="StopDemonstrationSelectedMenuItem" Header="Stop on selected PCs" Click="StopDemonstrationSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="StopDemonstrationAllMenuItem" Header="Stop on all online PCs" Click="StopDemonstrationAllMenuItem_OnClick" />
         </MenuItem>
         <MenuItem x:Name="PowerCommandsMenuItem" Header="_Power">
           <MenuItem x:Name="SelectedPowerMenuItem" Header="_Selected PCs">

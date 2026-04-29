@@ -72,6 +72,21 @@ public sealed class AgentSettingsStore
     }
 
     /// <summary>
+    /// Gets a snapshot of the most recently loaded settings without re-reading the Windows registry.
+    /// Use this for UI refreshes immediately after updates to avoid transient registry race conditions.
+    /// </summary>
+    public AgentRuntimeSettings CurrentCached
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return Clone(_current);
+            }
+        }
+    }
+
+    /// <summary>
     /// Applies a full settings snapshot (used by the local HTTP API when session processes cannot write HKLM).
     /// </summary>
     /// <param name="snapshot">The full runtime settings snapshot to persist and broadcast.</param>

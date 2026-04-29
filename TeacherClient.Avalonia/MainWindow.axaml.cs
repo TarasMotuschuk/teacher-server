@@ -38,6 +38,9 @@ public partial class MainWindow : Window, IDisposable
     private readonly TeacherClientUpdateService _clientUpdateService =
         new(GetClientUpdateRootDirectory(), typeof(MainWindow).Assembly.GetName().Version?.ToString() ?? "0.0.0");
 
+    private readonly DemoWebRtcTeacherStreamer _demoStreamer = new();
+    private string? _demoSessionId;
+
     private readonly ObservableCollection<DiscoveredAgentRow> _agents = [];
     private readonly ObservableCollection<ProcessInfoDto> _processes = [];
     private readonly ObservableCollection<FileSystemEntryDto> _localEntries = [];
@@ -153,6 +156,7 @@ public partial class MainWindow : Window, IDisposable
         _disposed = true;
         _updatePreparationService.Dispose();
         _clientUpdateService.Dispose();
+        _demoStreamer.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -233,6 +237,148 @@ public partial class MainWindow : Window, IDisposable
     private async void RestoreDesktopIconLayoutMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await RestoreDesktopIconLayoutAsync();
+    }
+
+    private async void StartDemonstrationSelectedMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await StartDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async void StartDemonstrationAllMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .Distinct()
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await StartDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async void StopDemonstrationSelectedMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForGroupBlockingCommands);
+            return;
+        }
+
+        await StopDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async void StopDemonstrationAllMenuItem_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .Where(x => !string.IsNullOrWhiteSpace(x.RespondingAddress))
+            .Distinct()
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await StopDemonstrationOnAgentsAsync(targetAgents);
+    }
+
+    private async Task StartDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        // Always generate a fresh session id per start attempt.
+        // If a previous start attempt failed mid-way, reusing the same session id
+        // prevents StudentAgent.UIHost from re-running the WebRTC answer flow.
+        _demoSessionId = Guid.NewGuid().ToString("N");
+        var sessionId = _demoSessionId;
+
+        var picked = await DemoCapturePickerDialog.ShowAsync(this);
+        if (picked is null)
+        {
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: cancelled");
+            return;
+        }
+
+        var (capW, capH) = GetDemonstrationCaptureSize();
+        var screenTarget = new DemoCaptureTarget(DemoCaptureTargetKind.Screen, 0, 0, capW, capH);
+        var target = picked.Kind == DemoCaptureTargetKind.Window ? picked : screenTarget;
+        SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
+                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureTarget: target, captureWidth: capW, captureHeight: capH);
+            }
+
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
+        }, CrossPlatformText.DemonstrationStartFailed);
+    }
+
+    private (int Width, int Height) GetDemonstrationCaptureSize()
+    {
+        var screen = Screens?.ScreenFromWindow(this) ?? Screens?.Primary;
+        if (screen is null)
+        {
+            return (1280, 720);
+        }
+
+        var area = screen.WorkingArea;
+        var w = Math.Max(320, (int)area.Width);
+        var h = Math.Max(240, (int)area.Height);
+
+        // Full native resolution explodes H.264 encoding cost, bit rate, and student NV12->BGR
+        // conversion (millions of pixels per frame at 10–20 fps). Cap for responsive demo.
+        const int maxW = 1920;
+        const int maxH = 1080;
+        if (w > maxW || h > maxH)
+        {
+            var scale = Math.Min((double)maxW / w, (double)maxH / h);
+            w = Math.Max(16, (int)Math.Round(w * scale));
+            h = Math.Max(16, (int)Math.Round(h * scale));
+        }
+
+        return (w, h);
+    }
+
+    private async Task StopDemonstrationOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var sessionId = _demoSessionId ?? Guid.NewGuid().ToString("N");
+        _demoSessionId = null;
+        SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
+                await _demoStreamer.StopAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
+            }
+
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
+        }, CrossPlatformText.DemonstrationStopFailed);
     }
 
     private async void RestoreDesktopIconsSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -2328,6 +2474,170 @@ public partial class MainWindow : Window, IDisposable
         await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
+    private async void ClearBrowserHistoryCacheSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserHistoryCacheOnAgentsAsync(targetAgents);
+    }
+
+    private async void ClearBrowserHistoryCacheAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserHistoryCacheOnAgentsAsync(targetAgents);
+    }
+
+    private async Task ClearBrowserHistoryCacheOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var confirmed = await ConfirmationDialog.ShowAsync(
+            this,
+            CrossPlatformText.ClearBrowserHistoryCacheConfirmTitle,
+            CrossPlatformText.ClearBrowserHistoryCacheConfirmMessage);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failures = new List<string>();
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(CrossPlatformText.ClearBrowserHistoryCacheBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+
+                try
+                {
+                    using var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var result = await client.ClearBrowserHistoryAndCacheAsync();
+                    if (result.Success)
+                    {
+                        succeeded++;
+                    }
+                    else
+                    {
+                        failures.Add($"{agent.MachineName}: {result.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }, CrossPlatformText.BulkBrowserCleanupError);
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.ClearBrowserHistoryCacheBulkCompleted(succeeded)
+            : CrossPlatformText.ClearBrowserHistoryCacheBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.BulkBrowserCleanupError,
+                string.Join(Environment.NewLine, failures.Take(25)));
+        }
+    }
+
+    private async void ClearBrowserCookiesSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents()
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserCookiesOnAgentsAsync(targetAgents);
+    }
+
+    private async void ClearBrowserCookiesAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
+            return;
+        }
+
+        await ClearBrowserCookiesOnAgentsAsync(targetAgents);
+    }
+
+    private async Task ClearBrowserCookiesOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents)
+    {
+        var confirmed = await ConfirmationDialog.ShowAsync(
+            this,
+            CrossPlatformText.ClearBrowserCookiesConfirmTitle,
+            CrossPlatformText.ClearBrowserCookiesConfirmMessage);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var succeeded = 0;
+        var failures = new List<string>();
+
+        await RunBusyAsync(async () =>
+        {
+            for (var index = 0; index < targetAgents.Count; index++)
+            {
+                var agent = targetAgents[index];
+                SetStatus(CrossPlatformText.ClearBrowserCookiesBulkProgress(agent.MachineName, index + 1, targetAgents.Count));
+
+                try
+                {
+                    using var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    var result = await client.ClearBrowserCookiesAsync();
+                    if (result.Success)
+                    {
+                        succeeded++;
+                    }
+                    else
+                    {
+                        failures.Add($"{agent.MachineName}: {result.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                }
+            }
+        }, CrossPlatformText.BulkCookiesCleanupError);
+
+        SetStatus(failures.Count == 0
+            ? CrossPlatformText.ClearBrowserCookiesBulkCompleted(succeeded)
+            : CrossPlatformText.ClearBrowserCookiesBulkCompletedWithFailures(succeeded, failures.Count));
+
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(
+                this,
+                CrossPlatformText.BulkCookiesCleanupError,
+                string.Join(Environment.NewLine, failures.Take(25)));
+        }
+    }
+
     private async void UpdateSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var targetAgents = GetSelectedAgents();
@@ -4157,6 +4467,11 @@ public partial class MainWindow : Window, IDisposable
         DesktopWallpaperSelectedMenuItem.Header = CrossPlatformText.SelectedStudentsMenu;
         CommandsMenuItem.Header = CrossPlatformText.CommandsMenu;
         DesktopIconsCommandsMenuItem.Header = CrossPlatformText.DesktopIconsMenu;
+        DemonstrationMenuItem.Header = CrossPlatformText.DemonstrationMenu;
+        StartDemonstrationSelectedMenuItem.Header = CrossPlatformText.StartDemonstrationOnSelectedStudents;
+        StartDemonstrationAllMenuItem.Header = CrossPlatformText.StartDemonstrationOnAllOnlineStudents;
+        StopDemonstrationSelectedMenuItem.Header = CrossPlatformText.StopDemonstrationOnSelectedStudents;
+        StopDemonstrationAllMenuItem.Header = CrossPlatformText.StopDemonstrationOnAllOnlineStudents;
         RestoreDesktopIconsSelectedMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnSelectedStudents;
         RestoreDesktopIconsAllMenuItem.Header = CrossPlatformText.RestoreDesktopIconLayoutOnAllOnlineStudents;
         ApplyCurrentDesktopIconsSelectedMenuItem.Header = CrossPlatformText.ApplyCurrentDesktopIconLayoutToSelectedStudents;
@@ -4172,6 +4487,10 @@ public partial class MainWindow : Window, IDisposable
         UnlockInputAllMenuItem.Header = CrossPlatformText.UnlockInputOnAllOnlineStudents;
         RunCommandSelectedMenuItem.Header = CrossPlatformText.RunCommandOnSelectedStudents;
         RunCommandAllMenuItem.Header = CrossPlatformText.RunCommandOnAllOnlineStudents;
+        ClearBrowserHistoryCacheSelectedMenuItem.Header = CrossPlatformText.ClearBrowserHistoryCacheSelected;
+        ClearBrowserHistoryCacheAllMenuItem.Header = CrossPlatformText.ClearBrowserHistoryCacheAllOnline;
+        ClearBrowserCookiesSelectedMenuItem.Header = CrossPlatformText.ClearBrowserCookiesSelected;
+        ClearBrowserCookiesAllMenuItem.Header = CrossPlatformText.ClearBrowserCookiesAllOnline;
         RefreshFrequentProgramsMenuItem.Header = CrossPlatformText.RefreshFrequentPrograms;
         ManageFrequentProgramsMenuItem.Header = CrossPlatformText.ManageFrequentPrograms;
         PowerCommandsMenuItem.Header = CrossPlatformText.PowerCommandsMenu;

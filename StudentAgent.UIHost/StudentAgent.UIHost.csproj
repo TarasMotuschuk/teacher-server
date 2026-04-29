@@ -15,14 +15,20 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="SIPSorcery" Version="10.0.3" />
+    <PackageReference Include="SIPSorceryMedia.Abstractions" Version="8.0.12" />
+    <PackageReference Include="SIPSorceryMedia.Encoders" Version="10.0.4" />
+    <PackageReference Include="Vortice.MediaFoundation" Version="3.6.2" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\TeacherClient.Avalonia\Services\DemoDiagnosticLog.cs" Link="Shared\Services\DemoDiagnosticLog.cs" />
     <Compile Include="..\StudentAgent.Shared\AgentOptions.cs" Link="Shared\AgentOptions.cs" />
     <Compile Include="..\StudentAgent.Shared\AgentRuntimeSettings.cs" Link="Shared\AgentRuntimeSettings.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\AgentLogService.cs" Link="Shared\Services\AgentLogService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\AgentSettingsStore.cs" Link="Shared\Services\AgentSettingsStore.cs" />
+    <Compile Include="..\StudentAgent.Shared\Services\DemoSessionStore.cs" Link="Shared\Services\DemoSessionStore.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\ProcessService.cs" Link="Shared\Services\ProcessService.cs" />
     <Compile Include="..\StudentAgent.Shared\Services\StudentAgentPathHelper.cs" Link="Shared\Services\StudentAgentPathHelper.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\Localization\StudentAgentText.cs" Link="Shared\Localization\StudentAgentText.cs" />
@@ -31,6 +37,7 @@
     <Compile Include="..\StudentAgent.Shared\UI\AboutForm.Designer.cs" Link="Shared\UI\AboutForm.Designer.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\BrandingResourceLoader.cs" Link="Shared\UI\BrandingResourceLoader.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\BrowserLockWarningForm.cs" Link="Shared\UI\BrowserLockWarningForm.cs" />
+    <Compile Include="..\StudentAgent.Shared\UI\DemoFullscreenForm.cs" Link="Shared\UI\DemoFullscreenForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\InputLockBannerForm.cs" Link="Shared\UI\InputLockBannerForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\InputLockForm.cs" Link="Shared\UI\InputLockForm.cs" />
     <Compile Include="..\StudentAgent.Shared\UI\InputLockGlobalInputHook.cs" Link="Shared\UI\InputLockGlobalInputHook.cs" />

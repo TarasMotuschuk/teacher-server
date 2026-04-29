@@ -33,6 +33,14 @@ This repository contains a Windows-oriented classroom administration solution cu
 - Internal repository, project, directory, namespace, and persisted path names such as `TeacherServer`, `TeacherClient`, and `TeacherClient.Avalonia` should remain unchanged unless the task explicitly calls for a technical rename/migration.
 - When updating UI, installer copy, splash screens, About dialogs, or documentation, prefer `ClassCommander` for the visible product name.
 
+## Localization
+
+- Preserve the product's bilingual UI. Do not introduce UI changes that break existing English/Ukrainian language coverage.
+- Any new user-facing UI text must be added in both English and Ukrainian. This includes menu items, labels, buttons, tooltips, status text, banners, dialogs, validation messages, headings, captions, and other visible interface copy.
+- When changing existing user-facing UI text, keep the English and Ukrainian variants aligned so one language does not drift behind the other.
+- Do not hardcode new teacher-facing or student-facing UI strings in only one language when the surrounding area already uses localization resources/helpers.
+- Check the existing localization entry points before adding UI copy. Typical files include `TeacherClient.Avalonia/Localization/CrossPlatformText*.cs`, `TeacherClient/Localization/TeacherClientText*.cs`, `StudentAgent.Shared/UI/Localization/StudentAgentText.cs`, and shared language definitions in `Teacher.Common/Localization/UiLanguage.cs`.
+
 ## Code style
 
 - Follow the existing C# style with file-scoped namespaces, records for DTOs, and concise minimal API handlers.

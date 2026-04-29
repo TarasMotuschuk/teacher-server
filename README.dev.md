@@ -102,6 +102,7 @@ Available endpoints:
 - a group browser-lock command for enabling browser blocking across all online student PCs;
 - **Group Policies** group commands (Ukrainian UI: **Групові політики**) that push registry-based classroom policies to online student PCs via the agent service: Task Manager, Run dialog, Control Panel and Settings, lock workstation, change password, **block interface changes** (theme, colors, window style, desktop icons, mouse pointers, screen saver), and optional **desktop wallpaper** (upload to `C:\Windows\Web\Wallpaper`, then enforce wallpaper + prevent students from changing the background); hover **tooltips** on group-command menu items summarize each action;
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent, bulk lock/unlock commands for online student PCs, and a demonstration-mode bulk lock that keeps the lock visible through a compact top banner instead of a fullscreen overlay;
+- classroom demonstration (preview): start/stop a fullscreen student-side demonstration lock from `TeacherClient.Avalonia` (WebRTC signaling via the student service; teacher-side screen capture to be wired up next);
 - teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
 - desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
@@ -389,6 +390,10 @@ bash ./Build-MacInstaller.sh
    - publish a self-contained Avalonia build for `osx-arm64`;
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
+
+   **Demonstration (WebRTC) codec note**:
+   - On **macOS**, the teacher client encodes demo video as **H.264 via VideoToolbox** (system framework; no extra `vpxmd.dylib` bundling).
+   - Student rendering on **Windows** decodes **H.264 via Media Foundation**.
 
 4. The outputs are:
    - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)
