@@ -6,6 +6,7 @@ This folder holds design documents and prototypes for the classroom testing subs
 
 - `ClassCommander.TestPlatform` — local HTTP test server (SQLite + MyTest XML import + assignments/attempts/scoring)
 - `ClassCommander.TestEditor` — Avalonia authoring app (create/open/save `.cctest`, import MyTest XML, browse/preview questions, EN/UA UI)
+- `ClassCommander.TestRunner` — Avalonia student app (sign-in, list assignments, answer all 9 question types, save progress, submit)
 - `ClassCommander.Testing.Core` — shared MyTest importer, `.cctest` packaging, JSON helpers
 - `Teacher.Common/Contracts/Testing` — shared canonical DTOs
 
@@ -14,6 +15,14 @@ This folder holds design documents and prototypes for the classroom testing subs
 ```bash
 dotnet run --project ClassCommander.TestEditor/ClassCommander.TestEditor.csproj
 ```
+
+## Run the student test runner
+
+```bash
+dotnet run --project ClassCommander.TestRunner/ClassCommander.TestRunner.csproj
+```
+
+Point the runner at a running TestPlatform base URL (default `http://127.0.0.1:5000`).
 
 ## Run the local server
 
