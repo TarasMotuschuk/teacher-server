@@ -1,152 +1,126 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="ClassCommander.TestEditor.MainWindow"
-        Width="1180"
-        Height="760"
+        Width="1280"
+        Height="820"
         MinWidth="960"
         MinHeight="640"
-        Background="#F5F1E8"
         Title="ClassCommander Test Editor">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="24">
-    <Border Background="#FFF9F0"
-            BorderBrush="#D6C7B1"
-            BorderThickness="1"
-            CornerRadius="18"
-            Padding="24">
-      <StackPanel Spacing="10">
-        <TextBlock Text="CLASSCOMMANDER TEST EDITOR"
-                   FontSize="15"
-                   FontWeight="SemiBold"
-                   Foreground="#8A5A1F" />
-        <TextBlock Text="Окремий редактор тестів для імпорту MyTest XML, роботи з .cctest і створення нових тестів."
-                   FontSize="34"
-                   FontWeight="Bold"
-                   Foreground="#1F2937"
-                   TextWrapping="Wrap" />
-        <TextBlock Text="Цей каркас already відокремлює authoring workflow від TeacherClient. Наступний крок — підключити importer, package IO і редактори питань."
-                   FontSize="16"
-                   Foreground="#4B5563"
-                   TextWrapping="Wrap" />
-      </StackPanel>
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem x:Name="FileMenuItem" Header="_File">
+        <MenuItem x:Name="NewMenuItem" Header="New test" Click="NewMenuItem_OnClick" />
+        <MenuItem x:Name="OpenMenuItem" Header="Open .cctest…" Click="OpenMenuItem_OnClick" />
+        <MenuItem x:Name="SaveMenuItem" Header="Save" Click="SaveMenuItem_OnClick" />
+        <MenuItem x:Name="SaveAsMenuItem" Header="Save As…" Click="SaveAsMenuItem_OnClick" />
+        <Separator />
+        <MenuItem x:Name="ImportMyTestMenuItem" Header="Import MyTest XML…" Click="ImportMyTestMenuItem_OnClick" />
+      </MenuItem>
+      <MenuItem x:Name="LanguageMenuItem" Header="_Language">
+        <MenuItem x:Name="EnglishMenuItem" Header="English" Click="EnglishMenuItem_OnClick" />
+        <MenuItem x:Name="UkrainianMenuItem" Header="Українська" Click="UkrainianMenuItem_OnClick" />
+      </MenuItem>
+    </Menu>
+
+    <Border DockPanel.Dock="Bottom"
+            Padding="12,8"
+            BorderBrush="#D0D5DD"
+            BorderThickness="0,1,0,0"
+            Background="#F8FAFC">
+      <TextBlock x:Name="StatusTextBlock" Text="Ready" />
     </Border>
 
-    <Grid Grid.Row="1"
-          Margin="0,20,0,20"
-          ColumnDefinitions="320,*">
-      <Border Background="#FFFDF8"
-              BorderBrush="#D6C7B1"
+    <Grid Margin="16" ColumnDefinitions="360,*">
+      <Border Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
               BorderThickness="1"
-              CornerRadius="18"
-              Padding="18">
-        <StackPanel Spacing="14">
-          <TextBlock Text="План Редактора"
-                     FontSize="24"
+              CornerRadius="8"
+              Padding="12">
+        <DockPanel>
+          <TextBlock x:Name="GroupsHeadingText"
+                     DockPanel.Dock="Top"
+                     FontSize="18"
                      FontWeight="SemiBold"
-                     Foreground="#1F2937" />
-          <Border Background="#F3E7D2" CornerRadius="14" Padding="14">
-            <StackPanel Spacing="8">
-              <TextBlock Text="1. Імпорт"
-                         FontSize="18"
-                         FontWeight="SemiBold"
-                         Foreground="#8A5A1F" />
-              <TextBlock Text="MyTest XML -> canonical DTO -> .cctest"
-                         TextWrapping="Wrap"
-                         Foreground="#374151" />
-            </StackPanel>
-          </Border>
-          <Border Background="#E8F5EC" CornerRadius="14" Padding="14">
-            <StackPanel Spacing="8">
-              <TextBlock Text="2. Структура Тесту"
-                         FontSize="18"
-                         FontWeight="SemiBold"
-                         Foreground="#13653A" />
-              <TextBlock Text="Групи, питання, assets, метадані, preview."
-                         TextWrapping="Wrap"
-                         Foreground="#374151" />
-            </StackPanel>
-          </Border>
-          <Border Background="#E9F1FB" CornerRadius="14" Padding="14">
-            <StackPanel Spacing="8">
-              <TextBlock Text="3. Збереження"
-                         FontSize="18"
-                         FontWeight="SemiBold"
-                         Foreground="#1D4ED8" />
-              <TextBlock Text=".cctest package з definition.json, manifest.json і assets/*.webp"
-                         TextWrapping="Wrap"
-                         Foreground="#374151" />
-            </StackPanel>
-          </Border>
-        </StackPanel>
+                     Margin="0,0,0,10"
+                     Text="Groups and questions" />
+          <ListBox x:Name="QuestionsListBox"
+                   SelectionChanged="QuestionsListBox_OnSelectionChanged">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Spacing="2" Margin="0,4">
+                  <TextBlock Text="{Binding GroupTitle}"
+                             FontSize="11"
+                             Opacity="0.7" />
+                  <TextBlock Text="{Binding Display}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
       </Border>
 
       <Border Grid.Column="1"
-              Margin="20,0,0,0"
+              Margin="16,0,0,0"
               Background="#FFFFFF"
-              BorderBrush="#D6C7B1"
+              BorderBrush="#D0D5DD"
               BorderThickness="1"
-              CornerRadius="18"
-              Padding="18">
-        <Grid RowDefinitions="Auto,Auto,*">
-          <StackPanel Spacing="6">
-            <TextBlock Text="Поточний Робочий Фокус"
-                       FontSize="24"
-                       FontWeight="SemiBold"
-                       Foreground="#1F2937" />
-            <TextBlock Text="Реалізаційні напрями для першої версії редактора."
-                       Foreground="#6B7280" />
-          </StackPanel>
-
-          <ItemsControl Grid.Row="1" Margin="0,16,0,0" ItemsSource="{Binding FocusItems}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border Margin="0,0,0,10"
-                        Padding="14"
-                        CornerRadius="14"
-                        Background="#FAF7F2"
-                        BorderBrush="#E3D5C2"
-                        BorderThickness="1">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="{Binding Title}"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="#1F2937" />
-                    <TextBlock Text="{Binding Description}"
-                               TextWrapping="Wrap"
-                               Foreground="#4B5563" />
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <Border Grid.Row="2"
-                  Margin="0,16,0,0"
-                  Background="#FEF3C7"
-                  CornerRadius="16"
-                  Padding="16">
-            <StackPanel Spacing="8">
-              <TextBlock Text="Що піде далі"
-                         FontSize="18"
+              CornerRadius="8"
+              Padding="16">
+        <DockPanel>
+          <Border DockPanel.Dock="Top"
+                  Margin="0,0,0,12"
+                  Padding="0,0,0,12"
+                  BorderBrush="#E4E7EC"
+                  BorderThickness="0,0,0,1">
+            <StackPanel Spacing="4">
+              <TextBlock x:Name="TestTitleText"
+                         FontSize="20"
                          FontWeight="SemiBold"
-                         Foreground="#92400E" />
-              <TextBlock Text="1. Manifest DTO для .cctest&#x0a;2. C# importer MyTest XML -> TestDefinitionDto&#x0a;3. Package reader/writer&#x0a;4. Реальний editor shell для всіх типів питань"
-                         Foreground="#78350F" />
+                         Text="—" />
+              <TextBlock x:Name="TestMetaText"
+                         Opacity="0.75"
+                         TextWrapping="Wrap"
+                         Text="" />
             </StackPanel>
           </Border>
-        </Grid>
+          <ScrollViewer>
+          <StackPanel Spacing="12">
+            <TextBlock x:Name="PreviewHeadingText"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Text="Question preview" />
+            <TextBlock x:Name="EmptyStateText"
+                       Text="No test loaded."
+                       TextWrapping="Wrap"
+                       Opacity="0.75" />
+
+            <StackPanel x:Name="PreviewPanel" IsVisible="False" Spacing="10">
+              <TextBlock x:Name="TypeLabelText" FontWeight="SemiBold" Text="Type" />
+              <TextBlock x:Name="TypeValueText" TextWrapping="Wrap" />
+
+              <TextBlock x:Name="ScoreLabelText" FontWeight="SemiBold" Text="Score" />
+              <TextBlock x:Name="ScoreValueText" />
+
+              <TextBlock x:Name="PromptLabelText" FontWeight="SemiBold" Text="Prompt" />
+              <TextBlock x:Name="PromptValueText" TextWrapping="Wrap" />
+
+              <TextBlock x:Name="OptionsLabelText" FontWeight="SemiBold" Text="Options / interaction" />
+              <TextBlock x:Name="OptionsValueText" TextWrapping="Wrap" />
+
+              <TextBlock x:Name="AnswerKeyLabelText" FontWeight="SemiBold" Text="Answer key" />
+              <TextBlock x:Name="AnswerKeyValueText" TextWrapping="Wrap" />
+
+              <TextBlock x:Name="AssetsLabelText" FontWeight="SemiBold" Text="Assets" />
+              <TextBlock x:Name="AssetsValueText" TextWrapping="Wrap" />
+
+              <TextBlock x:Name="WarningsLabelText" FontWeight="SemiBold" Text="Import warnings" IsVisible="False" />
+              <TextBlock x:Name="WarningsValueText" TextWrapping="Wrap" IsVisible="False" />
+            </StackPanel>
+          </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
       </Border>
     </Grid>
-
-    <Border Grid.Row="2"
-            Background="#FFF9F0"
-            BorderBrush="#D6C7B1"
-            BorderThickness="1"
-            CornerRadius="16"
-            Padding="16">
-      <TextBlock Text="TeacherClient отримає тільки інтеграцію запуску вже готових тестів. Увесь authoring workflow живе тут, у ClassCommander.TestEditor."
-                 FontSize="15"
-                 Foreground="#4B5563"
-                 TextWrapping="Wrap" />
-    </Border>
-  </Grid>
+  </DockPanel>
 </Window>

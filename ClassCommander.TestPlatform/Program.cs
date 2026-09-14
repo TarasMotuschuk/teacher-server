@@ -1,6 +1,6 @@
-using ClassCommander.TestPlatform.Import;
+using ClassCommander.Testing.Core.Import;
+using ClassCommander.Testing.Core.Serialization;
 using ClassCommander.TestPlatform.Scoring;
-using ClassCommander.TestPlatform.Serialization;
 using ClassCommander.TestPlatform.Storage;
 using Teacher.Common.Contracts.Testing;
 
@@ -29,7 +29,7 @@ var paths = new TestPlatformPaths(dataRoot);
 paths.EnsureCreated();
 var db = new TestPlatformDb(paths);
 var repository = new TestPlatformRepository(db);
-var importer = new MyTestXmlImporter(paths);
+var importer = new MyTestXmlImporter();
 
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton(db);
@@ -116,8 +116,34 @@ tests.MapPost("/imports/mytest-xml", async (HttpRequest request) =>
         return Results.BadRequest(new { error = "MyTest XML file is required." });
     }
 
+    var workDir = Path.Combine(Path.GetTempPath(), "ClassCommander", "imports", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(workDir);
     await using var stream = file.OpenReadStream();
-    var (definition, warnings) = importer.Import(stream, file.FileName);
+    var (definition, warnings) = importer.Import(stream, file.FileName, workDir);
+
+    var testDir = paths.GetTestDirectory(definition.PublicId);
+    Directory.CreateDirectory(testDir);
+    var assetsTarget = paths.GetAssetsDirectory(definition.PublicId);
+    Directory.CreateDirectory(assetsTarget);
+    var workAssets = Path.Combine(workDir, "assets");
+    if (Directory.Exists(workAssets))
+    {
+        foreach (var assetFile in Directory.EnumerateFiles(workAssets))
+        {
+            File.Copy(assetFile, Path.Combine(assetsTarget, Path.GetFileName(assetFile)), overwrite: true);
+        }
+    }
+
+    // Persist package-relative asset paths as server-relative under tests/{id}/...
+    definition = definition with
+    {
+        Assets = definition.Assets
+            .Select(asset => asset with
+            {
+                Path = Path.Combine("tests", definition.PublicId, "assets", Path.GetFileName(asset.Path)).Replace('\\', '/'),
+            })
+            .ToList(),
+    };
 
     var importsDirectory = paths.GetImportsDirectory(definition.PublicId);
     Directory.CreateDirectory(importsDirectory);
@@ -126,6 +152,15 @@ tests.MapPost("/imports/mytest-xml", async (HttpRequest request) =>
     {
         await using var copy = file.OpenReadStream();
         await copy.CopyToAsync(persist);
+    }
+
+    try
+    {
+        Directory.Delete(workDir, recursive: true);
+    }
+    catch
+    {
+        // Best-effort cleanup.
     }
 
     var saved = repository.UpsertDefinition(definition, TestStatus.Draft);

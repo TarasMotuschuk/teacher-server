@@ -2,25 +2,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Teacher.Common.Contracts.Testing;
 
-namespace ClassCommander.TestPlatform.Serialization;
+namespace ClassCommander.Testing.Core.Serialization;
 
-internal static class TestPlatformJson
+public static class TestPlatformJson
 {
     public static JsonSerializerOptions Options { get; } = CreateOptions();
-
-    private static JsonSerializerOptions CreateOptions()
-    {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-        };
-
-        return options;
-    }
 
     public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
 
@@ -43,6 +29,18 @@ internal static class TestPlatformJson
             .ToList();
 
         return definition with { Groups = groups };
+    }
+
+    private static JsonSerializerOptions CreateOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        };
     }
 
     private static QuestionAnswerKeyDto CreateEmptyAnswerKey(QuestionType type) => type switch

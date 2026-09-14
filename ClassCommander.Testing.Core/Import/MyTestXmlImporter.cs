@@ -2,26 +2,21 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using ClassCommander.TestPlatform.Storage;
 using Teacher.Common.Contracts.Testing;
 
-namespace ClassCommander.TestPlatform.Import;
+namespace ClassCommander.Testing.Core.Import;
 
-internal sealed class MyTestXmlImporter
+public sealed class MyTestXmlImporter
 {
     static MyTestXmlImporter()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
-    private readonly TestPlatformPaths _paths;
-
-    public MyTestXmlImporter(TestPlatformPaths paths)
-    {
-        _paths = paths;
-    }
-
-    public (TestDefinitionDto Definition, IReadOnlyList<string> Warnings) Import(Stream xmlStream, string? originalFileName)
+    public (TestDefinitionDto Definition, IReadOnlyList<string> Warnings) Import(
+        Stream xmlStream,
+        string? originalFileName,
+        string workingDirectory)
     {
         var warnings = new List<string>();
         XDocument document;
@@ -39,9 +34,9 @@ internal sealed class MyTestXmlImporter
             publicId = $"test_{Slugify(title)}";
         }
 
-        var assetsDirectory = _paths.GetAssetsDirectory(publicId);
+        var assetsDirectory = Path.Combine(workingDirectory, "assets");
         Directory.CreateDirectory(assetsDirectory);
-        Directory.CreateDirectory(_paths.GetImportsDirectory(publicId));
+        Directory.CreateDirectory(Path.Combine(workingDirectory, "imports"));
 
         var assets = new List<QuestionAssetDto>();
         var groups = new List<TestGroupDto>();
@@ -384,7 +379,7 @@ internal sealed class MyTestXmlImporter
             assetId,
             AssetKind.Image,
             MimeFromExtension(extension),
-            Path.Combine("tests", testPublicId, "assets", fileName).Replace('\\', '/'),
+            Path.Combine("assets", fileName).Replace('\\', '/'),
             Width: null,
             Height: null,
             new AssetSourceDto(originalFileName));

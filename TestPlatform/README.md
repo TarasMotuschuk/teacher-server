@@ -5,8 +5,15 @@ This folder holds design documents and prototypes for the classroom testing subs
 ## Runtime projects
 
 - `ClassCommander.TestPlatform` — local HTTP test server (SQLite + MyTest XML import + assignments/attempts/scoring)
-- `ClassCommander.TestEditor` — Avalonia authoring shell (still a UI scaffold)
+- `ClassCommander.TestEditor` — Avalonia authoring app (create/open/save `.cctest`, import MyTest XML, browse/preview questions, EN/UA UI)
+- `ClassCommander.Testing.Core` — shared MyTest importer, `.cctest` packaging, JSON helpers
 - `Teacher.Common/Contracts/Testing` — shared canonical DTOs
+
+## Run the test editor
+
+```bash
+dotnet run --project ClassCommander.TestEditor/ClassCommander.TestEditor.csproj
+```
 
 ## Run the local server
 

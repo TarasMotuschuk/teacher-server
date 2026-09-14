@@ -1,4 +1,4 @@
-using ClassCommander.TestPlatform.Serialization;
+using ClassCommander.Testing.Core.Serialization;
 using Microsoft.Data.Sqlite;
 using Teacher.Common.Contracts.Testing;
 
