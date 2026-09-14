@@ -22,6 +22,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - **Teacher Testing UI**: `TeacherClient.Avalonia` menu **Configuration → Testing** opens a bilingual window to connect to local TestPlatform, import MyTest XML, create/close class assignments, and monitor attempts/results. Test Platform base URL is stored in client settings.
 
+- **Test package import + attempt details**: TestPlatform accepts `.cctest` upload via `POST /api/tests/v1/imports/cctest`; the Avalonia Testing window can import packages from TestEditor and open attempt details (score breakdown + student answers).
+
 ### Changed
 
 - **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.

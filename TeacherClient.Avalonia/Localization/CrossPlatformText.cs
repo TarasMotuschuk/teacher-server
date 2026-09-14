@@ -789,6 +789,8 @@ internal static partial class CrossPlatformText
 
     public static string TestingImportMyTest => IsUk ? "Імпорт MyTest XML…" : "Import MyTest XML…";
 
+    public static string TestingImportCctest => IsUk ? "Імпорт .cctest…" : "Import .cctest…";
+
     public static string TestingCreateAssignment => IsUk ? "Призначити тест…" : "Assign test…";
 
     public static string TestingCloseAssignment => IsUk ? "Закрити завдання" : "Close assignment";
@@ -866,6 +868,12 @@ internal static partial class CrossPlatformText
     public static string TestingResultDetailTitle => IsUk ? "Результат спроби" : "Attempt result";
 
     public static string TestingNoResultYet => IsUk ? "Результат ще недоступний." : "Result is not available yet.";
+
+    public static string TestingPerQuestionHeading => IsUk ? "По питаннях:" : "Per question:";
+
+    public static string TestingAnswersHeading => IsUk ? "Відповіді учня:" : "Student answers:";
+
+    public static string TestingViewDetails => IsUk ? "Деталі спроби" : "Attempt details";
 
     public static string DisplayNameRequired => IsUk ? "Назва є обов'язковою." : "Display name is required.";
 

@@ -59,12 +59,13 @@ public partial class TestingWindow : Window
         MonitorTabItem.Header = CrossPlatformText.TestingTabMonitor;
         RefreshTestsButton.Content = CrossPlatformText.TestingRefresh;
         ImportMyTestButton.Content = CrossPlatformText.TestingImportMyTest;
+        ImportCctestButton.Content = CrossPlatformText.TestingImportCctest;
         CreateAssignmentButton.Content = CrossPlatformText.TestingCreateAssignment;
         RefreshAssignmentsButton.Content = CrossPlatformText.TestingRefresh;
         CloseAssignmentButton.Content = CrossPlatformText.TestingCloseAssignment;
         OpenMonitorButton.Content = CrossPlatformText.TestingOpenMonitor;
         RefreshMonitorButton.Content = CrossPlatformText.TestingRefresh;
-        ViewResultButton.Content = CrossPlatformText.TestingViewResult;
+        ViewResultButton.Content = CrossPlatformText.TestingViewDetails;
         AttemptsHeadingText.Text = CrossPlatformText.TestingAttemptsHeading;
         ResultsHeadingText.Text = CrossPlatformText.TestingResultsHeading;
         MonitorAssignmentLabel.Text = CrossPlatformText.TestingMonitorAssignment;
@@ -164,7 +165,7 @@ public partial class TestingWindow : Window
             ],
         });
 
-        var file = files.FirstOrDefault();
+        var file = files.Count > 0 ? files[0] : null;
         if (file is null)
         {
             return;
@@ -173,6 +174,40 @@ public partial class TestingWindow : Window
         await RunBusyAsync(async () =>
         {
             var imported = await _api!.ImportMyTestXmlAsync(file.Path.LocalPath);
+            StatusTextBlock.Text = $"{CrossPlatformText.TestingImportSuccess} {imported.TestDefinition.Title}";
+            await RefreshTestsAsync();
+        });
+    }
+
+    private async void ImportCctestButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_busy || !await EnsureConnectedAsync())
+        {
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = CrossPlatformText.TestingImportCctest,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("cctest")
+                {
+                    Patterns = ["*.cctest"],
+                },
+            ],
+        });
+
+        var file = files.Count > 0 ? files[0] : null;
+        if (file is null)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            var imported = await _api!.ImportCctestAsync(file.Path.LocalPath);
             StatusTextBlock.Text = $"{CrossPlatformText.TestingImportSuccess} {imported.TestDefinition.Title}";
             await RefreshTestsAsync();
         });
@@ -285,28 +320,18 @@ public partial class TestingWindow : Window
 
         await RunBusyAsync(async () =>
         {
+            var attempt = await _api!.GetAttemptAsync(attemptId);
+            ResultDto? result = null;
             try
             {
-                var detail = await _api!.GetAttemptResultAsync(attemptId);
-                var lines = new List<string>
-                {
-                    CrossPlatformText.TestingScoreLine(detail.ScoreEarned, detail.ScoreMax, detail.Percent),
-                    string.Empty,
-                };
-                lines.AddRange(detail.QuestionResults.Select((q, i) =>
-                    $"{i + 1}. {(q.IsCorrect ? "✓" : "✗")} {q.ScoreEarned:0.##}/{q.ScoreMax:0.##}"));
-                await ConfirmationDialog.ShowInfoAsync(
-                    this,
-                    CrossPlatformText.TestingResultDetailTitle,
-                    string.Join(Environment.NewLine, lines));
+                result = await _api.GetAttemptResultAsync(attemptId);
             }
-            catch (Exception ex)
+            catch
             {
-                await ConfirmationDialog.ShowInfoAsync(
-                    this,
-                    CrossPlatformText.TestingResultDetailTitle,
-                    $"{CrossPlatformText.TestingNoResultYet}{Environment.NewLine}{ex.Message}");
+                // Attempt may still be in progress.
             }
+
+            await AttemptDetailDialog.ShowAsync(this, attempt, result);
         });
     }
 

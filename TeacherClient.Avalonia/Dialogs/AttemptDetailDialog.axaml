@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.AttemptDetailDialog"
+        Width="720"
+        Height="560"
+        MinWidth="560"
+        MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        Title="Attempt result">
+  <DockPanel Margin="16">
+    <Button x:Name="CloseButton"
+            DockPanel.Dock="Bottom"
+            HorizontalAlignment="Right"
+            MinWidth="100"
+            Margin="0,12,0,0"
+            Click="CloseButton_OnClick" />
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <TextBlock x:Name="DetailTextBlock"
+                 TextWrapping="Wrap"
+                 FontFamily="Consolas,Menlo,monospace"
+                 FontSize="13" />
+    </ScrollViewer>
+  </DockPanel>
+</Window>

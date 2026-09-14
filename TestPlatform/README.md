@@ -29,9 +29,9 @@ Point the runner at a running TestPlatform base URL (default `http://127.0.0.1:5
 In `TeacherClient.Avalonia` open **Configuration → Testing…** (after starting TestPlatform). From there you can:
 
 - connect to the Test Platform URL (also configurable under **Basic Settings**)
-- list tests and import MyTest XML
+- list tests and import MyTest XML or `.cctest` packages from TestEditor
 - create class-scoped assignments
-- close assignments and monitor attempts/results
+- close assignments and monitor attempts/results (including student answer details)
 
 ## Run the local server
 
@@ -51,6 +51,7 @@ Useful endpoints:
 - `GET /api/tests/v1/capabilities`
 - `GET /api/tests/v1/test-definitions`
 - `POST /api/tests/v1/imports/mytest-xml` (`multipart/form-data`, field `file`)
+- `POST /api/tests/v1/imports/cctest` (`multipart/form-data`, field `file`)
 - `POST /api/tests/v1/assignments`
 - `POST /api/tests/v1/student/resolve`
 - `POST /api/tests/v1/student/attempts`

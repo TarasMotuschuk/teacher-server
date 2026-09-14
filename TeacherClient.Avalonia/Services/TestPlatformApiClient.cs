@@ -63,6 +63,22 @@ public sealed class TestPlatformApiClient : IDisposable
             ?? throw new InvalidOperationException("Empty import response.");
     }
 
+    public async Task<MyTestImportResponseDto> ImportCctestAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        await using var stream = File.OpenRead(filePath);
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+        content.Add(fileContent, "file", Path.GetFileName(filePath));
+
+        using var response = await _http.PostAsync("api/tests/v1/imports/cctest", content, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<MyTestImportResponseDto>(JsonOptions, cancellationToken)
+            ?? throw new InvalidOperationException("Empty import response.");
+    }
+
     public async Task<PagedResponseDto<AssignmentDto>> ListAssignmentsAsync(CancellationToken cancellationToken = default)
     {
         using var response = await _http.GetAsync("api/tests/v1/assignments", cancellationToken);
@@ -128,6 +144,18 @@ public sealed class TestPlatformApiClient : IDisposable
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<ResultDto>(JsonOptions, cancellationToken)
             ?? throw new InvalidOperationException("Empty result response.");
+    }
+
+    public async Task<AttemptDto> GetAttemptAsync(
+        string attemptPublicId,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _http.GetAsync(
+            $"api/tests/v1/attempts/{Uri.EscapeDataString(attemptPublicId)}",
+            cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<AttemptDto>(JsonOptions, cancellationToken)
+            ?? throw new InvalidOperationException("Empty attempt response.");
     }
 
     public void Dispose() => _http.Dispose();

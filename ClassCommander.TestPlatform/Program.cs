@@ -1,4 +1,5 @@
 using ClassCommander.Testing.Core.Import;
+using ClassCommander.Testing.Core.Packaging;
 using ClassCommander.Testing.Core.Serialization;
 using ClassCommander.TestPlatform.Scoring;
 using ClassCommander.TestPlatform.Storage;
@@ -30,11 +31,13 @@ paths.EnsureCreated();
 var db = new TestPlatformDb(paths);
 var repository = new TestPlatformRepository(db);
 var importer = new MyTestXmlImporter();
+var packageService = new CctestPackageService();
 
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton(db);
 builder.Services.AddSingleton(repository);
 builder.Services.AddSingleton(importer);
+builder.Services.AddSingleton(packageService);
 
 var app = builder.Build();
 
@@ -61,6 +64,7 @@ tests.MapGet("/capabilities", () => Results.Ok(new
     HandlesAttempts = true,
     HandlesResults = true,
     HandlesMyTestImport = true,
+    HandlesCctestImport = true,
 }));
 
 tests.MapGet("/test-definitions", (string? search, string? grade, string? subject, string? status) =>
@@ -169,6 +173,101 @@ tests.MapPost("/imports/mytest-xml", async (HttpRequest request) =>
         "completed",
         saved,
         warnings);
+    return Results.Ok(response);
+});
+
+tests.MapPost("/imports/cctest", async (HttpRequest request) =>
+{
+    if (!request.HasFormContentType)
+    {
+        return Results.BadRequest(new { error = "Expected multipart/form-data with a file field named 'file'." });
+    }
+
+    var form = await request.ReadFormAsync();
+    var file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest(new { error = "cctest package file is required." });
+    }
+
+    var workDir = Path.Combine(Path.GetTempPath(), "ClassCommander", "cctest-imports", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(workDir);
+    var packagePath = Path.Combine(workDir, Path.GetFileName(file.FileName));
+    if (string.IsNullOrWhiteSpace(Path.GetExtension(packagePath)))
+    {
+        packagePath += ".cctest";
+    }
+
+    await using (var persistPackage = File.Create(packagePath))
+    {
+        await using var upload = file.OpenReadStream();
+        await upload.CopyToAsync(persistPackage);
+    }
+
+    string extractedDirectory;
+    TestDefinitionDto definition;
+    try
+    {
+        (_, definition, extractedDirectory) = await packageService.OpenAsync(packagePath);
+    }
+    catch (Exception ex)
+    {
+        try
+        {
+            Directory.Delete(workDir, recursive: true);
+        }
+        catch
+        {
+            // Best-effort cleanup.
+        }
+
+        return Results.BadRequest(new { error = ex.Message });
+    }
+
+    var testDir = paths.GetTestDirectory(definition.PublicId);
+    Directory.CreateDirectory(testDir);
+    var assetsTarget = paths.GetAssetsDirectory(definition.PublicId);
+    Directory.CreateDirectory(assetsTarget);
+    var packageAssets = Path.Combine(extractedDirectory, "assets");
+    if (Directory.Exists(packageAssets))
+    {
+        foreach (var assetFile in Directory.EnumerateFiles(packageAssets))
+        {
+            File.Copy(assetFile, Path.Combine(assetsTarget, Path.GetFileName(assetFile)), overwrite: true);
+        }
+    }
+
+    definition = definition with
+    {
+        Assets = definition.Assets
+            .Select(asset => asset with
+            {
+                Path = Path.Combine("tests", definition.PublicId, "assets", Path.GetFileName(asset.Path)).Replace('\\', '/'),
+            })
+            .ToList(),
+    };
+
+    var importsDirectory = paths.GetImportsDirectory(definition.PublicId);
+    Directory.CreateDirectory(importsDirectory);
+    var storedPackagePath = Path.Combine(importsDirectory, Path.GetFileName(packagePath));
+    File.Copy(packagePath, storedPackagePath, overwrite: true);
+
+    try
+    {
+        Directory.Delete(workDir, recursive: true);
+        Directory.Delete(extractedDirectory, recursive: true);
+    }
+    catch
+    {
+        // Best-effort cleanup.
+    }
+
+    var saved = repository.UpsertDefinition(definition, TestStatus.Draft);
+    var response = new MyTestImportResponseDto(
+        $"import_{Guid.NewGuid():N}",
+        "completed",
+        saved,
+        []);
     return Results.Ok(response);
 });
 

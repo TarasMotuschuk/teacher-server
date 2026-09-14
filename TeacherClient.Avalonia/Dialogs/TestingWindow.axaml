@@ -44,6 +44,7 @@
           <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
             <Button x:Name="RefreshTestsButton" MinWidth="100" Click="RefreshTestsButton_OnClick" />
             <Button x:Name="ImportMyTestButton" MinWidth="140" Click="ImportMyTestButton_OnClick" />
+            <Button x:Name="ImportCctestButton" MinWidth="140" Click="ImportCctestButton_OnClick" />
             <Button x:Name="CreateAssignmentButton" MinWidth="140" Click="CreateAssignmentButton_OnClick" />
           </StackPanel>
           <DataGrid x:Name="TestsGrid"
