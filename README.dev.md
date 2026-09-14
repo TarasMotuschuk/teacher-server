@@ -154,6 +154,7 @@ On the student machine, desktop icon auto-restore now runs from `StudentAgent.UI
 - visible keyboard-and-mouse locking through an `Input lock` toggle per agent, bulk lock/unlock commands for online student PCs, and a demonstration-mode bulk lock that keeps the lock visible through a compact top banner instead of a fullscreen overlay;
 - teacher-side settings for desktop icon auto-restore interval and browser-lock check interval, with those policy values pushed to all online student PCs after saving and also synced opportunistically on connect;
 - grouped power commands for shutting down, restarting, or logging off either selected student PCs or all online student PCs;
+- Wake-on-LAN **Power On** for selected student PCs or all known PCs that have a MAC address (teacher-side magic packets; does not require the agent to be online);
 - desktop icon layout actions for the current connected student PC, including saving and restoring the student's own desktop icon arrangement;
 - group desktop icon actions for restoring layouts on selected or all online student PCs, and for sending the current connected PC's icon layout to other student PCs;
 - a splash screen shown during teacher client startup;
@@ -340,7 +341,7 @@ Tag-based GitHub releases now publish all major install/update assets together:
 17. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
 18. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 19. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
+20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs. Use **Power On** (selected, or all PCs with a MAC) to send Wake-on-LAN magic packets; PCs must have WoL enabled and a known MAC address.
 21. Use `Group Commands -> Group Policies` to enable or disable classroom policy-style restrictions (Task Manager, Run, Control Panel, lock workstation, change password), **Block interface changes**, or **Desktop wallpaper** (the client uploads the image to each student PC under `C:\Windows\Web\Wallpaper`, then applies wallpaper + background lock). Hover menu items to read short descriptions.
 22. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, power, and group-policy operations, the status area reports the current target agent and progress.
 
@@ -372,7 +373,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 14. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
 15. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 16. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs.
+17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs. Use **Power On** (selected, or all PCs with a MAC) to send Wake-on-LAN magic packets; PCs must have WoL enabled and a known MAC address.
 18. Use `Group Commands -> Group Policies` for the same policy, interface-lock, and desktop-wallpaper actions as on Windows (see the Windows quick-start steps above). Hover menu items for tooltips.
 19. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, power, and group-policy operations, the status area reports the current target agent and progress.
 

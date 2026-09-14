@@ -263,16 +263,16 @@ internal static partial class CrossPlatformText
 
     public static string DownloadArrow => IsUk ? "<- Скачати" : "<- Download";
 
-    /// <summary>Files tab: unified copy (upload or download depending on active panel).</summary>
+    /// <summary>Gets files tab: unified copy (upload or download depending on active panel).</summary>
     public static string FilesToolbarCopy => IsUk ? "Копіювати" : "Copy";
 
-    /// <summary>Tooltip when teacher (local) panel is active — copy uploads to student.</summary>
+    /// <summary>Gets tooltip when teacher (local) panel is active — copy uploads to student.</summary>
     public static string FilesCopyTooltipTeacherPanel =>
         IsUk
             ? "Копіює вибраний файл з ПК викладача на ПК студента (у поточну віддалену папку)."
             : "Copy the selected file from this PC to the student PC (current remote folder).";
 
-    /// <summary>Tooltip when student (remote) panel is active — copy downloads to teacher.</summary>
+    /// <summary>Gets tooltip when student (remote) panel is active — copy downloads to teacher.</summary>
     public static string FilesCopyTooltipStudentPanel =>
         IsUk
             ? "Копіює вибраний файл з ПК студента на ПК викладача (у поточну локальну папку)."
@@ -304,22 +304,22 @@ internal static partial class CrossPlatformText
 
     public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
 
-    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    /// <summary>Gets files tab: unified toolbar action (active panel).</summary>
     public static string FilesToolbarOpen => IsUk ? "Відкрити" : "Open";
 
-    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    /// <summary>Gets files tab: unified toolbar action (active panel).</summary>
     public static string FilesToolbarRename => IsUk ? "Перейменувати" : "Rename";
 
-    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    /// <summary>Gets files tab: unified toolbar action (active panel).</summary>
     public static string FilesToolbarDelete => IsUk ? "Видалити" : "Delete";
 
-    /// <summary>Tooltip for Open/Rename/Delete on the Files tab — explains active panel.</summary>
+    /// <summary>Gets tooltip for Open/Rename/Delete on the Files tab — explains active panel.</summary>
     public static string FilesToolbarActivePanelHint =>
         IsUk
             ? "Дія для активної панелі (підсвічена рамка): ліва — ПК викладача, права — ПК студента."
             : "Action applies to the active panel (highlighted border): left — teacher PC, right — student PC.";
 
-    /// <summary>Tooltip when New remote folder is disabled (teacher panel active).</summary>
+    /// <summary>Gets tooltip when New remote folder is disabled (teacher panel active).</summary>
     public static string FilesNewFolderNeedsStudentPanel =>
         IsUk
             ? "Спочатку виберіть праву панель (ПК студента), щоб створити папку на віддаленому ПК."
@@ -374,6 +374,16 @@ internal static partial class CrossPlatformText
     public static string RestartCommand => IsUk ? "Перезавантажити" : "Restart";
 
     public static string LogOffCommand => IsUk ? "Вийти з облікового запису" : "Log Off";
+
+    public static string PowerOnCommand => IsUk ? "Увімкнути" : "Power On";
+
+    public static string PowerOnAllWithMacCommand => IsUk ? "Увімкнути всі ПК з MAC" : "Power On all PCs with MAC";
+
+    public static string WakeOnLanNoMacAddresses => IsUk
+        ? "Немає MAC-адрес для Wake-on-LAN. Додайте MAC у запис ПК або дочекайтесь discovery."
+        : "No MAC addresses available for Wake-on-LAN. Add a MAC to the PC entry or wait for discovery.";
+
+    public static string BulkWakeOnLanError => IsUk ? "Помилка групової команди: увімкнення (Wake-on-LAN)" : "Bulk power-on (Wake-on-LAN) error";
 
     public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
 

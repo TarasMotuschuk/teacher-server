@@ -321,7 +321,8 @@ public partial class MainWindow : Window, IDisposable
         var target = picked.Kind == DemoCaptureTargetKind.Window ? picked : screenTarget;
         SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -367,7 +368,8 @@ public partial class MainWindow : Window, IDisposable
         _demoSessionId = null;
         SetStatus($"{CrossPlatformText.DemonstrationMenu}: {targetAgents.Count}");
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -523,6 +525,7 @@ public partial class MainWindow : Window, IDisposable
                     row.GroupCommandSelected = sel;
                 }
             }
+
             RefreshGroupFilterOptions();
             ApplyAgentFilters();
             await RefreshRemoteManagementTilesAsync();
@@ -2516,7 +2519,8 @@ public partial class MainWindow : Window, IDisposable
         var succeeded = 0;
         var failures = new List<string>();
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -2598,7 +2602,8 @@ public partial class MainWindow : Window, IDisposable
         var succeeded = 0;
         var failures = new List<string>();
 
-        await RunBusyAsync(async () =>
+        await RunBusyAsync(
+            async () =>
         {
             for (var index = 0; index < targetAgents.Count; index++)
             {
@@ -2753,6 +2758,32 @@ public partial class MainWindow : Window, IDisposable
         }
 
         await ExecutePowerActionOnAgentsAsync(targetAgents, PowerActionKind.LogOff, selectedOnly: false);
+    }
+
+    private async void PowerOnSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = GetSelectedAgents();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
+            return;
+        }
+
+        await ExecuteWakeOnLanOnAgentsAsync(targetAgents, selectedOnly: true);
+    }
+
+    private async void PowerOnAllWithMacMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var targetAgents = _allAgents
+            .Where(x => WakeOnLanService.ParseMacAddresses(x.MacAddressesDisplay).Count > 0)
+            .ToList();
+        if (targetAgents.Count == 0)
+        {
+            SetStatus(CrossPlatformText.WakeOnLanNoMacAddresses);
+            return;
+        }
+
+        await ExecuteWakeOnLanOnAgentsAsync(targetAgents, selectedOnly: false);
     }
 
     private async void CollectStudentWorkToTeacherPcMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -3574,6 +3605,69 @@ public partial class MainWindow : Window, IDisposable
                     string.Join(Environment.NewLine, failures));
             }
         }, CrossPlatformText.BulkPowerActionError(action));
+    }
+
+    private async Task ExecuteWakeOnLanOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
+    {
+        var agentsWithMac = targetAgents
+            .Select(agent => (Agent: agent, Macs: WakeOnLanService.ParseMacAddresses(agent.MacAddressesDisplay)))
+            .Where(x => x.Macs.Count > 0)
+            .ToList();
+
+        if (agentsWithMac.Count == 0)
+        {
+            SetStatus(CrossPlatformText.WakeOnLanNoMacAddresses);
+            return;
+        }
+
+        if (!await ConfirmationDialog.ShowAsync(
+                this,
+                CrossPlatformText.GroupCommandsTitle,
+                CrossPlatformText.WakeOnLanPrompt(agentsWithMac.Count, selectedOnly)))
+        {
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+
+        // Report selected agents that were skipped because MAC was missing/invalid.
+        foreach (var agent in targetAgents.Where(a => agentsWithMac.All(x =>
+                     !string.Equals(x.Agent.AgentId, a.AgentId, StringComparison.OrdinalIgnoreCase))))
+        {
+            failures.Add(CrossPlatformText.WakeOnLanMissingMac(agent.MachineName));
+        }
+
+        await RunBusyAsync(
+            async () =>
+            {
+                for (var agentIndex = 0; agentIndex < agentsWithMac.Count; agentIndex++)
+                {
+                    var (agent, macs) = agentsWithMac[agentIndex];
+                    try
+                    {
+                        SetStatus(CrossPlatformText.WakeOnLanProgress(agent.MachineName, agentIndex + 1, agentsWithMac.Count));
+                        await WakeOnLanService.SendMagicPacketsAsync(macs, agent.RespondingAddress);
+                        succeeded++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failures.Add($"{agent.MachineName}: {ex.Message}");
+                    }
+                }
+
+                SetStatus(failures.Count == 0
+                    ? CrossPlatformText.WakeOnLanCompleted(succeeded)
+                    : CrossPlatformText.WakeOnLanCompletedWithFailures(succeeded, failures.Count));
+
+                if (failures.Count > 0)
+                {
+                    await ConfirmationDialog.ShowInfoAsync(
+                        this,
+                        CrossPlatformText.BulkCommandsResultTitle,
+                        string.Join(Environment.NewLine, failures));
+                }
+            }, CrossPlatformText.BulkWakeOnLanError);
     }
 
     private async Task StartAgentUpdateOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool selectedOnly)
@@ -4402,10 +4496,12 @@ public partial class MainWindow : Window, IDisposable
         SetGroupMenuTip(ShutdownSelectedMenuItem, CrossPlatformText.MenuTip_Shutdown);
         SetGroupMenuTip(RestartSelectedMenuItem, CrossPlatformText.MenuTip_Restart);
         SetGroupMenuTip(LogOffSelectedMenuItem, CrossPlatformText.MenuTip_LogOff);
+        SetGroupMenuTip(PowerOnSelectedMenuItem, CrossPlatformText.MenuTip_PowerOn);
         SetGroupMenuTip(AllOnlinePowerMenuItem, CrossPlatformText.MenuTip_PowerAllGroup);
         SetGroupMenuTip(ShutdownAllMenuItem, CrossPlatformText.MenuTip_Shutdown);
         SetGroupMenuTip(RestartAllMenuItem, CrossPlatformText.MenuTip_Restart);
         SetGroupMenuTip(LogOffAllMenuItem, CrossPlatformText.MenuTip_LogOff);
+        SetGroupMenuTip(PowerOnAllWithMacMenuItem, CrossPlatformText.MenuTip_PowerOnAllWithMac);
         SetGroupMenuTip(StudentWorkMenuItem, CrossPlatformText.MenuTip_StudentWork);
         SetGroupMenuTip(CreateStudentWorkFolderAllMenuItem, CrossPlatformText.MenuTip_CreateWorkFolder);
         SetGroupMenuTip(CollectStudentWorkToTeacherPcMenuItem, CrossPlatformText.MenuTip_CollectWork);
@@ -4499,9 +4595,11 @@ public partial class MainWindow : Window, IDisposable
         ShutdownSelectedMenuItem.Header = CrossPlatformText.ShutdownCommand;
         RestartSelectedMenuItem.Header = CrossPlatformText.RestartCommand;
         LogOffSelectedMenuItem.Header = CrossPlatformText.LogOffCommand;
+        PowerOnSelectedMenuItem.Header = CrossPlatformText.PowerOnCommand;
         ShutdownAllMenuItem.Header = CrossPlatformText.ShutdownCommand;
         RestartAllMenuItem.Header = CrossPlatformText.RestartCommand;
         LogOffAllMenuItem.Header = CrossPlatformText.LogOffCommand;
+        PowerOnAllWithMacMenuItem.Header = CrossPlatformText.PowerOnAllWithMacCommand;
         ClearSelectedFolderSelectedMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnSelectedStudents;
         ClearSelectedFolderAllMenuItem.Header = CrossPlatformText.ClearDestinationFolderOnAllOnlineStudents;
         StudentWorkMenuItem.Header = CrossPlatformText.StudentWorkMenu;
@@ -4836,5 +4934,4 @@ public partial class MainWindow : Window, IDisposable
 
         return trimmed;
     }
-
 }

@@ -234,12 +234,16 @@
             <MenuItem x:Name="ShutdownSelectedMenuItem" Header="Shut Down" Click="ShutdownSelectedMenuItem_OnClick" />
             <MenuItem x:Name="RestartSelectedMenuItem" Header="Restart" Click="RestartSelectedMenuItem_OnClick" />
             <MenuItem x:Name="LogOffSelectedMenuItem" Header="Log Off" Click="LogOffSelectedMenuItem_OnClick" />
+            <Separator />
+            <MenuItem x:Name="PowerOnSelectedMenuItem" Header="Power On" Click="PowerOnSelectedMenuItem_OnClick" />
           </MenuItem>
           <MenuItem x:Name="AllOnlinePowerMenuItem" Header="_All Online PCs">
             <MenuItem x:Name="ShutdownAllMenuItem" Header="Shut Down" Click="ShutdownAllMenuItem_OnClick" />
             <MenuItem x:Name="RestartAllMenuItem" Header="Restart" Click="RestartAllMenuItem_OnClick" />
             <MenuItem x:Name="LogOffAllMenuItem" Header="Log Off" Click="LogOffAllMenuItem_OnClick" />
           </MenuItem>
+          <Separator />
+          <MenuItem x:Name="PowerOnAllWithMacMenuItem" Header="Power On all PCs with MAC" Click="PowerOnAllWithMacMenuItem_OnClick" />
         </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">

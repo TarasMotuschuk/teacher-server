@@ -357,6 +357,31 @@ internal static partial class CrossPlatformText
             ? $"{GetPowerActionNoun(action)} на {agent} ({agentIndex}/{agentCount})"
             : $"{GetPowerActionNoun(action)} on {agent} ({agentIndex}/{agentCount})";
 
+    public static string WakeOnLanPrompt(int count, bool selectedOnly)
+        => IsUk
+            ? $"Надіслати Wake-on-LAN для {(selectedOnly ? "вибраних" : "відомих")} учнівських ПК ({count})? ПК мають підтримувати WoL і мати коректну MAC-адресу."
+            : $"Send Wake-on-LAN to {(selectedOnly ? "selected" : "known")} student PCs ({count})? Targets need WoL enabled and a valid MAC address.";
+
+    public static string WakeOnLanProgress(string agent, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Wake-on-LAN для {agent} ({agentIndex}/{agentCount})"
+            : $"Wake-on-LAN for {agent} ({agentIndex}/{agentCount})";
+
+    public static string WakeOnLanCompleted(int count)
+        => IsUk
+            ? $"Надіслано Wake-on-LAN для {count} учнівських ПК"
+            : $"Sent Wake-on-LAN to {count} student PCs";
+
+    public static string WakeOnLanCompletedWithFailures(int succeeded, int failed)
+        => IsUk
+            ? $"Wake-on-LAN: успішно {succeeded}, з помилками {failed}"
+            : $"Wake-on-LAN: {succeeded} succeeded, {failed} failed";
+
+    public static string WakeOnLanMissingMac(string agent)
+        => IsUk
+            ? $"{agent}: немає дійсної MAC-адреси"
+            : $"{agent}: no valid MAC address";
+
     public static string CollectingWorkProgress(string agent, string path, int agentIndex, int agentCount)
         => IsUk
             ? $"Збір робіт з {agent} ({agentIndex}/{agentCount}) -> {path}"

@@ -10,6 +10,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - **Classroom demonstration (preview)**: `TeacherClient.Avalonia` can start/stop a **fullscreen demonstration lock** on selected or all online student PCs using **WebRTC** signaling through the student service, with the incoming video rendered in the student session.
 
+- **Power On (Wake-on-LAN)**: `TeacherClient.Avalonia` group command **Power → Power On** sends magic packets to student PC MAC addresses (selected PCs, or all known PCs that have a MAC). Requires WoL enabled in BIOS/NIC and a reachable LAN broadcast path.
+
 ### Changed
 
 - **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.

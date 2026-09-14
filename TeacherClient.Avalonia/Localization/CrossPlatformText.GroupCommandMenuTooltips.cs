@@ -183,8 +183,8 @@ internal static partial class CrossPlatformText
         : "Send the current desktop icon layout from this PC to all online PCs.";
 
     public static string MenuTip_Power => IsUk
-        ? "Завершення роботи, перезавантаження або вихід з облікового запису на віддалених ПК."
-        : "Shut down, restart, or log off remote PCs.";
+        ? "Завершення роботи, перезавантаження, вихід з облікового запису або увімкнення через Wake-on-LAN."
+        : "Shut down, restart, log off, or power on via Wake-on-LAN.";
 
     public static string MenuTip_PowerSelectedGroup => IsUk
         ? "Дії живлення для ПК, позначених у колонці «Вибір»."
@@ -205,6 +205,14 @@ internal static partial class CrossPlatformText
     public static string MenuTip_LogOff => IsUk
         ? "Вийти з поточного сеансу користувача на цільових ПК."
         : "Log off the current user session on the target PCs.";
+
+    public static string MenuTip_PowerOn => IsUk
+        ? "Надіслати Wake-on-LAN magic packet на MAC-адреси вибраних ПК (працює і для офлайн)."
+        : "Send a Wake-on-LAN magic packet to the selected PCs' MAC addresses (works for offline PCs too).";
+
+    public static string MenuTip_PowerOnAllWithMac => IsUk
+        ? "Надіслати Wake-on-LAN усім відомим ПК, у яких є MAC-адреса (онлайн і офлайн)."
+        : "Send Wake-on-LAN to every known PC that has a MAC address (online or offline).";
 
     public static string MenuTip_StudentWork => IsUk
         ? "Папка для робіт учнів: створення, збір на ПК вчителя, очищення."
