@@ -14,6 +14,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - **Test Platform foundation**: restored shared testing contracts, design docs, `ClassCommander.TestPlatform` (local API shell), and `ClassCommander.TestEditor` (Avalonia authoring shell) on the active development branch for classroom testing work.
 
+- **Test Platform server MVP slice**: `ClassCommander.TestPlatform` now persists test definitions/assignments/attempts/results in SQLite, imports MyTest XML into canonical DTOs, and exposes teacher/student HTTP endpoints under `/api/tests/v1` including scoring on submit.
+
 ### Changed
 
 - **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.

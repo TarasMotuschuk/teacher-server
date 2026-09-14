@@ -8,4 +8,3 @@ public sealed record BrowserCookiesCleanupResultDto(
     IReadOnlyList<string> StoppedProcesses,
     IReadOnlyList<string> ClearedItems,
     IReadOnlyList<string> Errors);
-

@@ -1,13 +1,52 @@
-# TestPlatform
+# ClassCommander Test Platform (design notes)
 
-Experimental tools for converting MyTest XML exports into simpler formats.
+This folder holds design documents and prototypes for the classroom testing subsystem.
 
-## Files
+## Runtime projects
 
-- `convert_mytest_xml.py` converts one or more MyTest XML files into JSON.
-- `viewer.html` loads a generated JSON file and renders it as a readable test page.
+- `ClassCommander.TestPlatform` — local HTTP test server (SQLite + MyTest XML import + assignments/attempts/scoring)
+- `ClassCommander.TestEditor` — Avalonia authoring shell (still a UI scaffold)
+- `Teacher.Common/Contracts/Testing` — shared canonical DTOs
 
-## Usage
+## Run the local server
+
+```bash
+dotnet run --project ClassCommander.TestPlatform/ClassCommander.TestPlatform.csproj
+```
+
+Default data root (override with `TestPlatform__DataRoot`):
+
+```text
+LocalApplicationData/ClassCommander/TestPlatform
+```
+
+Useful endpoints:
+
+- `GET /health`
+- `GET /api/tests/v1/capabilities`
+- `GET /api/tests/v1/test-definitions`
+- `POST /api/tests/v1/imports/mytest-xml` (`multipart/form-data`, field `file`)
+- `POST /api/tests/v1/assignments`
+- `POST /api/tests/v1/student/resolve`
+- `POST /api/tests/v1/student/attempts`
+- `PUT /api/tests/v1/student/attempts/{id}/progress` (header `X-Attempt-Token`)
+- `POST /api/tests/v1/student/attempts/{id}/submit` (header `X-Attempt-Token`)
+
+## Documents
+
+- [TestPlatformRoadmap.md](./TestPlatformRoadmap.md)
+- [TestPlatformSchema.md](./TestPlatformSchema.md)
+- [TestPlatformApi.md](./TestPlatformApi.md)
+- [TestPlatformStorage.md](./TestPlatformStorage.md)
+- [TestPlatformPackageFormat.md](./TestPlatformPackageFormat.md)
+- [TestPlatformDtos.md](./TestPlatformDtos.md)
+
+## Prototypes
+
+- `convert_mytest_xml.py` — early Python MyTest → JSON viewer pipeline (superseded for server import by the C# importer)
+- `viewer.html` — browser preview for the Python JSON output
+
+### Python converter usage
 
 ```bash
 python3 TestPlatform/convert_mytest_xml.py \
@@ -15,13 +54,3 @@ python3 TestPlatform/convert_mytest_xml.py \
   "/path/to/test2.xml" \
   --output-dir TestPlatform/out
 ```
-
-By default, question images are exported as external `webp` files next to the JSON. Use `--image-mode embedded` to keep images inside JSON, or `--skip-images` to omit them.
-
-Then open `TestPlatform/viewer.html` in a browser and pass a JSON file using the `src` query parameter:
-
-```text
-file:///.../TestPlatform/viewer.html?src=out/test1.json
-```
-
-If no `src` is provided, the viewer defaults to `out/index.json`.

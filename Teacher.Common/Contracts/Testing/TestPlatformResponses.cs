@@ -48,4 +48,19 @@ public sealed record SubmitAttemptResponse(
     ResultDto Result,
     ResultPolicyDto ResultView);
 
+public sealed record MyTestImportResponseDto(
+    string ImportId,
+    string Status,
+    TestDefinitionDto TestDefinition,
+    IReadOnlyList<string> Warnings);
+
+public sealed record AttemptListItemDto(
+    string AttemptPublicId,
+    AttemptStudentDto Student,
+    AttemptStatus Status,
+    DateTime StartedAtUtc,
+    DateTime? LastSavedAtUtc,
+    int AnsweredCount,
+    int QuestionCount);
+
 #pragma warning restore SA1402

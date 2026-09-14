@@ -10,4 +10,3 @@ public sealed record BrowserCleanupResultDto(
     IReadOnlyList<string> StoppedProcesses,
     IReadOnlyList<string> ClearedItems,
     IReadOnlyList<string> Errors);
-
