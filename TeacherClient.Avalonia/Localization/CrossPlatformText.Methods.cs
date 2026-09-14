@@ -451,6 +451,10 @@ internal static partial class CrossPlatformText
         _ => IsUk ? "Виконати дію для" : "Run action for",
     };
 
+    public static string TestingScoreLine(decimal earned, decimal max, decimal percent) => IsUk
+        ? $"Бали: {earned:0.##} / {max:0.##} ({percent:0.##}%)"
+        : $"Score: {earned:0.##} / {max:0.##} ({percent:0.##}%)";
+
     private static string GetPowerActionPast(PowerActionKind action) => action switch
     {
         PowerActionKind.Shutdown => IsUk ? "Надіслано вимкнення для" : "Sent shut down to",

@@ -10,7 +10,8 @@ public sealed record ClientSettings(
     string StudentWorkFolderName,
     int DesktopIconAutoRestoreMinutes,
     int BrowserLockCheckIntervalSeconds,
-    AppUiTheme Theme)
+    AppUiTheme Theme,
+    string TestPlatformBaseUrl)
 {
     public static ClientSettings Default { get; } = new(
         "change-this-secret",
@@ -20,5 +21,6 @@ public sealed record ClientSettings(
         "StudentWorks",
         30,
         60,
-        AppUiTheme.Dark);
+        AppUiTheme.Dark,
+        "http://127.0.0.1:5000");
 }

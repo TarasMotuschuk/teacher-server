@@ -765,6 +765,108 @@ internal static partial class CrossPlatformText
 
     public static string BasicSettingsMenu => IsUk ? "Базові налаштування" : "Basic Settings";
 
+    public static string TestingMenu => IsUk ? "Тестування…" : "Testing…";
+
+    public static string TestingWindowTitle => IsUk ? "ClassCommander — Тестування" : "ClassCommander Testing";
+
+    public static string TestPlatformBaseUrl => IsUk ? "Адреса Test Platform" : "Test platform URL";
+
+    public static string SettingsFieldTooltipTestPlatformBaseUrl => IsUk
+        ? "Базова URL локального ClassCommander.TestPlatform (наприклад http://127.0.0.1:5000)."
+        : "Base URL of the local ClassCommander.TestPlatform server (for example http://127.0.0.1:5000).";
+
+    public static string TestingConnect => IsUk ? "Підключити" : "Connect";
+
+    public static string TestingConnected => IsUk ? "Підключено до Test Platform." : "Connected to Test Platform.";
+
+    public static string TestingTabTests => IsUk ? "Тести" : "Tests";
+
+    public static string TestingTabAssignments => IsUk ? "Завдання" : "Assignments";
+
+    public static string TestingTabMonitor => IsUk ? "Моніторинг" : "Monitor";
+
+    public static string TestingRefresh => IsUk ? "Оновити" : "Refresh";
+
+    public static string TestingImportMyTest => IsUk ? "Імпорт MyTest XML…" : "Import MyTest XML…";
+
+    public static string TestingCreateAssignment => IsUk ? "Призначити тест…" : "Assign test…";
+
+    public static string TestingCloseAssignment => IsUk ? "Закрити завдання" : "Close assignment";
+
+    public static string TestingOpenMonitor => IsUk ? "Відкрити моніторинг" : "Open monitor";
+
+    public static string TestingViewResult => IsUk ? "Переглянути результат" : "View result";
+
+    public static string TestingSelectTestFirst => IsUk ? "Спочатку виберіть тест." : "Select a test first.";
+
+    public static string TestingSelectAssignmentFirst => IsUk ? "Спочатку виберіть завдання." : "Select an assignment first.";
+
+    public static string TestingSelectAttemptFirst => IsUk ? "Спочатку виберіть спробу або результат." : "Select an attempt or result first.";
+
+    public static string TestingImportSuccess => IsUk ? "Імпорт завершено." : "Import completed.";
+
+    public static string TestingAssignmentCreated => IsUk ? "Завдання створено." : "Assignment created.";
+
+    public static string TestingAssignmentClosed => IsUk ? "Завдання закрито." : "Assignment closed.";
+
+    public static string TestingConfirmCloseAssignment => IsUk
+        ? "Закрити це завдання? Учні більше не зможуть його починати."
+        : "Close this assignment? Students will no longer be able to start it.";
+
+    public static string TestingColumnTitle => IsUk ? "Назва" : "Title";
+
+    public static string TestingColumnVersion => IsUk ? "Версія" : "Version";
+
+    public static string TestingColumnQuestions => IsUk ? "Питання" : "Questions";
+
+    public static string TestingColumnUpdated => IsUk ? "Оновлено" : "Updated";
+
+    public static string TestingColumnStatus => IsUk ? "Статус" : "Status";
+
+    public static string TestingColumnTest => IsUk ? "Тест" : "Test";
+
+    public static string TestingColumnStudent => IsUk ? "Учень" : "Student";
+
+    public static string TestingColumnProgress => IsUk ? "Прогрес" : "Progress";
+
+    public static string TestingColumnStarted => IsUk ? "Почато" : "Started";
+
+    public static string TestingColumnScore => IsUk ? "Бали" : "Score";
+
+    public static string TestingColumnPercent => IsUk ? "%" : "%";
+
+    public static string TestingColumnCompleted => IsUk ? "Завершено" : "Completed";
+
+    public static string TestingAttemptsHeading => IsUk ? "Спроби" : "Attempts";
+
+    public static string TestingResultsHeading => IsUk ? "Результати" : "Results";
+
+    public static string TestingMonitorAssignment => IsUk ? "Завдання:" : "Assignment:";
+
+    public static string TestingCreateAssignmentTitle => IsUk ? "Призначити тест" : "Assign test";
+
+    public static string TestingAssignmentTitleLabel => IsUk ? "Назва завдання" : "Assignment title";
+
+    public static string TestingClassNameLabel => IsUk ? "Клас (аудиторія)" : "Class (audience)";
+
+    public static string TestingMaxAttemptsLabel => IsUk ? "Макс. спроб" : "Max attempts";
+
+    public static string TestingTimeLimitLabel => IsUk ? "Ліміт часу (сек, порожньо = без ліміту)" : "Time limit (sec, blank = none)";
+
+    public static string TestingShowScoreLabel => IsUk ? "Показувати бал учню" : "Show score to student";
+
+    public static string TestingShowCorrectLabel => IsUk ? "Показувати правильні відповіді" : "Show correct answers";
+
+    public static string TestingShowFeedbackLabel => IsUk ? "Показувати результат по питаннях" : "Show per-question feedback";
+
+    public static string TestingRequiredAssignmentFields => IsUk
+        ? "Заповніть назву завдання та клас."
+        : "Enter assignment title and class name.";
+
+    public static string TestingResultDetailTitle => IsUk ? "Результат спроби" : "Attempt result";
+
+    public static string TestingNoResultYet => IsUk ? "Результат ще недоступний." : "Result is not available yet.";
+
     public static string DisplayNameRequired => IsUk ? "Назва є обов'язковою." : "Display name is required.";
 
     public static string IpAddressRequired => IsUk ? "IP адреса є обов'язковою." : "IP address is required.";

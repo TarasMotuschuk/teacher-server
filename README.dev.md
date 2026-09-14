@@ -16,7 +16,7 @@
 - `TeacherClient.Avalonia`: primary cross-platform desktop client for macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup`: macOS packaging project that builds a `.app` bundle and a `.pkg` installer.
 - `Teacher.Common`: shared DTOs and request contracts.
-- `ClassCommander.TestPlatform` / `ClassCommander.TestEditor` / `ClassCommander.TestRunner` / `ClassCommander.Testing.Core`: classroom testing subsystem (local API, authoring, student runner). See `TestPlatform/README.md`.
+- `ClassCommander.TestPlatform` / `ClassCommander.TestEditor` / `ClassCommander.TestRunner` / `ClassCommander.Testing.Core`: classroom testing subsystem (local API, authoring, student runner). Teacher Avalonia opens **Configuration → Testing** against the local TestPlatform URL. See `TestPlatform/README.md`.
 
 User-facing branding is now `ClassCommander`. Technical repository names such as `TeacherServer`, `TeacherClient`, and `TeacherClient.Avalonia` remain unchanged for compatibility with the existing solution structure, scripts, paths, and persisted settings.
 

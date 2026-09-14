@@ -219,6 +219,12 @@ public partial class MainWindow : Window, IDisposable
         await ApplyStudentPolicySettingsToOnlineAgentsAsync(reportSummary: true);
     }
 
+    private async void TestingMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await TestingWindow.ShowAsync(this, _clientSettings, _clientSettingsStore);
+        _clientSettings = _clientSettingsStore.Load();
+    }
+
     private async void RefreshAgentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await LoadAgentsAsync();
@@ -4617,6 +4623,7 @@ public partial class MainWindow : Window, IDisposable
         AboutMenuItem.Header = CrossPlatformText.About;
         ConfigurationMenuItem.Header = CrossPlatformText.ConfigurationMenu;
         BasicSettingsMenuItem.Header = CrossPlatformText.BasicSettingsMenu;
+        TestingMenuItem.Header = CrossPlatformText.TestingMenu;
         AgentsTabItem.Header = CrossPlatformText.Agents;
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;

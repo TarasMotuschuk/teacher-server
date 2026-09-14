@@ -24,6 +24,15 @@ dotnet run --project ClassCommander.TestRunner/ClassCommander.TestRunner.csproj
 
 Point the runner at a running TestPlatform base URL (default `http://127.0.0.1:5000`).
 
+## Teacher Avalonia Testing UI
+
+In `TeacherClient.Avalonia` open **Configuration → Testing…** (after starting TestPlatform). From there you can:
+
+- connect to the Test Platform URL (also configurable under **Basic Settings**)
+- list tests and import MyTest XML
+- create class-scoped assignments
+- close assignments and monitor attempts/results
+
 ## Run the local server
 
 ```bash

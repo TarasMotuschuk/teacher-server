@@ -90,6 +90,10 @@ public sealed class ClientSettingsStore
             theme = ClientSettings.Default.Theme;
         }
 
+        var testPlatformBaseUrl = string.IsNullOrWhiteSpace(settings?.TestPlatformBaseUrl)
+            ? ClientSettings.Default.TestPlatformBaseUrl
+            : settings.TestPlatformBaseUrl.Trim().TrimEnd('/');
+
         return new ClientSettings(
             sharedSecret,
             language,
@@ -98,6 +102,7 @@ public sealed class ClientSettingsStore
             studentWorkFolderName,
             Math.Max(1, desktopIconAutoRestoreMinutes),
             browserLockCheckIntervalSeconds,
-            theme);
+            theme,
+            testPlatformBaseUrl);
     }
 }

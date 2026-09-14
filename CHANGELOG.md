@@ -20,6 +20,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - **Test Runner MVP**: `ClassCommander.TestRunner` Avalonia student app resolves identity against TestPlatform, lists active assignments, answers all 9 question types, saves progress, and submits for scored results (EN/UA). Not yet wired into the teacher Avalonia menu.
 
+- **Teacher Testing UI**: `TeacherClient.Avalonia` menu **Configuration → Testing** opens a bilingual window to connect to local TestPlatform, import MyTest XML, create/close class assignments, and monitor attempts/results. Test Platform base URL is stored in client settings.
+
 ### Changed
 
 - **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.
