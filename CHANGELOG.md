@@ -18,13 +18,19 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - **Test Editor MVP**: `ClassCommander.TestEditor` can create/open/save `.cctest` packages, import MyTest XML, browse groups/questions with bilingual EN/UA UI, and preview question content/answer keys. Shared packaging/import logic lives in `ClassCommander.Testing.Core`.
 
-- **Test Runner MVP**: `ClassCommander.TestRunner` Avalonia student app resolves identity against TestPlatform, lists active assignments, answers all 9 question types, saves progress, and submits for scored results (EN/UA). Not yet wired into the teacher Avalonia menu.
+- **Test Editor authoring**: `ClassCommander.TestEditor` is a full classroom authoring UI — create a new test, add/edit/delete all 9 question types, set answer keys, and save `.cctest` packages (light theme, bilingual EN/UA).
 
-- **Teacher Testing UI**: `TeacherClient.Avalonia` menu **Configuration → Testing** opens a bilingual window to connect to local TestPlatform, import MyTest XML, create/close class assignments, and monitor attempts/results. Test Platform base URL is stored in client settings.
+- **Test Runner MVP**: `ClassCommander.TestRunner` Avalonia student app answers all 9 question types against TestPlatform; the server URL is supplied by the teacher launch (not typed by students).
+
+- **Teacher Testing UI**: `TeacherClient.Avalonia` menu **Configuration → Testing** opens a bilingual window to connect to local TestPlatform, import MyTest XML, create/close class assignments, and monitor attempts/results. Test Platform base URL is stored in client settings. **Configuration → Test Editor** launches the standalone authoring app.
 
 - **Test package import + attempt details**: TestPlatform accepts `.cctest` upload via `POST /api/tests/v1/imports/cctest`; the Avalonia Testing window can import packages from TestEditor and open attempt details (score breakdown + student answers).
 
+- **Teacher-launched student tests**: from **Configuration → Testing**, teachers can deploy `ClassCommander.TestRunner` to student PCs and start it over the network with the classroom TestPlatform LAN URL (students do not type the server address). TestPlatform listens on `0.0.0.0:5050` by default.
+
 ### Changed
+
+- **Shared UI language**: default language is Ukrainian; teacher client settings write a shared ClassCommander UI language preference that Test Editor and Test Runner also use (separate Language menus removed from Editor/Runner).
 
 - **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.
 

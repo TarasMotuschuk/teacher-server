@@ -767,13 +767,49 @@ internal static partial class CrossPlatformText
 
     public static string TestingMenu => IsUk ? "Тестування…" : "Testing…";
 
+    public static string TestEditorMenu => IsUk ? "Редактор тестів…" : "Test Editor…";
+
+    public static string TestEditorLaunched => IsUk ? "Запущено редактор тестів." : "Test Editor launched.";
+
+    public static string TestEditorNotFound => IsUk
+        ? "Не знайдено ClassCommander.TestEditor. Зберіть проєкт або запустіть його окремо: dotnet run --project ClassCommander.TestEditor"
+        : "ClassCommander.TestEditor was not found. Build it or run separately: dotnet run --project ClassCommander.TestEditor";
+
+    public static string TestingDeployRunner => IsUk ? "Розгорнути runner на ПК…" : "Deploy runner to PCs…";
+
+    public static string TestingStartSelected => IsUk ? "Старт на вибраних ПК" : "Start on selected PCs";
+
+    public static string TestingStartAllOnline => IsUk ? "Старт на всіх онлайн" : "Start on all online";
+
+    public static string TestingLaunchClassLabel => IsUk ? "Клас для запуску" : "Class for launch";
+
+    public static string TestingLaunchHint => IsUk
+        ? "Розгортає ClassCommander.TestRunner на учнівські ПК і запускає його з адресою Test Platform та класом (має збігатися з завданням)."
+        : "Deploys ClassCommander.TestRunner to student PCs and starts it with the Test Platform URL and class name (must match the assignment).";
+
+    public static string TestingChooseAgentsFirst => IsUk
+        ? "Виберіть учнівські ПК у списку Agents."
+        : "Select student PCs in the Agents list.";
+
+    public static string TestingNoOnlineAgents => IsUk
+        ? "Немає онлайн учнівських ПК."
+        : "No online student PCs.";
+
+    public static string TestingLaunchClassRequired => IsUk
+        ? "Вкажіть клас для запуску (має збігатися з призначенням)."
+        : "Enter the launch class (must match the assignment audience).";
+
+    public static string TestingRunnerNotBuilt => IsUk
+        ? "Немає Windows-збірки ClassCommander.TestRunner для розгортання. На Mac: dotnet publish ClassCommander.TestRunner -r win-x64 --self-contained false."
+        : "No Windows ClassCommander.TestRunner build to deploy. On Mac run: dotnet publish ClassCommander.TestRunner -r win-x64 --self-contained false.";
+
     public static string TestingWindowTitle => IsUk ? "ClassCommander — Тестування" : "ClassCommander Testing";
 
     public static string TestPlatformBaseUrl => IsUk ? "Адреса Test Platform" : "Test platform URL";
 
     public static string SettingsFieldTooltipTestPlatformBaseUrl => IsUk
-        ? "Базова URL локального ClassCommander.TestPlatform (наприклад http://127.0.0.1:5000)."
-        : "Base URL of the local ClassCommander.TestPlatform server (for example http://127.0.0.1:5000).";
+        ? "Базова URL локального ClassCommander.TestPlatform (наприклад http://127.0.0.1:5050; на macOS уникайте :5000 — його часто займає AirPlay)."
+        : "Base URL of the local ClassCommander.TestPlatform server (for example http://127.0.0.1:5050; on macOS avoid :5000 — AirPlay often owns it).";
 
     public static string TestingConnect => IsUk ? "Підключити" : "Connect";
 

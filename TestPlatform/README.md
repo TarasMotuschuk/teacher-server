@@ -16,13 +16,15 @@ This folder holds design documents and prototypes for the classroom testing subs
 dotnet run --project ClassCommander.TestEditor/ClassCommander.TestEditor.csproj
 ```
 
+Authoring UI: create a new test, add/edit/delete all 9 question types with answer keys, import MyTest XML, open/save `.cctest`. From teacher Avalonia: **Configuration → Test Editor…**.
+
 ## Run the student test runner
 
 ```bash
 dotnet run --project ClassCommander.TestRunner/ClassCommander.TestRunner.csproj
 ```
 
-Point the runner at a running TestPlatform base URL (default `http://127.0.0.1:5000`).
+Point the runner at a running TestPlatform base URL (default `http://127.0.0.1:5050`; on macOS port `5000` is often taken by AirPlay Receiver).
 
 ## Teacher Avalonia Testing UI
 
@@ -31,12 +33,15 @@ In `TeacherClient.Avalonia` open **Configuration → Testing…** (after startin
 - connect to the Test Platform URL (also configurable under **Basic Settings**)
 - list tests and import MyTest XML or `.cctest` packages from TestEditor
 - create class-scoped assignments
+- deploy TestRunner to student PCs and start tests over the network (selected / all online)
 - close assignments and monitor attempts/results (including student answer details)
+
+Students should not enter the TestPlatform URL — the teacher launch passes `--server-url` with the teacher LAN address.
 
 ## Run the local server
 
 ```bash
-dotnet run --project ClassCommander.TestPlatform/ClassCommander.TestPlatform.csproj
+ASPNETCORE_URLS=http://127.0.0.1:5050 dotnet run --project ClassCommander.TestPlatform/ClassCommander.TestPlatform.csproj
 ```
 
 Default data root (override with `TestPlatform__DataRoot`):

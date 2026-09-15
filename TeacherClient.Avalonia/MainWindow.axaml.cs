@@ -221,8 +221,33 @@ public partial class MainWindow : Window, IDisposable
 
     private async void TestingMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        await TestingWindow.ShowAsync(this, _clientSettings, _clientSettingsStore);
+        await TestingWindow.ShowAsync(
+            this,
+            _clientSettings,
+            _clientSettingsStore,
+            GetSelectedAgents,
+            () => _allAgents
+                .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+                .ToList());
         _clientSettings = _clientSettingsStore.Load();
+    }
+
+    private async void TestEditorMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        try
+        {
+            if (!TryLaunchCompanionApp("ClassCommander.TestEditor", out var error))
+            {
+                await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, error ?? CrossPlatformText.TestEditorNotFound);
+                return;
+            }
+
+            SetStatus(CrossPlatformText.TestEditorLaunched);
+        }
+        catch (Exception ex)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, ex.Message);
+        }
     }
 
     private async void RefreshAgentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -4624,6 +4649,7 @@ public partial class MainWindow : Window, IDisposable
         ConfigurationMenuItem.Header = CrossPlatformText.ConfigurationMenu;
         BasicSettingsMenuItem.Header = CrossPlatformText.BasicSettingsMenu;
         TestingMenuItem.Header = CrossPlatformText.TestingMenu;
+        TestEditorMenuItem.Header = CrossPlatformText.TestEditorMenu;
         AgentsTabItem.Header = CrossPlatformText.Agents;
         ProcessesTabItem.Header = CrossPlatformText.Processes;
         FilesTabItem.Header = CrossPlatformText.Files;
@@ -4889,6 +4915,97 @@ public partial class MainWindow : Window, IDisposable
         catch (Exception ex)
         {
             SetStatus($"{CrossPlatformText.OpenLocalError}: {ex.Message}");
+        }
+    }
+
+    private static bool TryLaunchCompanionApp(string projectName, out string? error)
+    {
+        error = null;
+        var executable = ResolveCompanionExecutable(projectName);
+        if (executable is not null)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = executable,
+                WorkingDirectory = Path.GetDirectoryName(executable),
+                UseShellExecute = true,
+            });
+            return true;
+        }
+
+        var projectPath = ResolveCompanionProjectPath(projectName);
+        if (projectPath is not null)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"run --project \"{projectPath}\" --no-build",
+                WorkingDirectory = Path.GetDirectoryName(projectPath),
+                UseShellExecute = false,
+            });
+            return true;
+        }
+
+        error = CrossPlatformText.TestEditorNotFound;
+        return false;
+    }
+
+    private static string? ResolveCompanionExecutable(string projectName)
+    {
+        var fileName = OperatingSystem.IsWindows() ? $"{projectName}.exe" : projectName;
+        foreach (var candidate in EnumerateCompanionSearchRoots(projectName))
+        {
+            var path = Path.Combine(candidate, fileName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ResolveCompanionProjectPath(string projectName)
+    {
+        foreach (var root in EnumerateRepositoryRoots())
+        {
+            var projectPath = Path.Combine(root, projectName, $"{projectName}.csproj");
+            if (File.Exists(projectPath))
+            {
+                return projectPath;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> EnumerateCompanionSearchRoots(string projectName)
+    {
+        foreach (var root in EnumerateRepositoryRoots())
+        {
+            yield return Path.Combine(root, projectName, "bin", "Debug", "net10.0");
+            yield return Path.Combine(root, projectName, "bin", "Release", "net10.0");
+        }
+
+        var baseDir = AppContext.BaseDirectory;
+        yield return baseDir;
+        yield return Path.Combine(baseDir, projectName);
+    }
+
+    private static IEnumerable<string> EnumerateRepositoryRoots()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            if (!seen.Add(dir.FullName))
+            {
+                continue;
+            }
+
+            if (File.Exists(Path.Combine(dir.FullName, "TeacherServer.sln")))
+            {
+                yield return dir.FullName;
+            }
         }
     }
 

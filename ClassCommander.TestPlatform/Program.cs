@@ -33,6 +33,10 @@ var repository = new TestPlatformRepository(db);
 var importer = new MyTestXmlImporter();
 var packageService = new CctestPackageService();
 
+builder.WebHost.UseUrls(
+    Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+    ?? "http://0.0.0.0:5050");
+
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton(db);
 builder.Services.AddSingleton(repository);
@@ -114,7 +118,7 @@ tests.MapPost("/imports/mytest-xml", async (HttpRequest request) =>
     }
 
     var form = await request.ReadFormAsync();
-    var file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
+    var file = form.Files.GetFile("file") ?? (form.Files.Count > 0 ? form.Files[0] : null);
     if (file is null || file.Length == 0)
     {
         return Results.BadRequest(new { error = "MyTest XML file is required." });
@@ -184,7 +188,7 @@ tests.MapPost("/imports/cctest", async (HttpRequest request) =>
     }
 
     var form = await request.ReadFormAsync();
-    var file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
+    var file = form.Files.GetFile("file") ?? (form.Files.Count > 0 ? form.Files[0] : null);
     if (file is null || file.Length == 0)
     {
         return Results.BadRequest(new { error = "cctest package file is required." });

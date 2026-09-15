@@ -255,6 +255,7 @@
       <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration">
         <MenuItem x:Name="BasicSettingsMenuItem" Header="_Basic Settings" Click="SettingsButton_OnClick" />
         <MenuItem x:Name="TestingMenuItem" Header="_Testing…" Click="TestingMenuItem_OnClick" />
+        <MenuItem x:Name="TestEditorMenuItem" Header="Test _Editor…" Click="TestEditorMenuItem_OnClick" />
       </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="ProgramUpdatesMenuItem" Header="Program Updates">

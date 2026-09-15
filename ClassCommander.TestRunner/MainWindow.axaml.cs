@@ -31,42 +31,84 @@ public partial class MainWindow : Window
         InitializeComponent();
         AssignmentsListBox.ItemsSource = _assignments;
         _settings = _settingsStore.Load();
+        ApplyLaunchOptionsToSettings();
+        ResolveLanguage();
         ApplySettingsToForm();
         ApplyLocalization();
         ShowPanel(identity: true);
+        if (RunnerLaunchOptions.Current.AutoContinue)
+        {
+            Opened += async (_, _) => await TryAutoContinueAsync();
+        }
+    }
+
+    private void ResolveLanguage()
+    {
+        var launchLanguage = RunnerLaunchOptions.Current.Language;
+        TestRunnerText.Language = !string.IsNullOrWhiteSpace(launchLanguage)
+            ? UiLanguageExtensions.Parse(launchLanguage)
+            : ClassCommanderUiSettings.LoadLanguage();
+    }
+
+    private void ApplyLaunchOptionsToSettings()
+    {
+        var launch = RunnerLaunchOptions.Current;
+        if (!string.IsNullOrWhiteSpace(launch.ServerUrl))
+        {
+            _settings.ServerUrl = launch.ServerUrl.Trim().TrimEnd('/');
+        }
+
+        if (!string.IsNullOrWhiteSpace(launch.Surname))
+        {
+            _settings.Surname = launch.Surname.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(launch.Name))
+        {
+            _settings.Name = launch.Name.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(launch.ClassName))
+        {
+            _settings.ClassName = launch.ClassName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(launch.DeviceId))
+        {
+            _settings.DeviceId = launch.DeviceId.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(launch.ServerUrl)
+            || !string.IsNullOrWhiteSpace(launch.ClassName)
+            || !string.IsNullOrWhiteSpace(launch.DeviceId))
+        {
+            _settingsStore.Save(_settings);
+        }
     }
 
     private void ApplySettingsToForm()
     {
-        ServerUrlTextBox.Text = _settings.ServerUrl;
         SurnameTextBox.Text = _settings.Surname;
         NameTextBox.Text = _settings.Name;
         ClassTextBox.Text = _settings.ClassName;
         DeviceTextBox.Text = _settings.DeviceId;
-        TestRunnerText.Language = string.Equals(_settings.Language, "uk", StringComparison.OrdinalIgnoreCase)
-            ? UiLanguage.Ukrainian
-            : UiLanguage.English;
     }
 
     private void PersistIdentitySettings()
     {
-        _settings.ServerUrl = ServerUrlTextBox.Text?.Trim() ?? string.Empty;
         _settings.Surname = SurnameTextBox.Text?.Trim() ?? string.Empty;
         _settings.Name = NameTextBox.Text?.Trim() ?? string.Empty;
         _settings.ClassName = ClassTextBox.Text?.Trim() ?? string.Empty;
         _settings.DeviceId = DeviceTextBox.Text?.Trim() ?? string.Empty;
-        _settings.Language = TestRunnerText.Language == UiLanguage.Ukrainian ? "uk" : "en";
+        _settings.Language = TestRunnerText.Language.ToCode();
         _settingsStore.Save(_settings);
     }
 
     private void ApplyLocalization()
     {
         Title = TestRunnerText.WindowTitle;
-        LanguageMenuItem.Header = TestRunnerText.LanguageMenu;
-        EnglishMenuItem.Header = TestRunnerText.English;
-        UkrainianMenuItem.Header = TestRunnerText.Ukrainian;
         IdentityHeadingText.Text = TestRunnerText.IdentityHeading;
-        ServerUrlLabelText.Text = TestRunnerText.ServerUrlLabel;
+        TeacherLaunchHintText.Text = TestRunnerText.TeacherLaunchHint;
         SurnameLabelText.Text = TestRunnerText.SurnameLabel;
         NameLabelText.Text = TestRunnerText.NameLabel;
         ClassLabelText.Text = TestRunnerText.ClassLabel;
@@ -91,31 +133,43 @@ public partial class MainWindow : Window
         RebuildCurrentEditor();
     }
 
-    private void EnglishMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        TestRunnerText.Language = UiLanguage.English;
-        PersistIdentitySettings();
-        ApplyLocalization();
-    }
-
-    private void UkrainianMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        TestRunnerText.Language = UiLanguage.Ukrainian;
-        PersistIdentitySettings();
-        ApplyLocalization();
-    }
-
     private async void ContinueButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => await ContinueAsync();
+
+    private async Task TryAutoContinueAsync()
     {
         if (_busy)
         {
             return;
         }
 
-        var serverUrl = ServerUrlTextBox.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(_settings.ServerUrl)
+            || string.IsNullOrWhiteSpace(_settings.Surname)
+            || string.IsNullOrWhiteSpace(_settings.Name))
+        {
+            return;
+        }
+
+        await ContinueAsync();
+    }
+
+    private async Task ContinueAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        var serverUrl = _settings.ServerUrl?.Trim() ?? string.Empty;
         var surname = SurnameTextBox.Text?.Trim() ?? string.Empty;
         var name = NameTextBox.Text?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(serverUrl) || string.IsNullOrWhiteSpace(surname) || string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(serverUrl))
+        {
+            await ShowErrorAsync(TestRunnerText.RequiredServer);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(surname) || string.IsNullOrWhiteSpace(name))
         {
             await ShowErrorAsync(TestRunnerText.RequiredFields);
             return;

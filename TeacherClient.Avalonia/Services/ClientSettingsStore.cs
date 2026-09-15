@@ -54,9 +54,11 @@ public sealed class ClientSettingsStore
     {
         lock (_sync)
         {
-            var json = JsonSerializer.Serialize(Normalize(settings), JsonOptions);
+            var normalized = Normalize(settings);
+            var json = JsonSerializer.Serialize(normalized, JsonOptions);
 
             File.WriteAllText(_storagePath, json);
+            ClassCommanderUiSettings.SaveLanguage(normalized.Language);
         }
     }
 

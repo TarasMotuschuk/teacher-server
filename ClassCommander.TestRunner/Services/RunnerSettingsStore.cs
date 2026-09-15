@@ -43,7 +43,7 @@ internal sealed class RunnerSettingsStore
 
 internal sealed class RunnerSettings
 {
-    public string ServerUrl { get; set; } = "http://127.0.0.1:5000";
+    public string ServerUrl { get; set; } = "http://127.0.0.1:5050";
 
     public string Surname { get; set; } = string.Empty;
 
@@ -53,5 +53,5 @@ internal sealed class RunnerSettings
 
     public string DeviceId { get; set; } = string.Empty;
 
-    public string Language { get; set; } = "en";
+    public string Language { get; set; } = "uk";
 }

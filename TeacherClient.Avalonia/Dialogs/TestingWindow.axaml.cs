@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using Teacher.Common.Contracts;
 using Teacher.Common.Contracts.Testing;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
@@ -12,6 +13,8 @@ namespace TeacherClient.CrossPlatform.Dialogs;
 public partial class TestingWindow : Window
 {
     private readonly ClientSettingsStore _settingsStore;
+    private readonly Func<IReadOnlyList<DiscoveredAgentRow>> _getSelectedAgents;
+    private readonly Func<IReadOnlyList<DiscoveredAgentRow>> _getOnlineAgents;
     private readonly ObservableCollection<TestDefinitionRow> _tests = [];
     private readonly ObservableCollection<AssignmentRow> _assignments = [];
     private readonly ObservableCollection<AttemptRow> _attempts = [];
@@ -24,16 +27,22 @@ public partial class TestingWindow : Window
     private bool _busy;
 
     public TestingWindow()
-        : this(ClientSettings.Default, new ClientSettingsStore())
+        : this(ClientSettings.Default, new ClientSettingsStore(), () => [], () => [])
     {
     }
 
-    public TestingWindow(ClientSettings settings, ClientSettingsStore settingsStore)
+    public TestingWindow(
+        ClientSettings settings,
+        ClientSettingsStore settingsStore,
+        Func<IReadOnlyList<DiscoveredAgentRow>> getSelectedAgents,
+        Func<IReadOnlyList<DiscoveredAgentRow>> getOnlineAgents)
     {
         InitializeComponent();
         Icon = AppIconLoader.Load();
         _settings = settings;
         _settingsStore = settingsStore;
+        _getSelectedAgents = getSelectedAgents;
+        _getOnlineAgents = getOnlineAgents;
         ServerUrlTextBox.Text = settings.TestPlatformBaseUrl;
         TestsGrid.ItemsSource = _tests;
         AssignmentsGrid.ItemsSource = _assignments;
@@ -43,9 +52,14 @@ public partial class TestingWindow : Window
         ConfigureColumns();
     }
 
-    public static async Task ShowAsync(Window owner, ClientSettings settings, ClientSettingsStore settingsStore)
+    public static async Task ShowAsync(
+        Window owner,
+        ClientSettings settings,
+        ClientSettingsStore settingsStore,
+        Func<IReadOnlyList<DiscoveredAgentRow>> getSelectedAgents,
+        Func<IReadOnlyList<DiscoveredAgentRow>> getOnlineAgents)
     {
-        var dialog = new TestingWindow(settings, settingsStore);
+        var dialog = new TestingWindow(settings, settingsStore, getSelectedAgents, getOnlineAgents);
         await dialog.ShowDialog(owner);
     }
 
@@ -54,6 +68,11 @@ public partial class TestingWindow : Window
         Title = CrossPlatformText.TestingWindowTitle;
         ServerUrlLabel.Text = CrossPlatformText.TestPlatformBaseUrl;
         ConnectButton.Content = CrossPlatformText.TestingConnect;
+        LaunchClassLabel.Text = CrossPlatformText.TestingLaunchClassLabel;
+        LaunchHintText.Text = CrossPlatformText.TestingLaunchHint;
+        DeployRunnerButton.Content = CrossPlatformText.TestingDeployRunner;
+        StartSelectedButton.Content = CrossPlatformText.TestingStartSelected;
+        StartAllOnlineButton.Content = CrossPlatformText.TestingStartAllOnline;
         TestsTabItem.Header = CrossPlatformText.TestingTabTests;
         AssignmentsTabItem.Header = CrossPlatformText.TestingTabAssignments;
         MonitorTabItem.Header = CrossPlatformText.TestingTabMonitor;
@@ -244,6 +263,7 @@ public partial class TestingWindow : Window
                 new ResultPolicyDto(draft.ShowScore, draft.ShowCorrectAnswers, draft.ShowPerQuestionFeedback)));
 
             StatusTextBlock.Text = CrossPlatformText.TestingAssignmentCreated;
+            LaunchClassTextBox.Text = draft.ClassName;
             await RefreshAssignmentsAsync();
             MainTabControl.SelectedItem = AssignmentsTabItem;
         });
@@ -297,6 +317,147 @@ public partial class TestingWindow : Window
         MonitorAssignmentTitleText.Text = assignment.Title;
         MainTabControl.SelectedItem = MonitorTabItem;
         await RunBusyAsync(RefreshMonitorAsync);
+    }
+
+    private async void DeployRunnerButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        var agents = _getSelectedAgents().Count > 0
+            ? _getSelectedAgents()
+            : _getOnlineAgents();
+        if (agents.Count == 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingChooseAgentsFirst);
+            return;
+        }
+
+        await RunBusyAsync(async () => await DeployRunnerAsync(agents));
+    }
+
+    private async void StartSelectedButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        var agents = _getSelectedAgents();
+        if (agents.Count == 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingChooseAgentsFirst);
+            return;
+        }
+
+        await RunBusyAsync(async () => await StartRunnerAsync(agents));
+    }
+
+    private async void StartAllOnlineButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        var agents = _getOnlineAgents();
+        if (agents.Count == 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingNoOnlineAgents);
+            return;
+        }
+
+        await RunBusyAsync(async () => await StartRunnerAsync(agents));
+    }
+
+    private async Task DeployRunnerAsync(IReadOnlyList<DiscoveredAgentRow> agents)
+    {
+        var localDir = TestClassroomLaunchHelper.FindLocalRunnerDirectory();
+        if (localDir is null)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, CrossPlatformText.TestingRunnerNotBuilt);
+            return;
+        }
+
+        var files = Directory.GetFiles(localDir, "*", SearchOption.TopDirectoryOnly)
+            .Where(path => !path.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (files.Count == 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, CrossPlatformText.TestingRunnerNotBuilt);
+            return;
+        }
+
+        var failures = new List<string>();
+        var succeeded = 0;
+        foreach (var agent in agents)
+        {
+            try
+            {
+                StatusTextBlock.Text = $"{agent.MachineName}…";
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _settings.SharedSecret);
+                await client.EnsureSharedWritableDirectoryAsync(TestClassroomLaunchHelper.DefaultRemoteDirectory);
+                foreach (var file in files)
+                {
+                    await client.UploadFileAsync(file, TestClassroomLaunchHelper.DefaultRemoteDirectory);
+                }
+
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        StatusTextBlock.Text = failures.Count == 0
+            ? CrossPlatformText.TestingDeployCompleted(succeeded)
+            : CrossPlatformText.TestingDeployCompletedWithFailures(succeeded, failures.Count);
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, string.Join(Environment.NewLine, failures));
+        }
+    }
+
+    private async Task StartRunnerAsync(IReadOnlyList<DiscoveredAgentRow> agents)
+    {
+        var className = LaunchClassTextBox.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(className))
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingLaunchClassRequired);
+            return;
+        }
+
+        var configuredUrl = ServerUrlTextBox.Text?.Trim() ?? _settings.TestPlatformBaseUrl;
+        var classroomUrl = TestClassroomLaunchHelper.ResolveClassroomServerUrl(configuredUrl);
+        StatusTextBlock.Text = CrossPlatformText.TestingClassroomUrl(classroomUrl);
+
+        var failures = new List<string>();
+        var succeeded = 0;
+        foreach (var agent in agents)
+        {
+            try
+            {
+                var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _settings.SharedSecret);
+                var script = TestClassroomLaunchHelper.BuildLaunchScript(classroomUrl, className, agent);
+                await client.ExecuteRemoteCommandAsync(script, RemoteCommandRunAs.CurrentUser);
+                succeeded++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{agent.MachineName}: {ex.Message}");
+            }
+        }
+
+        StatusTextBlock.Text = failures.Count == 0
+            ? CrossPlatformText.TestingStartCompleted(succeeded)
+            : CrossPlatformText.TestingStartCompletedWithFailures(succeeded, failures.Count);
+        if (failures.Count > 0)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, string.Join(Environment.NewLine, failures));
+        }
     }
 
     private async void ViewResultButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

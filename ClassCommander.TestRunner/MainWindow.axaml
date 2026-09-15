@@ -7,13 +7,6 @@
         MinHeight="600"
         Title="ClassCommander Testing">
   <DockPanel>
-    <Menu DockPanel.Dock="Top">
-      <MenuItem x:Name="LanguageMenuItem" Header="_Language">
-        <MenuItem x:Name="EnglishMenuItem" Header="English" Click="EnglishMenuItem_OnClick" />
-        <MenuItem x:Name="UkrainianMenuItem" Header="Українська" Click="UkrainianMenuItem_OnClick" />
-      </MenuItem>
-    </Menu>
-
     <Border DockPanel.Dock="Bottom"
             Padding="12,8"
             BorderBrush="#D0D5DD"
@@ -35,16 +28,18 @@
               VerticalAlignment="Center">
         <StackPanel Spacing="10">
           <TextBlock x:Name="IdentityHeadingText" FontSize="22" FontWeight="SemiBold" Text="Student sign-in" />
-          <TextBlock x:Name="ServerUrlLabelText" Text="Test server URL" />
-          <TextBox x:Name="ServerUrlTextBox" Watermark="http://teacher-pc:5000" />
+          <TextBlock x:Name="TeacherLaunchHintText"
+                     TextWrapping="Wrap"
+                     Opacity="0.85"
+                     Text="The teacher starts this test over the network. Server address is set automatically." />
           <TextBlock x:Name="SurnameLabelText" Text="Surname" />
           <TextBox x:Name="SurnameTextBox" />
           <TextBlock x:Name="NameLabelText" Text="First name" />
           <TextBox x:Name="NameTextBox" />
           <TextBlock x:Name="ClassLabelText" Text="Class" />
-          <TextBox x:Name="ClassTextBox" />
+          <TextBox x:Name="ClassTextBox" IsReadOnly="True" />
           <TextBlock x:Name="DeviceLabelText" Text="Device ID (optional)" />
-          <TextBox x:Name="DeviceTextBox" />
+          <TextBox x:Name="DeviceTextBox" IsReadOnly="True" />
           <Button x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Right" Click="ContinueButton_OnClick" />
         </StackPanel>
       </Border>

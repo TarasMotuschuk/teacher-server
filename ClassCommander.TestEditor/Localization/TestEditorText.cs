@@ -23,37 +23,91 @@ internal static class TestEditorText
 
     public static string ImportMyTestCommand => IsUk ? "Імпортувати MyTest XML…" : "Import MyTest XML…";
 
-    public static string LanguageMenu => IsUk ? "_Мова" : "_Language";
+    public static string GroupsHeading => IsUk ? "Питання" : "Questions";
 
-    public static string English => "English";
+    public static string EditorHeading => IsUk ? "Редагування питання" : "Edit question";
 
-    public static string Ukrainian => "Українська";
+    public static string TestTitleLabel => IsUk ? "Назва тесту" : "Test title";
 
-    public static string GroupsHeading => IsUk ? "Групи та питання" : "Groups and questions";
+    public static string GroupTitleLabel => IsUk ? "Група" : "Group";
 
-    public static string PreviewHeading => IsUk ? "Перегляд питання" : "Question preview";
+    public static string AddQuestion => IsUk ? "Додати питання" : "Add question";
 
-    public static string NoTestLoaded => IsUk ? "Тест ще не завантажено. Відкрийте .cctest або імпортуйте MyTest XML." : "No test loaded. Open a .cctest package or import a MyTest XML file.";
+    public static string DeleteQuestion => IsUk ? "Видалити" : "Delete";
 
-    public static string SelectQuestionHint => IsUk ? "Оберіть питання зліва, щоб переглянути його." : "Select a question on the left to preview it.";
+    public static string MoveUp => IsUk ? "↑" : "↑";
+
+    public static string MoveDown => IsUk ? "↓" : "↓";
+
+    public static string ApplyChanges => IsUk ? "Застосувати зміни" : "Apply changes";
+
+    public static string EmptyTestHint => IsUk
+        ? "Новий тест створено. Додайте питання кнопкою «Додати питання» зліва."
+        : "New test created. Add questions with the “Add question” button on the left.";
+
+    public static string SelectQuestionHint => IsUk
+        ? "Оберіть питання зліва або додайте нове."
+        : "Select a question on the left or add a new one.";
+
+    public static string NoTestLoaded => IsUk
+        ? "Тест ще не завантажено. Створіть новий, відкрийте .cctest або імпортуйте MyTest XML."
+        : "No test loaded. Create a new test, open a .cctest package, or import MyTest XML.";
 
     public static string StatusReady => IsUk ? "Готово" : "Ready";
 
+    public static string StatusNewTest => IsUk ? "Створено новий тест." : "Created a new test.";
+
+    public static string StatusQuestionAdded => IsUk ? "Питання додано." : "Question added.";
+
+    public static string StatusQuestionUpdated => IsUk ? "Питання оновлено." : "Question updated.";
+
+    public static string StatusQuestionDeleted => IsUk ? "Питання видалено." : "Question deleted.";
+
     public static string PromptLabel => IsUk ? "Умова" : "Prompt";
+
+    public static string DescriptionLabel => IsUk ? "Опис / підказка" : "Description / hint";
 
     public static string TypeLabel => IsUk ? "Тип" : "Type";
 
     public static string ScoreLabel => IsUk ? "Бал" : "Score";
 
-    public static string OptionsLabel => IsUk ? "Варіанти / взаємодія" : "Options / interaction";
+    public static string RequiredLabel => IsUk ? "Обов’язкове" : "Required";
+
+    public static string OptionsLabel => IsUk ? "Варіанти / відповідь" : "Options / answer";
 
     public static string AnswerKeyLabel => IsUk ? "Правильна відповідь" : "Answer key";
 
-    public static string AssetsLabel => IsUk ? "Ресурси" : "Assets";
+    public static string AddOption => IsUk ? "Додати варіант" : "Add option";
 
-    public static string WarningsLabel => IsUk ? "Попередження імпорту" : "Import warnings";
+    public static string AddStatement => IsUk ? "Додати твердження" : "Add statement";
+
+    public static string AddEntry => IsUk ? "Додати поле" : "Add entry";
+
+    public static string TrueLabel => IsUk ? "Так" : "True";
+
+    public static string FalseLabel => IsUk ? "Ні" : "False";
+
+    public static string MatchingLeftHint => IsUk ? "Лівий стовпчик (по рядку)" : "Left column (one per line)";
+
+    public static string MatchingRightHint => IsUk ? "Правий стовпчик (по рядку)" : "Right column (one per line)";
+
+    public static string PlaceholderLabel => IsUk ? "Підказка в полі" : "Placeholder";
+
+    public static string AcceptedTextsHint => IsUk ? "Прийнятні відповіді (по рядку)" : "Accepted answers (one per line)";
+
+    public static string CaseSensitiveLabel => IsUk ? "Враховувати регістр" : "Case sensitive";
+
+    public static string ImagePointHint => IsUk
+        ? "Координати правильної точки на зображенні (X, Y). Зображення можна додати пізніше через імпорт."
+        : "Correct image point coordinates (X, Y). Images can be added later via import.";
+
+    public static string SourceWordLabel => IsUk ? "Літери / джерело" : "Letters / source";
+
+    public static string TargetWordLabel => IsUk ? "Правильне слово" : "Target word";
 
     public static string UntitledTest => IsUk ? "Новий тест" : "Untitled test";
+
+    public static string DefaultGroupTitle => IsUk ? "Основна група" : "Main group";
 
     public static string OpenCctestTitle => IsUk ? "Відкрити пакет тесту" : "Open test package";
 
@@ -61,13 +115,11 @@ internal static class TestEditorText
 
     public static string ImportXmlTitle => IsUk ? "Імпортувати MyTest XML" : "Import MyTest XML";
 
-    public static string CctestFilter => IsUk ? "Пакети ClassCommander (*.cctest)|*.cctest" : "ClassCommander packages (*.cctest)|*.cctest";
-
-    public static string XmlFilter => IsUk ? "MyTest XML (*.xml)|*.xml" : "MyTest XML (*.xml)|*.xml";
-
     public static string ErrorTitle => IsUk ? "Помилка" : "Error";
 
     public static string NothingToSave => IsUk ? "Немає тесту для збереження." : "There is no test to save.";
+
+    public static string ChooseTypeTitle => IsUk ? "Тип питання" : "Question type";
 
     public static string StatusLoaded(string title, int questionCount) => IsUk
         ? $"Завантажено «{title}» ({questionCount} питань)"

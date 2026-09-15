@@ -455,6 +455,26 @@ internal static partial class CrossPlatformText
         ? $"Бали: {earned:0.##} / {max:0.##} ({percent:0.##}%)"
         : $"Score: {earned:0.##} / {max:0.##} ({percent:0.##}%)";
 
+    public static string TestingDeployCompleted(int succeeded) => IsUk
+        ? $"Runner розгорнуто на {succeeded} ПК."
+        : $"Runner deployed to {succeeded} PC(s).";
+
+    public static string TestingDeployCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Runner: успішно {succeeded}, з помилками {failures}."
+        : $"Runner deploy: {succeeded} succeeded, {failures} failed.";
+
+    public static string TestingStartCompleted(int succeeded) => IsUk
+        ? $"Тест запущено на {succeeded} ПК."
+        : $"Test started on {succeeded} PC(s).";
+
+    public static string TestingStartCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Запуск тесту: успішно {succeeded}, з помилками {failures}."
+        : $"Test start: {succeeded} succeeded, {failures} failed.";
+
+    public static string TestingClassroomUrl(string url) => IsUk
+        ? $"Учні підключатимуться до {url}"
+        : $"Students will connect to {url}";
+
     private static string GetPowerActionPast(PowerActionKind action) => action switch
     {
         PowerActionKind.Shutdown => IsUk ? "Надіслано вимкнення для" : "Sent shut down to",

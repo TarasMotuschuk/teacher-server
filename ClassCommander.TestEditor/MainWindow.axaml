@@ -2,9 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="ClassCommander.TestEditor.MainWindow"
         Width="1280"
-        Height="820"
-        MinWidth="960"
-        MinHeight="640"
+        Height="840"
+        MinWidth="980"
+        MinHeight="660"
+        Background="#F4F6F8"
         Title="ClassCommander Test Editor">
   <DockPanel>
     <Menu DockPanel.Dock="Top">
@@ -16,22 +17,46 @@
         <Separator />
         <MenuItem x:Name="ImportMyTestMenuItem" Header="Import MyTest XML…" Click="ImportMyTestMenuItem_OnClick" />
       </MenuItem>
-      <MenuItem x:Name="LanguageMenuItem" Header="_Language">
-        <MenuItem x:Name="EnglishMenuItem" Header="English" Click="EnglishMenuItem_OnClick" />
-        <MenuItem x:Name="UkrainianMenuItem" Header="Українська" Click="UkrainianMenuItem_OnClick" />
-      </MenuItem>
     </Menu>
 
     <Border DockPanel.Dock="Bottom"
             Padding="12,8"
             BorderBrush="#D0D5DD"
             BorderThickness="0,1,0,0"
-            Background="#F8FAFC">
+            Background="#FFFFFF">
       <TextBlock x:Name="StatusTextBlock" Text="Ready" />
     </Border>
 
-    <Grid Margin="16" ColumnDefinitions="360,*">
-      <Border Background="#FFFFFF"
+    <Grid Margin="16" RowDefinitions="Auto,*" ColumnDefinitions="360,*">
+      <Border Grid.ColumnSpan="2"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="12"
+              Margin="0,0,0,12">
+        <Grid ColumnDefinitions="Auto,*,Auto,180">
+          <TextBlock x:Name="TestTitleLabelText"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="Test title" />
+          <TextBox x:Name="TestTitleTextBox"
+                   Grid.Column="1"
+                   Margin="0,0,12,0"
+                   LostFocus="TestTitleTextBox_OnLostFocus" />
+          <TextBlock x:Name="GroupTitleLabelText"
+                     Grid.Column="2"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="Group" />
+          <TextBox x:Name="GroupTitleTextBox"
+                   Grid.Column="3"
+                   LostFocus="GroupTitleTextBox_OnLostFocus" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1"
+              Background="#FFFFFF"
               BorderBrush="#D0D5DD"
               BorderThickness="1"
               CornerRadius="8"
@@ -42,7 +67,18 @@
                      FontSize="18"
                      FontWeight="SemiBold"
                      Margin="0,0,0,10"
-                     Text="Groups and questions" />
+                     Text="Questions" />
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <Button x:Name="AddQuestionButton" MinWidth="130" Click="AddQuestionButton_OnClick" />
+            <Button x:Name="DeleteQuestionButton" MinWidth="90" Click="DeleteQuestionButton_OnClick" />
+            <Button x:Name="MoveUpButton" Width="36" Click="MoveUpButton_OnClick" />
+            <Button x:Name="MoveDownButton" Width="36" Click="MoveDownButton_OnClick" />
+          </StackPanel>
+          <TextBlock x:Name="TestMetaText"
+                     DockPanel.Dock="Bottom"
+                     Margin="0,10,0,0"
+                     Opacity="0.7"
+                     TextWrapping="Wrap" />
           <ListBox x:Name="QuestionsListBox"
                    SelectionChanged="QuestionsListBox_OnSelectionChanged">
             <ListBox.ItemTemplate>
@@ -60,7 +96,8 @@
         </DockPanel>
       </Border>
 
-      <Border Grid.Column="1"
+      <Border Grid.Row="1"
+              Grid.Column="1"
               Margin="16,0,0,0"
               Background="#FFFFFF"
               BorderBrush="#D0D5DD"
@@ -68,56 +105,24 @@
               CornerRadius="8"
               Padding="16">
         <DockPanel>
-          <Border DockPanel.Dock="Top"
-                  Margin="0,0,0,12"
-                  Padding="0,0,0,12"
-                  BorderBrush="#E4E7EC"
-                  BorderThickness="0,0,0,1">
-            <StackPanel Spacing="4">
-              <TextBlock x:Name="TestTitleText"
-                         FontSize="20"
-                         FontWeight="SemiBold"
-                         Text="—" />
-              <TextBlock x:Name="TestMetaText"
-                         Opacity="0.75"
-                         TextWrapping="Wrap"
-                         Text="" />
-            </StackPanel>
-          </Border>
-          <ScrollViewer>
-          <StackPanel Spacing="12">
-            <TextBlock x:Name="PreviewHeadingText"
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <TextBlock x:Name="EditorHeadingText"
                        FontSize="18"
                        FontWeight="SemiBold"
-                       Text="Question preview" />
-            <TextBlock x:Name="EmptyStateText"
-                       Text="No test loaded."
-                       TextWrapping="Wrap"
-                       Opacity="0.75" />
-
-            <StackPanel x:Name="PreviewPanel" IsVisible="False" Spacing="10">
-              <TextBlock x:Name="TypeLabelText" FontWeight="SemiBold" Text="Type" />
-              <TextBlock x:Name="TypeValueText" TextWrapping="Wrap" />
-
-              <TextBlock x:Name="ScoreLabelText" FontWeight="SemiBold" Text="Score" />
-              <TextBlock x:Name="ScoreValueText" />
-
-              <TextBlock x:Name="PromptLabelText" FontWeight="SemiBold" Text="Prompt" />
-              <TextBlock x:Name="PromptValueText" TextWrapping="Wrap" />
-
-              <TextBlock x:Name="OptionsLabelText" FontWeight="SemiBold" Text="Options / interaction" />
-              <TextBlock x:Name="OptionsValueText" TextWrapping="Wrap" />
-
-              <TextBlock x:Name="AnswerKeyLabelText" FontWeight="SemiBold" Text="Answer key" />
-              <TextBlock x:Name="AnswerKeyValueText" TextWrapping="Wrap" />
-
-              <TextBlock x:Name="AssetsLabelText" FontWeight="SemiBold" Text="Assets" />
-              <TextBlock x:Name="AssetsValueText" TextWrapping="Wrap" />
-
-              <TextBlock x:Name="WarningsLabelText" FontWeight="SemiBold" Text="Import warnings" IsVisible="False" />
-              <TextBlock x:Name="WarningsValueText" TextWrapping="Wrap" IsVisible="False" />
-            </StackPanel>
+                       VerticalAlignment="Center"
+                       Text="Edit question" />
+            <Button x:Name="ApplyChangesButton"
+                    MinWidth="140"
+                    HorizontalAlignment="Right"
+                    Click="ApplyChangesButton_OnClick" />
           </StackPanel>
+          <TextBlock x:Name="EmptyStateText"
+                     DockPanel.Dock="Top"
+                     TextWrapping="Wrap"
+                     Opacity="0.8"
+                     Margin="0,0,0,12" />
+          <ScrollViewer>
+            <Border x:Name="EditorHost" />
           </ScrollViewer>
         </DockPanel>
       </Border>

@@ -10,13 +10,15 @@ internal static class TestRunnerText
 
     public static string WindowTitle => IsUk ? "ClassCommander — Тестування" : "ClassCommander Testing";
 
-    public static string LanguageMenu => IsUk ? "_Мова" : "_Language";
-
-    public static string English => "English";
-
-    public static string Ukrainian => "Українська";
-
     public static string ServerUrlLabel => IsUk ? "Адреса сервера тестів" : "Test server URL";
+
+    public static string TeacherLaunchHint => IsUk
+        ? "Тест запускає вчитель по мережі. Адресу сервера встановлено автоматично."
+        : "The teacher starts this test over the network. Server address is set automatically.";
+
+    public static string WaitingForTeacherServer => IsUk
+        ? "Немає адреси сервера. Дочекайтеся запуску тесту вчителем."
+        : "No server address. Wait for the teacher to start the test.";
 
     public static string SurnameLabel => IsUk ? "Прізвище" : "Surname";
 
@@ -56,7 +58,13 @@ internal static class TestRunnerText
 
     public static string ErrorTitle => IsUk ? "Помилка" : "Error";
 
-    public static string RequiredFields => IsUk ? "Заповніть прізвище, ім’я та адресу сервера." : "Enter surname, first name, and server URL.";
+    public static string RequiredFields => IsUk
+        ? "Заповніть прізвище та ім’я."
+        : "Enter surname and first name.";
+
+    public static string RequiredServer => IsUk
+        ? "Немає адреси сервера. Дочекайтеся запуску тесту вчителем."
+        : "No server address. Wait for the teacher to start the test.";
 
     public static string ProgressSaved => IsUk ? "Прогрес збережено." : "Progress saved.";
 
