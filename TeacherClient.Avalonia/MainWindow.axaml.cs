@@ -355,16 +355,54 @@ public partial class MainWindow : Window, IDisposable
         await RunBusyAsync(
             async () =>
         {
-            for (var index = 0; index < targetAgents.Count; index++)
-            {
-                var agent = targetAgents[index];
-                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
-                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
-                await _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureTarget: target, captureWidth: capW, captureHeight: capH);
-            }
+            // Connect all students in parallel; the streamer shares one capture/encoder pipeline.
+            var failures = await RunDemonstrationActionOnAgentsAsync(
+                targetAgents,
+                baseUrl => _demoStreamer.StartAsync(baseUrl, _clientSettings.SharedSecret, sessionId, captureTarget: target, captureWidth: capW, captureHeight: capH));
 
-            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
+            ReportDemonstrationResult(targetAgents.Count, failures);
         }, CrossPlatformText.DemonstrationStartFailed);
+    }
+
+    private async Task<List<(DiscoveredAgentRow Agent, Exception Error)>> RunDemonstrationActionOnAgentsAsync(
+        IReadOnlyList<DiscoveredAgentRow> targetAgents,
+        Func<string, Task> action)
+    {
+        var tasks = targetAgents
+            .Select(agent => Task.Run(async () =>
+            {
+                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
+                try
+                {
+                    await action(baseUrl);
+                    return ((DiscoveredAgentRow Agent, Exception Error)?)null;
+                }
+                catch (Exception ex)
+                {
+                    return (agent, ex);
+                }
+            }))
+            .ToList();
+
+        var results = await Task.WhenAll(tasks);
+        return results.Where(r => r is not null).Select(r => r!.Value).ToList();
+    }
+
+    private void ReportDemonstrationResult(int total, List<(DiscoveredAgentRow Agent, Exception Error)> failures)
+    {
+        if (failures.Count == 0)
+        {
+            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({total})");
+            return;
+        }
+
+        if (failures.Count == total)
+        {
+            throw failures[0].Error;
+        }
+
+        var failedNames = string.Join(", ", failures.Select(f => f.Agent.MachineName));
+        SetStatus(CrossPlatformText.DemonstrationPartialResult(total - failures.Count, total, failedNames));
     }
 
     private (int Width, int Height) GetDemonstrationCaptureSize()
@@ -402,15 +440,11 @@ public partial class MainWindow : Window, IDisposable
         await RunBusyAsync(
             async () =>
         {
-            for (var index = 0; index < targetAgents.Count; index++)
-            {
-                var agent = targetAgents[index];
-                var baseUrl = $"http://{agent.RespondingAddress}:{agent.Port}";
-                SetStatus($"{CrossPlatformText.DemonstrationMenu}: {agent.MachineName} {baseUrl} ({index + 1}/{targetAgents.Count})");
-                await _demoStreamer.StopAsync(baseUrl, _clientSettings.SharedSecret, sessionId);
-            }
+            var failures = await RunDemonstrationActionOnAgentsAsync(
+                targetAgents,
+                baseUrl => _demoStreamer.StopAsync(baseUrl, _clientSettings.SharedSecret, sessionId));
 
-            SetStatus($"{CrossPlatformText.DemonstrationMenu}: OK ({targetAgents.Count})");
+            ReportDemonstrationResult(targetAgents.Count, failures);
         }, CrossPlatformText.DemonstrationStopFailed);
     }
 
@@ -548,7 +582,22 @@ public partial class MainWindow : Window, IDisposable
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
-            _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows)).ToList();
+
+            // A busy agent (e.g. rendering a demonstration) can miss one UDP discovery
+            // broadcast. Keep previously known agents and verify them over HTTP instead
+            // of dropping them from the list immediately.
+            var mergedEndpoints = merged
+                .Select(x => $"{x.RespondingAddress}:{x.Port}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            merged.AddRange(_allAgents.Where(x =>
+                !x.IsManual && !mergedEndpoints.Contains($"{x.RespondingAddress}:{x.Port}")));
+
+            var retentionCutoffUtc = DateTime.UtcNow - TimeSpan.FromMinutes(2);
+            _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows))
+                .Where(x => x.IsManual
+                    || !string.Equals(x.Status, CrossPlatformText.Offline, StringComparison.OrdinalIgnoreCase)
+                    || x.LastSeenUtc >= retentionCutoffUtc)
+                .ToList();
             foreach (var row in _allAgents)
             {
                 if (prevGroupSelection.TryGetValue(row.AgentId, out var sel))
@@ -1152,89 +1201,94 @@ public partial class MainWindow : Window, IDisposable
             .Select(x => $"{x.RespondingAddress}:{x.Port}")
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var updatedAgents = new List<DiscoveredAgentRow>(mergedAgents.Count);
-        foreach (var agent in mergedAgents)
+        // Poll agents in parallel with a short per-agent timeout: one busy agent
+        // (e.g. decoding a demonstration stream) must not stall the whole refresh
+        // for the default 100 s HttpClient timeout.
+        var updateTasks = mergedAgents.Select(agent => UpdateSingleAgentStatusAsync(agent, onlineEndpoints));
+        return await Task.WhenAll(updateTasks);
+    }
+
+    private async Task<DiscoveredAgentRow> UpdateSingleAgentStatusAsync(DiscoveredAgentRow agent, HashSet<string> onlineEndpoints)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+        var token = timeout.Token;
+        using var reachabilityClient = new TeacherApiClient(
+            $"http://{agent.RespondingAddress}:{agent.Port}",
+            _clientSettings.SharedSecret);
+
+        if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
         {
-            var reachabilityClient = new TeacherApiClient(
-                $"http://{agent.RespondingAddress}:{agent.Port}",
-                _clientSettings.SharedSecret);
-
-            if (onlineEndpoints.Contains($"{agent.RespondingAddress}:{agent.Port}"))
+            try
             {
-                try
+                var info = await reachabilityClient.GetServerInfoAsync(token);
+                if (info is not null)
                 {
-                    var info = await reachabilityClient.GetServerInfoAsync();
-                    if (info is not null)
-                    {
-                        var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
-                        var vncStatus = await reachabilityClient.GetVncStatusAsync();
-                        updatedAgents.Add(agent with
-                        {
-                            Status = CrossPlatformText.Online,
-                            CurrentUser = NormalizeUserDisplay(info.CurrentUser, info.MachineName),
-                            BrowserLockEnabled = info.IsBrowserLockEnabled,
-                            InputLockEnabled = info.IsInputLockEnabled,
-                            UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
-                            UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(updateStatus),
-                            VncEnabled = vncStatus?.Enabled ?? false,
-                            VncRunning = vncStatus?.Running ?? false,
-                            VncViewOnly = vncStatus?.ViewOnly ?? true,
-                            VncPort = vncStatus?.Port ?? 0,
-                            VncStatusMessage = vncStatus?.Message ?? string.Empty,
-                            Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
-                                ? updateStatus.AvailableVersion ?? info.AgentVersion
-                                : info.AgentVersion,
-                        });
-                        continue;
-                    }
-                }
-                catch
-                {
-                }
-
-                updatedAgents.Add(agent with { Status = CrossPlatformText.Online });
-                continue;
-            }
-
-            var isReachable = await reachabilityClient.IsServerReachableAsync();
-            if (isReachable)
-            {
-                try
-                {
-                    var info = await reachabilityClient.GetServerInfoAsync();
-                    var updateStatus = await reachabilityClient.GetUpdateStatusAsync();
-                    var vncStatus = await reachabilityClient.GetVncStatusAsync();
-                    updatedAgents.Add(agent with
+                    var updateStatus = await reachabilityClient.GetUpdateStatusAsync(token);
+                    var vncStatus = await reachabilityClient.GetVncStatusAsync(token);
+                    return agent with
                     {
                         Status = CrossPlatformText.Online,
-                        CurrentUser = info is null ? agent.CurrentUser : NormalizeUserDisplay(info.CurrentUser, info.MachineName),
-                        BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
-                        InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
+                        LastSeenUtc = DateTime.UtcNow,
+                        CurrentUser = NormalizeUserDisplay(info.CurrentUser, info.MachineName),
+                        BrowserLockEnabled = info.IsBrowserLockEnabled,
+                        InputLockEnabled = info.IsInputLockEnabled,
                         UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
                         UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(updateStatus),
-                        VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
-                        VncRunning = vncStatus?.Running ?? agent.VncRunning,
-                        VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
-                        VncPort = vncStatus?.Port ?? agent.VncPort,
-                        VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
+                        VncEnabled = vncStatus?.Enabled ?? false,
+                        VncRunning = vncStatus?.Running ?? false,
+                        VncViewOnly = vncStatus?.ViewOnly ?? true,
+                        VncPort = vncStatus?.Port ?? 0,
+                        VncStatusMessage = vncStatus?.Message ?? string.Empty,
                         Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
-                            ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
-                            : info?.AgentVersion ?? agent.Version,
-                    });
-                    continue;
-                }
-                catch
-                {
+                            ? updateStatus.AvailableVersion ?? info.AgentVersion
+                            : info.AgentVersion,
+                    };
                 }
             }
-
-            updatedAgents.Add(agent with
+            catch
             {
-                Status = isReachable ? CrossPlatformText.Online : CrossPlatformText.Offline,
-            });
+            }
+
+            return agent with { Status = CrossPlatformText.Online, LastSeenUtc = DateTime.UtcNow };
         }
 
-        return updatedAgents;
+        var isReachable = await reachabilityClient.IsServerReachableAsync(token);
+        if (isReachable)
+        {
+            try
+            {
+                var info = await reachabilityClient.GetServerInfoAsync(token);
+                var updateStatus = await reachabilityClient.GetUpdateStatusAsync(token);
+                var vncStatus = await reachabilityClient.GetVncStatusAsync(token);
+                return agent with
+                {
+                    Status = CrossPlatformText.Online,
+                    LastSeenUtc = DateTime.UtcNow,
+                    CurrentUser = info is null ? agent.CurrentUser : NormalizeUserDisplay(info.CurrentUser, info.MachineName),
+                    BrowserLockEnabled = info?.IsBrowserLockEnabled ?? agent.BrowserLockEnabled,
+                    InputLockEnabled = info?.IsInputLockEnabled ?? agent.InputLockEnabled,
+                    UpdateStatusBadge = CrossPlatformText.UpdateStateBadge(updateStatus),
+                    UpdateStatusDetail = CrossPlatformText.FormatUpdateStatusDetail(updateStatus),
+                    VncEnabled = vncStatus?.Enabled ?? agent.VncEnabled,
+                    VncRunning = vncStatus?.Running ?? agent.VncRunning,
+                    VncViewOnly = vncStatus?.ViewOnly ?? agent.VncViewOnly,
+                    VncPort = vncStatus?.Port ?? agent.VncPort,
+                    VncStatusMessage = vncStatus?.Message ?? agent.VncStatusMessage,
+                    Version = updateStatus?.State == AgentUpdateStateKind.Succeeded
+                        ? updateStatus.AvailableVersion ?? info?.AgentVersion ?? agent.Version
+                        : info?.AgentVersion ?? agent.Version,
+                };
+            }
+            catch
+            {
+            }
+        }
+
+        return agent with
+        {
+            Status = isReachable ? CrossPlatformText.Online : CrossPlatformText.Offline,
+            LastSeenUtc = isReachable ? DateTime.UtcNow : agent.LastSeenUtc,
+        };
     }
 
     private async Task MonitorConnectionAsync()
@@ -1246,8 +1300,9 @@ public partial class MainWindow : Window, IDisposable
 
         try
         {
-            var currentClient = new TeacherApiClient(_lastConnectedServerUrl, _clientSettings.SharedSecret);
-            if (await currentClient.IsServerReachableAsync())
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+            using var currentClient = new TeacherApiClient(_lastConnectedServerUrl, _clientSettings.SharedSecret);
+            if (await currentClient.IsServerReachableAsync(timeout.Token))
             {
                 return;
             }

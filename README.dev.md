@@ -396,6 +396,7 @@ bash ./Build-MacInstaller.sh
    **Demonstration (WebRTC) codec note**:
    - On **macOS**, the teacher client encodes demo video as **H.264 via VideoToolbox** (system framework; no extra `vpxmd.dylib` bundling).
    - Student rendering on **Windows** decodes **H.264 via Media Foundation**.
+   - The teacher captures and encodes the screen **once per session**; the encoded stream is fanned out to every connected student peer, and students connect in parallel. A keyframe is forced whenever a new student peer connects.
 
 4. The outputs are:
    - app bundle: [TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app](TeacherClient.Avalonia.Setup/artifacts/ClassCommander.app)

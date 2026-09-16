@@ -327,6 +327,11 @@ internal static partial class CrossPlatformText
                 : $"Enabling input lock ({InputLockVisualModeLabel(visualMode)}) on {agent} ({agentIndex}/{agentCount})"
             : InputLockProgress(agent, agentIndex, agentCount, enabled);
 
+    public static string DemonstrationPartialResult(int succeeded, int total, string failedMachines)
+        => IsUk
+            ? $"Демонстрація: OK {succeeded}/{total}; помилки: {failedMachines}"
+            : $"Demonstration: OK {succeeded}/{total}; failed: {failedMachines}";
+
     public static string InputLockVisualModeLabel(InputLockVisualMode visualMode)
         => visualMode switch
         {

@@ -5,13 +5,25 @@ using Teacher.Common.Contracts;
 
 namespace TeacherClient.CrossPlatform.Services;
 
+/// <summary>
+/// Streams the teacher screen to student agents over WebRTC.
+/// One shared capture + encoder pipeline feeds every connected student, so classroom-wide
+/// demonstrations cost the same CPU as a single-student stream.
+/// </summary>
 public sealed class DemoWebRtcTeacherStreamer : IDisposable
 {
-    private readonly HttpClient _httpClient = new();
-    private readonly Dictionary<string, RTCPeerConnection> _pcs = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, IVideoSource> _videoSources = new(StringComparer.Ordinal);
+    // Short timeout: all calls target student agents on the local network. The default
+    // 100 s HttpClient timeout would freeze start/stop when an agent is busy or gone.
+    private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly object _sync = new();
+    private readonly Dictionary<string, StudentConnection> _students = new(StringComparer.Ordinal);
     private readonly DemoDiagnosticLog _diagnosticLog = new(GetTeacherDiagnosticLogPath());
     private readonly DemoVideoSourceFactory _videoSourceFactory = new();
+
+    private IVideoSource? _sharedSource;
+    private int _pendingStarts;
+
+    private sealed record StudentConnection(RTCPeerConnection Pc, EncodedSampleDelegate EncodedHandler);
 
     public async Task StartAsync(
         string studentBaseUrl,
@@ -24,11 +36,45 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         int captureHeight = 720,
         int captureFps = 15)
     {
-        if (_pcs.ContainsKey(studentBaseUrl))
+        lock (_sync)
         {
-            _diagnosticLog.LogInfo($"Teacher demo start skipped: connection already exists for {studentBaseUrl}.");
-            return;
+            if (_students.ContainsKey(studentBaseUrl))
+            {
+                _diagnosticLog.LogInfo($"Teacher demo start skipped: connection already exists for {studentBaseUrl}.");
+                return;
+            }
+
+            // Starts run in parallel for the whole class; keep the shared source alive
+            // until every start attempt has either registered a student or failed.
+            _pendingStarts++;
         }
+
+        try
+        {
+            await StartCoreAsync(studentBaseUrl, sharedSecret, sessionId, captureTarget, captureX, captureY, captureWidth, captureHeight, captureFps);
+        }
+        finally
+        {
+            lock (_sync)
+            {
+                _pendingStarts--;
+            }
+
+            ReleaseSharedSourceIfUnused();
+        }
+    }
+
+    private async Task StartCoreAsync(
+        string studentBaseUrl,
+        string sharedSecret,
+        string sessionId,
+        DemoCaptureTarget? captureTarget,
+        int captureX,
+        int captureY,
+        int captureWidth,
+        int captureHeight,
+        int captureFps)
+    {
 
         _diagnosticLog.LogInfo(
             $"Teacher demo start requested: student={studentBaseUrl}, sessionId={sessionId}, capture={captureX},{captureY} {captureWidth}x{captureHeight}@{captureFps}.");
@@ -51,52 +97,42 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         // encode H.264 via VideoToolbox (see MacOsVideoToolboxH264Encoder). Windows/Linux
         // still use the bundled libvpx VP8 encoder.
         var preferredCodec = OperatingSystem.IsMacOS() ? VideoCodecsEnum.H264 : VideoCodecsEnum.VP8;
-        var encoderDescription = OperatingSystem.IsMacOS() ? "H264 via VideoToolbox" : "VP8 via libvpx";
-        _diagnosticLog.LogInfo($"Teacher demo WebRTC: {encoderDescription} encode for {studentBaseUrl}.");
 
-        RTCPeerConnection? pc = null;
-        long localIceCandidates = 0;
-        long remoteIceCandidates = 0;
         var target = captureTarget ?? new DemoCaptureTarget(
             DemoCaptureTargetKind.Screen,
             captureX,
             captureY,
             Math.Max(16, captureWidth),
             Math.Max(16, captureHeight));
-        var source = _videoSourceFactory.CreateSource(target, captureFps, _diagnosticLog, studentBaseUrl);
+
+        var source = GetOrCreateSharedSource(target, captureFps, preferredCodec);
+
+        RTCPeerConnection? pc = null;
+        EncodedSampleDelegate? encodedHandler = null;
+        long localIceCandidates = 0;
+        long remoteIceCandidates = 0;
 
         try
         {
-            source.RestrictFormats(format => format.Codec == preferredCodec);
-
             pc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
+            var capturedPc = pc;
 
             var videoTrack = new MediaStreamTrack(source.GetVideoSourceFormats(), MediaStreamStatusEnum.SendOnly);
             pc.addTrack(videoTrack);
-            source.OnVideoSourceEncodedSample += pc.SendVideo;
-            source.OnVideoSourceError += (message) =>
-            {
-                _diagnosticLog.LogError($"Teacher demo video source error for {studentBaseUrl}: {message}");
-            };
 
-            long rawFrames = 0;
-            long encodedSamples = 0;
-            source.OnVideoSourceRawSample += (_, width, height, _, pixelFormat) =>
+            encodedHandler = (durationRtpUnits, sample) =>
             {
-                var count = Interlocked.Increment(ref rawFrames);
-                if (count == 1 || count % 60 == 0)
+                try
                 {
-                    _diagnosticLog.LogInfo($"Teacher demo raw frames for {studentBaseUrl}: {count} ({width}x{height} {pixelFormat}).");
+                    capturedPc.SendVideo(durationRtpUnits, sample);
+                }
+                catch
+                {
+                    // Peer may be closing; the state-change handler cleans up.
                 }
             };
-            source.OnVideoSourceEncodedSample += (_, sample) =>
-            {
-                var count = Interlocked.Increment(ref encodedSamples);
-                if (count == 1 || count % 60 == 0)
-                {
-                    _diagnosticLog.LogInfo($"Teacher demo encoded samples for {studentBaseUrl}: {count} (bytes={sample?.Length ?? 0}).");
-                }
-            };
+            source.OnVideoSourceEncodedSample += encodedHandler;
+
             pc.OnVideoFormatsNegotiated += (formats) => source.SetVideoSourceFormat(formats.First());
 
             pc.onicecandidate += (cand) =>
@@ -126,14 +162,14 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
                 _diagnosticLog.LogInfo($"Teacher demo peer state for {studentBaseUrl}: {state}.");
                 if (state == RTCPeerConnectionState.connected)
                 {
-                    _diagnosticLog.LogInfo($"Teacher demo starting video source for {studentBaseUrl}.");
+                    // Idempotent for the shared source; late joiners need a fresh keyframe.
                     await source.StartVideo();
-                    _diagnosticLog.LogInfo($"Teacher demo video source start returned for {studentBaseUrl}.");
+                    TryForceKeyFrame(source);
+                    _diagnosticLog.LogInfo($"Teacher demo video flowing for {studentBaseUrl} (shared source, keyframe forced).");
                 }
                 else if (state == RTCPeerConnectionState.closed || state == RTCPeerConnectionState.failed)
                 {
-                    _diagnosticLog.LogInfo($"Teacher demo closing video source for {studentBaseUrl} due to peer state {state}.");
-                    await source.CloseVideo();
+                    DetachStudent(studentBaseUrl, capturedPc, $"peer state {state}");
                 }
             };
 
@@ -216,13 +252,24 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
                 break;
             }
 
-            _pcs[studentBaseUrl] = pc;
-            _videoSources[studentBaseUrl] = source;
+            lock (_sync)
+            {
+                _students[studentBaseUrl] = new StudentConnection(pc, encodedHandler);
+            }
 
             _ = Task.Run(async () =>
             {
-                while (_pcs.TryGetValue(studentBaseUrl, out var current) && ReferenceEquals(current, pc))
+                // Trickle ICE is only needed until the peer connects. Stop polling then
+                // (or after ~30 s) so 8 students do not keep hammering their agents with
+                // HTTP requests for the whole demonstration.
+                for (var iteration = 0; iteration < 120 && IsCurrentConnection(studentBaseUrl, capturedPc); iteration++)
                 {
+                    if (capturedPc.connectionState == RTCPeerConnectionState.connected)
+                    {
+                        _diagnosticLog.LogInfo($"Teacher demo ICE polling finished for {studentBaseUrl}: peer connected.");
+                        break;
+                    }
+
                     try
                     {
                         using var req = new HttpRequestMessage(HttpMethod.Get, $"{studentBaseUrl}/api/demo/webrtc/ice/student?sessionId={Uri.EscapeDataString(sessionId)}");
@@ -245,7 +292,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
                                     _diagnosticLog.LogInfo($"Teacher demo remote ICE candidates from {studentBaseUrl}: {count}.");
                                 }
 
-                                pc.addIceCandidate(new RTCIceCandidateInit { candidate = c.Candidate, sdpMid = c.SdpMid, sdpMLineIndex = (ushort)c.SdpMLineIndex.Value });
+                                capturedPc.addIceCandidate(new RTCIceCandidateInit { candidate = c.Candidate, sdpMid = c.SdpMid, sdpMLineIndex = (ushort)c.SdpMLineIndex.Value });
                             }
                         }
                     }
@@ -262,6 +309,11 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
         catch (Exception ex)
         {
             _diagnosticLog.LogError($"Teacher demo start failed for {studentBaseUrl}: {ex}");
+            if (encodedHandler is not null)
+            {
+                source.OnVideoSourceEncodedSample -= encodedHandler;
+            }
+
             if (pc is not null)
             {
                 try
@@ -273,15 +325,6 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
                 }
             }
 
-            try
-            {
-                await source.CloseVideo();
-            }
-            catch
-            {
-            }
-
-            (source as IDisposable)?.Dispose();
             throw;
         }
     }
@@ -289,11 +332,23 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
     public async Task StopAsync(string studentBaseUrl, string sharedSecret, string sessionId)
     {
         _diagnosticLog.LogInfo($"Teacher demo stop requested: student={studentBaseUrl}, sessionId={sessionId}.");
-        if (_pcs.Remove(studentBaseUrl, out var pc))
+
+        StudentConnection? student;
+        lock (_sync)
         {
+            _students.Remove(studentBaseUrl, out student);
+        }
+
+        if (student is not null)
+        {
+            if (_sharedSource is not null)
+            {
+                _sharedSource.OnVideoSourceEncodedSample -= student.EncodedHandler;
+            }
+
             try
             {
-                pc.Close("teacher stop");
+                student.Pc.Close("teacher stop");
                 _diagnosticLog.LogInfo($"Teacher demo peer closed for {studentBaseUrl}.");
             }
             catch
@@ -301,18 +356,7 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
             }
         }
 
-        if (_videoSources.Remove(studentBaseUrl, out var video))
-        {
-            try
-            {
-                await video.CloseVideo();
-                (video as IDisposable)?.Dispose();
-                _diagnosticLog.LogInfo($"Teacher demo video source disposed for {studentBaseUrl}.");
-            }
-            catch
-            {
-            }
-        }
+        ReleaseSharedSourceIfUnused();
 
         var stopReq = new DemoSessionStopRequest(sessionId);
         using var req = new HttpRequestMessage(HttpMethod.Post, $"{studentBaseUrl}/api/demo/webrtc/stop") { Content = JsonContent.Create(stopReq) };
@@ -347,31 +391,165 @@ public sealed class DemoWebRtcTeacherStreamer : IDisposable
 
     public void Dispose()
     {
-        foreach (var pc in _pcs.Values)
+        List<StudentConnection> students;
+        IVideoSource? source;
+        lock (_sync)
         {
+            students = [.. _students.Values];
+            _students.Clear();
+            source = _sharedSource;
+            _sharedSource = null;
+        }
+
+        foreach (var student in students)
+        {
+            if (source is not null)
+            {
+                source.OnVideoSourceEncodedSample -= student.EncodedHandler;
+            }
+
             try
             {
-                pc.Close("dispose");
+                student.Pc.Close("dispose");
             }
             catch
             {
             }
         }
 
-        foreach (var v in _videoSources.Values)
+        if (source is not null)
         {
             try
             {
-                (v as IDisposable)?.Dispose();
+                source.CloseVideo().GetAwaiter().GetResult();
             }
             catch
             {
             }
+
+            (source as IDisposable)?.Dispose();
         }
 
-        _pcs.Clear();
-        _videoSources.Clear();
         _httpClient.Dispose();
+    }
+
+    private IVideoSource GetOrCreateSharedSource(DemoCaptureTarget target, int captureFps, VideoCodecsEnum preferredCodec)
+    {
+        lock (_sync)
+        {
+            if (_sharedSource is not null)
+            {
+                return _sharedSource;
+            }
+
+            var encoderDescription = OperatingSystem.IsMacOS() ? "H264 via VideoToolbox" : "VP8 via libvpx";
+            _diagnosticLog.LogInfo($"Teacher demo creating shared capture source: {encoderDescription}, one encoder for all students.");
+
+            var source = _videoSourceFactory.CreateSource(target, captureFps, _diagnosticLog, "shared");
+            source.RestrictFormats(format => format.Codec == preferredCodec);
+            source.OnVideoSourceError += (message) => _diagnosticLog.LogError($"Teacher demo shared video source error: {message}");
+
+            long rawFrames = 0;
+            long encodedSamples = 0;
+            source.OnVideoSourceRawSample += (_, width, height, _, pixelFormat) =>
+            {
+                var count = Interlocked.Increment(ref rawFrames);
+                if (count == 1 || count % 300 == 0)
+                {
+                    _diagnosticLog.LogInfo($"Teacher demo shared raw frames: {count} ({width}x{height} {pixelFormat}).");
+                }
+            };
+            source.OnVideoSourceEncodedSample += (_, sample) =>
+            {
+                var count = Interlocked.Increment(ref encodedSamples);
+                if (count == 1 || count % 300 == 0)
+                {
+                    _diagnosticLog.LogInfo($"Teacher demo shared encoded samples: {count} (bytes={sample?.Length ?? 0}).");
+                }
+            };
+
+            _sharedSource = source;
+            return source;
+        }
+    }
+
+    private void DetachStudent(string studentBaseUrl, RTCPeerConnection pc, string reason)
+    {
+        lock (_sync)
+        {
+            if (!_students.TryGetValue(studentBaseUrl, out var student) || !ReferenceEquals(student.Pc, pc))
+            {
+                return;
+            }
+
+            _students.Remove(studentBaseUrl);
+            if (_sharedSource is not null)
+            {
+                _sharedSource.OnVideoSourceEncodedSample -= student.EncodedHandler;
+            }
+        }
+
+        _diagnosticLog.LogInfo($"Teacher demo detached {studentBaseUrl}: {reason}.");
+        ReleaseSharedSourceIfUnused();
+    }
+
+    private void ReleaseSharedSourceIfUnused()
+    {
+        IVideoSource? source;
+        lock (_sync)
+        {
+            if (_students.Count > 0 || _pendingStarts > 0 || _sharedSource is null)
+            {
+                return;
+            }
+
+            source = _sharedSource;
+            _sharedSource = null;
+        }
+
+        _diagnosticLog.LogInfo("Teacher demo closing shared capture source (no students left).");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await source.CloseVideo();
+            }
+            catch
+            {
+            }
+
+            (source as IDisposable)?.Dispose();
+        });
+    }
+
+    private bool IsCurrentConnection(string studentBaseUrl, RTCPeerConnection pc)
+    {
+        lock (_sync)
+        {
+            return _students.TryGetValue(studentBaseUrl, out var student) && ReferenceEquals(student.Pc, pc);
+        }
+    }
+
+    private static void TryForceKeyFrame(IVideoSource source)
+    {
+        switch (source)
+        {
+            case WindowsRawScreenVideoSource w:
+                w.ForceKeyFrame();
+                break;
+            case WindowsRawWindowVideoSource w:
+                w.ForceKeyFrame();
+                break;
+            case MacOsRawScreenVideoSource m:
+                m.ForceKeyFrame();
+                break;
+            case MacOsRawWindowVideoSource m:
+                m.ForceKeyFrame();
+                break;
+            case Vp8EncodedRawVideoSource v:
+                v.ForceKeyFrame();
+                break;
+        }
     }
 
     private static string GetTeacherDiagnosticLogPath()

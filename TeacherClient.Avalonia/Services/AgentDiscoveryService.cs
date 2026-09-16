@@ -22,6 +22,22 @@ public sealed class AgentDiscoveryService
         var requestBytes = Encoding.UTF8.GetBytes(DiscoveryRequestMessage);
         await udpClient.SendAsync(requestBytes, requestBytes.Length, new IPEndPoint(IPAddress.Broadcast, DefaultDiscoveryPort));
 
+        // UDP broadcasts can get lost on a loaded network (e.g. during a demonstration);
+        // re-send once mid-window so a single dropped packet does not hide agents.
+        _ = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await Task.Delay(400, cancellationToken);
+                    await udpClient.SendAsync(requestBytes, requestBytes.Length, new IPEndPoint(IPAddress.Broadcast, DefaultDiscoveryPort));
+                }
+                catch
+                {
+                }
+            },
+            CancellationToken.None);
+
         var deadline = DateTime.UtcNow.AddMilliseconds(1200);
         var agents = new Dictionary<string, AgentDiscoveryDto>(StringComparer.OrdinalIgnoreCase);
 

@@ -30,6 +30,10 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ### Changed
 
+- **Demonstration performance**: the teacher now captures and encodes the screen **once** and fans the encoded stream out to every student (previously each student got its own capture + encoder, so 8 PCs meant 8 parallel encoders and a frozen teacher machine). Students connect and disconnect **in parallel** instead of one-by-one, so the whole class starts/stops within seconds instead of ~20 s per PC. ICE polling stops once a student connects, and all demo HTTP calls use a 10 s timeout so stop never hangs on a busy agent.
+
+- **Agent list stability**: agent status polling now runs in parallel with a 4 s per-agent timeout (one busy student no longer stalls the 15 s refresh), discovery re-sends the UDP broadcast once per scan, and agents that miss a broadcast stay in the list (verified over HTTP) for up to 2 minutes instead of vanishing immediately.
+
 - **Shared UI language**: default language is Ukrainian; teacher client settings write a shared ClassCommander UI language preference that Test Editor and Test Runner also use (separate Language menus removed from Editor/Runner).
 
 - **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.
