@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyTest Viewer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5efe4;
+      --panel: #fffdf8;
+      --ink: #1d1b19;
+      --muted: #71685f;
+      --line: #dfd2bf;
+      --accent: #0f766e;
+      --accent-soft: #d8f0ec;
+      --good: #166534;
+      --good-soft: #dcfce7;
+      --warn: #92400e;
+      --warn-soft: #ffedd5;
+      --bad: #991b1b;
+      --bad-soft: #fee2e2;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 28rem),
+        linear-gradient(180deg, #f9f5ee 0%, var(--bg) 100%);
+      color: var(--ink);
+    }
+
+    .shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 72px;
+    }
+
+    .hero, .card, .task {
+      background: color-mix(in srgb, var(--panel) 92%, white);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 18px 42px rgba(41, 34, 24, 0.08);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .kicker {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .meta span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+    }
+
+    .picker {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 18px;
+    }
+
+    .picker-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input, select, button {
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    input, select { flex: 1 1 340px; }
+
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .group {
+      margin-top: 24px;
+    }
+
+    .group-header {
+      margin-bottom: 14px;
+      padding: 20px 22px;
+    }
+
+    .tasks {
+      display: grid;
+      gap: 16px;
+    }
+
+    .task {
+      padding: 20px;
+    }
+
+    .task-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .pill.good {
+      color: var(--good);
+      background: var(--good-soft);
+    }
+
+    .pill.warn {
+      color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .pill.bad {
+      color: var(--bad);
+      background: var(--bad-soft);
+    }
+
+    .question {
+      font-size: 20px;
+      line-height: 1.4;
+      margin-bottom: 16px;
+    }
+
+    .variants {
+      display: grid;
+      gap: 10px;
+    }
+
+    .variant {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fffdfa;
+    }
+
+    .variant.correct {
+      border-color: #86efac;
+      background: var(--good-soft);
+    }
+
+    .variant .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .task-image {
+      margin: 16px 0 12px;
+      max-width: 100%;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: white;
+      display: block;
+    }
+
+    .regions {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--warn-soft);
+      color: var(--warn);
+      font-size: 14px;
+    }
+
+    .empty {
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      .shell { padding: 18px 14px 48px; }
+      .hero { padding: 22px; }
+      .task { padding: 16px; }
+      .question { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="kicker">MyTest XML Viewer</div>
+      <h1 id="title">Завантаження тесту...</h1>
+      <p id="description"></p>
+      <div class="meta" id="meta"></div>
+    </section>
+
+    <section class="card picker">
+      <div class="picker-row">
+        <input id="srcInput" type="text" placeholder="out/index.json або out/назва-тесту.json">
+        <button id="loadButton" type="button">Відкрити</button>
+      </div>
+      <div class="picker-row">
+        <select id="testSelect">
+          <option value="">Оберіть тест з index.json</option>
+        </select>
+      </div>
+      <p class="status" id="status">Підказка: відкрийте `viewer.html?src=out/index.json`, щоб побачити список згенерованих тестів.</p>
+    </section>
+
+    <div id="content" class="empty">Немає даних для показу.</div>
+  </main>
+
+  <script>
+    const titleEl = document.getElementById("title");
+    const descriptionEl = document.getElementById("description");
+    const metaEl = document.getElementById("meta");
+    const contentEl = document.getElementById("content");
+    const statusEl = document.getElementById("status");
+    const srcInputEl = document.getElementById("srcInput");
+    const loadButtonEl = document.getElementById("loadButton");
+    const testSelectEl = document.getElementById("testSelect");
+
+    const params = new URLSearchParams(window.location.search);
+    const initialSrc = params.get("src") || "out/index.json";
+    srcInputEl.value = initialSrc;
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function typeLabel(type) {
+      const labels = {
+        TYPE_TASK_CHOICE_SINGLE: "Одна правильна відповідь",
+        TYPE_TASK_CHOICE_MULTIPLE: "Кілька правильних відповідей",
+        TYPE_TASK_CHOICE_ORDER: "Встановити порядок",
+        TYPE_TASK_IMAGE_POINT: "Позначити точку на зображенні",
+      };
+      return labels[type] || type || "Невідомий тип";
+    }
+
+    function metaItems(test) {
+      const items = [
+        test.author ? `Автор: ${test.author}` : null,
+        test.authorEmail ? `Email: ${test.authorEmail}` : null,
+        test.version ? `Версія: ${test.version}` : null,
+        test.saveDate ? `Збережено: ${test.saveDate}` : null,
+        Array.isArray(test.groups) ? `Груп: ${test.groups.length}` : null,
+      ].filter(Boolean);
+      return items.map(item => `<span>${escapeHtml(item)}</span>`).join("");
+    }
+
+    function resolveRelativeSrc(currentSrc, nextSrc) {
+      try {
+        return new URL(nextSrc, new URL(currentSrc, window.location.href)).toString();
+      } catch {
+        return nextSrc;
+      }
+    }
+
+    function renderIndex(indexData, currentSrc) {
+      titleEl.textContent = "Список тестів";
+      descriptionEl.textContent = "Оберіть один із згенерованих JSON-файлів.";
+      metaEl.innerHTML = "";
+      contentEl.className = "";
+      contentEl.innerHTML = `
+        <section class="card" style="padding:18px;">
+          ${indexData.tests.map(test => `
+            <div class="task" style="margin-bottom:12px;">
+              <div class="task-top">
+                <div>
+                  <div class="eyebrow">JSON</div>
+                  <h3>${escapeHtml(test.title)}</h3>
+                </div>
+                <button type="button" data-src="${escapeHtml(resolveRelativeSrc(currentSrc, test.jsonFile))}">Відкрити</button>
+              </div>
+              <p class="status">${escapeHtml(test.sourceFile)}</p>
+            </div>
+          `).join("")}
+        </section>
+      `;
+      testSelectEl.innerHTML = '<option value="">Оберіть тест з index.json</option>' + indexData.tests
+        .map(test => `<option value="${escapeHtml(resolveRelativeSrc(currentSrc, test.jsonFile))}">${escapeHtml(test.title)}</option>`)
+        .join("");
+      testSelectEl.value = "";
+      statusEl.textContent = `Завантажено ${indexData.tests.length} тест(ів) з ${currentSrc}`;
+      contentEl.querySelectorAll("button[data-src]").forEach(button => {
+        button.addEventListener("click", () => {
+          const src = button.getAttribute("data-src");
+          if (src) {
+            loadJson(src);
+          }
+        });
+      });
+    }
+
+    function renderTest(test, currentSrc) {
+      titleEl.textContent = test.title || "Без назви";
+      descriptionEl.textContent = test.description || "";
+      metaEl.innerHTML = metaItems(test);
+
+      const groups = Array.isArray(test.groups) ? test.groups : [];
+      if (!groups.length) {
+        contentEl.className = "empty";
+        contentEl.textContent = "У тесті не знайдено груп або питань.";
+        return;
+      }
+
+      contentEl.className = "";
+      contentEl.innerHTML = groups.map(group => `
+        <section class="group">
+          <div class="group-header card">
+            <div class="eyebrow">Група ${group.index}</div>
+            <h2>${escapeHtml(group.title || `Група ${group.index}`)}</h2>
+            ${group.description ? `<p style="margin-top:8px;color:var(--muted);">${escapeHtml(group.description)}</p>` : ""}
+          </div>
+          <div class="tasks">
+            ${(group.tasks || []).map(task => {
+              const hasVariants = Array.isArray(task.variants) && task.variants.length > 0;
+              const typePillClass = task.type === "TYPE_TASK_IMAGE_POINT" ? "warn" : "good";
+              let imageHtml = "";
+              if (task.image?.base64) {
+                const mime = task.image.format === "webp" ? "image/webp" : "image/bmp";
+                imageHtml = `<img class="task-image" alt="Question image" src="data:${mime};base64,${task.image.base64}">`;
+              } else if (task.image?.path) {
+                imageHtml = `<img class="task-image" alt="Question image" src="${escapeHtml(resolveRelativeSrc(currentSrc, task.image.path))}">`;
+              }
+              const regionsHtml = Array.isArray(task.regions) && task.regions.length
+                ? `<div class="regions"><strong>Правильна область:</strong> ${task.regions.map(escapeHtml).join("; ")}</div>`
+                : "";
+              const variantsHtml = hasVariants
+                ? `<div class="variants">
+                    ${task.variants.map((variant, index) => {
+                      const isCorrect = variant.isCorrect === true || Number.isInteger(variant.correctOrder);
+                      const label = Number.isInteger(variant.correctOrder)
+                        ? `Порядок: ${variant.correctOrder}`
+                        : variant.isCorrect === true
+                          ? "Правильна"
+                          : "Варіант";
+                      return `
+                        <div class="variant ${isCorrect ? "correct" : ""}">
+                          <span class="label">${escapeHtml(label)}</span>
+                          <div>${escapeHtml(variant.text || "(порожньо)")}</div>
+                        </div>
+                      `;
+                    }).join("")}
+                  </div>`
+                : "";
+
+              return `
+                <article class="task">
+                  <div class="task-top">
+                    <div>
+                      <div class="eyebrow">Питання ${task.index}</div>
+                      <div class="question">${escapeHtml(task.question || "(без тексту)")}</div>
+                    </div>
+                    <div class="pill ${typePillClass}">${escapeHtml(typeLabel(task.type))}</div>
+                  </div>
+                  ${imageHtml}
+                  ${variantsHtml}
+                  ${regionsHtml}
+                </article>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `).join("");
+
+      statusEl.textContent = `Завантажено тест: ${test.title || "без назви"}`;
+    }
+
+    async function loadJson(src) {
+      try {
+        srcInputEl.value = src;
+        const response = await fetch(src, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set("src", src);
+        history.replaceState({}, "", nextUrl);
+
+        if (Array.isArray(data.tests)) {
+          renderIndex(data, src);
+        } else {
+          renderTest(data, src);
+        }
+      } catch (error) {
+        contentEl.className = "empty";
+        contentEl.textContent = `Не вдалося завантажити ${src}. Якщо браузер блокує fetch для file://, запустіть простий локальний сервер або відкрийте HTML через середовище, що дозволяє локальні JSON-запити.`;
+        statusEl.textContent = String(error);
+      }
+    }
+
+    loadButtonEl.addEventListener("click", () => {
+      const value = srcInputEl.value.trim();
+      if (value) {
+        loadJson(value);
+      }
+    });
+
+    testSelectEl.addEventListener("change", () => {
+      const value = testSelectEl.value;
+      if (value) {
+        loadJson(value);
+      }
+    });
+
+    loadJson(initialSrc);
+  </script>
+</body>
+</html>

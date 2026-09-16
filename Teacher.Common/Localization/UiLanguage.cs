@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Teacher.Common.Localization;
 
 public enum UiLanguage
@@ -13,12 +11,7 @@ public static class UiLanguageExtensions
     public static UiLanguage Normalize(this UiLanguage value)
         => ((UiLanguage?)value).Normalize();
 
-    public static UiLanguage GetDefault()
-    {
-        return string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "uk", StringComparison.OrdinalIgnoreCase)
-            ? UiLanguage.Ukrainian
-            : UiLanguage.English;
-    }
+    public static UiLanguage GetDefault() => UiLanguage.Ukrainian;
 
     public static UiLanguage Normalize(this UiLanguage? value)
         => value ?? GetDefault();
@@ -30,6 +23,8 @@ public static class UiLanguageExtensions
     {
         return string.Equals(value, "uk", StringComparison.OrdinalIgnoreCase)
             ? UiLanguage.Ukrainian
-            : UiLanguage.English;
+            : string.Equals(value, "en", StringComparison.OrdinalIgnoreCase)
+                ? UiLanguage.English
+                : GetDefault();
     }
 }

@@ -1,0 +1,137 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ClassCommander.TestRunner.MainWindow"
+        Width="1100"
+        Height="760"
+        MinWidth="880"
+        MinHeight="600"
+        Title="ClassCommander Testing">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Padding="12,8"
+            BorderBrush="#D0D5DD"
+            BorderThickness="0,1,0,0"
+            Background="#F8FAFC">
+      <TextBlock x:Name="StatusTextBlock" Text="Ready" />
+    </Border>
+
+    <Grid Margin="16">
+      <!-- Identity -->
+      <Border x:Name="IdentityPanel"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="20"
+              MaxWidth="560"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="10">
+          <TextBlock x:Name="IdentityHeadingText" FontSize="22" FontWeight="SemiBold" Text="Student sign-in" />
+          <TextBlock x:Name="TeacherLaunchHintText"
+                     TextWrapping="Wrap"
+                     Opacity="0.85"
+                     Text="The teacher starts this test over the network. Server address is set automatically." />
+          <TextBlock x:Name="SurnameLabelText" Text="Surname" />
+          <TextBox x:Name="SurnameTextBox" />
+          <TextBlock x:Name="NameLabelText" Text="First name" />
+          <TextBox x:Name="NameTextBox" />
+          <TextBlock x:Name="ClassLabelText" Text="Class" />
+          <TextBox x:Name="ClassTextBox" IsReadOnly="True" />
+          <TextBlock x:Name="DeviceLabelText" Text="Device ID (optional)" />
+          <TextBox x:Name="DeviceTextBox" IsReadOnly="True" />
+          <Button x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Right" Click="ContinueButton_OnClick" />
+        </StackPanel>
+      </Border>
+
+      <!-- Assignments -->
+      <Border x:Name="AssignmentsPanel"
+              IsVisible="False"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="16">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <TextBlock x:Name="AssignmentsHeadingText"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       Text="Available assignments" />
+            <Button x:Name="RefreshAssignmentsButton" Content="Refresh" Click="RefreshAssignmentsButton_OnClick" />
+            <Button x:Name="BackToIdentityButton" Content="Back" Click="BackToIdentityButton_OnClick" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+            <Button x:Name="StartAssignmentButton" Content="Start test" Click="StartAssignmentButton_OnClick" />
+          </StackPanel>
+          <ListBox x:Name="AssignmentsListBox">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,6" Spacing="2">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Details}" Opacity="0.75" TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <!-- Attempt -->
+      <Border x:Name="AttemptPanel"
+              IsVisible="False"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="16">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
+            <TextBlock x:Name="AttemptTitleText" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock x:Name="QuestionProgressText" Opacity="0.75" />
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+            <Button x:Name="PreviousQuestionButton" Content="Previous" Click="PreviousQuestionButton_OnClick" />
+            <Button x:Name="NextQuestionButton" Content="Next" Click="NextQuestionButton_OnClick" />
+            <Button x:Name="SaveProgressButton" Content="Save progress" Click="SaveProgressButton_OnClick" />
+            <Button x:Name="SubmitButton" Content="Submit" HorizontalAlignment="Right" Click="SubmitButton_OnClick" />
+          </StackPanel>
+
+          <ScrollViewer>
+            <StackPanel Spacing="12">
+              <TextBlock x:Name="QuestionPromptText" FontSize="16" TextWrapping="Wrap" />
+              <Border x:Name="AnswerHost"
+                      Background="#F8FAFC"
+                      BorderBrush="#E4E7EC"
+                      BorderThickness="1"
+                      CornerRadius="6"
+                      Padding="12"
+                      MinHeight="180" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+      <!-- Result -->
+      <Border x:Name="ResultPanel"
+              IsVisible="False"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="20"
+              MaxWidth="640"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="12">
+          <TextBlock x:Name="ResultHeadingText" FontSize="22" FontWeight="SemiBold" Text="Result" />
+          <TextBlock x:Name="ResultScoreText" FontSize="18" TextWrapping="Wrap" />
+          <TextBlock x:Name="ResultDetailsText" TextWrapping="Wrap" Opacity="0.8" />
+          <Button x:Name="DoneButton" Content="Done" HorizontalAlignment="Right" Click="DoneButton_OnClick" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</Window>

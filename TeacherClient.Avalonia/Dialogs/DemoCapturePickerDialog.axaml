@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.DemoCapturePickerDialog"
+        Width="720"
+        Height="520"
+        WindowStartupLocation="CenterOwner"
+        Title="">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+    <StackPanel Spacing="10">
+      <TextBlock x:Name="PromptTextBlock" FontWeight="SemiBold" />
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <RadioButton x:Name="ScreenRadio" IsChecked="True" Checked="ModeRadio_OnChecked" />
+        <RadioButton x:Name="WindowRadio" Checked="ModeRadio_OnChecked" />
+      </StackPanel>
+    </StackPanel>
+
+    <Border Grid.Row="1" Margin="0,16,0,0" Padding="12" BorderThickness="1" BorderBrush="#334455" CornerRadius="6">
+      <Grid RowDefinitions="Auto,*">
+        <TextBlock x:Name="WindowListLabel" FontWeight="SemiBold" />
+        <ListBox x:Name="WindowsListBox" Grid.Row="1" Margin="0,10,0,0" />
+      </Grid>
+    </Border>
+
+    <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="10"
+                Margin="0,16,0,0">
+      <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Margin="0,0,16,0" />
+      <Button x:Name="CancelButton" Width="100" Click="CancelButton_OnClick" />
+      <Button x:Name="OkButton" Width="120" Click="OkButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>
+

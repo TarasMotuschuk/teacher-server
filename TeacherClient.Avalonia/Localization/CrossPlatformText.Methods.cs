@@ -327,6 +327,11 @@ internal static partial class CrossPlatformText
                 : $"Enabling input lock ({InputLockVisualModeLabel(visualMode)}) on {agent} ({agentIndex}/{agentCount})"
             : InputLockProgress(agent, agentIndex, agentCount, enabled);
 
+    public static string DemonstrationPartialResult(int succeeded, int total, string failedMachines)
+        => IsUk
+            ? $"Демонстрація: OK {succeeded}/{total}; помилки: {failedMachines}"
+            : $"Demonstration: OK {succeeded}/{total}; failed: {failedMachines}";
+
     public static string InputLockVisualModeLabel(InputLockVisualMode visualMode)
         => visualMode switch
         {
@@ -356,6 +361,31 @@ internal static partial class CrossPlatformText
         => IsUk
             ? $"{GetPowerActionNoun(action)} на {agent} ({agentIndex}/{agentCount})"
             : $"{GetPowerActionNoun(action)} on {agent} ({agentIndex}/{agentCount})";
+
+    public static string WakeOnLanPrompt(int count, bool selectedOnly)
+        => IsUk
+            ? $"Надіслати Wake-on-LAN для {(selectedOnly ? "вибраних" : "відомих")} учнівських ПК ({count})? ПК мають підтримувати WoL і мати коректну MAC-адресу."
+            : $"Send Wake-on-LAN to {(selectedOnly ? "selected" : "known")} student PCs ({count})? Targets need WoL enabled and a valid MAC address.";
+
+    public static string WakeOnLanProgress(string agent, int agentIndex, int agentCount)
+        => IsUk
+            ? $"Wake-on-LAN для {agent} ({agentIndex}/{agentCount})"
+            : $"Wake-on-LAN for {agent} ({agentIndex}/{agentCount})";
+
+    public static string WakeOnLanCompleted(int count)
+        => IsUk
+            ? $"Надіслано Wake-on-LAN для {count} учнівських ПК"
+            : $"Sent Wake-on-LAN to {count} student PCs";
+
+    public static string WakeOnLanCompletedWithFailures(int succeeded, int failed)
+        => IsUk
+            ? $"Wake-on-LAN: успішно {succeeded}, з помилками {failed}"
+            : $"Wake-on-LAN: {succeeded} succeeded, {failed} failed";
+
+    public static string WakeOnLanMissingMac(string agent)
+        => IsUk
+            ? $"{agent}: немає дійсної MAC-адреси"
+            : $"{agent}: no valid MAC address";
 
     public static string CollectingWorkProgress(string agent, string path, int agentIndex, int agentCount)
         => IsUk
@@ -425,6 +455,30 @@ internal static partial class CrossPlatformText
         PowerActionKind.LogOff => IsUk ? "Вивести з облікового запису" : "Log off",
         _ => IsUk ? "Виконати дію для" : "Run action for",
     };
+
+    public static string TestingScoreLine(decimal earned, decimal max, decimal percent) => IsUk
+        ? $"Бали: {earned:0.##} / {max:0.##} ({percent:0.##}%)"
+        : $"Score: {earned:0.##} / {max:0.##} ({percent:0.##}%)";
+
+    public static string TestingDeployCompleted(int succeeded) => IsUk
+        ? $"Runner розгорнуто на {succeeded} ПК."
+        : $"Runner deployed to {succeeded} PC(s).";
+
+    public static string TestingDeployCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Runner: успішно {succeeded}, з помилками {failures}."
+        : $"Runner deploy: {succeeded} succeeded, {failures} failed.";
+
+    public static string TestingStartCompleted(int succeeded) => IsUk
+        ? $"Тест запущено на {succeeded} ПК."
+        : $"Test started on {succeeded} PC(s).";
+
+    public static string TestingStartCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Запуск тесту: успішно {succeeded}, з помилками {failures}."
+        : $"Test start: {succeeded} succeeded, {failures} failed.";
+
+    public static string TestingClassroomUrl(string url) => IsUk
+        ? $"Учні підключатимуться до {url}"
+        : $"Students will connect to {url}";
 
     private static string GetPowerActionPast(PowerActionKind action) => action switch
     {

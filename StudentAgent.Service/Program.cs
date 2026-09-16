@@ -20,6 +20,7 @@ try
     builder.Services.AddSingleton<DesktopIconLayoutService>();
     builder.Services.AddSingleton<VncHostService>();
     builder.Services.AddSingleton<WindowsRestrictionsService>();
+    builder.Services.AddSingleton<BrowserCleanupService>();
     builder.Services.AddHostedService<UiHostLauncherService>();
     builder.Services.AddHostedService<VncHostLauncherService>();
 
@@ -168,6 +169,32 @@ try
         {
             service.ApplyDesktopWallpaperPolicy(request.WallpaperPath, request.WallpaperStyle);
             return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
+    app.MapPost("/api/browsers/clear-history-cache", ([FromBody] BrowserCleanupRequest request, [FromServices] BrowserCleanupService service) =>
+    {
+        try
+        {
+            var result = service.ClearHistoryAndCache(request);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+
+    app.MapPost("/api/browsers/clear-cookies", ([FromBody] BrowserCookiesCleanupRequest request, [FromServices] BrowserCleanupService service) =>
+    {
+        try
+        {
+            var result = service.ClearCookies(request);
+            return Results.Ok(result);
         }
         catch (Exception ex)
         {

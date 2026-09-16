@@ -85,6 +85,28 @@ public sealed class TeacherApiClient : IDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<BrowserCleanupResultDto> ClearBrowserHistoryAndCacheAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/browsers/clear-history-cache",
+            new BrowserCleanupRequest(ClearHistory: true, ClearCache: true),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<BrowserCleanupResultDto>(cancellationToken: cancellationToken)
+            ?? new BrowserCleanupResultDto(false, "Empty response.", [], [], ["Empty response."]);
+    }
+
+    public async Task<BrowserCookiesCleanupResultDto> ClearBrowserCookiesAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/browsers/clear-cookies",
+            new BrowserCookiesCleanupRequest(),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<BrowserCookiesCleanupResultDto>(cancellationToken: cancellationToken)
+            ?? new BrowserCookiesCleanupResultDto(false, "Empty response.", [], [], ["Empty response."]);
+    }
+
     public async Task ApplyStudentPolicySettingsAsync(int desktopIconAutoRestoreMinutes, int browserLockCheckIntervalSeconds, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync(

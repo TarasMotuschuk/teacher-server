@@ -1,0 +1,131 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ClassCommander.TestEditor.MainWindow"
+        Width="1280"
+        Height="840"
+        MinWidth="980"
+        MinHeight="660"
+        Background="#F4F6F8"
+        Title="ClassCommander Test Editor">
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem x:Name="FileMenuItem" Header="_File">
+        <MenuItem x:Name="NewMenuItem" Header="New test" Click="NewMenuItem_OnClick" />
+        <MenuItem x:Name="OpenMenuItem" Header="Open .cctest…" Click="OpenMenuItem_OnClick" />
+        <MenuItem x:Name="SaveMenuItem" Header="Save" Click="SaveMenuItem_OnClick" />
+        <MenuItem x:Name="SaveAsMenuItem" Header="Save As…" Click="SaveAsMenuItem_OnClick" />
+        <Separator />
+        <MenuItem x:Name="ImportMyTestMenuItem" Header="Import MyTest XML…" Click="ImportMyTestMenuItem_OnClick" />
+      </MenuItem>
+    </Menu>
+
+    <Border DockPanel.Dock="Bottom"
+            Padding="12,8"
+            BorderBrush="#D0D5DD"
+            BorderThickness="0,1,0,0"
+            Background="#FFFFFF">
+      <TextBlock x:Name="StatusTextBlock" Text="Ready" />
+    </Border>
+
+    <Grid Margin="16" RowDefinitions="Auto,*" ColumnDefinitions="360,*">
+      <Border Grid.ColumnSpan="2"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="12"
+              Margin="0,0,0,12">
+        <Grid ColumnDefinitions="Auto,*,Auto,180">
+          <TextBlock x:Name="TestTitleLabelText"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="Test title" />
+          <TextBox x:Name="TestTitleTextBox"
+                   Grid.Column="1"
+                   Margin="0,0,12,0"
+                   LostFocus="TestTitleTextBox_OnLostFocus" />
+          <TextBlock x:Name="GroupTitleLabelText"
+                     Grid.Column="2"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="Group" />
+          <TextBox x:Name="GroupTitleTextBox"
+                   Grid.Column="3"
+                   LostFocus="GroupTitleTextBox_OnLostFocus" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="12">
+        <DockPanel>
+          <TextBlock x:Name="GroupsHeadingText"
+                     DockPanel.Dock="Top"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     Margin="0,0,0,10"
+                     Text="Questions" />
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <Button x:Name="AddQuestionButton" MinWidth="130" Click="AddQuestionButton_OnClick" />
+            <Button x:Name="DeleteQuestionButton" MinWidth="90" Click="DeleteQuestionButton_OnClick" />
+            <Button x:Name="MoveUpButton" Width="36" Click="MoveUpButton_OnClick" />
+            <Button x:Name="MoveDownButton" Width="36" Click="MoveDownButton_OnClick" />
+          </StackPanel>
+          <TextBlock x:Name="TestMetaText"
+                     DockPanel.Dock="Bottom"
+                     Margin="0,10,0,0"
+                     Opacity="0.7"
+                     TextWrapping="Wrap" />
+          <ListBox x:Name="QuestionsListBox"
+                   SelectionChanged="QuestionsListBox_OnSelectionChanged">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Spacing="2" Margin="0,4">
+                  <TextBlock Text="{Binding GroupTitle}"
+                             FontSize="11"
+                             Opacity="0.7" />
+                  <TextBlock Text="{Binding Display}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <Border Grid.Row="1"
+              Grid.Column="1"
+              Margin="16,0,0,0"
+              Background="#FFFFFF"
+              BorderBrush="#D0D5DD"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="16">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <TextBlock x:Name="EditorHeadingText"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       Text="Edit question" />
+            <Button x:Name="ApplyChangesButton"
+                    MinWidth="140"
+                    HorizontalAlignment="Right"
+                    Click="ApplyChangesButton_OnClick" />
+          </StackPanel>
+          <TextBlock x:Name="EmptyStateText"
+                     DockPanel.Dock="Top"
+                     TextWrapping="Wrap"
+                     Opacity="0.8"
+                     Margin="0,0,0,12" />
+          <ScrollViewer>
+            <Border x:Name="EditorHost" />
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.CreateAssignmentDialog"
+        Width="520"
+        Height="480"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Assign test">
+  <Grid RowDefinitions="*,Auto" Margin="18">
+    <StackPanel Spacing="8">
+      <TextBlock x:Name="TitleLabel" Text="Assignment title" />
+      <TextBox x:Name="TitleTextBox" />
+      <TextBlock x:Name="ClassLabel" Text="Class" />
+      <TextBox x:Name="ClassTextBox" />
+      <TextBlock x:Name="MaxAttemptsLabel" Text="Max attempts" />
+      <TextBox x:Name="MaxAttemptsTextBox" Text="1" />
+      <TextBlock x:Name="TimeLimitLabel" Text="Time limit" />
+      <TextBox x:Name="TimeLimitTextBox" />
+      <CheckBox x:Name="ShowScoreCheckBox" IsChecked="True" />
+      <CheckBox x:Name="ShowCorrectCheckBox" IsChecked="False" />
+      <CheckBox x:Name="ShowFeedbackCheckBox" IsChecked="False" />
+    </StackPanel>
+    <StackPanel Grid.Row="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="10"
+                Margin="0,16,0,0">
+      <Button x:Name="CancelButton" Width="100" Click="CancelButton_OnClick" />
+      <Button x:Name="CreateButton" Width="100" Click="CreateButton_OnClick" />
+    </StackPanel>
+  </Grid>
+</Window>

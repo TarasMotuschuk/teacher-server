@@ -27,7 +27,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         _settingsStore = settingsStore;
         _logService = logService;
-        StudentAgentText.SetLanguage(_settingsStore.Current.Language);
+        StudentAgentText.SetLanguage(_settingsStore.CurrentCached.Language);
 
         var menu = new ContextMenuStrip();
         _aboutMenuItem = new ToolStripMenuItem();
@@ -82,6 +82,19 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
         using var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    protected void ShowTrayNotification(string title, string message)
+    {
+        try
+        {
+            _notifyIcon.BalloonTipTitle = title;
+            _notifyIcon.BalloonTipText = message;
+            _notifyIcon.ShowBalloonTip(3000);
+        }
+        catch
+        {
+        }
     }
 
     protected override void ExitThreadCore()
@@ -157,14 +170,14 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
     private void SettingsStore_OnSettingsChanged(object? sender, EventArgs e)
     {
-        var seconds = Math.Max(5, _settingsStore.Current.BrowserLockCheckIntervalSeconds);
+        var seconds = Math.Max(5, _settingsStore.CurrentCached.BrowserLockCheckIntervalSeconds);
         _browserLockTimer.Interval = checked((int)TimeSpan.FromSeconds(seconds).TotalMilliseconds);
         ApplyLocalization();
     }
 
     private void ApplyLocalization()
     {
-        StudentAgentText.SetLanguage(_settingsStore.Current.Language);
+        StudentAgentText.SetLanguage(_settingsStore.CurrentCached.Language);
         _aboutMenuItem.Text = StudentAgentText.About;
         _settingsMenuItem.Text = StudentAgentText.Settings;
         _logsMenuItem.Text = StudentAgentText.Logs;

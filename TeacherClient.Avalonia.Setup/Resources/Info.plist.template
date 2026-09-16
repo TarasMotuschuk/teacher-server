@@ -26,5 +26,9 @@
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>ClassCommander broadcasts classroom audio while mirroring the teacher screen to student devices.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>ClassCommander may capture camera input during a classroom session when the teacher enables it.</string>
 </dict>
 </plist>

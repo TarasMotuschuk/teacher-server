@@ -1,22 +1,52 @@
+using System.Drawing.Imaging;
+using System.Net.Http.Json;
+using System.Runtime.InteropServices;
+using SIPSorcery.Net;
+using SIPSorceryMedia.Abstractions;
 using StudentAgent.Services;
 using StudentAgent.UI;
+using StudentAgent.UI.Localization;
+using StudentAgent.UIHost.Services;
+using Teacher.Common.Contracts;
+using TeacherClient.CrossPlatform.Services;
 
 namespace StudentAgent.UIHost;
 
 public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
 {
     private readonly AgentLogService _logService;
+    private readonly DemoDiagnosticLog _demoDiagnosticLog;
     private readonly System.Windows.Forms.Timer _desktopIconRestoreTimer;
+    private readonly System.Windows.Forms.Timer _demoPollTimer;
+    private readonly HttpClient _httpClient = new();
+    private readonly List<DemoFullscreenForm> _demoForms = [];
+    private readonly object _demoFrameLock = new();
+    private byte[]? _latestDemoBgr;
+    private int _latestDemoW;
+    private int _latestDemoH;
+    private int _demoFramePumpPosted;
+    private long _demoRenderedFrameCount;
+    private string? _activeDemoSessionId;
+    private RTCPeerConnection? _demoPc;
+    private DemoWebRtcVideoReceiveEndPoint? _demoVideoEndPoint;
+    private bool _demoAuthWarningShown;
+    private DateTime _lastDemoConnectivityWarningUtc;
+    private DateTime _lastDemoWebRtcInitAttemptUtc;
 
     public UIHostApplicationContext(AgentSettingsStore settingsStore, AgentLogService logService, ProcessService processService)
         : base(settingsStore, logService, processService)
     {
         _logService = logService;
+        _demoDiagnosticLog = new DemoDiagnosticLog(Path.Combine(StudentAgentPathHelper.GetLogsDirectory(), "demo-webrtc.log"));
         _desktopIconRestoreTimer = new System.Windows.Forms.Timer();
         _desktopIconRestoreTimer.Tick += (_, _) => RestoreDesktopIconsSilently();
         ConfigureDesktopIconRestoreTimer();
         _desktopIconRestoreTimer.Start();
         settingsStore.SettingsChanged += SettingsStore_OnSettingsChanged;
+
+        _demoPollTimer = new System.Windows.Forms.Timer { Interval = 750 };
+        _demoPollTimer.Tick += async (_, _) => await PollDemoAsync();
+        _demoPollTimer.Start();
     }
 
     protected override void HandleExitRequested()
@@ -34,6 +64,9 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
         SettingsStore.SettingsChanged -= SettingsStore_OnSettingsChanged;
         _desktopIconRestoreTimer.Stop();
         _desktopIconRestoreTimer.Dispose();
+        _demoPollTimer.Stop();
+        _demoPollTimer.Dispose();
+        CloseDemoForms();
         _logService.LogInfo("StudentAgent.UIHost stopping.");
     }
 
@@ -46,6 +79,449 @@ public sealed class UIHostApplicationContext : AgentUiApplicationContextBase
     {
         var minutes = Math.Max(1, SettingsStore.Current.DesktopIconAutoRestoreMinutes);
         _desktopIconRestoreTimer.Interval = checked((int)TimeSpan.FromMinutes(minutes).TotalMilliseconds);
+    }
+
+    private async Task PollDemoAsync()
+    {
+        try
+        {
+            // UIHost is session-scoped; the service exposes the API on localhost.
+            var port = Math.Max(1, SettingsStore.Current.Port);
+            using var req = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/demo/status");
+            req.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
+            using var resp = await _httpClient.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+            {
+                if ((int)resp.StatusCode == 401 || (int)resp.StatusCode == 403)
+                {
+                    if (!_demoAuthWarningShown)
+                    {
+                        _demoAuthWarningShown = true;
+                        LogService.LogWarning("Demonstration: UIHost cannot read /api/demo/status due to unauthorized teacher secret (401/403).");
+                        _demoDiagnosticLog.LogWarning("Student demo status polling failed with unauthorized teacher secret (401/403).");
+                        ShowTrayNotification(
+                            StudentAgentText.AgentName,
+                            "Demonstration is blocked: teacher secret mismatch. Open Settings and check Shared Secret.");
+                    }
+                }
+                else
+                {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastDemoConnectivityWarningUtc > TimeSpan.FromMinutes(2))
+                    {
+                        _lastDemoConnectivityWarningUtc = now;
+                        LogService.LogWarning($"Demonstration: UIHost cannot read /api/demo/status. HTTP {(int)resp.StatusCode}.");
+                        _demoDiagnosticLog.LogWarning($"Student demo status polling failed. HTTP {(int)resp.StatusCode}.");
+                    }
+                }
+
+                return;
+            }
+
+            var status = await resp.Content.ReadFromJsonAsync<DemoSessionStatusDto>();
+            if (status is null || !status.Active || string.IsNullOrWhiteSpace(status.SessionId) || !status.FullscreenLock)
+            {
+                if (_activeDemoSessionId is not null)
+                {
+                    _demoDiagnosticLog.LogInfo($"Student demo session no longer active. Closing viewer for sessionId={_activeDemoSessionId}.");
+                    _activeDemoSessionId = null;
+                    CloseDemoForms();
+                }
+
+                return;
+            }
+
+            if (!string.Equals(_activeDemoSessionId, status.SessionId, StringComparison.Ordinal))
+            {
+                _demoAuthWarningShown = false;
+                _activeDemoSessionId = status.SessionId;
+                _demoDiagnosticLog.LogInfo($"Student demo session activated: sessionId={status.SessionId}, fullscreenLock={status.FullscreenLock}, startedUtc={status.StartedUtc:O}.");
+                ShowDemoForms();
+                _lastDemoWebRtcInitAttemptUtc = DateTime.MinValue;
+                await StartOrRefreshDemoWebRtcAsync(status.SessionId);
+            }
+            else
+            {
+                // If the demo session is active but WebRTC was never established (or was torn down),
+                // Retry periodically so transient WebRTC init errors don't leave students stuck on a black screen.
+                if (_demoPc is null && DateTime.UtcNow - _lastDemoWebRtcInitAttemptUtc > TimeSpan.FromSeconds(5))
+                {
+                    _lastDemoWebRtcInitAttemptUtc = DateTime.UtcNow;
+                    _demoDiagnosticLog.LogWarning($"Student demo peer missing while session {status.SessionId} is active. Retrying WebRTC init.");
+                    await StartOrRefreshDemoWebRtcAsync(status.SessionId);
+                }
+            }
+        }
+        catch
+        {
+            // Silent by design: demo mode is optional and should not crash the tray host.
+        }
+    }
+
+    private async Task StartOrRefreshDemoWebRtcAsync(string sessionId)
+    {
+        try
+        {
+            _lastDemoWebRtcInitAttemptUtc = DateTime.UtcNow;
+            _logService.LogInfo($"Demo WebRTC: starting/refreshing for sessionId={sessionId}.");
+            _demoDiagnosticLog.LogInfo($"Student demo WebRTC init starting: sessionId={sessionId}.");
+            var port = Math.Max(1, SettingsStore.Current.Port);
+            using var offerReq = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/demo/webrtc/offer?sessionId={Uri.EscapeDataString(sessionId)}");
+            offerReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
+            using var offerResp = await _httpClient.SendAsync(offerReq);
+            if (offerResp.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                _demoDiagnosticLog.LogInfo($"Student demo offer not available yet for sessionId={sessionId}.");
+                return;
+            }
+
+            if (!offerResp.IsSuccessStatusCode)
+            {
+                _logService.LogWarning($"Demo WebRTC: offer request failed. HTTP {(int)offerResp.StatusCode}.");
+                _demoDiagnosticLog.LogWarning($"Student demo offer request failed: HTTP {(int)offerResp.StatusCode}.");
+                return;
+            }
+
+            var offer = await offerResp.Content.ReadFromJsonAsync<DemoSessionStartRequest>();
+            if (offer is null || string.IsNullOrWhiteSpace(offer.Sdp))
+            {
+                _logService.LogWarning("Demo WebRTC: offer response is empty or invalid.");
+                _demoDiagnosticLog.LogWarning("Student demo offer response is empty or invalid.");
+                return;
+            }
+
+            _demoVideoEndPoint = new DemoWebRtcVideoReceiveEndPoint();
+            _demoVideoEndPoint.RestrictFormats(format => format.Codec is VideoCodecsEnum.VP8 or VideoCodecsEnum.H264);
+            _demoVideoEndPoint.OnDiagnostic += (msg) =>
+            {
+                _demoDiagnosticLog.LogInfo($"Student demo video endpoint: {msg}");
+            };
+
+            long decodedFrames = 0;
+            _demoVideoEndPoint.OnDecodedFrame += (rtpTimestamp, width, height, sample, pixelFormat) =>
+            {
+                var decodedCount = Interlocked.Increment(ref decodedFrames);
+                if (decodedCount == 1 || decodedCount % 100 == 0)
+                {
+                    _demoDiagnosticLog.LogInfo(
+                        $"Student demo decoded frames={decodedCount}, pixelFormat={pixelFormat}, size={width}x{height}, bytes={sample?.Length ?? 0}.");
+                }
+
+                if (sample is null || sample.Length == 0)
+                {
+                    return;
+                }
+
+                // Coalesce to the latest frame only. Per-frame BeginInvoke queues one delegate per
+                // decoded frame; at 10–20 fps the WinForms queue can run minutes behind, showing
+                // large end-to-end latency (e.g. 5–10+ seconds) even when network and decode are fast.
+                lock (_demoFrameLock)
+                {
+                    _latestDemoBgr = sample;
+                    _latestDemoW = width;
+                    _latestDemoH = height;
+                }
+
+                TryBeginInvokePostedDemoFramePump();
+            };
+
+            _demoPc = new RTCPeerConnection(new RTCConfiguration { X_UseRtpFeedbackProfile = true });
+            var videoTrack = new MediaStreamTrack(_demoVideoEndPoint.GetVideoSinkFormats(), MediaStreamStatusEnum.RecvOnly);
+            _demoPc.addTrack(videoTrack);
+            long receivedVideoFrames = 0;
+            _demoPc.OnVideoFrameReceived += (remoteEndPoint, timestamp, payload, format) =>
+            {
+                var receivedCount = Interlocked.Increment(ref receivedVideoFrames);
+                if (receivedCount == 1 || receivedCount % 100 == 0)
+                {
+                    _demoDiagnosticLog.LogInfo($"Student demo received RTP video frames={receivedCount}, payloadBytes={payload?.Length ?? 0}, format={format.Codec}.");
+                }
+
+                _demoVideoEndPoint.GotVideoFrame(remoteEndPoint, timestamp, payload ?? Array.Empty<byte>(), format);
+            };
+            _demoPc.OnVideoFormatsNegotiated += (formats) =>
+            {
+                try
+                {
+                    var chosen = formats.First();
+                    _logService.LogInfo($"Demo WebRTC: negotiated video format {chosen.Codec} {chosen.FormatID} {chosen.ClockRate}.");
+                    _demoDiagnosticLog.LogInfo($"Student demo negotiated video format: codec={chosen.Codec}, formatId={chosen.FormatID}, clockRate={chosen.ClockRate}.");
+                    _demoVideoEndPoint.SetVideoSinkFormat(chosen);
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogWarning($"Demo WebRTC: failed to apply negotiated video formats: {ex.Message}");
+                    _demoDiagnosticLog.LogWarning($"Student demo failed to apply negotiated video format: {ex.Message}");
+                }
+            };
+
+            long localIceCandidates = 0;
+            _demoPc.onicecandidate += (cand) =>
+            {
+                if (cand is null)
+                {
+                    return;
+                }
+
+                var count = Interlocked.Increment(ref localIceCandidates);
+                if (count == 1 || count % 10 == 0)
+                {
+                    _demoDiagnosticLog.LogInfo($"Student demo local ICE candidates={count} for sessionId={sessionId}.");
+                }
+
+                var dto = new WebRtcIceCandidateDto(sessionId, cand.candidate, cand.sdpMid, cand.sdpMLineIndex);
+                _ = _httpClient.PostAsJsonAsync($"http://127.0.0.1:{port}/api/demo/webrtc/ice/student", dto);
+            };
+
+            _demoPc.onconnectionstatechange += (state) =>
+            {
+                _demoDiagnosticLog.LogInfo($"Student demo peer state: {state} for sessionId={sessionId}.");
+            };
+
+            var sdpOffer = SDP.ParseSDPDescription(offer.Sdp);
+            var offerType = Enum.TryParse<SIPSorcery.SIP.App.SdpType>(offer.SdpType, ignoreCase: true, out var parsedOfferType)
+                ? parsedOfferType
+                : SIPSorcery.SIP.App.SdpType.offer;
+            _logService.LogInfo($"Demo WebRTC: setting remote description (type={offerType}).");
+            _demoDiagnosticLog.LogInfo($"Student demo applying remote offer: type={offerType}.");
+            var setRes = _demoPc.SetRemoteDescription(offerType, sdpOffer);
+            if (setRes != SetDescriptionResultEnum.OK)
+            {
+                _logService.LogWarning($"Demo WebRTC: failed to set remote description: {setRes}.");
+                _demoDiagnosticLog.LogWarning($"Student demo failed to set remote description: {setRes}.");
+                return;
+            }
+
+            var answerInit = _demoPc.createAnswer();
+            await _demoPc.setLocalDescription(answerInit);
+            var answer = new DemoSessionStartResponse(_demoPc.localDescription.type.ToString(), _demoPc.localDescription.sdp.ToString());
+            using (var ansReq = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{port}/api/demo/webrtc/answer?sessionId={Uri.EscapeDataString(sessionId)}")
+            {
+                Content = JsonContent.Create(answer),
+            })
+            {
+                ansReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
+                using var ansResp = await _httpClient.SendAsync(ansReq);
+                if (!ansResp.IsSuccessStatusCode)
+                {
+                    _logService.LogWarning($"Demo WebRTC: posting answer failed. HTTP {(int)ansResp.StatusCode}.");
+                    _demoDiagnosticLog.LogWarning($"Student demo posting answer failed: HTTP {(int)ansResp.StatusCode}.");
+                    return;
+                }
+
+                _logService.LogInfo("Demo WebRTC: posted answer.");
+                _demoDiagnosticLog.LogInfo("Student demo answer posted.");
+            }
+
+            _ = Task.Run(async () =>
+            {
+                long remoteIceCandidates = 0;
+                while (_activeDemoSessionId == sessionId)
+                {
+                    try
+                    {
+                        using var iceReq = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/demo/webrtc/ice/teacher?sessionId={Uri.EscapeDataString(sessionId)}");
+                        iceReq.Headers.TryAddWithoutValidation("X-Teacher-Secret", SettingsStore.CurrentCached.SharedSecret);
+                        using var iceResp = await _httpClient.SendAsync(iceReq);
+                        if (!iceResp.IsSuccessStatusCode)
+                        {
+                            await Task.Delay(250);
+                            continue;
+                        }
+
+                        var candidates = await iceResp.Content.ReadFromJsonAsync<List<WebRtcIceCandidateDto>>();
+                        if (candidates is not null)
+                        {
+                            foreach (var c in candidates)
+                            {
+                                if (c.SdpMLineIndex is null)
+                                {
+                                    continue;
+                                }
+
+                                var count = Interlocked.Increment(ref remoteIceCandidates);
+                                if (count == 1 || count % 10 == 0)
+                                {
+                                    _demoDiagnosticLog.LogInfo($"Student demo remote ICE candidates={count} for sessionId={sessionId}.");
+                                }
+
+                                _demoPc.addIceCandidate(new RTCIceCandidateInit { candidate = c.Candidate, sdpMid = c.SdpMid, sdpMLineIndex = (ushort)c.SdpMLineIndex.Value });
+                            }
+                        }
+                    }
+                    catch
+                    {
+                    }
+
+                    await Task.Delay(250);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Demo WebRTC init failed: {ex.Message}");
+            _demoDiagnosticLog.LogError($"Student demo WebRTC init failed for sessionId={sessionId}: {ex}");
+            CloseDemoWebRtcState();
+        }
+    }
+
+    private void ShowDemoForms()
+    {
+        CloseDemoForms();
+        foreach (var screen in Screen.AllScreens)
+        {
+            var form = new DemoFullscreenForm(screen);
+            _demoForms.Add(form);
+            form.Show();
+        }
+
+        _demoDiagnosticLog.LogInfo($"Student demo fullscreen forms shown: count={_demoForms.Count}.");
+    }
+
+    private void CloseDemoForms()
+    {
+        CloseDemoWebRtcState();
+
+        foreach (var form in _demoForms.ToArray())
+        {
+            try
+            {
+                form.ForceClose();
+                form.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+        _demoForms.Clear();
+        _demoDiagnosticLog.LogInfo("Student demo fullscreen forms cleared.");
+    }
+
+    private void CloseDemoWebRtcState()
+    {
+        try
+        {
+            _demoPc?.Close("demo stopped");
+            _demoPc = null;
+            _demoDiagnosticLog.LogInfo("Student demo peer closed.");
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            _demoVideoEndPoint?.Dispose();
+            _demoVideoEndPoint = null;
+            _demoDiagnosticLog.LogInfo("Student demo video endpoint closed.");
+        }
+        catch
+        {
+        }
+
+        lock (_demoFrameLock)
+        {
+            _latestDemoBgr = null;
+        }
+
+        Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+    }
+
+    private void TryBeginInvokePostedDemoFramePump()
+    {
+        if (_demoForms.Count == 0)
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _demoFramePumpPosted, 1, 0) != 0)
+        {
+            return;
+        }
+
+        var form = _demoForms[0];
+        if (!form.IsHandleCreated || form.IsDisposed)
+        {
+            Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+            return;
+        }
+
+        try
+        {
+            form.BeginInvoke(PostedDemoFramePump);
+        }
+        catch
+        {
+            Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+        }
+    }
+
+    private void PostedDemoFramePump()
+    {
+        byte[]? bgr;
+        int w;
+        int h;
+        lock (_demoFrameLock)
+        {
+            bgr = _latestDemoBgr;
+            _latestDemoBgr = null;
+            w = _latestDemoW;
+            h = _latestDemoH;
+        }
+
+        if (bgr is not null && w > 0 && h > 0)
+        {
+            try
+            {
+                using var bmp = new Bitmap(w, h, PixelFormat.Format24bppRgb);
+                var rect = new Rectangle(0, 0, w, h);
+                var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+                try
+                {
+                    var stride = Math.Abs(data.Stride);
+                    var tightStride = w * 3;
+                    var rows = Math.Min(h, bgr.Length / tightStride);
+                    for (var y = 0; y < rows; y++)
+                    {
+                        Marshal.Copy(bgr, y * tightStride, IntPtr.Add(data.Scan0, y * stride), tightStride);
+                    }
+                }
+                finally
+                {
+                    bmp.UnlockBits(data);
+                }
+
+                foreach (var form in _demoForms)
+                {
+                    if (!form.IsHandleCreated || form.IsDisposed)
+                    {
+                        continue;
+                    }
+
+                    form.SetFrame((Bitmap)bmp.Clone());
+                }
+
+                var n = Interlocked.Increment(ref _demoRenderedFrameCount);
+                if (n == 1 || n % 100 == 0)
+                {
+                    _demoDiagnosticLog.LogInfo($"Student demo presented frame #{n} to fullscreen form(s), size={w}x{h}.");
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        Interlocked.Exchange(ref _demoFramePumpPosted, 0);
+
+        lock (_demoFrameLock)
+        {
+            if (_latestDemoBgr is not null)
+            {
+                TryBeginInvokePostedDemoFramePump();
+            }
+        }
     }
 
     private void RestoreDesktopIconsSilently()

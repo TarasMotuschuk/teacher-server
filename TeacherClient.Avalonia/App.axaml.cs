@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Teacher.Common.Localization;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Services;
 
@@ -20,6 +21,7 @@ public partial class App : Application
         {
             var settings = new ClientSettingsStore().Load();
             CrossPlatformText.SetLanguage(settings.Language);
+            ClassCommanderUiSettings.SaveLanguage(settings.Language);
             AppUiThemeApplier.Apply(settings.Theme);
             var splash = new SplashWindow();
             splash.Icon = AppIconLoader.Load();

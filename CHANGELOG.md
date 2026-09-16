@@ -6,6 +6,42 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+### Added
+
+- **Classroom demonstration (preview)**: `TeacherClient.Avalonia` can start/stop a **fullscreen demonstration lock** on selected or all online student PCs using **WebRTC** signaling through the student service, with the incoming video rendered in the student session.
+
+- **Power On (Wake-on-LAN)**: `TeacherClient.Avalonia` group command **Power → Power On** sends magic packets to student PC MAC addresses (selected PCs, or all known PCs that have a MAC). Requires WoL enabled in BIOS/NIC and a reachable LAN broadcast path.
+
+- **Test Platform foundation**: restored shared testing contracts, design docs, `ClassCommander.TestPlatform` (local API shell), and `ClassCommander.TestEditor` (Avalonia authoring shell) on the active development branch for classroom testing work.
+
+- **Test Platform server MVP slice**: `ClassCommander.TestPlatform` now persists test definitions/assignments/attempts/results in SQLite, imports MyTest XML into canonical DTOs, and exposes teacher/student HTTP endpoints under `/api/tests/v1` including scoring on submit.
+
+- **Test Editor MVP**: `ClassCommander.TestEditor` can create/open/save `.cctest` packages, import MyTest XML, browse groups/questions with bilingual EN/UA UI, and preview question content/answer keys. Shared packaging/import logic lives in `ClassCommander.Testing.Core`.
+
+- **Test Editor authoring**: `ClassCommander.TestEditor` is a full classroom authoring UI — create a new test, add/edit/delete all 9 question types, set answer keys, and save `.cctest` packages (light theme, bilingual EN/UA).
+
+- **Test Runner MVP**: `ClassCommander.TestRunner` Avalonia student app answers all 9 question types against TestPlatform; the server URL is supplied by the teacher launch (not typed by students).
+
+- **Teacher Testing UI**: `TeacherClient.Avalonia` menu **Configuration → Testing** opens a bilingual window to connect to local TestPlatform, import MyTest XML, create/close class assignments, and monitor attempts/results. Test Platform base URL is stored in client settings. **Configuration → Test Editor** launches the standalone authoring app.
+
+- **Test package import + attempt details**: TestPlatform accepts `.cctest` upload via `POST /api/tests/v1/imports/cctest`; the Avalonia Testing window can import packages from TestEditor and open attempt details (score breakdown + student answers).
+
+- **Teacher-launched student tests**: from **Configuration → Testing**, teachers can deploy `ClassCommander.TestRunner` to student PCs and start it over the network with the classroom TestPlatform LAN URL (students do not type the server address). TestPlatform listens on `0.0.0.0:5050` by default.
+
+### Changed
+
+- **Demonstration performance**: the teacher now captures and encodes the screen **once** and fans the encoded stream out to every student (previously each student got its own capture + encoder, so 8 PCs meant 8 parallel encoders and a frozen teacher machine). Students connect and disconnect **in parallel** instead of one-by-one, so the whole class starts/stops within seconds instead of ~20 s per PC. ICE polling stops once a student connects, and all demo HTTP calls use a 10 s timeout so stop never hangs on a busy agent.
+
+- **Agent list stability**: agent status polling now runs in parallel with a 4 s per-agent timeout (one busy student no longer stalls the 15 s refresh), discovery re-sends the UDP broadcast once per scan, and agents that miss a broadcast stay in the list (verified over HTTP) for up to 2 minutes instead of vanishing immediately.
+
+- **Shared UI language**: default language is Ukrainian; teacher client settings write a shared ClassCommander UI language preference that Test Editor and Test Runner also use (separate Language menus removed from Editor/Runner).
+
+- **Demonstration (WebRTC)**: macOS teacher builds now negotiate **H.264** for the demo video track (encoded with **VideoToolbox**), and the Windows student UI decodes **H.264** via **Media Foundation** (NV12 → BGR for rendering). Windows teacher builds continue to use **VP8** for the demo path.
+
+### Removed
+
+- **macOS packaging**: removed the `vpxmd.dylib` staging requirement from `TeacherClient.Avalonia.Setup/Build-MacInstaller.sh` (VP8/libvpx is no longer the macOS demo codec path).
+
 ## [1.0.17] - 2026-04-13
 
 ### Added

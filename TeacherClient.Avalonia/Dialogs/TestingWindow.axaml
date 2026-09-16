@@ -1,0 +1,135 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TeacherClient.CrossPlatform.Dialogs.TestingWindow"
+        Width="1100"
+        Height="720"
+        MinWidth="900"
+        MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        Title="ClassCommander Testing">
+  <DockPanel Margin="16">
+    <Border DockPanel.Dock="Top"
+            Padding="0,0,0,12"
+            BorderBrush="#D0D5DD"
+            BorderThickness="0,0,0,1"
+            Margin="0,0,0,12">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+          <TextBlock x:Name="ServerUrlLabel"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="Test platform URL" />
+          <TextBox x:Name="ServerUrlTextBox"
+                   Grid.Column="1"
+                   Margin="0,0,8,0" />
+          <Button x:Name="ConnectButton"
+                  Grid.Column="2"
+                  MinWidth="110"
+                  Margin="0,0,8,0"
+                  Click="ConnectButton_OnClick" />
+          <TextBlock x:Name="ConnectionStatusText"
+                     Grid.Column="3"
+                     VerticalAlignment="Center"
+                     Opacity="0.8" />
+        </Grid>
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+          <TextBlock x:Name="LaunchClassLabel"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="Class" />
+          <TextBox x:Name="LaunchClassTextBox"
+                   Grid.Column="1"
+                   Margin="0,0,8,0" />
+          <Button x:Name="DeployRunnerButton"
+                  Grid.Column="2"
+                  MinWidth="140"
+                  Margin="0,0,8,0"
+                  Click="DeployRunnerButton_OnClick" />
+          <Button x:Name="StartSelectedButton"
+                  Grid.Column="3"
+                  MinWidth="160"
+                  Margin="0,0,8,0"
+                  Click="StartSelectedButton_OnClick" />
+          <Button x:Name="StartAllOnlineButton"
+                  Grid.Column="4"
+                  MinWidth="160"
+                  Click="StartAllOnlineButton_OnClick" />
+        </Grid>
+        <TextBlock x:Name="LaunchHintText"
+                   Opacity="0.75"
+                   TextWrapping="Wrap"
+                   FontSize="12" />
+      </StackPanel>
+    </Border>
+
+    <TextBlock x:Name="StatusTextBlock"
+               DockPanel.Dock="Bottom"
+               Margin="0,12,0,0"
+               Opacity="0.85" />
+
+    <TabControl x:Name="MainTabControl">
+      <TabItem x:Name="TestsTabItem">
+        <DockPanel Margin="0,12,0,0">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <Button x:Name="RefreshTestsButton" MinWidth="100" Click="RefreshTestsButton_OnClick" />
+            <Button x:Name="ImportMyTestButton" MinWidth="140" Click="ImportMyTestButton_OnClick" />
+            <Button x:Name="ImportCctestButton" MinWidth="140" Click="ImportCctestButton_OnClick" />
+            <Button x:Name="CreateAssignmentButton" MinWidth="140" Click="CreateAssignmentButton_OnClick" />
+          </StackPanel>
+          <DataGrid x:Name="TestsGrid"
+                    AutoGenerateColumns="False"
+                    CanUserReorderColumns="False"
+                    IsReadOnly="True"
+                    SelectionMode="Single" />
+        </DockPanel>
+      </TabItem>
+
+      <TabItem x:Name="AssignmentsTabItem">
+        <DockPanel Margin="0,12,0,0">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <Button x:Name="RefreshAssignmentsButton" MinWidth="100" Click="RefreshAssignmentsButton_OnClick" />
+            <Button x:Name="CloseAssignmentButton" MinWidth="140" Click="CloseAssignmentButton_OnClick" />
+            <Button x:Name="OpenMonitorButton" MinWidth="140" Click="OpenMonitorButton_OnClick" />
+          </StackPanel>
+          <DataGrid x:Name="AssignmentsGrid"
+                    AutoGenerateColumns="False"
+                    CanUserReorderColumns="False"
+                    IsReadOnly="True"
+                    SelectionMode="Single" />
+        </DockPanel>
+      </TabItem>
+
+      <TabItem x:Name="MonitorTabItem">
+        <DockPanel Margin="0,12,0,0">
+          <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock x:Name="MonitorAssignmentLabel" VerticalAlignment="Center" />
+              <TextBlock x:Name="MonitorAssignmentTitleText" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <Button x:Name="RefreshMonitorButton" MinWidth="100" Click="RefreshMonitorButton_OnClick" />
+              <Button x:Name="ViewResultButton" MinWidth="140" Click="ViewResultButton_OnClick" />
+            </StackPanel>
+          </StackPanel>
+          <Grid RowDefinitions="*,Auto,*">
+            <DockPanel>
+              <TextBlock x:Name="AttemptsHeadingText" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8" />
+              <DataGrid x:Name="AttemptsGrid"
+                        AutoGenerateColumns="False"
+                        CanUserReorderColumns="False"
+                        IsReadOnly="True"
+                        SelectionMode="Single" />
+            </DockPanel>
+            <Border Grid.Row="1" Height="12" />
+            <DockPanel Grid.Row="2">
+              <TextBlock x:Name="ResultsHeadingText" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8" />
+              <DataGrid x:Name="ResultsGrid"
+                        AutoGenerateColumns="False"
+                        CanUserReorderColumns="False"
+                        IsReadOnly="True"
+                        SelectionMode="Single" />
+            </DockPanel>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

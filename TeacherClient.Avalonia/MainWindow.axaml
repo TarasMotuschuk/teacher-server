@@ -203,6 +203,12 @@
           <MenuItem x:Name="RunCommandSelectedMenuItem" Header="Run command on selected PCs" Click="RunCommandSelectedMenuItem_OnClick" />
           <MenuItem x:Name="RunCommandAllMenuItem" Header="Run command on all online PCs" Click="RunCommandAllMenuItem_OnClick" />
           <Separator />
+          <MenuItem x:Name="ClearBrowserHistoryCacheSelectedMenuItem" Header="Clear browser history + cache on selected PCs" Click="ClearBrowserHistoryCacheSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearBrowserHistoryCacheAllMenuItem" Header="Clear browser history + cache on all online PCs" Click="ClearBrowserHistoryCacheAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="ClearBrowserCookiesSelectedMenuItem" Header="Clear browser cookies on selected PCs" Click="ClearBrowserCookiesSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="ClearBrowserCookiesAllMenuItem" Header="Clear browser cookies on all online PCs" Click="ClearBrowserCookiesAllMenuItem_OnClick" />
+          <Separator />
           <MenuItem x:Name="RefreshFrequentProgramsMenuItem" Header="Refresh frequent programs from all PCs" Click="RefreshFrequentProgramsMenuItem_OnClick" />
           <MenuItem x:Name="ManageFrequentProgramsMenuItem" Header="Manage frequent programs" Click="ManageFrequentProgramsMenuItem_OnClick" />
         </MenuItem>
@@ -216,17 +222,28 @@
           <MenuItem x:Name="ApplyCurrentDesktopIconsSelectedMenuItem" Header="Send current PC layout to selected PCs" Click="ApplyCurrentDesktopIconsSelectedMenuItem_OnClick" />
           <MenuItem x:Name="ApplyCurrentDesktopIconsAllMenuItem" Header="Send current PC layout to all online PCs" Click="ApplyCurrentDesktopIconsAllMenuItem_OnClick" />
         </MenuItem>
+        <MenuItem x:Name="DemonstrationMenuItem" Header="_Demonstration">
+          <MenuItem x:Name="StartDemonstrationSelectedMenuItem" Header="Start on selected PCs" Click="StartDemonstrationSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="StartDemonstrationAllMenuItem" Header="Start on all online PCs" Click="StartDemonstrationAllMenuItem_OnClick" />
+          <Separator />
+          <MenuItem x:Name="StopDemonstrationSelectedMenuItem" Header="Stop on selected PCs" Click="StopDemonstrationSelectedMenuItem_OnClick" />
+          <MenuItem x:Name="StopDemonstrationAllMenuItem" Header="Stop on all online PCs" Click="StopDemonstrationAllMenuItem_OnClick" />
+        </MenuItem>
         <MenuItem x:Name="PowerCommandsMenuItem" Header="_Power">
           <MenuItem x:Name="SelectedPowerMenuItem" Header="_Selected PCs">
             <MenuItem x:Name="ShutdownSelectedMenuItem" Header="Shut Down" Click="ShutdownSelectedMenuItem_OnClick" />
             <MenuItem x:Name="RestartSelectedMenuItem" Header="Restart" Click="RestartSelectedMenuItem_OnClick" />
             <MenuItem x:Name="LogOffSelectedMenuItem" Header="Log Off" Click="LogOffSelectedMenuItem_OnClick" />
+            <Separator />
+            <MenuItem x:Name="PowerOnSelectedMenuItem" Header="Power On" Click="PowerOnSelectedMenuItem_OnClick" />
           </MenuItem>
           <MenuItem x:Name="AllOnlinePowerMenuItem" Header="_All Online PCs">
             <MenuItem x:Name="ShutdownAllMenuItem" Header="Shut Down" Click="ShutdownAllMenuItem_OnClick" />
             <MenuItem x:Name="RestartAllMenuItem" Header="Restart" Click="RestartAllMenuItem_OnClick" />
             <MenuItem x:Name="LogOffAllMenuItem" Header="Log Off" Click="LogOffAllMenuItem_OnClick" />
           </MenuItem>
+          <Separator />
+          <MenuItem x:Name="PowerOnAllWithMacMenuItem" Header="Power On all PCs with MAC" Click="PowerOnAllWithMacMenuItem_OnClick" />
         </MenuItem>
         <Separator />
         <MenuItem x:Name="StudentWorkMenuItem" Header="_Student Work">
@@ -237,6 +254,8 @@
       </MenuItem>
       <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration">
         <MenuItem x:Name="BasicSettingsMenuItem" Header="_Basic Settings" Click="SettingsButton_OnClick" />
+        <MenuItem x:Name="TestingMenuItem" Header="_Testing…" Click="TestingMenuItem_OnClick" />
+        <MenuItem x:Name="TestEditorMenuItem" Header="Test _Editor…" Click="TestEditorMenuItem_OnClick" />
       </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="ProgramUpdatesMenuItem" Header="Program Updates">

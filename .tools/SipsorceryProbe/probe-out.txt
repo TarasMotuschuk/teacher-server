@@ -1,0 +1,384 @@
+SIPSorcery.Net.RTCPeerConnection from /Users/taras/Projects/OWN-GITHUB/teacher-server/.tools/SipsorceryProbe/bin/Release/net10.0/SIPSorcery.dll
+
+RTCPeerConnection methods containing 'H264':
+
+RTCPeerConnection methods containing 'SendVideo' or 'SendH264':
+- Void SendVideo(UInt32, Byte[])
+
+RTCPeerConnection events containing 'Video':
+- OnVideoFormatsNegotiated: System.Action`1[System.Collections.Generic.List`1[SIPSorceryMedia.Abstractions.VideoFormat]]
+- OnVideoFormatsNegotiatedByIndex: System.Action`2[System.Int32,System.Collections.Generic.List`1[SIPSorceryMedia.Abstractions.VideoFormat]]
+- OnVideoFrameReceived: System.Action`4[System.Net.IPEndPoint,System.UInt32,System.Byte[],SIPSorceryMedia.Abstractions.VideoFormat]
+- OnVideoFrameReceivedByIndex: System.Action`5[System.Int32,System.Net.IPEndPoint,System.UInt32,System.Byte[],SIPSorceryMedia.Abstractions.VideoFormat]
+
+Search nested types containing 'H264Packet':
+- SIPSorcery.Net.H264Packetiser
+- SIPSorcery.Net.H264Packetiser+<ParseNals>d__2
+- SIPSorcery.Net.H264Packetiser+H264Nal
+
+SIPSorcery.Net.H264Packetiser methods:
+- Boolean Equals(System.Object)
+- Void Finalize()
+- Byte[] GetH264RtpHeader(Byte, Boolean, Boolean)
+- Int32 GetHashCode()
+- System.Type GetType()
+- System.Object MemberwiseClone()
+- System.Collections.Generic.IEnumerable`1[SIPSorcery.Net.H264Packetiser+H264Nal] ParseNals(Byte[])
+- System.String ToString()
+
+H264Packetiser.ParseNals smoke test:
+ParseNals returned: SIPSorcery.Net.H264Packetiser+<ParseNals>d__2
+- nal #1: SIPSorcery.Net.H264Packetiser+H264Nal
+- nal #2: SIPSorcery.Net.H264Packetiser+H264Nal
+
+Static fields containing 'H264_SUGGESTED_FORMAT_ID':
+- SIPSorcery.Media.VideoTestPatternSource.H264_SUGGESTED_FORMAT_ID = 100 (Int32)
+
+VideoTestPatternSource static fields containing 'H264':
+- H264_SUGGESTED_FORMAT_ID: 100 (Int32)
+
+VideoTestPatternSource constructors:
+- Void .ctor(SIPSorceryMedia.Abstractions.IVideoEncoder)
+
+Vortice.MediaFoundation assembly: Vortice.MediaFoundation, Version=3.6.2.0, Culture=neutral, PublicKeyToken=5431ec61a7e925da
+/Users/taras/Projects/OWN-GITHUB/teacher-server/.tools/SipsorceryProbe/bin/Release/net10.0/Vortice.MediaFoundation.dll
+
+Vortice.MediaFoundation types (filtered: H264/MFT/Transform):
+- Vortice.MediaFoundation.CameraExtrinsicCalibratedTransform
+- Vortice.MediaFoundation.IMFDeviceTransform
+- Vortice.MediaFoundation.IMFDeviceTransformCallback
+- Vortice.MediaFoundation.IMFFieldOfUseMFTUnlock
+- Vortice.MediaFoundation.IMFLocalMFTRegistration
+- Vortice.MediaFoundation.IMFSensorTransformFactory
+- Vortice.MediaFoundation.IMFTimecodeTranslate
+- Vortice.MediaFoundation.IMFTimedText
+- Vortice.MediaFoundation.IMFTimedTextBinary
+- Vortice.MediaFoundation.IMFTimedTextBouten
+- Vortice.MediaFoundation.IMFTimedTextCue
+- Vortice.MediaFoundation.IMFTimedTextCueList
+- Vortice.MediaFoundation.IMFTimedTextFormattedText
+- Vortice.MediaFoundation.IMFTimedTextNotify
+- Vortice.MediaFoundation.IMFTimedTextRegion
+- Vortice.MediaFoundation.IMFTimedTextRuby
+- Vortice.MediaFoundation.IMFTimedTextStyle
+- Vortice.MediaFoundation.IMFTimedTextStyle2
+- Vortice.MediaFoundation.IMFTimedTextTrack
+- Vortice.MediaFoundation.IMFTimedTextTrackList
+- Vortice.MediaFoundation.IMFTimer
+- Vortice.MediaFoundation.IMFTopoLoader
+- Vortice.MediaFoundation.IMFTopology
+- Vortice.MediaFoundation.IMFTopologyNode
+- Vortice.MediaFoundation.IMFTopologyNodeAttributeEditor
+- Vortice.MediaFoundation.IMFTopologyServiceLookup
+- Vortice.MediaFoundation.IMFTopologyServiceLookupClient
+- Vortice.MediaFoundation.IMFTrackedSample
+- Vortice.MediaFoundation.IMFTranscodeProfile
+- Vortice.MediaFoundation.IMFTranscodeSinkInfoProvider
+- Vortice.MediaFoundation.IMFTransform
+- Vortice.MediaFoundation.IMFTrustedInput
+- Vortice.MediaFoundation.IMFTrustedOutput
+- Vortice.MediaFoundation.TransformAttributeKeys
+- Vortice.MediaFoundation.TransformCategoryGuids
+
+Vortice.MediaFoundation static Guid fields containing 'H264' or 'Decoder':
+- Vortice.MediaFoundation.CaptureEngineAttributeKeys.DecoderTransformFieldOfUseUnlockAttributeGuid = 2b8ad2e8-7acb-4321-a606-325c4249f4fc
+- Vortice.MediaFoundation.VideoFormatGuids.H264 = 34363248-0000-0010-8000-00aa00389b71
+- Vortice.MediaFoundation.VideoFormatGuids.H264Es = 3f40f4f0-5622-4ff8-b6d8-a17a584bee5e
+- Vortice.MediaFoundation.VideoFormatGuids.H264Hdcp = 5d0ce9dd-9817-49da-bdfd-f5f5b98f18a6
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264Capabilities = bb3bd508-490a-11e0-99e4-1316dfd72085
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264MaxCodecConfigDelay = f5929986-4c45-4fbb-bb49-6cc534d05b9b
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264MaxMbPerSec = 45256d30-7215-4576-9336-b0f1bcd59bb2
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264RateControlModes = 705177d8-45cb-11e0-ac7d-b91ce0d72085
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264SimulcastSupport = 9ea2d63d-53f0-4a34-b94e-9de49a078cb3
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264SupportedRateControlModes = 6a8ac47e-519c-4f18-9bb3-7eeaaea5594d
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264SupportedSliceModes = c8be1937-4d64-4549-8343-a8086c0bfda5
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264SupportedSyncFrameTypes = 89a52c01-f282-48d2-b522-22e6ae633199
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264SupportedUsages = 60b1a998-dc01-40ce-9736-aba845a2dbdc
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264SvcCapabilities = f8993abe-d937-4a8f-bbca-6966fe9e1152
+- Vortice.MediaFoundation.MediaTypeAttributeKeys.H264Usage = 359ce3a5-af00-49ca-a2f4-2ac94ca82b61
+- Vortice.MediaFoundation.TopologyNodeAttributeKeys.Decoder = 494bbd02-b031-4e38-97c4-d5422dd618dc
+- Vortice.MediaFoundation.TransformAttributeKeys.MftDecoderExposeOutputypesInNativeOrder = ef80833f-f8fa-44d9-80d8-41ed6232670c
+- Vortice.MediaFoundation.TransformAttributeKeys.MftDecoderFinalVideoResolutionHint = dc2f8496-15c4-407a-b6f0-1b66ab5fbf53
+- Vortice.MediaFoundation.TransformCategoryGuids.VideoDecoder = d6c02d4b-6833-45b4-971a-05a4b04bab91
+- Vortice.MediaFoundation.TransformCategoryGuids.AudioDecoder = 9ea73fb4-ef7a-4559-8d5d-719d8f0426c7
+
+MediaFactory public static methods containing 'Transform' or 'MFT':
+- SharpGen.Runtime.Result MFCreateSampleCopierMFT(Vortice.MediaFoundation.IMFTransform ByRef)
+- SharpGen.Runtime.Result MFCreateTransformActivate(Vortice.MediaFoundation.IMFActivate ByRef)
+- Int32 MFGetMFTMerit(SharpGen.Runtime.IUnknown, UInt32, Byte[])
+- Void MFTEnum(System.Guid, UInt32, System.Nullable`1[Vortice.MediaFoundation.RegisterTypeInfo], System.Nullable`1[Vortice.MediaFoundation.RegisterTypeInfo], Vortice.MediaFoundation.IMFAttributes, IntPtr ByRef, UInt32 ByRef)
+- Void MFTEnum2(System.Guid, UInt32, System.Nullable`1[Vortice.MediaFoundation.RegisterTypeInfo], System.Nullable`1[Vortice.MediaFoundation.RegisterTypeInfo], Vortice.MediaFoundation.IMFAttributes, IntPtr ByRef, UInt32 ByRef)
+- Void MFTEnumEx(System.Guid, UInt32, System.Nullable`1[Vortice.MediaFoundation.RegisterTypeInfo], System.Nullable`1[Vortice.MediaFoundation.RegisterTypeInfo], IntPtr ByRef, UInt32 ByRef)
+- Void MFTGetInfo(System.Guid, IntPtr, IntPtr ByRef, UInt32 ByRef, IntPtr ByRef, UInt32 ByRef, Vortice.MediaFoundation.IMFAttributes ByRef)
+- Void MFTRegister(System.Guid, System.Guid, System.String, UInt32, UInt32, Vortice.MediaFoundation.RegisterTypeInfo[], UInt32, Vortice.MediaFoundation.RegisterTypeInfo[], Vortice.MediaFoundation.IMFAttributes)
+- Void MFTRegisterLocal(SharpGen.Runtime.Win32.IClassFactory, System.Guid, System.String, UInt32, UInt32, Vortice.MediaFoundation.RegisterTypeInfo[], UInt32, Vortice.MediaFoundation.RegisterTypeInfo[])
+- Void MFTRegisterLocalByCLSID(System.Guid, System.Guid, System.String, UInt32, UInt32, Vortice.MediaFoundation.RegisterTypeInfo[], UInt32, Vortice.MediaFoundation.RegisterTypeInfo[])
+- Void MFTUnregister(System.Guid)
+- Void MFTUnregisterLocal(SharpGen.Runtime.Win32.IClassFactory)
+- Void MFTUnregisterLocalByCLSID(System.Guid)
+- SharpGen.Runtime.Result MFTranscodeGetAudioOutputAvailableTypes(System.Guid, Int32, Vortice.MediaFoundation.IMFAttributes, Vortice.MediaFoundation.IMFCollection ByRef)
+
+Vortice.MediaFoundation types containing 'MFT' (name only):
+- Vortice.MediaFoundation.IMFFieldOfUseMFTUnlock
+- Vortice.MediaFoundation.IMFLocalMFTRegistration
+- Vortice.MediaFoundation.IMFTimecodeTranslate
+- Vortice.MediaFoundation.IMFTimedText
+- Vortice.MediaFoundation.IMFTimedTextBinary
+- Vortice.MediaFoundation.IMFTimedTextBouten
+- Vortice.MediaFoundation.IMFTimedTextCue
+- Vortice.MediaFoundation.IMFTimedTextCueList
+- Vortice.MediaFoundation.IMFTimedTextFormattedText
+- Vortice.MediaFoundation.IMFTimedTextNotify
+- Vortice.MediaFoundation.IMFTimedTextRegion
+- Vortice.MediaFoundation.IMFTimedTextRuby
+- Vortice.MediaFoundation.IMFTimedTextStyle
+- Vortice.MediaFoundation.IMFTimedTextStyle2
+- Vortice.MediaFoundation.IMFTimedTextTrack
+- Vortice.MediaFoundation.IMFTimedTextTrackList
+- Vortice.MediaFoundation.IMFTimer
+- Vortice.MediaFoundation.IMFTopoLoader
+- Vortice.MediaFoundation.IMFTopology
+- Vortice.MediaFoundation.IMFTopologyNode
+- Vortice.MediaFoundation.IMFTopologyNodeAttributeEditor
+- Vortice.MediaFoundation.IMFTopologyServiceLookup
+- Vortice.MediaFoundation.IMFTopologyServiceLookupClient
+- Vortice.MediaFoundation.IMFTrackedSample
+- Vortice.MediaFoundation.IMFTranscodeProfile
+- Vortice.MediaFoundation.IMFTranscodeSinkInfoProvider
+- Vortice.MediaFoundation.IMFTransform
+- Vortice.MediaFoundation.IMFTrustedInput
+- Vortice.MediaFoundation.IMFTrustedOutput
+
+MediaFactory methods containing 'Sample' or 'MemoryBuffer':
+- SharpGen.Runtime.RawBool MFCombineSamples(Vortice.MediaFoundation.IMFSample, Vortice.MediaFoundation.IMFSample, Int32)
+- Vortice.MediaFoundation.IMFMediaBuffer MFCreateAlignedMemoryBuffer(Int32, Int32)
+- Vortice.MediaFoundation.IMFMediaBuffer MFCreateMemoryBuffer(Int32)
+- Vortice.MediaFoundation.IMFSample MFCreateMuxStreamSample(Vortice.MediaFoundation.IMFCollection)
+- Vortice.MediaFoundation.IMFSample MFCreateSample()
+- SharpGen.Runtime.Result MFCreateSampleCopierMFT(Vortice.MediaFoundation.IMFTransform ByRef)
+- SharpGen.Runtime.Result MFCreateTrackedSample(Vortice.MediaFoundation.IMFTrackedSample ByRef)
+- SharpGen.Runtime.Result MFCreateVideoSampleAllocator(System.Guid, IntPtr ByRef)
+- IntPtr MFCreateVideoSampleAllocatorEx(System.Guid)
+- SharpGen.Runtime.Result MFCreateVideoSampleFromSurface(SharpGen.Runtime.IUnknown, Vortice.MediaFoundation.IMFSample ByRef)
+- Void MFSplitSample(Vortice.MediaFoundation.IMFSample, Vortice.MediaFoundation.IMFSample[], Int32, Int32 ByRef)
+
+IMFTransform public instance methods (first 40):
+- Void AddInputStreams(Int32, Int32)
+- UInt32 AddRef()
+- Void DeleteInputStream(Int32)
+- Void Dispose()
+- Boolean Equals(SharpGen.Runtime.CppObject)
+- Boolean Equals(System.Object)
+- Int32 GetHashCode()
+- Vortice.MediaFoundation.IMFMediaType GetInputAvailableType(Int32, Int32)
+- Vortice.MediaFoundation.IMFMediaType GetInputCurrentType(Int32)
+- Int32 GetInputStatus(Int32)
+- Vortice.MediaFoundation.IMFAttributes GetInputStreamAttributes(Int32)
+- Vortice.MediaFoundation.InputStreamInfo GetInputStreamInfo(Int32)
+- Vortice.MediaFoundation.IMFMediaType GetOutputAvailableType(Int32, Int32)
+- Vortice.MediaFoundation.IMFMediaType GetOutputCurrentType(Int32)
+- Vortice.MediaFoundation.IMFAttributes GetOutputStreamAttributes(Int32)
+- Vortice.MediaFoundation.OutputStreamInfo GetOutputStreamInfo(Int32)
+- Void GetStreamCount(Int32 ByRef, Int32 ByRef)
+- Void GetStreamIDs(Int32, Int32[], Int32, Int32[])
+- Void GetStreamLimits(Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef)
+- System.Type GetType()
+- Void ProcessEvent(Int32, Vortice.MediaFoundation.IMFMediaEvent)
+- Void ProcessInput(Int32, Vortice.MediaFoundation.IMFSample, Int32)
+- Void ProcessMessage(Vortice.MediaFoundation.TMessageType, UIntPtr)
+- SharpGen.Runtime.Result ProcessOutput(Vortice.MediaFoundation.ProcessOutputFlags, Int32, Vortice.MediaFoundation.OutputDataBuffer ByRef, Vortice.MediaFoundation.ProcessOutputStatus ByRef)
+- SharpGen.Runtime.Result QueryInterface(System.Guid, IntPtr ByRef)
+- T QueryInterface[T]()
+- IntPtr QueryInterfaceOrNull(System.Guid)
+- T QueryInterfaceOrNull[T]()
+- UInt32 Release()
+- Void SetInputType(Int32, Vortice.MediaFoundation.IMFMediaType, Int32)
+- Void SetOutputBounds(Int64, Int64)
+- Void SetOutputType(Int32, Vortice.MediaFoundation.IMFMediaType, Int32)
+- System.String ToString()
+- Void add_Disposed(SharpGen.Runtime.DisposeEventHandler)
+- Void add_Disposing(SharpGen.Runtime.DisposeEventHandler)
+- Vortice.MediaFoundation.IMFAttributes get_Attributes()
+- IntPtr get_NativePointer()
+- Int32 get_OutputStatus()
+- System.Object get_Tag()
+- Vortice.MediaFoundation.IMFTransform op_Explicit(IntPtr)
+
+MediaFactory methods containing 'MediaType':
+- SharpGen.Runtime.RawBool MFCompareFullToPartialMediaType(Vortice.MediaFoundation.IMFMediaType, Vortice.MediaFoundation.IMFMediaType)
+- Vortice.MediaFoundation.IMFAudioMediaType MFCreateAudioMediaType(Vortice.Multimedia.WaveFormat ByRef)
+- Void MFCreateMFVideoFormatFromMFMediaType(Vortice.MediaFoundation.IMFMediaType, IntPtr ByRef, UInt32 ByRef)
+- Vortice.MediaFoundation.IMFMediaBuffer MFCreateMediaBufferFromMediaType(Vortice.MediaFoundation.IMFMediaType, Int64, Int32, Int32)
+- Vortice.MediaFoundation.IMFMediaType MFCreateMediaType()
+- SharpGen.Runtime.Result MFCreateMediaTypeFromProperties(SharpGen.Runtime.IUnknown, Vortice.MediaFoundation.IMFMediaType ByRef)
+- Vortice.MediaFoundation.IMFMediaType MFCreateMediaTypeFromRepresentation(System.Guid, IntPtr)
+- Vortice.MediaFoundation.IMFMediaType MFCreateMuxStreamMediaType(Vortice.MediaFoundation.IMFCollection)
+- SharpGen.Runtime.Result MFCreatePropertiesFromMediaType(Vortice.MediaFoundation.IMFMediaType, System.Guid, IntPtr ByRef)
+- Vortice.MediaFoundation.IMFVideoMediaType MFCreateVideoMediaType(Vortice.MediaFoundation.VideoFormat ByRef)
+- Vortice.MediaFoundation.IMFVideoMediaType MFCreateVideoMediaTypeFromBitMapInfoHeader(Vortice.Win32.BitmapInfoHeader ByRef, Int32, Int32, Vortice.MediaFoundation.VideoInterlaceMode, UInt64, UInt64, UInt64, Int32)
+- Vortice.MediaFoundation.IMFVideoMediaType MFCreateVideoMediaTypeFromBitMapInfoHeaderEx(Vortice.Win32.BitmapInfoHeader[], UInt32, Int32, Int32, Vortice.MediaFoundation.VideoInterlaceMode, UInt64, Int32, Int32, Int32)
+- Vortice.MediaFoundation.IMFVideoMediaType MFCreateVideoMediaTypeFromSubtype(System.Guid)
+- Void MFCreateWaveFormatExFromMFMediaType(Vortice.MediaFoundation.IMFMediaType, IntPtr ByRef, UInt32 ByRef, UInt32)
+- Void MFInitMediaTypeFromMFVideoFormat(Vortice.MediaFoundation.IMFMediaType, Vortice.MediaFoundation.VideoFormat[], UInt32)
+- Void MFInitMediaTypeFromWaveFormatEx(Vortice.MediaFoundation.IMFMediaType, Vortice.Multimedia.WaveFormat[], UInt32)
+- Vortice.MediaFoundation.IMFMediaType MFUnwrapMediaType(Vortice.MediaFoundation.IMFMediaType)
+- Void MFValidateMediaTypeSize(System.Guid, Byte[], UInt32)
+- Vortice.MediaFoundation.IMFMediaType MFWrapMediaType(Vortice.MediaFoundation.IMFMediaType, System.Guid, System.Guid)
+
+IMFTransform IID:
+bf94c121-5b05-4e6f-8000-ba598961414d
+
+OutputDataBuffer fields:
+- IMFCollection Events
+- IMFSample Sample
+- Int32 Status
+- Int32 StreamID
+
+IMFAttributes methods containing 'UInt' or 'Int' (first 40):
+- UInt32 GetUInt32(System.Guid)
+- SharpGen.Runtime.Result GetUInt32(System.Guid, UInt32 ByRef)
+- UInt64 GetUInt64(System.Guid)
+- SharpGen.Runtime.Result GetUInt64(System.Guid, UInt64 ByRef)
+- SharpGen.Runtime.Result QueryInterface(System.Guid, IntPtr ByRef)
+- T QueryInterface[T]()
+- IntPtr QueryInterfaceOrNull(System.Guid)
+- T QueryInterfaceOrNull[T]()
+
+IMFAttributes methods containing 'Guid' (first 40):
+- System.Guid GetGUID(System.Guid)
+- SharpGen.Runtime.Result GetGUID(System.Guid, System.Guid ByRef)
+
+MediaTypeAttributeKeys static Guid fields containing 'Frame':
+- FrameRate = c459a2e8-3d2c-4e44-b132-fee5156c7bb0
+- FrameRateRangeMax = e3371d41-b4cf-4a05-bd4e-20b88bb2c4d6
+- FrameRateRangeMin = d2e7558c-dc1f-403f-9a72-d28bb1eb3b5e
+- FrameSize = 1652c33d-d6b2-4012-b834-72030849a37d
+- H264SupportedSyncFrameTypes = 89a52c01-f282-48d2-b522-22e6ae633199
+- MaxKeyframeSpacing = c16eb52b-73a1-476f-8d62-839d6a020652
+
+MediaFactory public static fields (first 80):
+- Int32 Version = 131184
+
+MediaFactory public static fields containing 'Mft' or 'MFT' or 'Transform':
+
+MediaFactory public static methods containing 'Startup' or 'Shutdown' or 'Version':
+- SharpGen.Runtime.Result MFShutdown()
+- SharpGen.Runtime.Result MFShutdownObject(SharpGen.Runtime.IUnknown)
+- SharpGen.Runtime.Result MFStartup(Boolean)
+
+MediaFactory.MFStartup parameter names:
+- SharpGen.Runtime.Result MFStartup(Boolean)
+ - Boolean useLightVersion
+
+ResultCode static fields (filtered):
+- Result AsfUnsupportedStreamType = -1072874848
+- Result ByteStreamNotSeekable = -1072875794
+- Result ByteStreamUnknownLength = -1072875781
+- Result CannotParseByteStream = -1072875792
+- Result CaptureSourceNoAudioStreamPresent = -1072845848
+- Result CaptureSourceNoIndependentPhotoStreamPresent = -1072845850
+- Result CaptureSourceNoVideoStreamPresent = -1072845849
+- Result EndOfStream = -1072873852
+- Result FlushNeeded = -1072871853
+- Result HwMftFailedStartStreaming = -1072875772
+- Result HwStreamNotConnected = -1072846851
+- Result InvalidAsfStreamid = -1072871847
+- Result InvalidStreamData = -1072875829
+- Result InvalidStreamState = -1072846852
+- Result Invalidstreamnumber = -1072875853
+- Result LicenseRestoreNeedsIndividualization = -1072860849
+- Result MediaSourceNoStreamsSelected = -1072873828
+- Result NetCachestreamNotFound = -1072872847
+- Result NetStreamgroupsNotSupported = -1072872850
+- Result NoMoreDropModes = -1072848856
+- Result NoMoreQualityLevels = -1072848855
+- Result NoMoreTypes = -1072875847
+- Result SinkNoStreams = -1072870847
+- Result StreamError = -1072846853
+- Result StreamsinkExists = -1072870852
+- Result StreamsinkRemoved = -1072870856
+- Result StreamsinksFixed = -1072870853
+- Result StreamsinksOutOfSync = -1072870854
+- Result TopoMissingStreamDescriptor = -1072868840
+- Result TopoStreamDescriptorNotSelected = -1072868839
+- Result TranscodeProfileNoMatchingStreams = -1072847855
+- Result TransformAsyncLocked = -1072861833
+- Result TransformAsyncMftNotSupported = -1072861830
+- Result TransformCannotChangeMediatypeWhileProcessing = -1072861836
+- Result TransformCannotInitializeAcmDriver = -1072861832
+- Result TransformConflictsWithOtherCurrentlyEnabledFeatures = -1072861840
+- Result TransformExattributeNotSupported = -1072861828
+- Result TransformInputRemaining = -1072861854
+- Result TransformNeedMoreInput = -1072861838
+- Result TransformNotPossibleForCurrentInputMediatype = -1072861842
+- Result TransformNotPossibleForCurrentMediatypeCombination = -1072861841
+- Result TransformNotPossibleForCurrentOutputMediatype = -1072861843
+- Result TransformNotPossibleForCurrentSpkrConfig = -1072861837
+- Result TransformProfileInvalidOrCorrupt = -1072861852
+- Result TransformProfileMissing = -1072861853
+- Result TransformProfileTruncated = -1072861851
+- Result TransformPropertyArrayValueWrongNumDim = -1072861847
+- Result TransformPropertyNotWriteable = -1072861848
+- Result TransformPropertyPidNotRecognized = -1072861850
+- Result TransformPropertyValueIncompatible = -1072861844
+- Result TransformPropertyValueOutOfRange = -1072861845
+- Result TransformPropertyValueSizeWrong = -1072861846
+- Result TransformPropertyVariantTypeWrong = -1072861849
+- Result TransformStreamChange = -1072861855
+- Result TransformStreamInvalidResolution = -1072861831
+- Result TransformTypeNotSet = -1072861856
+- Result UnsupportedByteStreamType = -1072875836
+
+TMessageType enum values:
+- MessageCommandDrain = 1
+- MessageCommandFlush = 0
+- MessageCommandFlushOutputStream = 268435464
+- MessageCommandMarker = 536870912
+- MessageCommandSetOutputStreamState = 268435463
+- MessageCommandTick = 4
+- MessageDropSamples = 3
+- MessageNotifyBeginStreaming = 268435456
+- MessageNotifyEndOfStream = 268435458
+- MessageNotifyEndStreaming = 268435457
+- MessageNotifyEvent = 268435462
+- MessageNotifyReacquireResources = 268435461
+- MessageNotifyReleaseResources = 268435460
+- MessageNotifyStartOfStream = 268435459
+- MessageSetD3DManager = 2
+
+IMFMediaBuffer public instance methods (first 40):
+- UInt32 AddRef()
+- Void Dispose()
+- Boolean Equals(SharpGen.Runtime.CppObject)
+- Boolean Equals(System.Object)
+- Int32 GetHashCode()
+- System.Type GetType()
+- Void Lock(IntPtr ByRef, Int32 ByRef, Int32 ByRef)
+- SharpGen.Runtime.Result QueryInterface(System.Guid, IntPtr ByRef)
+- T QueryInterface[T]()
+- IntPtr QueryInterfaceOrNull(System.Guid)
+- T QueryInterfaceOrNull[T]()
+- UInt32 Release()
+- System.String ToString()
+- Void Unlock()
+- Void add_Disposed(SharpGen.Runtime.DisposeEventHandler)
+- Void add_Disposing(SharpGen.Runtime.DisposeEventHandler)
+- Int32 get_CurrentLength()
+- Int32 get_MaxLength()
+- IntPtr get_NativePointer()
+- System.Object get_Tag()
+- Vortice.MediaFoundation.IMFMediaBuffer op_Explicit(IntPtr)
+- Void remove_Disposed(SharpGen.Runtime.DisposeEventHandler)
+- Void remove_Disposing(SharpGen.Runtime.DisposeEventHandler)
+- Void set_CurrentLength(Int32)
+- Void set_NativePointer(IntPtr)
+- Void set_Tag(System.Object)
+
+IMFSample public instance methods containing 'Buffer':
+- Void AddBuffer(Vortice.MediaFoundation.IMFMediaBuffer)
+- Vortice.MediaFoundation.IMFMediaBuffer ConvertToContiguousBuffer()
+- Void CopyToBuffer(Vortice.MediaFoundation.IMFMediaBuffer)
+- Vortice.MediaFoundation.IMFMediaBuffer GetBufferByIndex(Int32)
+- Void RemoveAllBuffers()
+- Void RemoveBufferByIndex(Int32)
+- Int32 get_BufferCount()

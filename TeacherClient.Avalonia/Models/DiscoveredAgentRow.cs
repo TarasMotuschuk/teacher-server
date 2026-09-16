@@ -4,7 +4,7 @@ using TeacherClient.CrossPlatform.Models;
 
 namespace TeacherClient.CrossPlatform;
 
-internal sealed record DiscoveredAgentRow(
+public sealed record DiscoveredAgentRow(
     string AgentId,
     string Source,
     string Status,

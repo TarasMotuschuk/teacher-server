@@ -2,11 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.Dialogs.SettingsWindow"
         Width="620"
-        Height="560"
+        Height="620"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="ClassCommander Settings">
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="200,*" Margin="18">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="200,*" Margin="18">
     <TextBlock x:Name="SharedSecretLabel"
                Grid.Row="0"
                Grid.Column="0"
@@ -95,7 +95,18 @@
              Grid.Column="1"
              Height="45" />
 
-    <StackPanel Grid.Row="8"
+    <TextBlock x:Name="TestPlatformBaseUrlLabel"
+               Grid.Row="8"
+               Grid.Column="0"
+               Margin="0,8,12,0"
+               VerticalAlignment="Top"
+               Text="Test platform URL" />
+    <TextBox x:Name="TestPlatformBaseUrlTextBox"
+             Grid.Row="8"
+             Grid.Column="1"
+             Height="45" />
+
+    <StackPanel Grid.Row="9"
                 Grid.Column="0"
                 Grid.ColumnSpan="2"
                 Orientation="Horizontal"

@@ -6,7 +6,6 @@
     <InstallerPlatform>x64</InstallerPlatform>
     <Cultures>en-us</Cultures>
     <DefineConstants>
-      TeacherPayloadDir=$(MSBuildProjectDirectory)\artifacts\Teacher;
       TeacherAvaloniaPayloadDir=$(MSBuildProjectDirectory)\artifacts\TeacherAvalonia;
       StudentPayloadDir=$(MSBuildProjectDirectory)\artifacts\Student;
       GeneratedFragmentsDir=$(MSBuildProjectDirectory)\Generated
@@ -23,9 +22,4 @@
     <Content Include="Resources\License.rtf" />
   </ItemGroup>
   
-  <ItemGroup>
-    <WixExtension Include="WixToolset.Firewall.wixext" />
-    <WixExtension Include="WixToolset.UI.wixext" />
-    <WixExtension Include="WixToolset.Util.wixext" />
-  </ItemGroup>
 </Project>

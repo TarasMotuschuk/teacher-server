@@ -55,7 +55,7 @@ Avalonia teacher client (macOS example):
   - remote command scripts (run as current user or administrator)
   - collect student work folders
   - browser lock and input lock (including a visible demonstration banner mode)
-  - power actions (shutdown/restart/log off)
+  - power actions (shutdown/restart/log off, and **power on** via Wake-on-LAN using stored MAC addresses)
   - **Group Policies** (registry-based classroom restrictions + optional enforced wallpaper)
   - desktop icon layout actions (save/restore on the connected PC; restore or push layouts in bulk)
 

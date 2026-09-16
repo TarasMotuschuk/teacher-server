@@ -40,7 +40,7 @@ public sealed class ClientSettingsStore
             try
             {
                 var json = File.ReadAllText(_storagePath);
-                var settings = JsonSerializer.Deserialize<ClientSettings>(json);
+                var settings = JsonSerializer.Deserialize<ClientSettings>(json, JsonOptions);
                 return Normalize(settings);
             }
             catch
@@ -54,9 +54,11 @@ public sealed class ClientSettingsStore
     {
         lock (_sync)
         {
-            var json = JsonSerializer.Serialize(Normalize(settings), JsonOptions);
+            var normalized = Normalize(settings);
+            var json = JsonSerializer.Serialize(normalized, JsonOptions);
 
             File.WriteAllText(_storagePath, json);
+            ClassCommanderUiSettings.SaveLanguage(normalized.Language);
         }
     }
 
@@ -90,6 +92,10 @@ public sealed class ClientSettingsStore
             theme = ClientSettings.Default.Theme;
         }
 
+        var testPlatformBaseUrl = string.IsNullOrWhiteSpace(settings?.TestPlatformBaseUrl)
+            ? ClientSettings.Default.TestPlatformBaseUrl
+            : settings.TestPlatformBaseUrl.Trim().TrimEnd('/');
+
         return new ClientSettings(
             sharedSecret,
             language,
@@ -98,6 +104,7 @@ public sealed class ClientSettingsStore
             studentWorkFolderName,
             Math.Max(1, desktopIconAutoRestoreMinutes),
             browserLockCheckIntervalSeconds,
-            theme);
+            theme,
+            testPlatformBaseUrl);
     }
 }

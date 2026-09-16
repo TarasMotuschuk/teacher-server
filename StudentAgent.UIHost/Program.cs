@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StudentAgent;
@@ -11,10 +12,27 @@ try
     ApplicationConfiguration.Initialize();
     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 
-    var configuration = new ConfigurationBuilder()
-        .SetBasePath(AppContext.BaseDirectory)
-        .AddJsonFile("appsettings.json", optional: true)
-        .Build();
+    var configBuilder = new ConfigurationBuilder()
+        .SetBasePath(AppContext.BaseDirectory);
+
+    // appsettings.json is an optional override. If it is present but not valid UTF-8 JSON (e.g. installer/encoding issues),
+    // do not crash the UI host: fall back to defaults and registry-backed settings.
+    var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+    if (File.Exists(appSettingsPath))
+    {
+        try
+        {
+            using var stream = File.OpenRead(appSettingsPath);
+            _ = JsonDocument.Parse(stream);
+            configBuilder.AddJsonFile("appsettings.json", optional: true);
+        }
+        catch
+        {
+            // ignore invalid appsettings.json
+        }
+    }
+
+    var configuration = configBuilder.Build();
 
     var services = new ServiceCollection();
     services.Configure<AgentOptions>(configuration.GetSection(AgentOptions.SectionName));

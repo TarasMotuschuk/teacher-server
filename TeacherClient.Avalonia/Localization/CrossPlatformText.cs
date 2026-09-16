@@ -84,9 +84,100 @@ internal static partial class CrossPlatformText
 
     public static string CommandsMenu => IsUk ? "Команди" : "Commands";
 
+    public static string ClearBrowserHistoryCacheSelected => IsUk
+        ? "Очистити історію браузера та кеш на вибраних ПК"
+        : "Clear browser history + cache on selected PCs";
+
+    public static string ClearBrowserHistoryCacheAllOnline => IsUk
+        ? "Очистити історію браузера та кеш на всіх онлайн ПК"
+        : "Clear browser history + cache on all online PCs";
+
+    public static string ClearBrowserHistoryCacheConfirmTitle => IsUk ? "Очистка браузера" : "Browser cleanup";
+
+    public static string ClearBrowserHistoryCacheConfirmMessage => IsUk
+        ? "Це закриє Chrome/Edge/Firefox/Opera на учнівському ПК і очистить історію та кеш. Збережені паролі та файли завантажень не видаляються. Продовжити?"
+        : "This will close Chrome/Edge/Firefox/Opera on the student PC and clear history and cache. Saved passwords and downloaded files will not be removed. Continue?";
+
+    public static string ClearBrowserHistoryCacheBulkProgress(string machine, int index, int total) => IsUk
+        ? $"Очистка браузера: {machine} ({index}/{total})"
+        : $"Browser cleanup: {machine} ({index}/{total})";
+
+    public static string ClearBrowserHistoryCacheBulkCompleted(int succeeded) => IsUk
+        ? $"Очистку браузера виконано на {succeeded} ПК."
+        : $"Browser cleanup completed on {succeeded} PCs.";
+
+    public static string ClearBrowserHistoryCacheBulkCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Очистку браузера виконано: {succeeded} успішно, {failures} з помилками."
+        : $"Browser cleanup completed: {succeeded} succeeded, {failures} failed.";
+
+    public static string BulkBrowserCleanupError => IsUk ? "Помилка групової очистки браузера" : "Bulk browser cleanup error";
+
+    public static string ClearBrowserCookiesSelected => IsUk
+        ? "Очистити cookies браузера на вибраних ПК"
+        : "Clear browser cookies on selected PCs";
+
+    public static string ClearBrowserCookiesAllOnline => IsUk
+        ? "Очистити cookies браузера на всіх онлайн ПК"
+        : "Clear browser cookies on all online PCs";
+
+    public static string ClearBrowserCookiesConfirmTitle => IsUk ? "Очистка cookies" : "Cookies cleanup";
+
+    public static string ClearBrowserCookiesConfirmMessage => IsUk
+        ? "Це закриє Chrome/Edge/Firefox/Opera на учнівському ПК і очистить cookies (може знадобитися повторний вхід на сайти). Збережені паролі та файли завантажень не видаляються. Продовжити?"
+        : "This will close Chrome/Edge/Firefox/Opera on the student PC and clear cookies (sites may require sign-in again). Saved passwords and downloaded files will not be removed. Continue?";
+
+    public static string ClearBrowserCookiesBulkProgress(string machine, int index, int total) => IsUk
+        ? $"Очистка cookies: {machine} ({index}/{total})"
+        : $"Cookies cleanup: {machine} ({index}/{total})";
+
+    public static string ClearBrowserCookiesBulkCompleted(int succeeded) => IsUk
+        ? $"Очистку cookies виконано на {succeeded} ПК."
+        : $"Cookies cleanup completed on {succeeded} PCs.";
+
+    public static string ClearBrowserCookiesBulkCompletedWithFailures(int succeeded, int failures) => IsUk
+        ? $"Очистку cookies виконано: {succeeded} успішно, {failures} з помилками."
+        : $"Cookies cleanup completed: {succeeded} succeeded, {failures} failed.";
+
+    public static string BulkCookiesCleanupError => IsUk ? "Помилка групової очистки cookies" : "Bulk cookies cleanup error";
+
     public static string DesktopIconsMenu => IsUk ? "Іконки робочого стола" : "Desktop Icons";
 
     public static string PowerCommandsMenu => IsUk ? "Живлення" : "Power";
+
+    public static string DemonstrationMenu => IsUk ? "Демонстрація" : "Demonstration";
+
+    public static string DemonstrationSourceDialogTitle => IsUk ? "Джерело демонстрації" : "Demonstration source";
+
+    public static string DemonstrationSourcePrompt => IsUk ? "Оберіть, що демонструвати:" : "Choose what to demonstrate:";
+
+    public static string DemonstrationSourceScreenOption => IsUk ? "Весь екран" : "Full screen";
+
+    public static string DemonstrationSourceWindowOption => IsUk ? "Певне вікно" : "Specific window";
+
+    public static string DemonstrationSourceWindowListLabel => IsUk ? "Список вікон" : "Window list";
+
+    public static string DemonstrationSourceLoadingWindows => IsUk ? "Завантаження вікон…" : "Loading windows…";
+
+    public static string DemonstrationSourceNoWindowsFound => IsUk ? "Вікна не знайдено." : "No windows found.";
+
+    public static string DemonstrationSourceWindowsFound(int count) => IsUk ? $"Знайдено вікон: {count}." : $"{count} windows found.";
+
+    public static string DemonstrationSourceEnumerateFailed(string message) =>
+        IsUk ? $"Не вдалося отримати список вікон: {message}" : $"Failed to enumerate windows: {message}";
+
+    public static string DemonstrationSourceStart => IsUk ? "Почати" : "Start";
+
+    public static string StartDemonstrationOnSelectedStudents => IsUk ? "Почати демонстрацію на вибраних ПК" : "Start demonstration on selected PCs";
+
+    public static string StartDemonstrationOnAllOnlineStudents => IsUk ? "Почати демонстрацію на всіх онлайн ПК" : "Start demonstration on all online PCs";
+
+    public static string StopDemonstrationOnSelectedStudents => IsUk ? "Зупинити демонстрацію на вибраних ПК" : "Stop demonstration on selected PCs";
+
+    public static string StopDemonstrationOnAllOnlineStudents => IsUk ? "Зупинити демонстрацію на всіх онлайн ПК" : "Stop demonstration on all online PCs";
+
+    public static string DemonstrationStartFailed => IsUk ? "Не вдалося почати демонстрацію" : "Failed to start demonstration";
+
+    public static string DemonstrationStopFailed => IsUk ? "Не вдалося зупинити демонстрацію" : "Failed to stop demonstration";
 
     public static string SelectedStudentsMenu => IsUk ? "Вибрані ПК" : "Selected PCs";
 
@@ -172,16 +263,16 @@ internal static partial class CrossPlatformText
 
     public static string DownloadArrow => IsUk ? "<- Скачати" : "<- Download";
 
-    /// <summary>Files tab: unified copy (upload or download depending on active panel).</summary>
+    /// <summary>Gets files tab: unified copy (upload or download depending on active panel).</summary>
     public static string FilesToolbarCopy => IsUk ? "Копіювати" : "Copy";
 
-    /// <summary>Tooltip when teacher (local) panel is active — copy uploads to student.</summary>
+    /// <summary>Gets tooltip when teacher (local) panel is active — copy uploads to student.</summary>
     public static string FilesCopyTooltipTeacherPanel =>
         IsUk
             ? "Копіює вибраний файл з ПК викладача на ПК студента (у поточну віддалену папку)."
             : "Copy the selected file from this PC to the student PC (current remote folder).";
 
-    /// <summary>Tooltip when student (remote) panel is active — copy downloads to teacher.</summary>
+    /// <summary>Gets tooltip when student (remote) panel is active — copy downloads to teacher.</summary>
     public static string FilesCopyTooltipStudentPanel =>
         IsUk
             ? "Копіює вибраний файл з ПК студента на ПК викладача (у поточну локальну папку)."
@@ -213,22 +304,22 @@ internal static partial class CrossPlatformText
 
     public static string DeleteRemote => IsUk ? "Видалити віддалено" : "Delete Remote";
 
-    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    /// <summary>Gets files tab: unified toolbar action (active panel).</summary>
     public static string FilesToolbarOpen => IsUk ? "Відкрити" : "Open";
 
-    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    /// <summary>Gets files tab: unified toolbar action (active panel).</summary>
     public static string FilesToolbarRename => IsUk ? "Перейменувати" : "Rename";
 
-    /// <summary>Files tab: unified toolbar action (active panel).</summary>
+    /// <summary>Gets files tab: unified toolbar action (active panel).</summary>
     public static string FilesToolbarDelete => IsUk ? "Видалити" : "Delete";
 
-    /// <summary>Tooltip for Open/Rename/Delete on the Files tab — explains active panel.</summary>
+    /// <summary>Gets tooltip for Open/Rename/Delete on the Files tab — explains active panel.</summary>
     public static string FilesToolbarActivePanelHint =>
         IsUk
             ? "Дія для активної панелі (підсвічена рамка): ліва — ПК викладача, права — ПК студента."
             : "Action applies to the active panel (highlighted border): left — teacher PC, right — student PC.";
 
-    /// <summary>Tooltip when New remote folder is disabled (teacher panel active).</summary>
+    /// <summary>Gets tooltip when New remote folder is disabled (teacher panel active).</summary>
     public static string FilesNewFolderNeedsStudentPanel =>
         IsUk
             ? "Спочатку виберіть праву панель (ПК студента), щоб створити папку на віддаленому ПК."
@@ -283,6 +374,16 @@ internal static partial class CrossPlatformText
     public static string RestartCommand => IsUk ? "Перезавантажити" : "Restart";
 
     public static string LogOffCommand => IsUk ? "Вийти з облікового запису" : "Log Off";
+
+    public static string PowerOnCommand => IsUk ? "Увімкнути" : "Power On";
+
+    public static string PowerOnAllWithMacCommand => IsUk ? "Увімкнути всі ПК з MAC" : "Power On all PCs with MAC";
+
+    public static string WakeOnLanNoMacAddresses => IsUk
+        ? "Немає MAC-адрес для Wake-on-LAN. Додайте MAC у запис ПК або дочекайтесь discovery."
+        : "No MAC addresses available for Wake-on-LAN. Add a MAC to the PC entry or wait for discovery.";
+
+    public static string BulkWakeOnLanError => IsUk ? "Помилка групової команди: увімкнення (Wake-on-LAN)" : "Bulk power-on (Wake-on-LAN) error";
 
     public static string CreateStudentWorkFolderOnAllAgents => IsUk ? "Створити папку для робіт на всіх ПК" : "Create work folder on all PCs";
 
@@ -663,6 +764,152 @@ internal static partial class CrossPlatformText
     public static string ConfigurationMenu => IsUk ? "Конфігурація" : "Configuration";
 
     public static string BasicSettingsMenu => IsUk ? "Базові налаштування" : "Basic Settings";
+
+    public static string TestingMenu => IsUk ? "Тестування…" : "Testing…";
+
+    public static string TestEditorMenu => IsUk ? "Редактор тестів…" : "Test Editor…";
+
+    public static string TestEditorLaunched => IsUk ? "Запущено редактор тестів." : "Test Editor launched.";
+
+    public static string TestEditorNotFound => IsUk
+        ? "Не знайдено ClassCommander.TestEditor. Зберіть проєкт або запустіть його окремо: dotnet run --project ClassCommander.TestEditor"
+        : "ClassCommander.TestEditor was not found. Build it or run separately: dotnet run --project ClassCommander.TestEditor";
+
+    public static string TestingDeployRunner => IsUk ? "Розгорнути runner на ПК…" : "Deploy runner to PCs…";
+
+    public static string TestingStartSelected => IsUk ? "Старт на вибраних ПК" : "Start on selected PCs";
+
+    public static string TestingStartAllOnline => IsUk ? "Старт на всіх онлайн" : "Start on all online";
+
+    public static string TestingLaunchClassLabel => IsUk ? "Клас для запуску" : "Class for launch";
+
+    public static string TestingLaunchHint => IsUk
+        ? "Розгортає ClassCommander.TestRunner на учнівські ПК і запускає його з адресою Test Platform та класом (має збігатися з завданням)."
+        : "Deploys ClassCommander.TestRunner to student PCs and starts it with the Test Platform URL and class name (must match the assignment).";
+
+    public static string TestingChooseAgentsFirst => IsUk
+        ? "Виберіть учнівські ПК у списку Agents."
+        : "Select student PCs in the Agents list.";
+
+    public static string TestingNoOnlineAgents => IsUk
+        ? "Немає онлайн учнівських ПК."
+        : "No online student PCs.";
+
+    public static string TestingLaunchClassRequired => IsUk
+        ? "Вкажіть клас для запуску (має збігатися з призначенням)."
+        : "Enter the launch class (must match the assignment audience).";
+
+    public static string TestingRunnerNotBuilt => IsUk
+        ? "Немає Windows-збірки ClassCommander.TestRunner для розгортання. На Mac: dotnet publish ClassCommander.TestRunner -r win-x64 --self-contained false."
+        : "No Windows ClassCommander.TestRunner build to deploy. On Mac run: dotnet publish ClassCommander.TestRunner -r win-x64 --self-contained false.";
+
+    public static string TestingWindowTitle => IsUk ? "ClassCommander — Тестування" : "ClassCommander Testing";
+
+    public static string TestPlatformBaseUrl => IsUk ? "Адреса Test Platform" : "Test platform URL";
+
+    public static string SettingsFieldTooltipTestPlatformBaseUrl => IsUk
+        ? "Базова URL локального ClassCommander.TestPlatform (наприклад http://127.0.0.1:5050; на macOS уникайте :5000 — його часто займає AirPlay)."
+        : "Base URL of the local ClassCommander.TestPlatform server (for example http://127.0.0.1:5050; on macOS avoid :5000 — AirPlay often owns it).";
+
+    public static string TestingConnect => IsUk ? "Підключити" : "Connect";
+
+    public static string TestingConnected => IsUk ? "Підключено до Test Platform." : "Connected to Test Platform.";
+
+    public static string TestingTabTests => IsUk ? "Тести" : "Tests";
+
+    public static string TestingTabAssignments => IsUk ? "Завдання" : "Assignments";
+
+    public static string TestingTabMonitor => IsUk ? "Моніторинг" : "Monitor";
+
+    public static string TestingRefresh => IsUk ? "Оновити" : "Refresh";
+
+    public static string TestingImportMyTest => IsUk ? "Імпорт MyTest XML…" : "Import MyTest XML…";
+
+    public static string TestingImportCctest => IsUk ? "Імпорт .cctest…" : "Import .cctest…";
+
+    public static string TestingCreateAssignment => IsUk ? "Призначити тест…" : "Assign test…";
+
+    public static string TestingCloseAssignment => IsUk ? "Закрити завдання" : "Close assignment";
+
+    public static string TestingOpenMonitor => IsUk ? "Відкрити моніторинг" : "Open monitor";
+
+    public static string TestingViewResult => IsUk ? "Переглянути результат" : "View result";
+
+    public static string TestingSelectTestFirst => IsUk ? "Спочатку виберіть тест." : "Select a test first.";
+
+    public static string TestingSelectAssignmentFirst => IsUk ? "Спочатку виберіть завдання." : "Select an assignment first.";
+
+    public static string TestingSelectAttemptFirst => IsUk ? "Спочатку виберіть спробу або результат." : "Select an attempt or result first.";
+
+    public static string TestingImportSuccess => IsUk ? "Імпорт завершено." : "Import completed.";
+
+    public static string TestingAssignmentCreated => IsUk ? "Завдання створено." : "Assignment created.";
+
+    public static string TestingAssignmentClosed => IsUk ? "Завдання закрито." : "Assignment closed.";
+
+    public static string TestingConfirmCloseAssignment => IsUk
+        ? "Закрити це завдання? Учні більше не зможуть його починати."
+        : "Close this assignment? Students will no longer be able to start it.";
+
+    public static string TestingColumnTitle => IsUk ? "Назва" : "Title";
+
+    public static string TestingColumnVersion => IsUk ? "Версія" : "Version";
+
+    public static string TestingColumnQuestions => IsUk ? "Питання" : "Questions";
+
+    public static string TestingColumnUpdated => IsUk ? "Оновлено" : "Updated";
+
+    public static string TestingColumnStatus => IsUk ? "Статус" : "Status";
+
+    public static string TestingColumnTest => IsUk ? "Тест" : "Test";
+
+    public static string TestingColumnStudent => IsUk ? "Учень" : "Student";
+
+    public static string TestingColumnProgress => IsUk ? "Прогрес" : "Progress";
+
+    public static string TestingColumnStarted => IsUk ? "Почато" : "Started";
+
+    public static string TestingColumnScore => IsUk ? "Бали" : "Score";
+
+    public static string TestingColumnPercent => IsUk ? "%" : "%";
+
+    public static string TestingColumnCompleted => IsUk ? "Завершено" : "Completed";
+
+    public static string TestingAttemptsHeading => IsUk ? "Спроби" : "Attempts";
+
+    public static string TestingResultsHeading => IsUk ? "Результати" : "Results";
+
+    public static string TestingMonitorAssignment => IsUk ? "Завдання:" : "Assignment:";
+
+    public static string TestingCreateAssignmentTitle => IsUk ? "Призначити тест" : "Assign test";
+
+    public static string TestingAssignmentTitleLabel => IsUk ? "Назва завдання" : "Assignment title";
+
+    public static string TestingClassNameLabel => IsUk ? "Клас (аудиторія)" : "Class (audience)";
+
+    public static string TestingMaxAttemptsLabel => IsUk ? "Макс. спроб" : "Max attempts";
+
+    public static string TestingTimeLimitLabel => IsUk ? "Ліміт часу (сек, порожньо = без ліміту)" : "Time limit (sec, blank = none)";
+
+    public static string TestingShowScoreLabel => IsUk ? "Показувати бал учню" : "Show score to student";
+
+    public static string TestingShowCorrectLabel => IsUk ? "Показувати правильні відповіді" : "Show correct answers";
+
+    public static string TestingShowFeedbackLabel => IsUk ? "Показувати результат по питаннях" : "Show per-question feedback";
+
+    public static string TestingRequiredAssignmentFields => IsUk
+        ? "Заповніть назву завдання та клас."
+        : "Enter assignment title and class name.";
+
+    public static string TestingResultDetailTitle => IsUk ? "Результат спроби" : "Attempt result";
+
+    public static string TestingNoResultYet => IsUk ? "Результат ще недоступний." : "Result is not available yet.";
+
+    public static string TestingPerQuestionHeading => IsUk ? "По питаннях:" : "Per question:";
+
+    public static string TestingAnswersHeading => IsUk ? "Відповіді учня:" : "Student answers:";
+
+    public static string TestingViewDetails => IsUk ? "Деталі спроби" : "Attempt details";
 
     public static string DisplayNameRequired => IsUk ? "Назва є обов'язковою." : "Display name is required.";
 
