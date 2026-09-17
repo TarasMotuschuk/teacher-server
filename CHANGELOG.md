@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-18
+
 ### Added
 
 - **Classroom demonstration (preview)**: `TeacherClient.Avalonia` can start/stop a **fullscreen demonstration lock** on selected or all online student PCs using **WebRTC** signaling through the student service, with the incoming video rendered in the student session.

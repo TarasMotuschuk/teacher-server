@@ -5,7 +5,7 @@
   <Package
       Name="ClassCommander"
       Manufacturer="Taras Motuschuk"
-      Version="1.0.5"
+      Version="1.1.0"
       UpgradeCode="9D624377-0AA5-4E8A-970A-5640C752EA0A"
       Scope="perMachine"
       InstallerVersion="500"
