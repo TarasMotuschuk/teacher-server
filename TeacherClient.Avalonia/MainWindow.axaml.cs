@@ -5042,9 +5042,25 @@ public partial class MainWindow : Window, IDisposable
             yield return Path.Combine(root, projectName, "bin", "Release", "net10.0");
         }
 
+        // Installed layout: companion apps live in sibling directories of the teacher client
+        // install dir (e.g. ...\MTD\TeacherServer\TestEditor next to ...\TeacherServer\TeacherAvalonia)
+        // or in subdirectories of the app base dir (macOS .app bundle: Contents/MacOS/TestEditor).
+        const string companyPrefix = "ClassCommander.";
+        var shortName = projectName.StartsWith(companyPrefix, StringComparison.Ordinal)
+            ? projectName[companyPrefix.Length..]
+            : projectName;
+
         var baseDir = AppContext.BaseDirectory;
         yield return baseDir;
         yield return Path.Combine(baseDir, projectName);
+        yield return Path.Combine(baseDir, shortName);
+
+        var parentDir = Directory.GetParent(baseDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))?.FullName;
+        if (parentDir is not null)
+        {
+            yield return Path.Combine(parentDir, projectName);
+            yield return Path.Combine(parentDir, shortName);
+        }
     }
 
     private static IEnumerable<string> EnumerateRepositoryRoots()

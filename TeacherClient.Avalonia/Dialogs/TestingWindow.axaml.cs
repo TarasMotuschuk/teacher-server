@@ -374,30 +374,39 @@ public partial class TestingWindow : Window
 
     private async Task DeployRunnerAsync(IReadOnlyList<DiscoveredAgentRow> agents)
     {
-        var localDir = TestClassroomLaunchHelper.FindLocalRunnerDirectory();
-        if (localDir is null)
-        {
-            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, CrossPlatformText.TestingRunnerNotBuilt);
-            return;
-        }
-
-        var files = Directory.GetFiles(localDir, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => !path.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        if (files.Count == 0)
-        {
-            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, CrossPlatformText.TestingRunnerNotBuilt);
-            return;
-        }
-
+        List<string>? files = null;
         var failures = new List<string>();
         var succeeded = 0;
+        var skippedInstalled = 0;
         foreach (var agent in agents)
         {
             try
             {
                 StatusTextBlock.Text = $"{agent.MachineName}…";
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _settings.SharedSecret);
+                if (await TestClassroomLaunchHelper.HasInstalledRunnerAsync(client))
+                {
+                    // The ClassCommander installer already ships TestRunner on this PC and the
+                    // agent auto-update keeps it current; no upload needed.
+                    skippedInstalled++;
+                    continue;
+                }
+
+                if (files is null)
+                {
+                    var localDir = TestClassroomLaunchHelper.FindLocalRunnerDirectory();
+                    files = localDir is null
+                        ? []
+                        : Directory.GetFiles(localDir, "*", SearchOption.TopDirectoryOnly)
+                            .Where(path => !path.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                    if (files.Count == 0)
+                    {
+                        await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, CrossPlatformText.TestingRunnerNotBuilt);
+                        return;
+                    }
+                }
+
                 await client.EnsureSharedWritableDirectoryAsync(TestClassroomLaunchHelper.DefaultRemoteDirectory);
                 foreach (var file in files)
                 {
@@ -412,9 +421,15 @@ public partial class TestingWindow : Window
             }
         }
 
-        StatusTextBlock.Text = failures.Count == 0
+        var status = failures.Count == 0
             ? CrossPlatformText.TestingDeployCompleted(succeeded)
             : CrossPlatformText.TestingDeployCompletedWithFailures(succeeded, failures.Count);
+        if (skippedInstalled > 0)
+        {
+            status = $"{status} {CrossPlatformText.TestingDeploySkippedInstalled(skippedInstalled)}";
+        }
+
+        StatusTextBlock.Text = status;
         if (failures.Count > 0)
         {
             await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Error, string.Join(Environment.NewLine, failures));

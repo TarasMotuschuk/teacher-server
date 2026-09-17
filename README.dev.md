@@ -263,8 +263,9 @@ Build-Msi.cmd
 ```
 
 4. The script will:
-   - publish self-contained `TeacherClient` and `TeacherClient.Avalonia` payloads;
-   - publish a self-contained `StudentAgent.Service` + `StudentAgent.UIHost` payload;
+   - publish a self-contained `TeacherClient.Avalonia` payload;
+   - publish self-contained `ClassCommander.TestEditor` and `ClassCommander.TestPlatform` payloads;
+   - publish the self-contained student bundle (`StudentAgent.Service`, `StudentAgent.UIHost`, `StudentAgent.VncHost`, `StudentAgent.Updater`, and `ClassCommander.TestRunner`);
    - generate WiX payload fragments;
    - build `ClassCommander.Setup.msi` into [TeacherServer.Setup/dist](TeacherServer.Setup/dist).
 
@@ -272,9 +273,15 @@ Build-Msi.cmd
    - `Teacher workstation tools`
    - `Student workstation tools`
 
-The Windows installer deploys both teacher binaries for compatibility, but only creates teacher-facing shortcuts for the Avalonia client. Those shortcuts are named simply `ClassCommander`.
+The installed layout under `C:\Program Files\MTD\TeacherServer` is:
 
-When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service`, `StudentAgent.UIHost`, and `StudentAgent.VncHost` together and registers the Windows service automatically.
+- `TeacherAvalonia\` — the Avalonia teacher client (teacher feature; desktop/Start Menu shortcuts named `ClassCommander`).
+- `TestEditor\` — `ClassCommander.TestEditor` test authoring app (teacher feature; Start Menu shortcut `ClassCommander Test Editor`, also launched from the teacher client via **Configuration → Test Editor…**).
+- `TestPlatform\` — `ClassCommander.TestPlatform` local test server (teacher feature; listens on `http://0.0.0.0:5050` by default, installed with a firewall exception so students can reach it; start `ClassCommander.TestPlatform.exe` before classroom testing).
+- `Student\` — student agent binaries (student feature).
+- `Student\TestRunner\` — `ClassCommander.TestRunner` student test app (student feature). Teacher-launched tests prefer this installed runner and only fall back to the copy deployed to `C:\Users\Public\ClassCommander\TestRunner`; the **Deploy runner** action in the Testing window skips PCs that already have the installed runner.
+
+When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service`, `StudentAgent.UIHost`, `StudentAgent.VncHost`, and `ClassCommander.TestRunner` together and registers the Windows service automatically. Because `ClassCommander.TestRunner` ships inside the student bundle, the student-agent auto-update ZIP also carries it and keeps the installed runner current.
 
 Reinstalling the **same** MSI package version upgrades the existing installation in place so *Apps & features* / *Programs and Features* keeps a single ClassCommander entry. On uninstall, stopping the service shuts down the session `StudentAgent.UIHost` and `StudentAgent.VncHost` processes; the installer also attempts to terminate those executables if they are still running so files can be removed cleanly.
 
@@ -390,8 +397,11 @@ bash ./Build-MacInstaller.sh
 
 3. The setup project will:
    - publish a self-contained Avalonia build for `osx-arm64`;
+   - publish self-contained `ClassCommander.TestEditor` and `ClassCommander.TestPlatform` builds and place them inside the bundle at `Contents/MacOS/TestEditor` and `Contents/MacOS/TestPlatform`;
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
+
+   The teacher client launches the bundled Test Editor via **Configuration → Test Editor…**. The bundled Test Platform server is started manually: `/Applications/ClassCommander.app/Contents/MacOS/TestPlatform/ClassCommander.TestPlatform` (listens on `http://0.0.0.0:5050` by default).
 
    **Demonstration (WebRTC) codec note**:
    - On **macOS**, the teacher client encodes demo video as **H.264 via VideoToolbox** (system framework; no extra `vpxmd.dylib` bundling).

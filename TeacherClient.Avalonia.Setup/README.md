@@ -5,6 +5,11 @@ This setup project packages the self-contained macOS Avalonia teacher client as:
 - a `.app` bundle
 - a `.pkg` installer that installs the app into `/Applications`
 
+The `.app` bundle also carries the classroom testing companion apps inside `Contents/MacOS`:
+
+- `TestEditor/` — `ClassCommander.TestEditor` (test authoring, launched from the teacher client via **Configuration → Test Editor…**)
+- `TestPlatform/` — `ClassCommander.TestPlatform` (local test server; run `Contents/MacOS/TestPlatform/ClassCommander.TestPlatform` manually, listens on `http://0.0.0.0:5050` by default)
+
 ## Build
 
 ```bash

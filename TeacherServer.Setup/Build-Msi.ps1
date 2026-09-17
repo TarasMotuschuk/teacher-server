@@ -8,15 +8,21 @@ param(
 $root = Split-Path $PSScriptRoot -Parent
 $artifactsDirectory = Join-Path $PSScriptRoot "artifacts"
 $teacherAvaloniaPayloadDirectory = Join-Path $artifactsDirectory "TeacherAvalonia"
+$testEditorPayloadDirectory = Join-Path $artifactsDirectory "TestEditor"
+$testPlatformPayloadDirectory = Join-Path $artifactsDirectory "TestPlatform"
 $studentPayloadDirectory = Join-Path $artifactsDirectory "Student"
 $generatedDirectory = Join-Path $PSScriptRoot "Generated"
 
 New-Item -ItemType Directory -Force -Path $teacherAvaloniaPayloadDirectory | Out-Null
+New-Item -ItemType Directory -Force -Path $testEditorPayloadDirectory | Out-Null
+New-Item -ItemType Directory -Force -Path $testPlatformPayloadDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $studentPayloadDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $generatedDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 $teacherAvaloniaProject = Join-Path $root "TeacherClient.Avalonia\TeacherClient.Avalonia.csproj"
+$testEditorProject = Join-Path $root "ClassCommander.TestEditor\ClassCommander.TestEditor.csproj"
+$testPlatformProject = Join-Path $root "ClassCommander.TestPlatform\ClassCommander.TestPlatform.csproj"
 $servicePublishScript = Join-Path $root "StudentAgent.Service\Publish-ServiceBundle.ps1"
 $fragmentGenerator = Join-Path $PSScriptRoot "Generate-WixFragment.ps1"
 $installerProject = Join-Path $PSScriptRoot "TeacherServer.Setup.wixproj"
@@ -30,6 +36,28 @@ dotnet publish $teacherAvaloniaProject `
 
 if ($LASTEXITCODE -ne 0) {
     throw "Publishing TeacherClient.Avalonia failed."
+}
+
+Write-Host "Publishing ClassCommander.TestEditor..."
+dotnet publish $testEditorProject `
+    -c $Configuration `
+    -r $Runtime `
+    --self-contained true `
+    -o $testEditorPayloadDirectory
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Publishing ClassCommander.TestEditor failed."
+}
+
+Write-Host "Publishing ClassCommander.TestPlatform..."
+dotnet publish $testPlatformProject `
+    -c $Configuration `
+    -r $Runtime `
+    --self-contained true `
+    -o $testPlatformPayloadDirectory
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Publishing ClassCommander.TestPlatform failed."
 }
 
 Write-Host "Publishing StudentAgent service bundle..."
@@ -52,6 +80,27 @@ Write-Host "Generating WiX payload fragments..."
 
 if ($LASTEXITCODE -ne 0) {
     throw "Generating teacher Avalonia WiX fragment failed."
+}
+
+& $fragmentGenerator `
+    -SourceDirectory $testEditorPayloadDirectory `
+    -DirectoryRefId "TESTEDITORDIR" `
+    -ComponentGroupId "TestEditorPayloadGroup" `
+    -OutputPath (Join-Path $generatedDirectory "TestEditorPayload.wxs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Generating TestEditor WiX fragment failed."
+}
+
+& $fragmentGenerator `
+    -SourceDirectory $testPlatformPayloadDirectory `
+    -DirectoryRefId "TESTPLATFORMDIR" `
+    -ComponentGroupId "TestPlatformPayloadGroup" `
+    -OutputPath (Join-Path $generatedDirectory "TestPlatformPayload.wxs") `
+    -ExcludeFiles @("ClassCommander.TestPlatform.exe")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Generating TestPlatform WiX fragment failed."
 }
 
 & $fragmentGenerator `

@@ -5,6 +5,8 @@ export COPYFILE_DISABLE=1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_PATH="$REPO_ROOT/TeacherClient.Avalonia/TeacherClient.Avalonia.csproj"
+TESTEDITOR_PROJECT_PATH="$REPO_ROOT/ClassCommander.TestEditor/ClassCommander.TestEditor.csproj"
+TESTPLATFORM_PROJECT_PATH="$REPO_ROOT/ClassCommander.TestPlatform/ClassCommander.TestPlatform.csproj"
 SETUP_ROOT="$SCRIPT_DIR"
 CONFIGURATION="${CONFIGURATION:-Release}"
 RUNTIME="${RUNTIME:-osx-arm64}"
@@ -17,6 +19,8 @@ PKG_SIGN_IDENTITY="${PKG_SIGN_IDENTITY:-}"
 DEFAULT_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$REPO_ROOT/Directory.Build.props" | head -n 1)"
 VERSION="${VERSION:-${DEFAULT_VERSION:-1.0.0}}"
 PUBLISH_DIR="$SETUP_ROOT/artifacts/publish"
+TESTEDITOR_PUBLISH_DIR="$SETUP_ROOT/artifacts/publish-testeditor"
+TESTPLATFORM_PUBLISH_DIR="$SETUP_ROOT/artifacts/publish-testplatform"
 APP_DIR="$SETUP_ROOT/artifacts/$APP_NAME"
 PKG_DIR="$SETUP_ROOT/dist"
 PKG_PATH="$PKG_DIR/ClassCommander.Setup.pkg"
@@ -30,7 +34,7 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$PUBLISH_DIR" "$PKG_DIR"
-rm -rf "$PUBLISH_DIR" "$APP_DIR" "$PKG_PATH"
+rm -rf "$PUBLISH_DIR" "$TESTEDITOR_PUBLISH_DIR" "$TESTPLATFORM_PUBLISH_DIR" "$APP_DIR" "$PKG_PATH"
 mkdir -p "$PUBLISH_DIR" "$PKG_DIR" "$STAGING_DIR"
 
 echo "Publishing self-contained Avalonia client..."
@@ -40,8 +44,26 @@ dotnet publish "$PROJECT_PATH" \
   --self-contained true \
   -o "$PUBLISH_DIR"
 
+echo "Publishing ClassCommander.TestEditor..."
+dotnet publish "$TESTEDITOR_PROJECT_PATH" \
+  -c "$CONFIGURATION" \
+  -r "$RUNTIME" \
+  --self-contained true \
+  -o "$TESTEDITOR_PUBLISH_DIR"
+
+echo "Publishing ClassCommander.TestPlatform..."
+dotnet publish "$TESTPLATFORM_PROJECT_PATH" \
+  -c "$CONFIGURATION" \
+  -r "$RUNTIME" \
+  --self-contained true \
+  -o "$TESTPLATFORM_PUBLISH_DIR"
+
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 ditto --norsrc "$PUBLISH_DIR" "$APP_DIR/Contents/MacOS"
+# Companion apps live in subdirectories of Contents/MacOS; the teacher client resolves
+# them at <base dir>/TestEditor and <base dir>/TestPlatform.
+ditto --norsrc "$TESTEDITOR_PUBLISH_DIR" "$APP_DIR/Contents/MacOS/TestEditor"
+ditto --norsrc "$TESTPLATFORM_PUBLISH_DIR" "$APP_DIR/Contents/MacOS/TestPlatform"
 
 codesign_app_bundle() {
   local target_app_dir="${1:-$APP_DIR}"
@@ -109,6 +131,8 @@ fi
 
 echo -n "APPL????" > "$APP_DIR/Contents/PkgInfo"
 chmod +x "$APP_DIR/Contents/MacOS/TeacherClient.Avalonia"
+chmod +x "$APP_DIR/Contents/MacOS/TestEditor/ClassCommander.TestEditor"
+chmod +x "$APP_DIR/Contents/MacOS/TestPlatform/ClassCommander.TestPlatform"
 find "$APP_DIR" -name '._*' -delete
 find "$APP_DIR" -name '.DS_Store' -delete
 # CI downloads can leave com.apple.quarantine on dylibs; strip before codesign so dlopen works on user machines.

@@ -11,7 +11,14 @@ internal static class TestClassroomLaunchHelper
 
     public const string RemoteExeName = "ClassCommander.TestRunner.exe";
 
-    public static string RemoteExePath => Path.Combine(DefaultRemoteDirectory, RemoteExeName);
+    /// <summary>Location where the ClassCommander MSI student feature installs TestRunner.</summary>
+    public const string InstalledRemoteDirectory = @"C:\Program Files\MTD\TeacherServer\Student\TestRunner";
+
+    // Remote paths are Windows paths; join with an explicit backslash so scripts built on
+    // macOS/Linux teacher workstations do not mix separators.
+    public static string RemoteExePath => DefaultRemoteDirectory + @"\" + RemoteExeName;
+
+    public static string InstalledRemoteExePath => InstalledRemoteDirectory + @"\" + RemoteExeName;
 
     public static string ResolveClassroomServerUrl(string configuredBaseUrl)
     {
@@ -69,7 +76,27 @@ internal static class TestClassroomLaunchHelper
             QuoteArg(ClassCommanderUiSettings.LoadLanguage().ToCode()),
             QuoteArg("--auto-continue"));
 
-        return $"start \"\" {QuoteArg(RemoteExePath)} {args}";
+        // Prefer the runner installed by the ClassCommander MSI (kept current by agent
+        // auto-updates); fall back to the copy deployed to the public directory.
+        return $"if exist {QuoteArg(InstalledRemoteExePath)} "
+            + $"(start \"\" {QuoteArg(InstalledRemoteExePath)} {args}) "
+            + $"else (start \"\" {QuoteArg(RemoteExePath)} {args})";
+    }
+
+    public static async Task<bool> HasInstalledRunnerAsync(TeacherApiClient client)
+    {
+        try
+        {
+            var listing = await client.GetRemoteDirectoryAsync(InstalledRemoteDirectory);
+            return listing?.Entries.Any(entry =>
+                !entry.IsDirectory
+                && string.Equals(entry.Name, RemoteExeName, StringComparison.OrdinalIgnoreCase)) == true;
+        }
+        catch
+        {
+            // Directory missing or not readable: treat as not installed and upload instead.
+            return false;
+        }
     }
 
     public static string? FindLocalRunnerDirectory()

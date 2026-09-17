@@ -468,6 +468,10 @@ internal static partial class CrossPlatformText
         ? $"Runner: успішно {succeeded}, з помилками {failures}."
         : $"Runner deploy: {succeeded} succeeded, {failures} failed.";
 
+    public static string TestingDeploySkippedInstalled(int skipped) => IsUk
+        ? $"Пропущено {skipped} ПК: runner уже встановлено інсталятором."
+        : $"Skipped {skipped} PC(s): runner already installed by the installer.";
+
     public static string TestingStartCompleted(int succeeded) => IsUk
         ? $"Тест запущено на {succeeded} ПК."
         : $"Test started on {succeeded} PC(s).";

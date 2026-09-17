@@ -28,6 +28,8 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 - **Teacher-launched student tests**: from **Configuration → Testing**, teachers can deploy `ClassCommander.TestRunner` to student PCs and start it over the network with the classroom TestPlatform LAN URL (students do not type the server address). TestPlatform listens on `0.0.0.0:5050` by default.
 
+- **Testing components in the installers**: the Windows MSI teacher feature now installs `ClassCommander.TestEditor` (with a `ClassCommander Test Editor` Start Menu shortcut) and the `ClassCommander.TestPlatform` local test server (with a firewall exception); the student feature installs `ClassCommander.TestRunner` next to the student agent, and the student-agent auto-update ZIP keeps it current. The macOS `.pkg` bundles Test Editor and Test Platform inside `ClassCommander.app`. Starting a test now prefers the runner installed on the student PC, and **Deploy runner** skips PCs that already have it installed.
+
 ### Changed
 
 - **Demonstration performance**: the teacher now captures and encodes the screen **once** and fans the encoded stream out to every student (previously each student got its own capture + encoder, so 8 PCs meant 8 parallel encoders and a frozen teacher machine). Students connect and disconnect **in parallel** instead of one-by-one, so the whole class starts/stops within seconds instead of ~20 s per PC. ICE polling stops once a student connects, and all demo HTTP calls use a 10 s timeout so stop never hangs on a busy agent.
