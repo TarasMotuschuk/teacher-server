@@ -50,23 +50,14 @@ public sealed class AgentSettingsStore
     {
         get
         {
-            EventHandler? changedHandler = null;
-            var changed = false;
             lock (_sync)
             {
-                changed = _useRegistry && ReloadFromRegistryIfChanged();
-                if (changed)
+                if (_useRegistry)
                 {
-                    changedHandler = SettingsChanged;
+                    ReloadFromRegistryIfChanged();
                 }
 
-                var snapshot = Clone(_current);
-                if (changed && changedHandler is not null)
-                {
-                    Task.Run(() => changedHandler.Invoke(this, EventArgs.Empty));
-                }
-
-                return snapshot;
+                return Clone(_current);
             }
         }
     }
@@ -217,6 +208,9 @@ public sealed class AgentSettingsStore
 
             if (_useRegistry)
             {
+                // Write lock flags first so the session UIHost can drop the overlay
+                // without waiting for DPAPI-protected secret values to persist.
+                PersistInputLockFlags(_current);
                 PersistSettings(_current, _current.SharedSecret);
             }
         }
@@ -371,8 +365,7 @@ public sealed class AgentSettingsStore
         key.SetValue(nameof(AgentRuntimeSettings.VisibleBannerText), settings.VisibleBannerText ?? string.Empty, RegistryValueKind.String);
         key.SetValue(nameof(AgentRuntimeSettings.Language), settings.Language.ToString(), RegistryValueKind.String);
         key.SetValue(nameof(AgentRuntimeSettings.BrowserLockEnabled), settings.BrowserLockEnabled ? 1 : 0, RegistryValueKind.DWord);
-        key.SetValue(nameof(AgentRuntimeSettings.InputLockEnabled), settings.InputLockEnabled ? 1 : 0, RegistryValueKind.DWord);
-        key.SetValue(nameof(AgentRuntimeSettings.InputLockVisualMode), settings.InputLockVisualMode.ToString(), RegistryValueKind.String);
+        WriteInputLockFlags(key, settings);
         key.SetValue(nameof(AgentRuntimeSettings.BrowserLockCheckIntervalSeconds), settings.BrowserLockCheckIntervalSeconds, RegistryValueKind.DWord);
         key.SetValue(nameof(AgentRuntimeSettings.DesktopIconAutoRestoreMinutes), settings.DesktopIconAutoRestoreMinutes, RegistryValueKind.DWord);
         key.SetValue(nameof(AgentRuntimeSettings.VncEnabled), settings.VncEnabled ? 1 : 0, RegistryValueKind.DWord);
@@ -579,6 +572,28 @@ public sealed class AgentSettingsStore
         }
 
         PushRuntimeSettingsToLocalAgent(settings, authorizationSharedSecretForHttp);
+    }
+
+    private void PersistInputLockFlags(AgentRuntimeSettings settings)
+    {
+        if (!_useRegistry || !_canWriteHklm)
+        {
+            return;
+        }
+
+        using var key = Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true);
+        if (key is null)
+        {
+            return;
+        }
+
+        WriteInputLockFlags(key, settings);
+    }
+
+    private static void WriteInputLockFlags(RegistryKey key, AgentRuntimeSettings settings)
+    {
+        key.SetValue(nameof(AgentRuntimeSettings.InputLockEnabled), settings.InputLockEnabled ? 1 : 0, RegistryValueKind.DWord);
+        key.SetValue(nameof(AgentRuntimeSettings.InputLockVisualMode), settings.InputLockVisualMode.ToString(), RegistryValueKind.String);
     }
 
     private bool ReloadFromRegistryIfChanged()

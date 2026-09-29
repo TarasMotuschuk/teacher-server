@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Teacher.Common.Localization;
 using TeacherClient.CrossPlatform.Localization;
 using TeacherClient.CrossPlatform.Models;
+using TeacherClient.CrossPlatform.Services;
 
 namespace TeacherClient.CrossPlatform.Dialogs;
 
@@ -25,7 +26,6 @@ public partial class SettingsWindow : Window
         StudentWorkFolderNameTextBox.Text = settings.StudentWorkFolderName;
         DesktopIconAutoRestoreIntervalTextBox.Text = settings.DesktopIconAutoRestoreMinutes.ToString(CultureInfo.InvariantCulture);
         BrowserLockCheckIntervalTextBox.Text = settings.BrowserLockCheckIntervalSeconds.ToString(CultureInfo.InvariantCulture);
-        TestPlatformBaseUrlTextBox.Text = settings.TestPlatformBaseUrl;
         ApplyLocalization();
         ThemeComboBox.SelectedIndex = (int)settings.Theme;
     }
@@ -40,7 +40,7 @@ public partial class SettingsWindow : Window
             ParsePositiveInt(DesktopIconAutoRestoreIntervalTextBox.Text, ClientSettings.Default.DesktopIconAutoRestoreMinutes, 1),
             ParsePositiveInt(BrowserLockCheckIntervalTextBox.Text, ClientSettings.Default.BrowserLockCheckIntervalSeconds, 5),
             ThemeComboBox.SelectedIndex == 1 ? AppUiTheme.Light : AppUiTheme.Dark,
-            TestPlatformBaseUrlTextBox.Text?.Trim() ?? ClientSettings.Default.TestPlatformBaseUrl);
+            TestPlatformHost.DefaultLocalUrl);
 
     private static int ParsePositiveInt(string? value, int fallback, int minValue)
     {
@@ -71,7 +71,6 @@ public partial class SettingsWindow : Window
         StudentWorkFolderNameLabel.Text = CrossPlatformText.StudentWorkFolderName;
         DesktopIconAutoRestoreIntervalLabel.Text = CrossPlatformText.DesktopIconAutoRestoreInterval;
         BrowserLockCheckIntervalLabel.Text = CrossPlatformText.BrowserLockCheckInterval;
-        TestPlatformBaseUrlLabel.Text = CrossPlatformText.TestPlatformBaseUrl;
         LanguageLabel.Text = CrossPlatformText.Language;
         ThemeLabel.Text = CrossPlatformText.SettingsUiTheme;
         var themeIndex = ThemeComboBox.SelectedIndex;
@@ -99,10 +98,6 @@ public partial class SettingsWindow : Window
         ToolTip.SetTip(DesktopIconAutoRestoreIntervalTextBox, tipInterval);
         ToolTip.SetTip(BrowserLockCheckIntervalLabel, tipInterval);
         ToolTip.SetTip(BrowserLockCheckIntervalTextBox, tipInterval);
-
-        var tipTestPlatform = CrossPlatformText.SettingsFieldTooltipTestPlatformBaseUrl;
-        ToolTip.SetTip(TestPlatformBaseUrlLabel, tipTestPlatform);
-        ToolTip.SetTip(TestPlatformBaseUrlTextBox, tipTestPlatform);
 
         SaveButton.Content = CrossPlatformText.Save;
         CancelButton.Content = CrossPlatformText.Cancel;

@@ -12,6 +12,8 @@ internal sealed class RunnerLaunchOptions
 
     public string? ClassName { get; private set; }
 
+    public string? AssignmentPublicId { get; private set; }
+
     public string? DeviceId { get; private set; }
 
     public bool AutoContinue { get; private set; }
@@ -39,6 +41,10 @@ internal sealed class RunnerLaunchOptions
             else if (TryReadValue(args, ref i, arg, "--class", out var className))
             {
                 options.ClassName = className;
+            }
+            else if (TryReadValue(args, ref i, arg, "--assignment-id", "--assignment", out var assignmentId))
+            {
+                options.AssignmentPublicId = assignmentId;
             }
             else if (TryReadValue(args, ref i, arg, "--device-id", "--device", out var deviceId))
             {

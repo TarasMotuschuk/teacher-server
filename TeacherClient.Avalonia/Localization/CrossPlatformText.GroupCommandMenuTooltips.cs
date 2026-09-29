@@ -211,8 +211,8 @@ internal static partial class CrossPlatformText
         : "Send a Wake-on-LAN magic packet to the selected PCs' MAC addresses (works for offline PCs too).";
 
     public static string MenuTip_PowerOnAllWithMac => IsUk
-        ? "Надіслати Wake-on-LAN усім відомим ПК, у яких є MAC-адреса (онлайн і офлайн)."
-        : "Send Wake-on-LAN to every known PC that has a MAC address (online or offline).";
+        ? "Надіслати Wake-on-LAN усім ПК, які цей учитель уже бачив у мережі (з MAC). Працює для вимкнених ПК, не лише для вже увімкнених."
+        : "Send Wake-on-LAN to every PC this teacher has already seen on the network (with a MAC). Works for powered-off PCs, not only those already on.";
 
     public static string MenuTip_StudentWork => IsUk
         ? "Папка для робіт учнів: створення, збір на ПК вчителя, очищення."

@@ -49,7 +49,7 @@ internal static class TestClassroomLaunchHelper
 
     public static string BuildLaunchScript(
         string classroomServerUrl,
-        string className,
+        string assignmentPublicId,
         DiscoveredAgentRow agent)
     {
         var deviceId = string.IsNullOrWhiteSpace(agent.MachineName) ? agent.AgentId : agent.MachineName;
@@ -64,8 +64,8 @@ internal static class TestClassroomLaunchHelper
             " ",
             QuoteArg("--server-url"),
             QuoteArg(classroomServerUrl),
-            QuoteArg("--class"),
-            QuoteArg(className),
+            QuoteArg("--assignment-id"),
+            QuoteArg(assignmentPublicId),
             QuoteArg("--device-id"),
             QuoteArg(deviceId),
             QuoteArg("--surname"),

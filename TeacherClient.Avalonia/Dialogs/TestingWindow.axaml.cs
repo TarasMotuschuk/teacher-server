@@ -43,13 +43,13 @@ public partial class TestingWindow : Window
         _settingsStore = settingsStore;
         _getSelectedAgents = getSelectedAgents;
         _getOnlineAgents = getOnlineAgents;
-        ServerUrlTextBox.Text = settings.TestPlatformBaseUrl;
         TestsGrid.ItemsSource = _tests;
         AssignmentsGrid.ItemsSource = _assignments;
         AttemptsGrid.ItemsSource = _attempts;
         ResultsGrid.ItemsSource = _results;
         ApplyLocalization();
         ConfigureColumns();
+        Opened += async (_, _) => await ConnectToTeacherPlatformAsync();
     }
 
     public static async Task ShowAsync(
@@ -66,9 +66,6 @@ public partial class TestingWindow : Window
     private void ApplyLocalization()
     {
         Title = CrossPlatformText.TestingWindowTitle;
-        ServerUrlLabel.Text = CrossPlatformText.TestPlatformBaseUrl;
-        ConnectButton.Content = CrossPlatformText.TestingConnect;
-        LaunchClassLabel.Text = CrossPlatformText.TestingLaunchClassLabel;
         LaunchHintText.Text = CrossPlatformText.TestingLaunchHint;
         DeployRunnerButton.Content = CrossPlatformText.TestingDeployRunner;
         StartSelectedButton.Content = CrossPlatformText.TestingStartSelected;
@@ -101,10 +98,9 @@ public partial class TestingWindow : Window
         TestsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnUpdated, nameof(TestDefinitionRow.UpdatedAt), 1.5));
 
         AssignmentsGrid.Columns.Clear();
-        AssignmentsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnTitle, nameof(AssignmentRow.Title), 2.5));
+        AssignmentsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnTitle, nameof(AssignmentRow.Title), 3));
         AssignmentsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnStatus, nameof(AssignmentRow.Status), 1));
         AssignmentsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnTest, nameof(AssignmentRow.TestRef), 1.5));
-        AssignmentsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnStudent, nameof(AssignmentRow.Audience), 1.2));
 
         AttemptsGrid.Columns.Clear();
         AttemptsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnStudent, nameof(AttemptRow.Student), 2));
@@ -127,29 +123,54 @@ public partial class TestingWindow : Window
             Width = new DataGridLength(starWidth, DataGridLengthUnitType.Star),
         };
 
-    private async void ConnectButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async Task ConnectToTeacherPlatformAsync()
     {
         if (_busy)
         {
             return;
         }
 
-        var url = ServerUrlTextBox.Text?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestPlatformBaseUrl);
-            return;
-        }
-
         await RunBusyAsync(async () =>
         {
+            var url = TestPlatformHost.DefaultLocalUrl;
             _api?.Dispose();
             _api = new TestPlatformApiClient(url);
-            await _api.CheckHealthAsync();
-            _settings = _settings with { TestPlatformBaseUrl = url.TrimEnd('/') };
+            try
+            {
+                await _api.CheckHealthAsync();
+            }
+            catch
+            {
+                if (!TestPlatformHost.TryStart(out _))
+                {
+                    throw new InvalidOperationException(CrossPlatformText.TestingPlatformNotFound);
+                }
+
+                var connected = false;
+                for (var i = 0; i < 20; i++)
+                {
+                    await Task.Delay(250);
+                    try
+                    {
+                        await _api.CheckHealthAsync();
+                        connected = true;
+                        break;
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (!connected)
+                {
+                    throw new InvalidOperationException(CrossPlatformText.TestingPlatformStartFailed);
+                }
+            }
+
+            _settings = _settings with { TestPlatformBaseUrl = url };
             _settingsStore.Save(_settings);
-            ConnectionStatusText.Text = CrossPlatformText.TestingConnected;
-            StatusTextBlock.Text = CrossPlatformText.TestingConnected;
+            ConnectionStatusText.Text = CrossPlatformText.TestingConnectedOnTeacherPc;
+            StatusTextBlock.Text = CrossPlatformText.TestingConnectedOnTeacherPc;
             await RefreshTestsAsync();
             await RefreshAssignmentsAsync();
         });
@@ -257,13 +278,12 @@ public partial class TestingWindow : Window
                 test.PublicId,
                 test.Version,
                 draft.Title,
-                new AssignmentAudienceDto(AudienceType.Class, draft.ClassName, null),
+                new AssignmentAudienceDto(AudienceType.Class, ClassPublicId: null, StudentPublicIds: null),
                 new AssignmentAvailabilityDto(null, null),
                 new AttemptPolicyDto(draft.MaxAttempts, draft.TimeLimitSeconds),
                 new ResultPolicyDto(draft.ShowScore, draft.ShowCorrectAnswers, draft.ShowPerQuestionFeedback)));
 
             StatusTextBlock.Text = CrossPlatformText.TestingAssignmentCreated;
-            LaunchClassTextBox.Text = draft.ClassName;
             await RefreshAssignmentsAsync();
             MainTabControl.SelectedItem = AssignmentsTabItem;
         });
@@ -438,15 +458,14 @@ public partial class TestingWindow : Window
 
     private async Task StartRunnerAsync(IReadOnlyList<DiscoveredAgentRow> agents)
     {
-        var className = LaunchClassTextBox.Text?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(className))
+        var assignment = ResolveLaunchAssignment();
+        if (assignment is null)
         {
-            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingLaunchClassRequired);
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingSelectAssignmentFirst);
             return;
         }
 
-        var configuredUrl = ServerUrlTextBox.Text?.Trim() ?? _settings.TestPlatformBaseUrl;
-        var classroomUrl = TestClassroomLaunchHelper.ResolveClassroomServerUrl(configuredUrl);
+        var classroomUrl = TestClassroomLaunchHelper.ResolveClassroomServerUrl(TestPlatformHost.DefaultLocalUrl);
         StatusTextBlock.Text = CrossPlatformText.TestingClassroomUrl(classroomUrl);
 
         var failures = new List<string>();
@@ -456,7 +475,7 @@ public partial class TestingWindow : Window
             try
             {
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _settings.SharedSecret);
-                var script = TestClassroomLaunchHelper.BuildLaunchScript(classroomUrl, className, agent);
+                var script = TestClassroomLaunchHelper.BuildLaunchScript(classroomUrl, assignment.PublicId, agent);
                 await client.ExecuteRemoteCommandAsync(script, RemoteCommandRunAs.CurrentUser);
                 succeeded++;
             }
@@ -588,6 +607,29 @@ public partial class TestingWindow : Window
         }
     }
 
+    private AssignmentRow? ResolveLaunchAssignment()
+    {
+        if (AssignmentsGrid.SelectedItem is AssignmentRow selected)
+        {
+            return selected;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_monitorAssignmentId))
+        {
+            var monitored = _assignments.FirstOrDefault(x =>
+                string.Equals(x.PublicId, _monitorAssignmentId, StringComparison.Ordinal));
+            if (monitored is not null)
+            {
+                return monitored;
+            }
+        }
+
+        var open = _assignments
+            .Where(x => !string.Equals(x.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        return open.Count == 1 ? open[0] : null;
+    }
+
     private async Task<bool> EnsureConnectedAsync()
     {
         if (_api is not null)
@@ -595,9 +637,8 @@ public partial class TestingWindow : Window
             return true;
         }
 
-        await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingConnect);
-        StatusTextBlock.Text = CrossPlatformText.TestingConnect;
-        return false;
+        await ConnectToTeacherPlatformAsync();
+        return _api is not null;
     }
 
     private async Task RunBusyAsync(Func<Task> action)

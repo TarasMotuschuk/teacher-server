@@ -30,6 +30,7 @@ public partial class MainWindow : Window, IDisposable
 
     private readonly AgentDiscoveryService _agentDiscoveryService = new();
     private readonly ManualAgentStore _manualAgentStore = new();
+    private readonly KnownAgentStore _knownAgentStore = new();
     private readonly ClientSettingsStore _clientSettingsStore = new();
     private readonly FrequentProgramStore _frequentProgramStore = new();
     private readonly TeacherUpdatePreparationService _updatePreparationService =
@@ -580,21 +581,37 @@ public partial class MainWindow : Window, IDisposable
             var discoveredAgents = await _agentDiscoveryService.DiscoverAsync();
             _lastDiscoveredAgentCount = discoveredAgents.Count;
             var discoveredRows = discoveredAgents.Select(DiscoveredAgentRow.FromDto).ToList();
+            _knownAgentStore.Upsert(discoveredRows);
+            var knownEntries = _knownAgentStore.Load();
+            var knownRows = knownEntries.Select(DiscoveredAgentRow.FromKnownEntry).ToList();
+            var rememberedIds = knownEntries
+                .Select(x => x.AgentId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var manualRows = _manualAgents.Select(DiscoveredAgentRow.FromManualEntry).ToList();
             var merged = MergeAgents(manualRows, discoveredRows).ToList();
+
+            // Remembered PCs (seen in earlier sessions) stay in the list as Offline so
+            // Wake-on-LAN can target machines that are currently powered off.
+            merged.AddRange(MergeKnownAgents(merged, knownRows));
 
             // A busy agent (e.g. rendering a demonstration) can miss one UDP discovery
             // broadcast. Keep previously known agents and verify them over HTTP instead
             // of dropping them from the list immediately.
+            var mergedKeys = merged
+                .Select(x => x.AgentId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var mergedEndpoints = merged
                 .Select(x => $"{x.RespondingAddress}:{x.Port}")
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             merged.AddRange(_allAgents.Where(x =>
-                !x.IsManual && !mergedEndpoints.Contains($"{x.RespondingAddress}:{x.Port}")));
+                !x.IsManual
+                && !mergedKeys.Contains(x.AgentId)
+                && !mergedEndpoints.Contains($"{x.RespondingAddress}:{x.Port}")));
 
             var retentionCutoffUtc = DateTime.UtcNow - TimeSpan.FromMinutes(2);
             _allAgents = (await UpdateAgentStatusesAsync(merged, discoveredRows))
                 .Where(x => x.IsManual
+                    || rememberedIds.Contains(x.AgentId)
                     || !string.Equals(x.Status, CrossPlatformText.Offline, StringComparison.OrdinalIgnoreCase)
                     || x.LastSeenUtc >= retentionCutoffUtc)
                 .ToList();
@@ -1030,8 +1047,9 @@ public partial class MainWindow : Window, IDisposable
 
         try
         {
-            var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-            await client.SetInputLockEnabledAsync(enabled);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+            await client.SetInputLockEnabledAsync(enabled, cancellationToken: timeout.Token);
             ReplaceAgentRow(agent with { InputLockEnabled = enabled });
             SetStatus(enabled ? CrossPlatformText.InputLockEnabledFor(agent.MachineName) : CrossPlatformText.InputLockDisabledFor(agent.MachineName));
         }
@@ -1250,6 +1268,14 @@ public partial class MainWindow : Window, IDisposable
             }
 
             return agent with { Status = CrossPlatformText.Online, LastSeenUtc = DateTime.UtcNow };
+        }
+
+        // Powered-off remembered PCs should not add a 4 s HTTP timeout to every refresh.
+        var recentlySeen = agent.LastSeenUtc != DateTime.MinValue
+            && agent.LastSeenUtc >= DateTime.UtcNow - TimeSpan.FromMinutes(2);
+        if (!recentlySeen && !agent.IsManual)
+        {
+            return agent with { Status = CrossPlatformText.Offline };
         }
 
         var isReachable = await reachabilityClient.IsServerReachableAsync(token);
@@ -2860,7 +2886,11 @@ public partial class MainWindow : Window, IDisposable
 
     private async void PowerOnAllWithMacMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        var remembered = _knownAgentStore.Load().Select(DiscoveredAgentRow.FromKnownEntry);
         var targetAgents = _allAgents
+            .Concat(remembered)
+            .GroupBy(x => x.AgentId, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
             .Where(x => WakeOnLanService.ParseMacAddresses(x.MacAddressesDisplay).Count > 0)
             .ToList();
         if (targetAgents.Count == 0)
@@ -3570,21 +3600,31 @@ public partial class MainWindow : Window, IDisposable
         await RunBusyAsync(
             async () =>
         {
-            for (var agentIndex = 0; agentIndex < targetAgents.Count; agentIndex++)
+            var results = await Task.WhenAll(targetAgents.Select(async agent =>
             {
-                var agent = targetAgents[agentIndex];
                 try
                 {
-                    SetStatus(CrossPlatformText.InputLockProgress(agent.MachineName, agentIndex + 1, targetAgents.Count, enabled, visualMode));
-                    var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
-                    await client.SetInputLockEnabledAsync(enabled, visualMode);
-                    ReplaceAgentRow(agent with { InputLockEnabled = enabled });
-                    succeeded++;
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    using var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
+                    await client.SetInputLockEnabledAsync(enabled, visualMode, timeout.Token);
+                    return (Agent: agent, Error: (Exception?)null);
                 }
                 catch (Exception ex)
                 {
-                    failures.Add($"{agent.MachineName}: {ex.Message}");
+                    return (Agent: agent, Error: ex);
                 }
+            }));
+
+            foreach (var result in results)
+            {
+                if (result.Error is null)
+                {
+                    ReplaceAgentRow(result.Agent with { InputLockEnabled = enabled });
+                    succeeded++;
+                    continue;
+                }
+
+                failures.Add($"{result.Agent.MachineName}: {result.Error.Message}");
             }
 
             SetStatus(failures.Count == 0
@@ -3709,7 +3749,10 @@ public partial class MainWindow : Window, IDisposable
         if (!await ConfirmationDialog.ShowAsync(
                 this,
                 CrossPlatformText.GroupCommandsTitle,
-                CrossPlatformText.WakeOnLanPrompt(agentsWithMac.Count, selectedOnly)))
+                CrossPlatformText.WakeOnLanPrompt(
+                    agentsWithMac.Count,
+                    selectedOnly,
+                    agentsWithMac.Count(x => !string.Equals(x.Agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase)))))
         {
             return;
         }
@@ -4205,6 +4248,29 @@ public partial class MainWindow : Window, IDisposable
         return merged.Values
             .OrderBy(x => x.Source, StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.MachineName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<DiscoveredAgentRow> MergeKnownAgents(
+        IReadOnlyList<DiscoveredAgentRow> alreadyMerged,
+        IReadOnlyList<DiscoveredAgentRow> knownRows)
+    {
+        var byId = alreadyMerged
+            .Select(x => x.AgentId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var byEndpoint = alreadyMerged
+            .Select(x => $"{x.RespondingAddress}:{x.Port}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var known in knownRows)
+        {
+            if (byId.Contains(known.AgentId)
+                || byEndpoint.Contains($"{known.RespondingAddress}:{known.Port}"))
+            {
+                continue;
+            }
+
+            yield return known;
+        }
     }
 
     private static FileSystemEntryDto MapLocalEntry(FileSystemInfo entry)

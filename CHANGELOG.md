@@ -6,6 +6,18 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-29
+
+### Changed
+
+- **Testing window**: removed the manual Test Platform URL and class fields. Tests always use Test Platform on the teacher PC (started automatically if it is not already running). Students receive the classroom LAN address and open the assignment the teacher selected — no class/audience filter.
+
+### Fixed
+
+- **Input lock overlay**: unchecking the lock (or bulk unlock) now hides the student lock screen immediately. The session UIHost polls lock state every 200 ms, the service writes the lock flag before slower secret persistence, and the overlay is hidden before the window is closed (previously a 1 s poll plus TopMost `BringToFront` every tick left the fullscreen lock up for several seconds).
+
+- **Power on all on the network**: the teacher now remembers student PCs (MAC + last IP) when they are discovered, keeps them in the list as offline after they power off, and **Power → Power on all known PCs on the network** sends Wake-on-LAN to that remembered roster — not only to PCs that are already on.
+
 ## [1.1.0] - 2026-09-18
 
 ### Added

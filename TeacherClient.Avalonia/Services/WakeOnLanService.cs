@@ -7,8 +7,8 @@ namespace TeacherClient.CrossPlatform.Services;
 
 internal static partial class WakeOnLanService
 {
-    private const int DefaultWolPort = 9;
-    private const int PacketRepeatCount = 3;
+    private const int PacketRepeatCount = 2;
+    private static readonly int[] WolPorts = [9, 7];
 
     public static IReadOnlyList<byte[]> ParseMacAddresses(string? macAddressesDisplay)
     {
@@ -93,10 +93,11 @@ internal static partial class WakeOnLanService
 
     private static List<IPEndPoint> BuildBroadcastTargets(string? hostAddressHint)
     {
-        var endpoints = new List<IPEndPoint>
+        var endpoints = new List<IPEndPoint>();
+        foreach (var port in WolPorts)
         {
-            new(IPAddress.Broadcast, DefaultWolPort),
-        };
+            endpoints.Add(new IPEndPoint(IPAddress.Broadcast, port));
+        }
 
         if (IPAddress.TryParse(hostAddressHint, out var host)
             && host.AddressFamily == AddressFamily.InterNetwork
@@ -105,10 +106,13 @@ internal static partial class WakeOnLanService
             && !host.Equals(IPAddress.Broadcast))
         {
             var bytes = host.GetAddressBytes();
-
-            // Classroom LANs are almost always /24; directed broadcast improves reliability vs. limited global broadcast.
             bytes[3] = 0xFF;
-            endpoints.Add(new IPEndPoint(new IPAddress(bytes), DefaultWolPort));
+            var directed = new IPAddress(bytes);
+            foreach (var port in WolPorts)
+            {
+                endpoints.Add(new IPEndPoint(directed, port));
+                endpoints.Add(new IPEndPoint(host, port));
+            }
         }
 
         return endpoints;

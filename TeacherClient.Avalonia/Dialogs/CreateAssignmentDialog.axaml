@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TeacherClient.CrossPlatform.Dialogs.CreateAssignmentDialog"
         Width="520"
-        Height="480"
+        Height="420"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="Assign test">
@@ -10,8 +10,6 @@
     <StackPanel Spacing="8">
       <TextBlock x:Name="TitleLabel" Text="Assignment title" />
       <TextBox x:Name="TitleTextBox" />
-      <TextBlock x:Name="ClassLabel" Text="Class" />
-      <TextBox x:Name="ClassTextBox" />
       <TextBlock x:Name="MaxAttemptsLabel" Text="Max attempts" />
       <TextBox x:Name="MaxAttemptsTextBox" Text="1" />
       <TextBlock x:Name="TimeLimitLabel" Text="Time limit" />

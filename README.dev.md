@@ -16,7 +16,7 @@
 - `TeacherClient.Avalonia`: primary cross-platform desktop client for macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup`: macOS packaging project that builds a `.app` bundle and a `.pkg` installer.
 - `Teacher.Common`: shared DTOs and request contracts.
-- `ClassCommander.TestPlatform` / `ClassCommander.TestEditor` / `ClassCommander.TestRunner` / `ClassCommander.Testing.Core`: classroom testing subsystem (local API, authoring, student runner). Teacher Avalonia opens **Configuration → Testing** against the local TestPlatform URL. See `TestPlatform/README.md`.
+- `ClassCommander.TestPlatform` / `ClassCommander.TestEditor` / `ClassCommander.TestRunner` / `ClassCommander.Testing.Core`: classroom testing subsystem (local API, authoring, student runner). Teacher Avalonia **Configuration → Testing** uses Test Platform on the teacher PC (auto-started; students get the LAN address). See `TestPlatform/README.md`.
 
 User-facing branding is now `ClassCommander`. Technical repository names such as `TeacherServer`, `TeacherClient`, and `TeacherClient.Avalonia` remain unchanged for compatibility with the existing solution structure, scripts, paths, and persisted settings.
 
@@ -277,7 +277,7 @@ The installed layout under `C:\Program Files\MTD\TeacherServer` is:
 
 - `TeacherAvalonia\` — the Avalonia teacher client (teacher feature; desktop/Start Menu shortcuts named `ClassCommander`).
 - `TestEditor\` — `ClassCommander.TestEditor` test authoring app (teacher feature; Start Menu shortcut `ClassCommander Test Editor`, also launched from the teacher client via **Configuration → Test Editor…**).
-- `TestPlatform\` — `ClassCommander.TestPlatform` local test server (teacher feature; listens on `http://0.0.0.0:5050` by default, installed with a firewall exception so students can reach it; start `ClassCommander.TestPlatform.exe` before classroom testing).
+- `TestPlatform\` — `ClassCommander.TestPlatform` local test server (teacher feature; listens on `http://0.0.0.0:5050` by default, installed with a firewall exception so students can reach it). **Configuration → Testing** starts it on the teacher PC automatically.
 - `Student\` — student agent binaries (student feature).
 - `Student\TestRunner\` — `ClassCommander.TestRunner` student test app (student feature). Teacher-launched tests prefer this installed runner and only fall back to the copy deployed to `C:\Users\Public\ClassCommander\TestRunner`; the **Deploy runner** action in the Testing window skips PCs that already have the installed runner.
 
@@ -349,7 +349,7 @@ Tag-based GitHub releases now publish all major install/update assets together:
 17. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
 18. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 19. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs. Use **Power On** (selected, or all PCs with a MAC) to send Wake-on-LAN magic packets; PCs must have WoL enabled and a known MAC address.
+20. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs. Use **Power on all known PCs on the network** to send Wake-on-LAN to every student PC this teacher has already seen (MAC + last IP are remembered even after the PC powers off). PCs must have WoL enabled in BIOS/NIC. A PC that has never been discovered cannot be woken until it appears online once.
 21. Use `Group Commands -> Group Policies` to enable or disable classroom policy-style restrictions (Task Manager, Run, Control Panel, lock workstation, change password), **Block interface changes**, or **Desktop wallpaper** (the client uploads the image to each student PC under `C:\Windows\Web\Wallpaper`, then applies wallpaper + background lock). Hover menu items to read short descriptions.
 22. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, power, and group-policy operations, the status area reports the current target agent and progress.
 
@@ -381,7 +381,7 @@ dotnet run --project TeacherClient.Avalonia/TeacherClient.Avalonia.csproj
 14. Use `Group Commands -> Browser -> Lock browser on all online student PCs` to enable browser blocking on every reachable student machine at once.
 15. Use the `Input lock` checkbox in the agents list to visibly lock or unlock the student's keyboard and mouse. While enabled, the student sees a fullscreen topmost message until the teacher removes the lock.
 16. Use `Group Commands -> Keyboard and Mouse` to lock or unlock input on every reachable student machine at once.
-17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs. Use **Power On** (selected, or all PCs with a MAC) to send Wake-on-LAN magic packets; PCs must have WoL enabled and a known MAC address.
+17. Use `Group Commands -> Power` to shut down, restart, or log off either the selected student PCs or all online student PCs. Use **Power on all known PCs on the network** to send Wake-on-LAN to remembered student PCs (including those currently powered off). WoL must be enabled in BIOS/NIC; a PC must have been seen online at least once so its MAC is stored.
 18. Use `Group Commands -> Group Policies` for the same policy, interface-lock, and desktop-wallpaper actions as on Windows (see the Windows quick-start steps above). Hover menu items for tooltips.
 19. During bulk distribution, bulk clear, work collection, browser-lock, input-lock, power, and group-policy operations, the status area reports the current target agent and progress.
 
@@ -401,7 +401,7 @@ bash ./Build-MacInstaller.sh
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
 
-   The teacher client launches the bundled Test Editor via **Configuration → Test Editor…**. The bundled Test Platform server is started manually: `/Applications/ClassCommander.app/Contents/MacOS/TestPlatform/ClassCommander.TestPlatform` (listens on `http://0.0.0.0:5050` by default).
+   The teacher client launches the bundled Test Editor via **Configuration → Test Editor…**. **Configuration → Testing** starts the bundled Test Platform automatically (`Contents/MacOS/TestPlatform`; listens on `http://0.0.0.0:5050` by default).
 
    **Demonstration (WebRTC) codec note**:
    - On **macOS**, the teacher client encodes demo video as **H.264 via VideoToolbox** (system framework; no extra `vpxmd.dylib` bundling).

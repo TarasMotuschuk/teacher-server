@@ -19,6 +19,7 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     private readonly List<Form> _inputLockForms = [];
     private bool _browserCheckInProgress;
     private bool _inputLockHookHeld;
+    private SynchronizationContext? _uiSync;
 
     protected AgentUiApplicationContextBase(
         AgentSettingsStore settingsStore,
@@ -66,9 +67,13 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
         _inputLockRefreshTimer = new System.Windows.Forms.Timer
         {
-            Interval = 1000,
+            Interval = 200,
         };
-        _inputLockRefreshTimer.Tick += (_, _) => EnsureInputLockForms();
+        _inputLockRefreshTimer.Tick += (_, _) =>
+        {
+            _uiSync ??= SynchronizationContext.Current;
+            EnsureInputLockForms();
+        };
         _inputLockRefreshTimer.Start();
         EnsureInputLockForms();
     }
@@ -170,9 +175,26 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
 
     private void SettingsStore_OnSettingsChanged(object? sender, EventArgs e)
     {
+        if (_uiSync is not null && !ReferenceEquals(SynchronizationContext.Current, _uiSync))
+        {
+            _uiSync.Post(_ => ApplySettingsChangedOnUi(), null);
+            return;
+        }
+
+        ApplySettingsChangedOnUi();
+    }
+
+    private void ApplySettingsChangedOnUi()
+    {
         var seconds = Math.Max(5, _settingsStore.CurrentCached.BrowserLockCheckIntervalSeconds);
         _browserLockTimer.Interval = checked((int)TimeSpan.FromSeconds(seconds).TotalMilliseconds);
-        ApplyLocalization();
+        if (_settingsStore.CurrentCached.Language != StudentAgentText.CurrentLanguage)
+        {
+            ApplyLocalization();
+            return;
+        }
+
+        EnsureInputLockForms();
     }
 
     private void ApplyLocalization()
@@ -246,13 +268,6 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
                 }
             }
 
-            foreach (var form in _inputLockForms)
-            {
-                form.TopMost = true;
-                form.Show();
-                form.BringToFront();
-            }
-
             return;
         }
 
@@ -263,6 +278,15 @@ public abstract class AgentUiApplicationContextBase : ApplicationContext
     {
         foreach (var form in _inputLockForms.ToArray())
         {
+            try
+            {
+                form.TopMost = false;
+                form.Hide();
+            }
+            catch
+            {
+            }
+
             switch (form)
             {
                 case InputLockForm fullscreenForm:
