@@ -201,9 +201,10 @@ internal sealed class MatchingEditor : IAnswerEditor
             var combo = new ComboBox
             {
                 Width = 280,
+                PlaceholderText = TestRunnerText.ChooseAnswer,
                 ItemsSource = rightItems,
                 ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<MatchingItemDto>((item, _) =>
-                    new TextBlock { Text = item.Text }),
+                    new TextBlock { Text = item.Text, TextWrapping = TextWrapping.Wrap }),
             };
 
             if (selected.TryGetValue(left.Id, out var rightId))
@@ -259,7 +260,8 @@ internal sealed class TrueFalseGroupEditor : IAnswerEditor
         {
             var combo = new ComboBox
             {
-                Width = 120,
+                Width = 140,
+                PlaceholderText = TestRunnerText.ChooseAnswer,
                 ItemsSource = choices,
             };
             if (selected.TryGetValue(statement.Id, out var value))

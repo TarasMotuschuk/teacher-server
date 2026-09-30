@@ -3,10 +3,16 @@
         x:Class="ClassCommander.TestRunner.MainWindow"
         Width="1100"
         Height="760"
-        MinWidth="880"
-        MinHeight="600"
+        MinWidth="640"
+        MinHeight="480"
         Title="ClassCommander Testing">
   <DockPanel>
+    <Border DockPanel.Dock="Top" x:Name="SessionBanner" IsVisible="False" Background="#DBEAFE" Padding="12">
+      <DockPanel>
+        <Button x:Name="ExitTestButton" DockPanel.Dock="Right" Margin="12,0,0,0" Click="ExitTestButton_OnClick" />
+        <TextBlock x:Name="SessionNoticeText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="#1E3A8A" />
+      </DockPanel>
+    </Border>
     <Border DockPanel.Dock="Bottom"
             Padding="12,8"
             BorderBrush="#D0D5DD"
@@ -26,21 +32,21 @@
               MaxWidth="560"
               HorizontalAlignment="Center"
               VerticalAlignment="Center">
-        <StackPanel Spacing="10">
+        <StackPanel Spacing="12">
           <TextBlock x:Name="IdentityHeadingText" FontSize="22" FontWeight="SemiBold" Text="Student sign-in" />
           <TextBlock x:Name="TeacherLaunchHintText"
                      TextWrapping="Wrap"
                      Opacity="0.85"
                      Text="The teacher starts this test over the network. Server address is set automatically." />
           <TextBlock x:Name="SurnameLabelText" Text="Surname" />
-          <TextBox x:Name="SurnameTextBox" />
+          <TextBox x:Name="SurnameTextBox" MinHeight="44" FontSize="18" />
           <TextBlock x:Name="NameLabelText" Text="First name" />
-          <TextBox x:Name="NameTextBox" />
-          <TextBlock x:Name="ClassLabelText" Text="Class" />
-          <TextBox x:Name="ClassTextBox" IsReadOnly="True" />
-          <TextBlock x:Name="DeviceLabelText" Text="Device ID (optional)" />
-          <TextBox x:Name="DeviceTextBox" IsReadOnly="True" />
-          <Button x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Right" Click="ContinueButton_OnClick" />
+          <TextBox x:Name="NameTextBox" MinHeight="44" FontSize="18" />
+          <TextBlock IsVisible="False" x:Name="ClassLabelText" Text="Class" />
+          <TextBox IsVisible="False" x:Name="ClassTextBox" IsReadOnly="True" />
+          <TextBlock IsVisible="False" x:Name="DeviceLabelText" Text="Device ID (optional)" />
+          <TextBox IsVisible="False" x:Name="DeviceTextBox" IsReadOnly="True" />
+          <Button MinHeight="44" Classes="accent" x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Right" Click="ContinueButton_OnClick" />
         </StackPanel>
       </Border>
 
@@ -92,16 +98,17 @@
             <TextBlock x:Name="QuestionProgressText" Opacity="0.75" />
           </StackPanel>
 
-          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-            <Button x:Name="PreviousQuestionButton" Content="Previous" Click="PreviousQuestionButton_OnClick" />
-            <Button x:Name="NextQuestionButton" Content="Next" Click="NextQuestionButton_OnClick" />
-            <Button x:Name="SaveProgressButton" Content="Save progress" Click="SaveProgressButton_OnClick" />
-            <Button x:Name="SubmitButton" Content="Submit" HorizontalAlignment="Right" Click="SubmitButton_OnClick" />
-          </StackPanel>
+          <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+            <Button Margin="0,4,8,0" x:Name="PreviousQuestionButton" Content="Previous" Click="PreviousQuestionButton_OnClick" />
+            <Button Margin="0,4,8,0" x:Name="NextQuestionButton" Content="Next" Click="NextQuestionButton_OnClick" />
+            <Button Margin="0,4,8,0" x:Name="SaveProgressButton" Content="Save progress" Click="SaveProgressButton_OnClick" />
+            <Button Margin="0,4,8,0" Classes="accent" x:Name="SubmitButton" Content="Submit" HorizontalAlignment="Right" Click="SubmitButton_OnClick" />
+          </WrapPanel>
 
           <ScrollViewer>
             <StackPanel Spacing="12">
               <TextBlock x:Name="QuestionPromptText" FontSize="16" TextWrapping="Wrap" />
+              <TextBlock x:Name="AnswerHintText" TextWrapping="Wrap" Foreground="#475569" />
               <Border x:Name="AnswerHost"
                       Background="#F8FAFC"
                       BorderBrush="#E4E7EC"

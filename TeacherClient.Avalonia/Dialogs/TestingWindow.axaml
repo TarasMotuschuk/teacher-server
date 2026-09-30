@@ -16,6 +16,12 @@
       <StackPanel Spacing="8">
         <TextBlock x:Name="ConnectionStatusText"
                    Opacity="0.85" />
+        <TextBlock x:Name="LaunchAssignmentLabel" />
+        <ComboBox x:Name="LaunchAssignmentComboBox" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate>
+            <DataTemplate><TextBlock Text="{Binding Title}" /></DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Button x:Name="DeployRunnerButton"
                   MinWidth="140"
@@ -27,6 +33,7 @@
                   MinWidth="160"
                   Click="StartAllOnlineButton_OnClick" />
         </StackPanel>
+        <Button x:Name="ExitCodesButton" Click="ExitCodesButton_OnClick" />
         <TextBlock x:Name="LaunchHintText"
                    Opacity="0.75"
                    TextWrapping="Wrap"

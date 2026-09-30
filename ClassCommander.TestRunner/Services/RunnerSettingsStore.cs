@@ -7,8 +7,14 @@ internal sealed class RunnerSettingsStore
 {
     private readonly string _path;
 
-    public RunnerSettingsStore()
+    public RunnerSettingsStore(string? storagePath = null)
     {
+        if (storagePath is not null)
+        {
+            _path = storagePath;
+            return;
+        }
+
         var root = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ClassCommander",

@@ -12,11 +12,12 @@ internal static class TestPlatformHost
         var executable = ResolveExecutable();
         if (executable is not null)
         {
-            Process.Start(new ProcessStartInfo
+            using var process = Process.Start(new ProcessStartInfo
             {
                 FileName = executable,
                 WorkingDirectory = Path.GetDirectoryName(executable),
-                UseShellExecute = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
             });
             return true;
         }
@@ -24,12 +25,13 @@ internal static class TestPlatformHost
         var projectPath = ResolveProjectPath();
         if (projectPath is not null)
         {
-            Process.Start(new ProcessStartInfo
+            using var process = Process.Start(new ProcessStartInfo
             {
                 FileName = "dotnet",
                 Arguments = $"run --project \"{projectPath}\"",
                 WorkingDirectory = Path.GetDirectoryName(projectPath),
                 UseShellExecute = false,
+                CreateNoWindow = true,
             });
             return true;
         }

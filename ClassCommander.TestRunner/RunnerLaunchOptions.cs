@@ -16,6 +16,8 @@ internal sealed class RunnerLaunchOptions
 
     public string? DeviceId { get; private set; }
 
+    public string? ExitCodeHash { get; private set; }
+
     public bool AutoContinue { get; private set; }
 
     public string? Language { get; private set; }
@@ -49,6 +51,13 @@ internal sealed class RunnerLaunchOptions
             else if (TryReadValue(args, ref i, arg, "--device-id", "--device", out var deviceId))
             {
                 options.DeviceId = deviceId;
+            }
+            else if (TryReadValue(args, ref i, arg, "--exit-code-hash", out var exitCodeHash))
+            {
+                if (exitCodeHash.Length == 64 && exitCodeHash.All(Uri.IsHexDigit))
+                {
+                    options.ExitCodeHash = exitCodeHash;
+                }
             }
             else if (TryReadValue(args, ref i, arg, "--language", "--lang", out var language))
             {

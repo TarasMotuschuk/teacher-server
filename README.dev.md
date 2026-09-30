@@ -279,7 +279,7 @@ The installed layout under `C:\Program Files\MTD\TeacherServer` is:
 - `TestEditor\` — `ClassCommander.TestEditor` test authoring app (teacher feature; Start Menu shortcut `ClassCommander Test Editor`, also launched from the teacher client via **Configuration → Test Editor…**).
 - `TestPlatform\` — `ClassCommander.TestPlatform` local test server (teacher feature; listens on `http://0.0.0.0:5050` by default, installed with a firewall exception so students can reach it). **Configuration → Testing** starts it on the teacher PC automatically.
 - `Student\` — student agent binaries (student feature).
-- `Student\TestRunner\` — `ClassCommander.TestRunner` student test app (student feature). Teacher-launched tests prefer this installed runner and only fall back to the copy deployed to `C:\Users\Public\ClassCommander\TestRunner`; the **Deploy runner** action in the Testing window skips PCs that already have the installed runner.
+- `Student\TestRunner\` — `ClassCommander.TestRunner` student test app (student feature). Teacher-launched tests prefer this installed runner and only fall back to the copy deployed to `C:\Users\Public\ClassCommander\TestRunner`; the **Install student app** action in the Testing window skips PCs that already have the installed runner.
 
 When the `Student workstation tools` feature is selected, the installer deploys `StudentAgent.Service`, `StudentAgent.UIHost`, `StudentAgent.VncHost`, and `ClassCommander.TestRunner` together and registers the Windows service automatically. Because `ClassCommander.TestRunner` ships inside the student bundle, the student-agent auto-update ZIP also carries it and keeps the installed runner current.
 
@@ -447,3 +447,24 @@ README.md
 - Swagger UI is available only in development mode.
 - The student-side runtime currently sets `IsVisibleModeEnabled` to `true` in the info response.
 - The repository is a good baseline for adding TLS, access control, audit logging, and folder restrictions.
+
+
+## Classroom testing workflow and verification
+
+Use the updated teacher client **and updated student TestRunner** for this workflow. In **Configuration → Testing**, import a test, choose **Assign test**, select the resulting assignment in the selector above the tabs, then choose **Choose students and start…**. The dialog lists online PCs with checkboxes and a selected count. **Start on all online** opens the same confirmation list with every online PC selected. The local Test Platform starts without a Windows console (`UseShellExecute=false`, `CreateNoWindow=true`); its connection status remains visible in the teacher UI.
+
+Every student launch opens a light-themed sign-in screen with empty surname and first-name fields. Legacy `--auto-continue`, machine-name identity, and saved identity never bypass this screen. After identity confirmation, `--assignment-id` opens the intended assignment directly and filters other assignments out of the fallback list.
+
+Each launch generates a six-digit teacher exit code. **Teacher exit codes…** shows the assignment, launch time, PCs and code, including after reopening the client. Codes are stored in the teacher user's local app data at `TeacherServer/TeacherClient.Avalonia/test-exit-codes.json`; keep this file accessible only to the teacher. Only the SHA-256 verifier is sent with `--exit-code-hash` to TestRunner. This is a classroom focus control, not an OS security or exam-integrity boundary.
+
+Once an attempt begins, the updated runner shows a visible fullscreen restriction banner and **Exit test…**. Closing or Alt+F4 opens the teacher-code prompt. A correct code saves current answers before exiting; if the server cannot save them, the teacher explicitly confirms exit without the latest changes. Successful submission releases fullscreen, topmost, and keyboard restrictions. Native Windows hooks block Win, Alt+Tab, Alt+Esc, Ctrl+Esc and Ctrl+Shift+Esc while the attempt is active; ordinary answer-entry shortcuts keep working. Ctrl+Alt+Del, OS shutdown and administrative recovery remain available. No system policies or persistent locks are installed. Old launches without an exit-code verifier retain normal window behavior; native shortcut filtering is Windows-only.
+
+Run the headless UI regression checks with:
+
+```sh
+dotnet run --project tests/ClassCommander.TestRunner.SmokeTests
+```
+
+The checks cover English/Ukrainian sign-in rendering, readable light styling, legacy auto-start prevention, assignment isolation, and (on non-Windows test hosts) the close/PIN and completion cleanup paths. They save screenshots under the temporary directory `classcommander-testing-ux-smoke`. Native Windows hooks are deliberately excluded from headless execution.
+
+Windows classroom verification still required: dark/light Windows themes at 100–200% DPI; one-PC and multi-PC launches; absence of a server console; correct student names in results; Alt+Tab/Win/minimize/Alt+F4 during a test; correct/incorrect exit code; successful submit; disconnected-server early exit; keyboard restoration after exit, process termination and OS sign-out. Multiple-monitor focus behavior should be checked on actual classroom hardware.

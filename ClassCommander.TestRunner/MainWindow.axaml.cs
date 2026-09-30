@@ -13,7 +13,7 @@ namespace ClassCommander.TestRunner;
 
 public partial class MainWindow : Window
 {
-    private readonly RunnerSettingsStore _settingsStore = new();
+    private readonly RunnerSettingsStore _settingsStore;
     private readonly ObservableCollection<AssignmentListItem> _assignments = [];
     private readonly Dictionary<string, AttemptAnswerValueDto> _answers = new(StringComparer.Ordinal);
 
@@ -27,7 +27,13 @@ public partial class MainWindow : Window
     private bool _busy;
 
     public MainWindow()
+        : this(new RunnerSettingsStore())
     {
+    }
+
+    internal MainWindow(RunnerSettingsStore settingsStore)
+    {
+        _settingsStore = settingsStore;
         InitializeComponent();
         AssignmentsListBox.ItemsSource = _assignments;
         _settings = _settingsStore.Load();
@@ -36,10 +42,7 @@ public partial class MainWindow : Window
         ApplySettingsToForm();
         ApplyLocalization();
         ShowPanel(identity: true);
-        if (RunnerLaunchOptions.Current.AutoContinue)
-        {
-            Opened += async (_, _) => await TryAutoContinueAsync();
-        }
+        Opened += (_, _) => SurnameTextBox.Focus();
     }
 
     private void ResolveLanguage()
@@ -88,8 +91,9 @@ public partial class MainWindow : Window
 
     private void ApplySettingsToForm()
     {
-        SurnameTextBox.Text = _settings.Surname;
-        NameTextBox.Text = _settings.Name;
+        // A classroom PC is shared: never reuse the previous student's identity.
+        SurnameTextBox.Text = string.Empty;
+        NameTextBox.Text = string.Empty;
         ClassTextBox.Text = _settings.ClassName;
         DeviceTextBox.Text = _settings.DeviceId;
     }
@@ -113,7 +117,10 @@ public partial class MainWindow : Window
         NameLabelText.Text = TestRunnerText.NameLabel;
         ClassLabelText.Text = TestRunnerText.ClassLabel;
         DeviceLabelText.Text = TestRunnerText.DeviceLabel;
-        ContinueButton.Content = TestRunnerText.ContinueCommand;
+        ContinueButton.Content = string.IsNullOrWhiteSpace(RunnerLaunchOptions.Current.AssignmentPublicId)
+            ? TestRunnerText.ContinueCommand : TestRunnerText.StartCommand;
+        SurnameTextBox.Watermark = TestRunnerText.SurnameLabel;
+        NameTextBox.Watermark = TestRunnerText.NameLabel;
         AssignmentsHeadingText.Text = TestRunnerText.AssignmentsHeading;
         RefreshAssignmentsButton.Content = TestRunnerText.RefreshCommand;
         BackToIdentityButton.Content = TestRunnerText.BackCommand;
@@ -134,24 +141,8 @@ public partial class MainWindow : Window
     }
 
     private async void ContinueButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        => await ContinueAsync();
-
-    private async Task TryAutoContinueAsync()
     {
-        if (_busy)
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_settings.ServerUrl)
-            || string.IsNullOrWhiteSpace(_settings.Surname)
-            || string.IsNullOrWhiteSpace(_settings.Name))
-        {
-            return;
-        }
-
         await ContinueAsync();
-        await TryStartLaunchedAssignmentAsync();
     }
 
     private async Task TryStartLaunchedAssignmentAsync()
@@ -192,6 +183,7 @@ public partial class MainWindow : Window
         }
 
         PersistIdentitySettings();
+        _student = null;
         await RunBusyAsync(TestRunnerText.Connecting, async () =>
         {
             _api?.Dispose();
@@ -210,6 +202,10 @@ public partial class MainWindow : Window
                 ? TestRunnerText.NoAssignments
                 : TestRunnerText.StatusReady;
         });
+        if (_student is not null)
+        {
+            await TryStartLaunchedAssignmentAsync();
+        }
     }
 
     private async void RefreshAssignmentsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -274,6 +270,8 @@ public partial class MainWindow : Window
 
     private void BeginAttempt(StartAttemptResponse response)
     {
+        ReleaseTestSession();
+        StartTestSession();
         _attempt = response;
         _answers.Clear();
         foreach (var saved in response.SavedAnswers)
@@ -385,6 +383,7 @@ public partial class MainWindow : Window
 
     private void ShowResult(SubmitAttemptResponse response)
     {
+        ReleaseTestSession();
         var result = response.Result;
         var policy = response.ResultView;
         ResultScoreText.Text = policy.ShowScore
@@ -405,7 +404,9 @@ public partial class MainWindow : Window
     private void BindAssignments(IReadOnlyList<ActiveAssignmentDto> assignments)
     {
         _assignments.Clear();
-        foreach (var item in assignments)
+        foreach (var item in assignments.Where(item =>
+            string.IsNullOrWhiteSpace(RunnerLaunchOptions.Current.AssignmentPublicId)
+            || item.AssignmentPublicId == RunnerLaunchOptions.Current.AssignmentPublicId))
         {
             var window = FormatAvailability(item.StartUtc, item.EndUtc);
             _assignments.Add(new AssignmentListItem(
@@ -433,12 +434,14 @@ public partial class MainWindow : Window
         {
             QuestionProgressText.Text = string.Empty;
             QuestionPromptText.Text = string.Empty;
+            AnswerHintText.Text = string.Empty;
             PreviousQuestionButton.IsEnabled = false;
             NextQuestionButton.IsEnabled = false;
             return;
         }
 
         var question = _questions[_questionIndex];
+        AnswerHintText.Text = TestRunnerText.AnswerHint(question.Type);
         QuestionProgressText.Text = TestRunnerText.QuestionProgress(_questionIndex + 1, _questions.Count);
         QuestionPromptText.Text = string.IsNullOrWhiteSpace(question.Description)
             ? question.Prompt
@@ -514,7 +517,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             await ShowErrorAsync(ex.Message);
-            StatusTextBlock.Text = TestRunnerText.StatusReady;
+            StatusTextBlock.Text = ex.Message;
         }
         finally
         {
@@ -537,7 +540,7 @@ public partial class MainWindow : Window
                 TextWrapping = TextWrapping.Wrap,
             },
         };
-        await dialog.ShowDialog(this);
+        await ShowSessionDialogAsync<object?>(dialog);
     }
 
     private async Task<bool> ConfirmAsync(string message)
@@ -575,12 +578,13 @@ public partial class MainWindow : Window
             dialog.Close();
         };
         no.Click += (_, _) => dialog.Close();
-        await dialog.ShowDialog(this);
+        await ShowSessionDialogAsync<object?>(dialog);
         return result;
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        ReleaseTestSession();
         _api?.Dispose();
         base.OnClosed(e);
     }

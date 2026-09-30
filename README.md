@@ -48,6 +48,7 @@ Avalonia teacher client (macOS example):
 - **Discover student PCs** on the LAN (UDP), or add PCs manually (IP/port/group/notes).
 - **Connect** to a selected student PC, with optional **auto-reconnect**.
 - **Remote management**: start/stop the student VNC host, view screens, open a fullscreen viewer (view-only until control is enabled in the viewer).
+- **Classroom testing**: choose an assignment and student PCs, let each student enter their name, and run a readable fullscreen test with teacher-authorized early exit.
 - **Processes**: list processes, view details, terminate and restart.
 - **Files**: dual-pane local + remote browsing, upload/download, rename, delete, open on the student PC.
 - **Group commands** (selected PCs or all online PCs):
