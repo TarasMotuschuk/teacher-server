@@ -6,6 +6,19 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-09-30
+
+### Fixed
+
+- Teacher testing starts its local server without opening a Windows console. Connection and launch errors remain visible in the testing window.
+- Student testing uses a consistent light theme so labels, questions, and inputs stay readable on PCs using Windows dark mode. Navigation wraps on smaller displays.
+- Students must enter their own surname and first name on every launch; PC names and Windows usernames no longer skip sign-in. Continuing opens the assignment selected by the teacher.
+
+### Changed
+
+- Teacher testing has an explicit assignment selector and a checkbox dialog for launching on one or more online PCs, including a selected-PC count.
+- Teacher-launched tests use visible fullscreen focus restrictions while an attempt is active. On Windows, common task-switch shortcuts are blocked. Early exit prompts for a teacher code; successful submission restores normal window behavior. Teacher codes are retained on the teacher PC and are available from the testing window.
+
 ## [1.1.1] - 2026-09-29
 
 ### Changed

@@ -50,16 +50,10 @@ internal static class TestClassroomLaunchHelper
     public static string BuildLaunchScript(
         string classroomServerUrl,
         string assignmentPublicId,
-        DiscoveredAgentRow agent)
+        DiscoveredAgentRow agent,
+        string exitCodeHash)
     {
         var deviceId = string.IsNullOrWhiteSpace(agent.MachineName) ? agent.AgentId : agent.MachineName;
-        var surname = deviceId;
-        var name = ExtractUserName(agent.CurrentUser);
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            name = "Student";
-        }
-
         var args = string.Join(
             " ",
             QuoteArg("--server-url"),
@@ -68,13 +62,10 @@ internal static class TestClassroomLaunchHelper
             QuoteArg(assignmentPublicId),
             QuoteArg("--device-id"),
             QuoteArg(deviceId),
-            QuoteArg("--surname"),
-            QuoteArg(surname),
-            QuoteArg("--name"),
-            QuoteArg(name),
+            QuoteArg("--exit-code-hash"),
+            QuoteArg(exitCodeHash),
             QuoteArg("--language"),
-            QuoteArg(ClassCommanderUiSettings.LoadLanguage().ToCode()),
-            QuoteArg("--auto-continue"));
+            QuoteArg(ClassCommanderUiSettings.LoadLanguage().ToCode()));
 
         // Prefer the runner installed by the ClassCommander MSI (kept current by agent
         // auto-updates); fall back to the copy deployed to the public directory.
@@ -138,29 +129,6 @@ internal static class TestClassroomLaunchHelper
         }
 
         return null;
-    }
-
-    private static string ExtractUserName(string? currentUser)
-    {
-        if (string.IsNullOrWhiteSpace(currentUser))
-        {
-            return string.Empty;
-        }
-
-        var value = currentUser.Trim();
-        var slash = value.LastIndexOf('\\');
-        if (slash >= 0 && slash < value.Length - 1)
-        {
-            return value[(slash + 1)..];
-        }
-
-        var at = value.IndexOf('@');
-        if (at > 0)
-        {
-            return value[..at];
-        }
-
-        return value;
     }
 
     private static string QuoteArg(string value) => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";

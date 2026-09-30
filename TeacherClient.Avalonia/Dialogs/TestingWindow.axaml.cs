@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Teacher.Common.Contracts;
@@ -25,6 +27,7 @@ public partial class TestingWindow : Window
     private string? _monitorAssignmentId;
     private string? _monitorAssignmentTitle;
     private bool _busy;
+    private bool _connected;
 
     public TestingWindow()
         : this(ClientSettings.Default, new ClientSettingsStore(), () => [], () => [])
@@ -68,7 +71,9 @@ public partial class TestingWindow : Window
         Title = CrossPlatformText.TestingWindowTitle;
         LaunchHintText.Text = CrossPlatformText.TestingLaunchHint;
         DeployRunnerButton.Content = CrossPlatformText.TestingDeployRunner;
-        StartSelectedButton.Content = CrossPlatformText.TestingStartSelected;
+        StartSelectedButton.Content = CrossPlatformText.TestingChooseStudents;
+        LaunchAssignmentLabel.Text = CrossPlatformText.TestingLaunchAssignment;
+        ExitCodesButton.Content = CrossPlatformText.TestingExitCodes;
         StartAllOnlineButton.Content = CrossPlatformText.TestingStartAllOnline;
         TestsTabItem.Header = CrossPlatformText.TestingTabTests;
         AssignmentsTabItem.Header = CrossPlatformText.TestingTabAssignments;
@@ -132,6 +137,7 @@ public partial class TestingWindow : Window
 
         await RunBusyAsync(async () =>
         {
+            _connected = false;
             var url = TestPlatformHost.DefaultLocalUrl;
             _api?.Dispose();
             _api = new TestPlatformApiClient(url);
@@ -167,6 +173,7 @@ public partial class TestingWindow : Window
                 }
             }
 
+            _connected = true;
             _settings = _settings with { TestPlatformBaseUrl = url };
             _settingsStore.Save(_settings);
             ConnectionStatusText.Text = CrossPlatformText.TestingConnectedOnTeacherPc;
@@ -274,7 +281,7 @@ public partial class TestingWindow : Window
 
         await RunBusyAsync(async () =>
         {
-            await _api!.CreateAssignmentAsync(new CreateAssignmentRequest(
+            var created = await _api!.CreateAssignmentAsync(new CreateAssignmentRequest(
                 test.PublicId,
                 test.Version,
                 draft.Title,
@@ -285,6 +292,7 @@ public partial class TestingWindow : Window
 
             StatusTextBlock.Text = CrossPlatformText.TestingAssignmentCreated;
             await RefreshAssignmentsAsync();
+            LaunchAssignmentComboBox.SelectedItem = _assignments.FirstOrDefault(item => item.PublicId == created.PublicId);
             MainTabControl.SelectedItem = AssignmentsTabItem;
         });
     }
@@ -359,37 +367,39 @@ public partial class TestingWindow : Window
     }
 
     private async void StartSelectedButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (_busy)
-        {
-            return;
-        }
-
-        var agents = _getSelectedAgents();
-        if (agents.Count == 0)
-        {
-            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingChooseAgentsFirst);
-            return;
-        }
-
-        await RunBusyAsync(async () => await StartRunnerAsync(agents));
-    }
+        => await ChooseRecipientsAndStartAsync(selectAll: false);
 
     private async void StartAllOnlineButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => await ChooseRecipientsAndStartAsync(selectAll: true);
+
+    private async Task ChooseRecipientsAndStartAsync(bool selectAll)
     {
-        if (_busy)
+        if (_busy || !await EnsureConnectedAsync())
         {
             return;
         }
 
-        var agents = _getOnlineAgents();
-        if (agents.Count == 0)
+        var assignment = ResolveLaunchAssignment();
+        if (assignment is null)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingSelectAssignmentFirst);
+            LaunchAssignmentComboBox.Focus();
+            return;
+        }
+
+        var online = _getOnlineAgents();
+        if (online.Count == 0)
         {
             await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingNoOnlineAgents);
             return;
         }
 
-        await RunBusyAsync(async () => await StartRunnerAsync(agents));
+        var agents = await TestRecipientsDialog.ShowAsync(this, assignment.Title, online,
+            selectAll ? online : _getSelectedAgents());
+        if (agents is { Count: > 0 })
+        {
+            await RunBusyAsync(async () => await StartRunnerAsync(agents));
+        }
     }
 
     private async Task DeployRunnerAsync(IReadOnlyList<DiscoveredAgentRow> agents)
@@ -456,6 +466,32 @@ public partial class TestingWindow : Window
         }
     }
 
+    private async void ExitCodesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await RunBusyAsync(async () =>
+        {
+            var codes = TestExitCodeStore.Load().Reverse().Select(entry =>
+                $"{entry.CreatedAt:g} — {entry.Assignment} ({entry.Machines}){Environment.NewLine}{CrossPlatformText.TestingExitPin(entry.Code)}");
+            var text = new TextBox
+            {
+                Text = string.Join(Environment.NewLine + Environment.NewLine, codes),
+                IsReadOnly = true,
+                AcceptsReturn = true,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(16),
+            };
+            var dialog = new Window
+            {
+                Title = CrossPlatformText.TestingExitCodes,
+                Width = 680,
+                Height = 420,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Content = text,
+            };
+            await dialog.ShowDialog(this);
+        });
+    }
+
     private async Task StartRunnerAsync(IReadOnlyList<DiscoveredAgentRow> agents)
     {
         var assignment = ResolveLaunchAssignment();
@@ -465,6 +501,9 @@ public partial class TestingWindow : Window
             return;
         }
 
+        var exitCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString(CultureInfo.InvariantCulture);
+        var exitCodeHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(exitCode)));
+        TestExitCodeStore.Add(assignment.Title, exitCode, string.Join(", ", agents.Select(agent => agent.MachineName)));
         var classroomUrl = TestClassroomLaunchHelper.ResolveClassroomServerUrl(TestPlatformHost.DefaultLocalUrl);
         StatusTextBlock.Text = CrossPlatformText.TestingClassroomUrl(classroomUrl);
 
@@ -475,7 +514,7 @@ public partial class TestingWindow : Window
             try
             {
                 var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _settings.SharedSecret);
-                var script = TestClassroomLaunchHelper.BuildLaunchScript(classroomUrl, assignment.PublicId, agent);
+                var script = TestClassroomLaunchHelper.BuildLaunchScript(classroomUrl, assignment.PublicId, agent, exitCodeHash);
                 await client.ExecuteRemoteCommandAsync(script, RemoteCommandRunAs.CurrentUser);
                 succeeded++;
             }
@@ -558,6 +597,7 @@ public partial class TestingWindow : Window
         }
 
         var page = await _api.ListAssignmentsAsync();
+        var selectedId = ResolveLaunchAssignment()?.PublicId;
         _assignments.Clear();
         foreach (var item in page.Items.OrderByDescending(x => x.Title, StringComparer.CurrentCultureIgnoreCase))
         {
@@ -568,6 +608,10 @@ public partial class TestingWindow : Window
                 $"{item.TestPublicId} v{item.TestVersion}",
                 item.Audience.ClassPublicId ?? item.Audience.Type.ToString()));
         }
+        var open = _assignments.Where(item => string.Equals(item.Status, "Published", StringComparison.OrdinalIgnoreCase)).ToList();
+        LaunchAssignmentComboBox.ItemsSource = open;
+        LaunchAssignmentComboBox.SelectedItem = open.FirstOrDefault(item => item.PublicId == selectedId)
+            ?? (open.Count == 1 ? open[0] : null);
     }
 
     private async Task RefreshMonitorAsync()
@@ -608,41 +652,26 @@ public partial class TestingWindow : Window
     }
 
     private AssignmentRow? ResolveLaunchAssignment()
-    {
-        if (AssignmentsGrid.SelectedItem is AssignmentRow selected)
-        {
-            return selected;
-        }
-
-        if (!string.IsNullOrWhiteSpace(_monitorAssignmentId))
-        {
-            var monitored = _assignments.FirstOrDefault(x =>
-                string.Equals(x.PublicId, _monitorAssignmentId, StringComparison.Ordinal));
-            if (monitored is not null)
-            {
-                return monitored;
-            }
-        }
-
-        var open = _assignments
-            .Where(x => !string.Equals(x.Status, "Closed", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        return open.Count == 1 ? open[0] : null;
-    }
+        => LaunchAssignmentComboBox.SelectedItem as AssignmentRow;
 
     private async Task<bool> EnsureConnectedAsync()
     {
-        if (_api is not null)
+        if (_connected)
         {
             return true;
         }
 
         await ConnectToTeacherPlatformAsync();
-        return _api is not null;
+        return _connected;
     }
 
     private async Task RunBusyAsync(Func<Task> action)
     {
+        if (_busy)
+        {
+            return;
+        }
+
         _busy = true;
         try
         {

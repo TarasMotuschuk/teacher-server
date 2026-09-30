@@ -775,15 +775,15 @@ internal static partial class CrossPlatformText
         ? "Не знайдено ClassCommander.TestEditor. Зберіть проєкт або запустіть його окремо: dotnet run --project ClassCommander.TestEditor"
         : "ClassCommander.TestEditor was not found. Build it or run separately: dotnet run --project ClassCommander.TestEditor";
 
-    public static string TestingDeployRunner => IsUk ? "Розгорнути runner на ПК…" : "Deploy runner to PCs…";
+    public static string TestingDeployRunner => IsUk ? "Встановити застосунок учня…" : "Install student app…";
 
     public static string TestingStartSelected => IsUk ? "Старт на вибраних ПК" : "Start on selected PCs";
 
     public static string TestingStartAllOnline => IsUk ? "Старт на всіх онлайн" : "Start on all online";
 
     public static string TestingLaunchHint => IsUk
-        ? "Тести йдуть з цього вчительського ПК. Виберіть завдання і натисніть старт — Test Platform запускається тут, учні відкривають саме це завдання."
-        : "Tests run from this teacher PC. Select an assignment and start it — Test Platform starts here, and students open that assignment.";
+        ? "1. Імпортуйте тест і натисніть «Призначити тест». 2. Виберіть завдання вище. 3. Натисніть «Вибрати учнів і запустити» та позначте потрібні ПК."
+        : "1. Import a test and choose Assign test. 2. Select the assignment above. 3. Choose students and start, then tick the PCs to include.";
 
     public static string TestingChooseAgentsFirst => IsUk
         ? "Виберіть учнівські ПК у списку Agents."
