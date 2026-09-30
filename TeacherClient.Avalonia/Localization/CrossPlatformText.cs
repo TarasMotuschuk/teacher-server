@@ -377,11 +377,11 @@ internal static partial class CrossPlatformText
 
     public static string PowerOnCommand => IsUk ? "Увімкнути" : "Power On";
 
-    public static string PowerOnAllWithMacCommand => IsUk ? "Увімкнути всі ПК з MAC" : "Power On all PCs with MAC";
+    public static string PowerOnAllWithMacCommand => IsUk ? "Увімкнути всі відомі ПК по мережі" : "Power on all known PCs on the network";
 
     public static string WakeOnLanNoMacAddresses => IsUk
-        ? "Немає MAC-адрес для Wake-on-LAN. Додайте MAC у запис ПК або дочекайтесь discovery."
-        : "No MAC addresses available for Wake-on-LAN. Add a MAC to the PC entry or wait for discovery.";
+        ? "Немає відомих MAC-адрес. Увімкніть учнівські ПК хоча б раз (щоб запам’ятати MAC) або додайте MAC вручну."
+        : "No remembered MAC addresses. Power the student PCs on at least once (so their MAC can be stored) or add a MAC manually.";
 
     public static string BulkWakeOnLanError => IsUk ? "Помилка групової команди: увімкнення (Wake-on-LAN)" : "Bulk power-on (Wake-on-LAN) error";
 
@@ -781,11 +781,9 @@ internal static partial class CrossPlatformText
 
     public static string TestingStartAllOnline => IsUk ? "Старт на всіх онлайн" : "Start on all online";
 
-    public static string TestingLaunchClassLabel => IsUk ? "Клас для запуску" : "Class for launch";
-
     public static string TestingLaunchHint => IsUk
-        ? "Розгортає ClassCommander.TestRunner на учнівські ПК і запускає його з адресою Test Platform та класом (має збігатися з завданням)."
-        : "Deploys ClassCommander.TestRunner to student PCs and starts it with the Test Platform URL and class name (must match the assignment).";
+        ? "Тести йдуть з цього вчительського ПК. Виберіть завдання і натисніть старт — Test Platform запускається тут, учні відкривають саме це завдання."
+        : "Tests run from this teacher PC. Select an assignment and start it — Test Platform starts here, and students open that assignment.";
 
     public static string TestingChooseAgentsFirst => IsUk
         ? "Виберіть учнівські ПК у списку Agents."
@@ -795,25 +793,23 @@ internal static partial class CrossPlatformText
         ? "Немає онлайн учнівських ПК."
         : "No online student PCs.";
 
-    public static string TestingLaunchClassRequired => IsUk
-        ? "Вкажіть клас для запуску (має збігатися з призначенням)."
-        : "Enter the launch class (must match the assignment audience).";
-
     public static string TestingRunnerNotBuilt => IsUk
         ? "Немає Windows-збірки ClassCommander.TestRunner для розгортання. На Mac: dotnet publish ClassCommander.TestRunner -r win-x64 --self-contained false."
         : "No Windows ClassCommander.TestRunner build to deploy. On Mac run: dotnet publish ClassCommander.TestRunner -r win-x64 --self-contained false.";
 
     public static string TestingWindowTitle => IsUk ? "ClassCommander — Тестування" : "ClassCommander Testing";
 
-    public static string TestPlatformBaseUrl => IsUk ? "Адреса Test Platform" : "Test platform URL";
+    public static string TestingConnectedOnTeacherPc => IsUk
+        ? "Підключено до Test Platform на цьому вчительському ПК."
+        : "Connected to Test Platform on this teacher PC.";
 
-    public static string SettingsFieldTooltipTestPlatformBaseUrl => IsUk
-        ? "Базова URL локального ClassCommander.TestPlatform (наприклад http://127.0.0.1:5050; на macOS уникайте :5000 — його часто займає AirPlay)."
-        : "Base URL of the local ClassCommander.TestPlatform server (for example http://127.0.0.1:5050; on macOS avoid :5000 — AirPlay often owns it).";
+    public static string TestingPlatformNotFound => IsUk
+        ? "Не знайдено ClassCommander.TestPlatform на цьому ПК. Встановіть учительський інсталятор або зберіть проєкт."
+        : "ClassCommander.TestPlatform was not found on this PC. Install the teacher package or build the project.";
 
-    public static string TestingConnect => IsUk ? "Підключити" : "Connect";
-
-    public static string TestingConnected => IsUk ? "Підключено до Test Platform." : "Connected to Test Platform.";
+    public static string TestingPlatformStartFailed => IsUk
+        ? "Не вдалося запустити Test Platform на цьому вчительському ПК."
+        : "Could not start Test Platform on this teacher PC.";
 
     public static string TestingTabTests => IsUk ? "Тести" : "Tests";
 
@@ -885,8 +881,6 @@ internal static partial class CrossPlatformText
 
     public static string TestingAssignmentTitleLabel => IsUk ? "Назва завдання" : "Assignment title";
 
-    public static string TestingClassNameLabel => IsUk ? "Клас (аудиторія)" : "Class (audience)";
-
     public static string TestingMaxAttemptsLabel => IsUk ? "Макс. спроб" : "Max attempts";
 
     public static string TestingTimeLimitLabel => IsUk ? "Ліміт часу (сек, порожньо = без ліміту)" : "Time limit (sec, blank = none)";
@@ -898,8 +892,8 @@ internal static partial class CrossPlatformText
     public static string TestingShowFeedbackLabel => IsUk ? "Показувати результат по питаннях" : "Show per-question feedback";
 
     public static string TestingRequiredAssignmentFields => IsUk
-        ? "Заповніть назву завдання та клас."
-        : "Enter assignment title and class name.";
+        ? "Вкажіть назву завдання."
+        : "Enter an assignment title.";
 
     public static string TestingResultDetailTitle => IsUk ? "Результат спроби" : "Attempt result";
 

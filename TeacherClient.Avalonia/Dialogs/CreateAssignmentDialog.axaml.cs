@@ -30,7 +30,6 @@ public partial class CreateAssignmentDialog : Window
     {
         Title = CrossPlatformText.TestingCreateAssignmentTitle;
         TitleLabel.Text = CrossPlatformText.TestingAssignmentTitleLabel;
-        ClassLabel.Text = CrossPlatformText.TestingClassNameLabel;
         MaxAttemptsLabel.Text = CrossPlatformText.TestingMaxAttemptsLabel;
         TimeLimitLabel.Text = CrossPlatformText.TestingTimeLimitLabel;
         ShowScoreCheckBox.Content = CrossPlatformText.TestingShowScoreLabel;
@@ -43,8 +42,7 @@ public partial class CreateAssignmentDialog : Window
     private async void CreateButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var title = TitleTextBox.Text?.Trim() ?? string.Empty;
-        var className = ClassTextBox.Text?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(className))
+        if (string.IsNullOrWhiteSpace(title))
         {
             await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.TestingRequiredAssignmentFields);
             return;
@@ -63,7 +61,6 @@ public partial class CreateAssignmentDialog : Window
 
         _result = new CreateAssignmentDraft(
             title,
-            className,
             maxAttempts,
             timeLimit,
             ShowScoreCheckBox.IsChecked == true,
@@ -80,7 +77,6 @@ public partial class CreateAssignmentDialog : Window
 
 public sealed record CreateAssignmentDraft(
     string Title,
-    string ClassName,
     int MaxAttempts,
     int? TimeLimitSeconds,
     bool ShowScore,

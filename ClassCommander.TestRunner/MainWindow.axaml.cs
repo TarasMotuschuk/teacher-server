@@ -151,6 +151,22 @@ public partial class MainWindow : Window
         }
 
         await ContinueAsync();
+        await TryStartLaunchedAssignmentAsync();
+    }
+
+    private async Task TryStartLaunchedAssignmentAsync()
+    {
+        var assignmentId = RunnerLaunchOptions.Current.AssignmentPublicId;
+        if (_busy || _api is null || _student is null || string.IsNullOrWhiteSpace(assignmentId))
+        {
+            return;
+        }
+
+        await RunBusyAsync(TestRunnerText.LoadingTest, async () =>
+        {
+            var response = await _api.StartAttemptAsync(new StartAttemptRequest(assignmentId, _student));
+            BeginAttempt(response);
+        });
     }
 
     private async Task ContinueAsync()

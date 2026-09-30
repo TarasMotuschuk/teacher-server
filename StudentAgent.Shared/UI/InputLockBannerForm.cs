@@ -57,7 +57,27 @@ public sealed class InputLockBannerForm : Form
     public void ForceClose()
     {
         _allowClose = true;
-        Close();
+        try
+        {
+            _topMostTimer.Stop();
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            TopMost = false;
+            Hide();
+        }
+        catch
+        {
+        }
+
+        if (!IsDisposed)
+        {
+            Close();
+        }
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)

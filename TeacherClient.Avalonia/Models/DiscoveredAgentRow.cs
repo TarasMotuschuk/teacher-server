@@ -60,6 +60,31 @@ public sealed record DiscoveredAgentRow(
             false);
     }
 
+    public static DiscoveredAgentRow FromKnownEntry(KnownAgentEntry entry)
+    {
+        return new DiscoveredAgentRow(
+            entry.AgentId,
+            CrossPlatformText.AutoSource,
+            CrossPlatformText.Offline,
+            string.Empty,
+            string.IsNullOrWhiteSpace(entry.MachineName) ? entry.AgentId : entry.MachineName,
+            string.Empty,
+            entry.RespondingAddress,
+            entry.Port > 0 ? entry.Port : 5055,
+            entry.MacAddresses ?? string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            false,
+            false,
+            true,
+            0,
+            string.Empty,
+            entry.LastSeenUtc,
+            false);
+    }
+
     public static DiscoveredAgentRow FromManualEntry(ManualAgentEntry entry)
     {
         return new DiscoveredAgentRow(

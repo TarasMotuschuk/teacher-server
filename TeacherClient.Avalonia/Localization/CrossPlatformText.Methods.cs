@@ -362,10 +362,19 @@ internal static partial class CrossPlatformText
             ? $"{GetPowerActionNoun(action)} на {agent} ({agentIndex}/{agentCount})"
             : $"{GetPowerActionNoun(action)} on {agent} ({agentIndex}/{agentCount})";
 
-    public static string WakeOnLanPrompt(int count, bool selectedOnly)
-        => IsUk
-            ? $"Надіслати Wake-on-LAN для {(selectedOnly ? "вибраних" : "відомих")} учнівських ПК ({count})? ПК мають підтримувати WoL і мати коректну MAC-адресу."
-            : $"Send Wake-on-LAN to {(selectedOnly ? "selected" : "known")} student PCs ({count})? Targets need WoL enabled and a valid MAC address.";
+    public static string WakeOnLanPrompt(int count, bool selectedOnly, int offlineCount)
+    {
+        if (selectedOnly)
+        {
+            return IsUk
+                ? $"Надіслати Wake-on-LAN для вибраних ПК ({count}, з них {offlineCount} офлайн)? ПК мають підтримувати WoL у BIOS/мережевій карті."
+                : $"Send Wake-on-LAN to selected PCs ({count}, {offlineCount} currently offline)? Targets need WoL enabled in BIOS/NIC.";
+        }
+
+        return IsUk
+            ? $"Надіслати Wake-on-LAN усім відомим ПК цього класу ({count}, з них {offlineCount} зараз вимкнені/офлайн)? Увімкнуться лише ПК, які вже бачилися в мережі і мають MAC. Потрібна підтримка WoL у BIOS."
+            : $"Send Wake-on-LAN to all known classroom PCs ({count}, {offlineCount} currently off/offline)? Only PCs seen before (with a MAC) can be woken. WoL must be enabled in BIOS.";
+    }
 
     public static string WakeOnLanProgress(string agent, int agentIndex, int agentCount)
         => IsUk
