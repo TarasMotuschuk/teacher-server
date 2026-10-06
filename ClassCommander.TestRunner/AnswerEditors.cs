@@ -1,9 +1,10 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using ClassCommander.Testing.UI;
 using ClassCommander.TestRunner.Localization;
 using Teacher.Common.Contracts.Testing;
 
@@ -20,7 +21,7 @@ internal interface IAnswerEditor
 
 internal static class AnswerEditorFactory
 {
-    public static IAnswerEditor Create(QuestionDto question, AttemptAnswerValueDto? existing) => question.Interaction switch
+    public static IAnswerEditor Create(QuestionDto question, AttemptAnswerValueDto? existing, byte[]? image = null) => question.Interaction switch
     {
         SingleChoiceInteractionDto single => new SingleChoiceEditor(single, existing as SingleChoiceAnswerValueDto),
         MultipleChoiceInteractionDto multi => new MultipleChoiceEditor(multi, existing as MultipleChoiceAnswerValueDto),
@@ -29,7 +30,7 @@ internal static class AnswerEditorFactory
         TrueFalseGroupInteractionDto tf => new TrueFalseGroupEditor(tf, existing as TrueFalseGroupAnswerValueDto),
         NumericInputGroupInteractionDto numeric => new NumericInputGroupEditor(numeric, existing as NumericInputGroupAnswerValueDto),
         TextInputInteractionDto text => new TextInputEditor(text, existing as TextInputAnswerValueDto),
-        ImagePointInteractionDto => new ImagePointEditor(existing as ImagePointAnswerValueDto),
+        ImagePointInteractionDto => new ImagePointEditor(existing as ImagePointAnswerValueDto, image),
         LetterOrderingInteractionDto => new LetterOrderingEditor(question, existing as LetterOrderingAnswerValueDto),
         _ => new UnsupportedEditor(question.Type.ToString()),
     };
@@ -410,48 +411,38 @@ internal sealed class TextInputEditor : IAnswerEditor
     }
 }
 
-internal sealed class ImagePointEditor : IAnswerEditor
+internal sealed class ImagePointEditor : IAnswerEditor, IDisposable
 {
-    private readonly TextBox _xBox;
-    private readonly TextBox _yBox;
+    private readonly ImagePointPicker _picker = new();
 
-    public ImagePointEditor(ImagePointAnswerValueDto? existing)
+    public ImagePointEditor(ImagePointAnswerValueDto? existing, byte[]? image)
     {
-        _xBox = new TextBox { Width = 100, Text = existing?.X.ToString(CultureInfo.InvariantCulture) ?? string.Empty };
-        _yBox = new TextBox { Width = 100, Text = existing?.Y.ToString(CultureInfo.InvariantCulture) ?? string.Empty };
-        Control = new StackPanel
+        var hint = new TextBlock { Text = TestRunnerText.PointHint, TextWrapping = TextWrapping.Wrap };
+        var status = new TextBlock { Text = TestRunnerText.PointNotSelected, TextWrapping = TextWrapping.Wrap };
+        if (image is not null)
         {
-            Spacing = 8,
-            Children =
+            using var stream = new MemoryStream(image);
+            _picker.SetImage(new Bitmap(stream), existing is null ? null : new PointDto(existing.X, existing.Y));
+            _picker.PointSelected += point => status.Text = TestRunnerText.PointSelected;
+            if (existing is not null)
             {
-                new TextBlock { Text = TestRunnerText.PointHint, TextWrapping = TextWrapping.Wrap },
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        new TextBlock { Text = "X", VerticalAlignment = VerticalAlignment.Center },
-                        _xBox,
-                        new TextBlock { Text = "Y", VerticalAlignment = VerticalAlignment.Center },
-                        _yBox,
-                    },
-                },
-            },
-        };
+                status.Text = TestRunnerText.PointSelected;
+            }
+        }
+        else
+        {
+            _picker.IsVisible = false;
+            status.Text = TestRunnerText.PointImageMissing;
+        }
+
+        Control = new StackPanel { Spacing = 8, Children = { hint, _picker, status } };
     }
 
     public Control Control { get; }
 
-    public AttemptAnswerValueDto? Collect()
-    {
-        if (!int.TryParse(_xBox.Text?.Trim(), out var x) || !int.TryParse(_yBox.Text?.Trim(), out var y))
-        {
-            return null;
-        }
+    public AttemptAnswerValueDto? Collect() => _picker.SelectedPoint is { } point ? new ImagePointAnswerValueDto(point.X, point.Y) : null;
 
-        return new ImagePointAnswerValueDto(x, y);
-    }
+    public void Dispose() => _picker.Dispose();
 }
 
 internal sealed class LetterOrderingEditor : IAnswerEditor

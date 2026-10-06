@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private List<QuestionDto> _questions = [];
     private int _questionIndex;
     private IAnswerEditor? _currentEditor;
+    private readonly Dictionary<string, byte[]> _imageAssets = [];
     private bool _busy;
 
     public MainWindow()
@@ -156,6 +157,7 @@ public partial class MainWindow : Window
         await RunBusyAsync(TestRunnerText.LoadingTest, async () =>
         {
             var response = await _api.StartAttemptAsync(new StartAttemptRequest(assignmentId, _student));
+            await LoadImagesAsync(response);
             BeginAttempt(response);
         });
     }
@@ -264,8 +266,22 @@ public partial class MainWindow : Window
                 selected.AssignmentPublicId,
                 _student));
 
+            await LoadImagesAsync(response);
             BeginAttempt(response);
         });
+    }
+
+    private async Task LoadImagesAsync(StartAttemptResponse response)
+    {
+        _imageAssets.Clear();
+        var ids = response.TestDefinition.Groups.SelectMany(group => group.Questions)
+            .Where(question => question.Type == QuestionType.ImagePoint)
+            .SelectMany(question => question.Assets.Where(asset => asset.Role == "prompt"))
+            .Select(asset => asset.AssetId).Distinct();
+        foreach (var id in ids)
+        {
+            _imageAssets[id] = await _api!.GetImageAsync(response.AttemptPublicId, response.AttemptToken, id);
+        }
     }
 
     private void BeginAttempt(StartAttemptResponse response)
@@ -376,6 +392,7 @@ public partial class MainWindow : Window
         _questions = [];
         _answers.Clear();
         _currentEditor = null;
+        (_currentEditor as IDisposable)?.Dispose();
         AnswerHost.Child = null;
         ShowPanel(assignments: true);
         StatusTextBlock.Text = TestRunnerText.StatusReady;
@@ -452,6 +469,7 @@ public partial class MainWindow : Window
 
     private void RebuildCurrentEditor()
     {
+        (_currentEditor as IDisposable)?.Dispose();
         AnswerHost.Child = null;
         _currentEditor = null;
         if (_questions.Count == 0)
@@ -461,7 +479,9 @@ public partial class MainWindow : Window
 
         var question = _questions[_questionIndex];
         _answers.TryGetValue(question.Id, out var existing);
-        _currentEditor = AnswerEditorFactory.Create(question, existing);
+        var imageId = question.Assets.FirstOrDefault(asset => asset.Role == "prompt")?.AssetId;
+        var image = imageId is not null && _imageAssets.TryGetValue(imageId, out var bytes) ? bytes : null;
+        _currentEditor = AnswerEditorFactory.Create(question, existing, image);
         AnswerHost.Child = _currentEditor.Control;
     }
 
@@ -584,6 +604,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        (_currentEditor as IDisposable)?.Dispose();
         ReleaseTestSession();
         _api?.Dispose();
         base.OnClosed(e);

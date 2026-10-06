@@ -67,6 +67,15 @@ internal sealed class TestPlatformApiClient : IDisposable
             ?? throw new InvalidOperationException("Empty submit response.");
     }
 
+    public async Task<byte[]> GetImageAsync(string attemptId, string token, string assetId)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"api/tests/v1/student/attempts/{Uri.EscapeDataString(attemptId)}/assets/{Uri.EscapeDataString(assetId)}");
+        message.Headers.Add("X-Attempt-Token", token);
+        using var response = await _http.SendAsync(message);
+        await EnsureSuccessAsync(response, CancellationToken.None);
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
     public void Dispose() => _http.Dispose();
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)

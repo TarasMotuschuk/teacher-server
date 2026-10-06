@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Teacher.Common;
 using Teacher.Common.Contracts;
+using TeacherClient.Localization;
 
 namespace TeacherClient.Services;
 
@@ -65,12 +66,22 @@ public sealed class TeacherApiClient
 
     public async Task SetBrowserLockEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(_httpClient.BaseAddress!.Host, cancellationToken: cancellationToken))
+        {
+            throw new InvalidOperationException(TeacherClientText.LocalComputerLockProtected);
+        }
+
         var response = await _httpClient.PostAsJsonAsync("api/browser-lock", new BrowserLockStateRequest(enabled), cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task SetInputLockEnabledAsync(bool enabled, InputLockVisualMode visualMode = InputLockVisualMode.FullscreenOverlay, CancellationToken cancellationToken = default)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(_httpClient.BaseAddress!.Host, cancellationToken: cancellationToken))
+        {
+            throw new InvalidOperationException(TeacherClientText.LocalComputerLockProtected);
+        }
+
         var response = await _httpClient.PostAsJsonAsync("api/input-lock", new InputLockStateRequest(enabled, visualMode), cancellationToken);
         response.EnsureSuccessStatusCode();
     }

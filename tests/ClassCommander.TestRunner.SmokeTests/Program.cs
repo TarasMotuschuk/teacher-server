@@ -128,13 +128,21 @@ Require(start.IsEnabled, "Selecting one recipient must enable launch.");
 picker.CaptureRenderedFrame()!.Save(Path.Combine(output, "teacher-recipients.png"));
 start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 Dispatcher.UIThread.RunJobs();
-Require(choose.IsCompletedSuccessfully && choose.Result is { Count: 1 } && choose.Result[0].AgentId == "PUPIL02",
+Require(
+    choose.IsCompletedSuccessfully && choose.Result is { Count: 1 } && choose.Result[0].AgentId == "PUPIL02",
     "The launch must return only the explicitly selected PC.");
 owner.Close();
 var script = (string)teacherAssembly.GetType("TeacherClient.CrossPlatform.Services.TestClassroomLaunchHelper")!
     .GetMethod("BuildLaunchScript")!.Invoke(null, ["http://192.168.1.2:5050", "chosen", recipients[0], new string('A', 64)])!;
-Require(!script.Contains("--auto-continue", StringComparison.Ordinal) && !script.Contains("--surname", StringComparison.Ordinal),
+Require(
+    !script.Contains("--auto-continue", StringComparison.Ordinal) && !script.Contains("--surname", StringComparison.Ordinal),
     "Teacher launch must not inject machine identity or skip sign-in.");
 Require(script.Contains("--exit-code-hash", StringComparison.Ordinal), "Teacher launches must include the exit-code verifier.");
+
+ClassCommander.TestRunner.SmokeTests.MonitoringChecks.Run();
+ClassCommander.TestRunner.SmokeTests.ImagePointChecks.Run();
+ClassCommander.TestRunner.SmokeTests.LocalComputerChecks.Run();
+ClassCommander.TestRunner.SmokeTests.EditorWorkspaceChecks.Run();
+ClassCommander.TestRunner.SmokeTests.OrderingEditorChecks.Run();
 
 Console.WriteLine($"PASS: sign-in, localization, theme, assignment isolation, session cleanup. Screenshots: {output}");

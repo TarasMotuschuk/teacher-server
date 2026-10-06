@@ -2725,8 +2725,24 @@ public partial class MainForm : Form
 
     private async Task SetBrowserLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
     {
+        var skippedLocal = 0;
+        if (enabled)
+        {
+            var checkedAgents = await Task.WhenAll(targetAgents.Select(async agent =>
+                (Agent: agent, Local: await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))));
+            skippedLocal = checkedAgents.Count(item => item.Local);
+            targetAgents = checkedAgents.Where(item => !item.Local).Select(item => item.Agent).ToList();
+            if (targetAgents.Count == 0)
+            {
+                SetStatus(TeacherClientText.LocalComputerLockProtected);
+                return;
+            }
+        }
+
+        var skippedMessage = skippedLocal > 0 ? $" {TeacherClientText.LocalComputerLockSkipped(skippedLocal)}" : string.Empty;
+
         if (MessageBox.Show(
-                TeacherClientText.BrowserLockPrompt(targetAgents.Count),
+                TeacherClientText.BrowserLockPrompt(targetAgents.Count) + skippedMessage,
                 TeacherClientText.GroupCommandsMenu,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
@@ -2757,11 +2773,11 @@ public partial class MainForm : Form
 
         if (failures.Count == 0)
         {
-            SetStatus(TeacherClientText.BrowserLockCompleted(succeeded));
+            SetStatus(TeacherClientText.BrowserLockCompleted(succeeded) + skippedMessage);
             return;
         }
 
-        SetStatus(TeacherClientText.BrowserLockCompletedWithFailures(succeeded, failures.Count));
+        SetStatus(TeacherClientText.BrowserLockCompletedWithFailures(succeeded, failures.Count) + skippedMessage);
         MessageBox.Show(
             string.Join(Environment.NewLine, failures),
             TeacherClientText.BulkCommandsResultTitle,
@@ -3221,6 +3237,13 @@ public partial class MainForm : Form
 
     private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))
+        {
+            SetStatus(TeacherClientText.LocalComputerLockProtected);
+            ApplyAgentFilters();
+            return;
+        }
+
         if (!string.Equals(agent.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
         {
             SetStatus(TeacherClientText.BrowserLockRequiresOnlineAgent);
@@ -3244,6 +3267,13 @@ public partial class MainForm : Form
 
     private async Task ToggleInputLockAsync(DiscoveredAgentRow agent, bool enabled)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))
+        {
+            SetStatus(TeacherClientText.LocalComputerLockProtected);
+            ApplyAgentFilters();
+            return;
+        }
+
         if (!string.Equals(agent.Status, TeacherClientText.Online, StringComparison.OrdinalIgnoreCase))
         {
             SetStatus(TeacherClientText.InputLockRequiresOnlineAgent);
@@ -3818,8 +3848,24 @@ public partial class MainForm : Form
 
     private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled, InputLockVisualMode visualMode)
     {
+        var skippedLocal = 0;
+        if (enabled)
+        {
+            var checkedAgents = await Task.WhenAll(targetAgents.Select(async agent =>
+                (Agent: agent, Local: await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))));
+            skippedLocal = checkedAgents.Count(item => item.Local);
+            targetAgents = checkedAgents.Where(item => !item.Local).Select(item => item.Agent).ToList();
+            if (targetAgents.Count == 0)
+            {
+                SetStatus(TeacherClientText.LocalComputerLockProtected);
+                return;
+            }
+        }
+
+        var skippedMessage = skippedLocal > 0 ? $" {TeacherClientText.LocalComputerLockSkipped(skippedLocal)}" : string.Empty;
+
         if (MessageBox.Show(
-                TeacherClientText.InputLockPrompt(targetAgents.Count, enabled, visualMode),
+                TeacherClientText.InputLockPrompt(targetAgents.Count, enabled, visualMode) + skippedMessage,
                 TeacherClientText.GroupCommandsMenu,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning) != DialogResult.Yes)
@@ -3849,8 +3895,8 @@ public partial class MainForm : Form
         }
 
         SetStatus(failures.Count == 0
-            ? TeacherClientText.InputLockCompleted(succeeded, enabled, visualMode)
-            : TeacherClientText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode));
+            ? TeacherClientText.InputLockCompleted(succeeded, enabled, visualMode) + skippedMessage
+            : TeacherClientText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode) + skippedMessage);
 
         if (failures.Count > 0)
         {

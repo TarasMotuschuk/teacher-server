@@ -118,7 +118,9 @@ internal static class AttemptScoringService
     }
 
     private static bool IsPointInAnyRegion(IReadOnlyList<PolygonRegionDto> regions, int x, int y) =>
-        regions.Any(region => region.Points.Count >= 3 && IsPointInPolygon(region.Points, x, y));
+        regions.Any(region => region.Points.Count == 1
+            ? region.Points[0].X == x && region.Points[0].Y == y
+            : region.Points.Count >= 3 && IsPointInPolygon(region.Points, x, y));
 
     private static bool IsPointInPolygon(IReadOnlyList<PointDto> polygon, int x, int y)
     {
@@ -127,6 +129,13 @@ internal static class AttemptScoringService
         {
             var pi = polygon[i];
             var pj = polygon[j];
+            var cross = (((long)x - pi.X) * ((long)pj.Y - pi.Y)) - (((long)y - pi.Y) * ((long)pj.X - pi.X));
+            if (cross == 0 && x >= Math.Min(pi.X, pj.X) && x <= Math.Max(pi.X, pj.X)
+                && y >= Math.Min(pi.Y, pj.Y) && y <= Math.Max(pi.Y, pj.Y))
+            {
+                return true;
+            }
+
             var intersect = ((pi.Y > y) != (pj.Y > y))
                 && (x < ((pj.X - pi.X) * (y - pi.Y) / (double)(pj.Y - pi.Y + 0.0000001)) + pi.X);
             if (intersect)

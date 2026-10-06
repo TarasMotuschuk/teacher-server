@@ -390,6 +390,25 @@ tests.MapPost("/student/attempts", (StartAttemptRequest request) =>
     }
 });
 
+tests.MapGet("/student/attempts/{attemptId}/assets/{assetId}", (string attemptId, string assetId, HttpRequest request) =>
+{
+    if (!TryAuthorizeAttempt(request, attemptId, repository, out var error))
+    {
+        return error;
+    }
+
+    var attempt = repository.GetAttempt(attemptId)!;
+    var definition = repository.GetDefinition(attempt.TestPublicId, attempt.TestVersion);
+    var asset = definition?.Assets.FirstOrDefault(item => item.Id == assetId && item.Kind == AssetKind.Image);
+    if (asset is null)
+    {
+        return Results.NotFound();
+    }
+
+    var path = Path.Combine(paths.GetAssetsDirectory(attempt.TestPublicId), Path.GetFileName(asset.Path));
+    return File.Exists(path) ? Results.File(path, asset.MimeType) : Results.NotFound();
+});
+
 tests.MapPut("/student/attempts/{attemptId}/progress", (string attemptId, HttpRequest httpRequest, SaveAttemptProgressRequest body) =>
 {
     if (!TryAuthorizeAttempt(httpRequest, attemptId, repository, out var error))

@@ -16,7 +16,7 @@ This folder holds design documents and prototypes for the classroom testing subs
 dotnet run --project ClassCommander.TestEditor/ClassCommander.TestEditor.csproj
 ```
 
-Authoring UI: create a new test, add/edit/delete all 9 question types with answer keys, import MyTest XML, open/save `.cctest`. From teacher Avalonia: **Configuration → Test Editor…**.
+Authoring UI: create a new test, add/edit/delete all 9 question types with answer keys, import MyTest XML, open/save `.cctest`. From teacher Avalonia: **Testing → Test Editor…**.
 
 ## Run the student test runner
 
@@ -28,7 +28,7 @@ Point the runner at a running TestPlatform base URL (default `http://127.0.0.1:5
 
 ## Teacher Avalonia Testing UI
 
-In `TeacherClient.Avalonia` open **Configuration → Testing…** (after starting TestPlatform). From there you can:
+In `TeacherClient.Avalonia` open **Testing → Tests and results…** (after starting TestPlatform). From there you can:
 
 - connect to the Test Platform URL (also configurable under **Basic Settings**)
 - list tests and import MyTest XML or `.cctest` packages from TestEditor

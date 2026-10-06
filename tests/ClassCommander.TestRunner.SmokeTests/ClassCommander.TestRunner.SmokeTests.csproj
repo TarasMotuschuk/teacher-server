@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ClassCommander.TestPlatform/Scoring/AttemptScoringService.cs" Link="AttemptScoringService.cs" />
+    <ProjectReference Include="../../ClassCommander.TestEditor/ClassCommander.TestEditor.csproj" />
     <PackageReference Include="Avalonia.Headless" Version="11.2.5" />
     <ProjectReference Include="../../TeacherClient.Avalonia/TeacherClient.Avalonia.csproj" />
     <ProjectReference Include="../../ClassCommander.TestRunner/ClassCommander.TestRunner.csproj" />

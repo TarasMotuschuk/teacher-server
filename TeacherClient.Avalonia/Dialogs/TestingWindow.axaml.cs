@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Teacher.Common.Contracts;
 using Teacher.Common.Contracts.Testing;
 using TeacherClient.CrossPlatform.Localization;
@@ -25,7 +26,10 @@ public partial class TestingWindow : Window
     private ClientSettings _settings;
     private TestPlatformApiClient? _api;
     private string? _monitorAssignmentId;
-    private string? _monitorAssignmentTitle;
+    private readonly DispatcherTimer _monitorTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    private bool _monitorRefreshing;
+    private bool _updatingAssignments;
+    private bool _closed;
     private bool _busy;
     private bool _connected;
 
@@ -50,9 +54,53 @@ public partial class TestingWindow : Window
         AssignmentsGrid.ItemsSource = _assignments;
         AttemptsGrid.ItemsSource = _attempts;
         ResultsGrid.ItemsSource = _results;
+        AttemptsGrid.SelectionChanged += (_, _) =>
+        {
+            if (AttemptsGrid.SelectedItem is not null)
+            {
+                ResultsGrid.SelectedItem = null;
+            }
+        };
+        ResultsGrid.SelectionChanged += (_, _) =>
+        {
+            if (ResultsGrid.SelectedItem is not null)
+            {
+                AttemptsGrid.SelectedItem = null;
+            }
+        };
         ApplyLocalization();
         ConfigureColumns();
-        Opened += async (_, _) => await ConnectToTeacherPlatformAsync();
+        MonitorAssignmentComboBox.ItemsSource = _assignments;
+        MonitorAssignmentComboBox.SelectionChanged += MonitorAssignmentChanged;
+        LaunchAssignmentComboBox.SelectionChanged += (_, _) =>
+        {
+            if (!_updatingAssignments && ResolveLaunchAssignment() is { } assignment)
+            {
+                MonitorAssignmentComboBox.SelectedItem = assignment;
+            }
+        };
+        MainTabControl.SelectionChanged += async (_, e) =>
+        {
+            if (ReferenceEquals(e.Source, MainTabControl) && MainTabControl.SelectedItem == MonitorTabItem && !_busy)
+            {
+                await RefreshMonitorAsync();
+            }
+        };
+        _monitorTimer.Tick += async (_, _) =>
+        {
+            if (!_busy && MainTabControl.SelectedItem == MonitorTabItem)
+            {
+                await RefreshMonitorAsync();
+            }
+        };
+        Opened += async (_, _) =>
+        {
+            await ConnectToTeacherPlatformAsync();
+            if (!_closed)
+            {
+                _monitorTimer.Start();
+            }
+        };
     }
 
     public static async Task ShowAsync(
@@ -70,11 +118,13 @@ public partial class TestingWindow : Window
     {
         Title = CrossPlatformText.TestingWindowTitle;
         LaunchHintText.Text = CrossPlatformText.TestingLaunchHint;
-        DeployRunnerButton.Content = CrossPlatformText.TestingDeployRunner;
-        StartSelectedButton.Content = CrossPlatformText.TestingChooseStudents;
+        LaunchMenuItem.Header = CrossPlatformText.TestingLaunchMenu;
+        ToolsMenuItem.Header = CrossPlatformText.TestingToolsMenu;
+        DeployRunnerMenuItem.Header = CrossPlatformText.TestingDeployRunner;
+        StartSelectedMenuItem.Header = CrossPlatformText.TestingChooseStudents;
         LaunchAssignmentLabel.Text = CrossPlatformText.TestingLaunchAssignment;
-        ExitCodesButton.Content = CrossPlatformText.TestingExitCodes;
-        StartAllOnlineButton.Content = CrossPlatformText.TestingStartAllOnline;
+        ExitCodesMenuItem.Header = CrossPlatformText.TestingExitCodes;
+        StartAllOnlineMenuItem.Header = CrossPlatformText.TestingStartAllOnline;
         TestsTabItem.Header = CrossPlatformText.TestingTabTests;
         AssignmentsTabItem.Header = CrossPlatformText.TestingTabAssignments;
         MonitorTabItem.Header = CrossPlatformText.TestingTabMonitor;
@@ -90,7 +140,7 @@ public partial class TestingWindow : Window
         AttemptsHeadingText.Text = CrossPlatformText.TestingAttemptsHeading;
         ResultsHeadingText.Text = CrossPlatformText.TestingResultsHeading;
         MonitorAssignmentLabel.Text = CrossPlatformText.TestingMonitorAssignment;
-        MonitorAssignmentTitleText.Text = _monitorAssignmentTitle ?? "—";
+        MonitorStatusText.Text = CrossPlatformText.TestingMonitorChooseAssignment;
         ConfigureColumns();
     }
 
@@ -114,6 +164,7 @@ public partial class TestingWindow : Window
         AttemptsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnStarted, nameof(AttemptRow.StartedAt), 1.5));
 
         ResultsGrid.Columns.Clear();
+        ResultsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnStudent, nameof(ResultRow.Student), 2));
         ResultsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnScore, nameof(ResultRow.Score), 1.2));
         ResultsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnPercent, nameof(ResultRow.Percent), 0.8));
         ResultsGrid.Columns.Add(CreateTextColumn(CrossPlatformText.TestingColumnCompleted, nameof(ResultRow.CompletedAt), 1.5));
@@ -340,14 +391,12 @@ public partial class TestingWindow : Window
             return;
         }
 
-        _monitorAssignmentId = assignment.PublicId;
-        _monitorAssignmentTitle = assignment.Title;
-        MonitorAssignmentTitleText.Text = assignment.Title;
+        MonitorAssignmentComboBox.SelectedItem = assignment;
         MainTabControl.SelectedItem = MonitorTabItem;
         await RunBusyAsync(RefreshMonitorAsync);
     }
 
-    private async void DeployRunnerButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void DeployRunnerMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (_busy)
         {
@@ -366,10 +415,10 @@ public partial class TestingWindow : Window
         await RunBusyAsync(async () => await DeployRunnerAsync(agents));
     }
 
-    private async void StartSelectedButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void StartSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         => await ChooseRecipientsAndStartAsync(selectAll: false);
 
-    private async void StartAllOnlineButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void StartAllOnlineMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         => await ChooseRecipientsAndStartAsync(selectAll: true);
 
     private async Task ChooseRecipientsAndStartAsync(bool selectAll)
@@ -466,7 +515,7 @@ public partial class TestingWindow : Window
         }
     }
 
-    private async void ExitCodesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void ExitCodesMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await RunBusyAsync(async () =>
         {
@@ -522,6 +571,13 @@ public partial class TestingWindow : Window
             {
                 failures.Add($"{agent.MachineName}: {ex.Message}");
             }
+        }
+
+        if (succeeded > 0)
+        {
+            MonitorAssignmentComboBox.SelectedItem = assignment;
+            MainTabControl.SelectedItem = MonitorTabItem;
+            await RefreshMonitorAsync();
         }
 
         StatusTextBlock.Text = failures.Count == 0
@@ -598,6 +654,8 @@ public partial class TestingWindow : Window
 
         var page = await _api.ListAssignmentsAsync();
         var selectedId = ResolveLaunchAssignment()?.PublicId;
+        var monitorId = _monitorAssignmentId;
+        _updatingAssignments = true;
         _assignments.Clear();
         foreach (var item in page.Items.OrderByDescending(x => x.Title, StringComparer.CurrentCultureIgnoreCase))
         {
@@ -612,42 +670,99 @@ public partial class TestingWindow : Window
         LaunchAssignmentComboBox.ItemsSource = open;
         LaunchAssignmentComboBox.SelectedItem = open.FirstOrDefault(item => item.PublicId == selectedId)
             ?? (open.Count == 1 ? open[0] : null);
+        _updatingAssignments = false;
+        MonitorAssignmentComboBox.SelectedItem = _assignments.FirstOrDefault(item => item.PublicId == monitorId)
+            ?? ResolveLaunchAssignment();
+        SelectMonitorAssignment();
     }
 
-    private async Task RefreshMonitorAsync()
+    private async void MonitorAssignmentChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (_api is null || string.IsNullOrWhiteSpace(_monitorAssignmentId))
+        if (_updatingAssignments)
         {
             return;
         }
 
-        var attempts = await _api.ListAttemptsAsync(_monitorAssignmentId);
-        _attempts.Clear();
-        foreach (var item in attempts.Items.OrderByDescending(x => x.StartedAtUtc))
+        SelectMonitorAssignment();
+        if (!_busy && MainTabControl.SelectedItem == MonitorTabItem)
         {
-            var student = $"{item.Student.Surname} {item.Student.Name}".Trim();
-            if (!string.IsNullOrWhiteSpace(item.Student.ClassName))
-            {
-                student += $" ({item.Student.ClassName})";
-            }
+            await RefreshMonitorAsync();
+        }
+    }
 
-            _attempts.Add(new AttemptRow(
-                item.AttemptPublicId,
-                student,
-                item.Status.ToString(),
-                $"{item.AnsweredCount}/{item.QuestionCount}",
-                item.StartedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
+    private void SelectMonitorAssignment()
+    {
+        _monitorAssignmentId = (MonitorAssignmentComboBox.SelectedItem as AssignmentRow)?.PublicId;
+        _attempts.Clear();
+        _results.Clear();
+        MonitorStatusText.Text = _monitorAssignmentId is null
+            ? CrossPlatformText.TestingMonitorChooseAssignment
+            : CrossPlatformText.TestingMonitorWaiting;
+    }
+
+    private async Task RefreshMonitorAsync()
+    {
+        if (_closed || _monitorRefreshing || _api is null || string.IsNullOrWhiteSpace(_monitorAssignmentId))
+        {
+            return;
         }
 
-        var results = await _api.ListResultsAsync(_monitorAssignmentId);
-        _results.Clear();
-        foreach (var item in results.Items.OrderByDescending(x => x.CompletedAtUtc))
+        var assignmentId = _monitorAssignmentId;
+        _monitorRefreshing = true;
+        try
         {
-            _results.Add(new ResultRow(
-                item.AttemptPublicId,
-                $"{item.ScoreEarned:0.##}/{item.ScoreMax:0.##}",
-                $"{item.Percent:0.##}",
-                item.CompletedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
+            var attempts = await _api.ListAttemptsAsync(assignmentId);
+            var results = await _api.ListResultsAsync(assignmentId);
+            if (_closed || assignmentId != _monitorAssignmentId)
+            {
+                return;
+            }
+
+            var selectedAttemptId = (AttemptsGrid.SelectedItem as AttemptRow)?.AttemptPublicId;
+            var selectedResultId = (ResultsGrid.SelectedItem as ResultRow)?.AttemptPublicId;
+            _attempts.Clear();
+            foreach (var item in attempts.Items.OrderByDescending(x => x.StartedAtUtc))
+            {
+                var student = $"{item.Student.Surname} {item.Student.Name}".Trim();
+                if (!string.IsNullOrWhiteSpace(item.Student.ClassName))
+                {
+                    student += $" ({item.Student.ClassName})";
+                }
+
+                _attempts.Add(new AttemptRow(
+                    item.AttemptPublicId,
+                    student,
+                    item.Status.ToString(),
+                    $"{item.AnsweredCount}/{item.QuestionCount}",
+                    item.StartedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
+            }
+
+            var students = _attempts.ToDictionary(item => item.AttemptPublicId, item => item.Student);
+            _results.Clear();
+            foreach (var item in results.Items.OrderByDescending(x => x.CompletedAtUtc))
+            {
+                _results.Add(new ResultRow(
+                    item.AttemptPublicId,
+                    students.GetValueOrDefault(item.AttemptPublicId, "—"),
+                    $"{item.ScoreEarned:0.##}/{item.ScoreMax:0.##}",
+                    $"{item.Percent:0.##}",
+                    item.CompletedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
+            }
+
+            AttemptsGrid.SelectedItem = _attempts.FirstOrDefault(item => item.AttemptPublicId == selectedAttemptId);
+            ResultsGrid.SelectedItem = _results.FirstOrDefault(item => item.AttemptPublicId == selectedResultId);
+            MonitorStatusText.Text = CrossPlatformText.TestingMonitorUpdated(_attempts.Count, _results.Count);
+        }
+        catch (Exception ex)
+        {
+            if (!_closed && assignmentId == _monitorAssignmentId)
+            {
+                MonitorStatusText.Text = $"{CrossPlatformText.TestingMonitorFailed} {ex.Message}";
+            }
+        }
+        finally
+        {
+            _monitorRefreshing = false;
         }
     }
 
@@ -690,6 +805,8 @@ public partial class TestingWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _closed = true;
+        _monitorTimer.Stop();
         _api?.Dispose();
         base.OnClosed(e);
     }
@@ -718,6 +835,7 @@ internal sealed record AttemptRow(
 
 internal sealed record ResultRow(
     string AttemptPublicId,
+    string Student,
     string Score,
     string Percent,
     string CompletedAt);

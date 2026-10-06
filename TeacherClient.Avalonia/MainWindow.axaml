@@ -252,10 +252,12 @@
           <MenuItem x:Name="ClearStudentWorkFolderAllMenuItem" Header="Clear work folder on all PCs" Click="ClearStudentWorkFolderAllMenuItem_OnClick" />
         </MenuItem>
       </MenuItem>
+      <MenuItem x:Name="TestingMainMenuItem" Header="_Testing">
+        <MenuItem x:Name="TestingMenuItem" Header="Tests and results…" Click="TestingMenuItem_OnClick" />
+        <MenuItem x:Name="TestEditorMenuItem" Header="Test Editor…" Click="TestEditorMenuItem_OnClick" />
+      </MenuItem>
       <MenuItem x:Name="ConfigurationMenuItem" Header="_Configuration">
         <MenuItem x:Name="BasicSettingsMenuItem" Header="_Basic Settings" Click="SettingsButton_OnClick" />
-        <MenuItem x:Name="TestingMenuItem" Header="_Testing…" Click="TestingMenuItem_OnClick" />
-        <MenuItem x:Name="TestEditorMenuItem" Header="Test _Editor…" Click="TestEditorMenuItem_OnClick" />
       </MenuItem>
       <MenuItem x:Name="HelpMenuItem" Header="_Help">
         <MenuItem x:Name="ProgramUpdatesMenuItem" Header="Program Updates">

@@ -6,6 +6,32 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-06
+
+### Added
+
+- Image-area questions let teachers drag a rectangle around a correct tab, button or other image element. Any student click inside the region is accepted, independent of image scaling; the point-with-tolerance mode remains available.
+
+- Image-point questions support image upload and visual answer selection in Test Editor, with a visible tolerance region. Students answer by clicking the image; packaged images are delivered through an attempt-authorized endpoint.
+
+### Changed
+
+- Test Editor uses a compact menu/toolbar, resizable numbered question list, Main/Additional tabs and full-width answer fields. Added question duplication/reset, test metadata dialogs and group management with question reassignment.
+
+- The Testing window groups student launch actions under **Launch**, and installation and teacher exit codes under **Tools**, replacing the large action buttons.
+
+- The Avalonia teacher client has a top-level **Testing** menu with **Tests and results…** and **Test Editor…**, previously under Configuration.
+
+### Fixed
+
+- Test Editor no longer crashes when leaving an ordering-answer field; current text edits are retained when adding or moving options.
+
+- Both teacher clients exclude their own PC from individual and group input/browser locking, including when the student agent runs on the teacher workstation. Unlocking remains available.
+
+- Image-point scoring now accepts polygon boundaries and existing single-point answer keys.
+
+- Teacher testing automatically selects the launched assignment in Monitoring, loads results when the tab opens, and refreshes every three seconds. Closed assignments remain available in the monitor selector; scores show student names and connection errors are visible.
+
 ## [1.1.2] - 2026-09-30
 
 ### Fixed
