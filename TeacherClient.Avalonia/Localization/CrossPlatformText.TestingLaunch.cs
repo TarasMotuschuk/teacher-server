@@ -2,6 +2,26 @@ namespace TeacherClient.CrossPlatform.Localization;
 
 internal static partial class CrossPlatformText
 {
+    public static string TestingMonitorChooseAssignment => IsUk
+        ? "Виберіть завдання для перегляду результатів. Доступні також закриті завдання."
+        : "Choose an assignment to view results. Closed assignments are also available.";
+
+    public static string TestingMonitorWaiting => IsUk
+        ? "Завантаження спроб і результатів…"
+        : "Loading attempts and results…";
+
+    public static string TestingMonitorFailed => IsUk
+        ? "Не вдалося оновити результати. Показані дані можуть бути застарілими. Повторимо автоматично."
+        : "Could not refresh results. Displayed data may be outdated. Retrying automatically.";
+
+    public static string TestingMonitorUpdated(int attempts, int results) => IsUk
+        ? $"Спроб: {attempts}; завершено: {results}. Автооновлення кожні 3 секунди."
+        : $"Attempts: {attempts}; completed: {results}. Refreshing automatically every 3 seconds.";
+
+    public static string TestingLaunchMenu => IsUk ? "Запуск" : "Launch";
+
+    public static string TestingToolsMenu => IsUk ? "Інструменти" : "Tools";
+
     public static string TestingLaunchAssignment => IsUk ? "Завдання для запуску" : "Assignment to launch";
 
     public static string TestingChooseStudents => IsUk ? "Вибрати учнів і запустити…" : "Choose students and start…";

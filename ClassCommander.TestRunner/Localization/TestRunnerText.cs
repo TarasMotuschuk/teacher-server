@@ -135,8 +135,16 @@ internal static class TestRunnerText
     public static string MoveDown => IsUk ? "↓" : "↓";
 
     public static string PointHint => IsUk
-        ? "Вкажіть координати точки на зображенні (X, Y)."
-        : "Enter image point coordinates (X, Y).";
+        ? "Клацніть по потрібній точці на зображенні. Щоб змінити відповідь, клацніть ще раз."
+        : "Click the required point on the image. Click again to change your answer.";
+
+    public static string PointNotSelected => IsUk ? "Точку ще не вибрано." : "No point selected yet.";
+
+    public static string PointSelected => IsUk ? "Точку вибрано. Можна перейти до наступного питання." : "Point selected. You can move to the next question.";
+
+    public static string PointImageMissing => IsUk
+        ? "У цьому питанні немає зображення. Повідомте вчителя."
+        : "This question has no image. Tell your teacher.";
 
     public static string TextAnswerPlaceholder => IsUk ? "Ваша відповідь" : "Your answer";
 

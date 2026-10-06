@@ -765,7 +765,9 @@ internal static partial class CrossPlatformText
 
     public static string BasicSettingsMenu => IsUk ? "Базові налаштування" : "Basic Settings";
 
-    public static string TestingMenu => IsUk ? "Тестування…" : "Testing…";
+    public static string TestingMainMenu => IsUk ? "Тестування" : "Testing";
+
+    public static string TestingMenu => IsUk ? "Тести та результати…" : "Tests and results…";
 
     public static string TestEditorMenu => IsUk ? "Редактор тестів…" : "Test Editor…";
 
@@ -782,8 +784,8 @@ internal static partial class CrossPlatformText
     public static string TestingStartAllOnline => IsUk ? "Старт на всіх онлайн" : "Start on all online";
 
     public static string TestingLaunchHint => IsUk
-        ? "1. Імпортуйте тест і натисніть «Призначити тест». 2. Виберіть завдання вище. 3. Натисніть «Вибрати учнів і запустити» та позначте потрібні ПК."
-        : "1. Import a test and choose Assign test. 2. Select the assignment above. 3. Choose students and start, then tick the PCs to include.";
+        ? "1. Імпортуйте тест і натисніть «Призначити тест». 2. Виберіть завдання вище. 3. У меню «Запуск» виберіть «Вибрати учнів і запустити…» та позначте потрібні ПК."
+        : "1. Import a test and choose Assign test. 2. Select the assignment above. 3. In the Launch menu, choose Choose students and start…, then tick the PCs to include.";
 
     public static string TestingChooseAgentsFirst => IsUk
         ? "Виберіть учнівські ПК у списку Agents."

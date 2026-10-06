@@ -1015,6 +1015,13 @@ public partial class MainWindow : Window, IDisposable
 
     private async Task ToggleBrowserLockAsync(DiscoveredAgentRow agent, bool enabled)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))
+        {
+            SetStatus(CrossPlatformText.LocalComputerLockProtected);
+            ApplyAgentFilters();
+            return;
+        }
+
         if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
         {
             SetStatus(CrossPlatformText.BrowserLockRequiresOnlineAgent);
@@ -1038,6 +1045,13 @@ public partial class MainWindow : Window, IDisposable
 
     private async Task ToggleInputLockAsync(DiscoveredAgentRow agent, bool enabled)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))
+        {
+            SetStatus(CrossPlatformText.LocalComputerLockProtected);
+            ApplyAgentFilters();
+            return;
+        }
+
         if (!string.Equals(agent.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
         {
             SetStatus(CrossPlatformText.InputLockRequiresOnlineAgent);
@@ -3536,10 +3550,26 @@ public partial class MainWindow : Window, IDisposable
 
     private async Task SetBrowserLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled)
     {
+        var skippedLocal = 0;
+        if (enabled)
+        {
+            var checkedAgents = await Task.WhenAll(targetAgents.Select(async agent =>
+                (Agent: agent, Local: await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))));
+            skippedLocal = checkedAgents.Count(item => item.Local);
+            targetAgents = checkedAgents.Where(item => !item.Local).Select(item => item.Agent).ToList();
+            if (targetAgents.Count == 0)
+            {
+                SetStatus(CrossPlatformText.LocalComputerLockProtected);
+                return;
+            }
+        }
+
+        var skippedMessage = skippedLocal > 0 ? $" {CrossPlatformText.LocalComputerLockSkipped(skippedLocal)}" : string.Empty;
+
         if (!await ConfirmationDialog.ShowAsync(
                 this,
                 CrossPlatformText.GroupCommandsTitle,
-                CrossPlatformText.BrowserLockPrompt(targetAgents.Count)))
+                CrossPlatformText.BrowserLockPrompt(targetAgents.Count) + skippedMessage))
         {
             return;
         }
@@ -3568,8 +3598,8 @@ public partial class MainWindow : Window, IDisposable
             }
 
             SetStatus(failures.Count == 0
-                ? CrossPlatformText.BrowserLockCompleted(succeeded)
-                : CrossPlatformText.BrowserLockCompletedWithFailures(succeeded, failures.Count));
+                ? CrossPlatformText.BrowserLockCompleted(succeeded) + skippedMessage
+                : CrossPlatformText.BrowserLockCompletedWithFailures(succeeded, failures.Count) + skippedMessage);
 
             if (failures.Count > 0)
             {
@@ -3586,10 +3616,26 @@ public partial class MainWindow : Window, IDisposable
 
     private async Task SetInputLockOnAgentsAsync(IReadOnlyList<DiscoveredAgentRow> targetAgents, bool enabled, InputLockVisualMode visualMode)
     {
+        var skippedLocal = 0;
+        if (enabled)
+        {
+            var checkedAgents = await Task.WhenAll(targetAgents.Select(async agent =>
+                (Agent: agent, Local: await LocalComputerGuard.IsLocalAsync(agent.RespondingAddress, agent.IsManual ? null : agent.MachineName))));
+            skippedLocal = checkedAgents.Count(item => item.Local);
+            targetAgents = checkedAgents.Where(item => !item.Local).Select(item => item.Agent).ToList();
+            if (targetAgents.Count == 0)
+            {
+                SetStatus(CrossPlatformText.LocalComputerLockProtected);
+                return;
+            }
+        }
+
+        var skippedMessage = skippedLocal > 0 ? $" {CrossPlatformText.LocalComputerLockSkipped(skippedLocal)}" : string.Empty;
+
         if (!await ConfirmationDialog.ShowAsync(
                 this,
                 CrossPlatformText.GroupCommandsTitle,
-                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled, visualMode)))
+                CrossPlatformText.InputLockPrompt(targetAgents.Count, enabled, visualMode) + skippedMessage))
         {
             return;
         }
@@ -3628,8 +3674,8 @@ public partial class MainWindow : Window, IDisposable
             }
 
             SetStatus(failures.Count == 0
-                ? CrossPlatformText.InputLockCompleted(succeeded, enabled, visualMode)
-                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode));
+                ? CrossPlatformText.InputLockCompleted(succeeded, enabled, visualMode) + skippedMessage
+                : CrossPlatformText.InputLockCompletedWithFailures(succeeded, failures.Count, enabled, visualMode) + skippedMessage);
 
             if (failures.Count > 0)
             {
@@ -4769,6 +4815,7 @@ public partial class MainWindow : Window, IDisposable
         AboutMenuItem.Header = CrossPlatformText.About;
         ConfigurationMenuItem.Header = CrossPlatformText.ConfigurationMenu;
         BasicSettingsMenuItem.Header = CrossPlatformText.BasicSettingsMenu;
+        TestingMainMenuItem.Header = CrossPlatformText.TestingMainMenu;
         TestingMenuItem.Header = CrossPlatformText.TestingMenu;
         TestEditorMenuItem.Header = CrossPlatformText.TestEditorMenu;
         AgentsTabItem.Header = CrossPlatformText.Agents;

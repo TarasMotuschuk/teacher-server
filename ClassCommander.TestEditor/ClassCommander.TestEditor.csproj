@@ -8,6 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ClassCommander.TestRunner.SmokeTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../ClassCommander.Testing.UI/ImagePointPicker.cs" Link="UI/ImagePointPicker.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.2.5" />
     <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />

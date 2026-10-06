@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Teacher.Common;
 using Teacher.Common.Contracts;
+using TeacherClient.CrossPlatform.Localization;
 
 namespace TeacherClient.CrossPlatform.Services;
 
@@ -57,12 +58,22 @@ public sealed class TeacherApiClient : IDisposable
 
     public async Task SetBrowserLockEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(_httpClient.BaseAddress!.Host, cancellationToken: cancellationToken))
+        {
+            throw new InvalidOperationException(CrossPlatformText.LocalComputerLockProtected);
+        }
+
         var response = await _httpClient.PostAsJsonAsync("api/browser-lock", new BrowserLockStateRequest(enabled), cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task SetInputLockEnabledAsync(bool enabled, InputLockVisualMode visualMode = InputLockVisualMode.FullscreenOverlay, CancellationToken cancellationToken = default)
     {
+        if (enabled && await LocalComputerGuard.IsLocalAsync(_httpClient.BaseAddress!.Host, cancellationToken: cancellationToken))
+        {
+            throw new InvalidOperationException(CrossPlatformText.LocalComputerLockProtected);
+        }
+
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/input-lock")
         {
             Content = JsonContent.Create(new InputLockStateRequest(enabled, visualMode)),

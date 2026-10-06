@@ -48,7 +48,7 @@ Avalonia teacher client (macOS example):
 - **Discover student PCs** on the LAN (UDP), or add PCs manually (IP/port/group/notes).
 - **Connect** to a selected student PC, with optional **auto-reconnect**.
 - **Remote management**: start/stop the student VNC host, view screens, open a fullscreen viewer (view-only until control is enabled in the viewer).
-- **Classroom testing**: choose an assignment and student PCs, let each student enter their name, and run a readable fullscreen test with teacher-authorized early exit.
+- **Classroom testing**: open the top-level **Testing** menu for **Tests and results…** or **Test Editor…**; choose an assignment and use the testing window’s **Launch** menu to select student PCs, let each student enter their name, and run a readable fullscreen test with teacher-authorized early exit. Monitor attempts and student scores with automatic refresh. The test editor provides a menu and toolbar, numbered questions, Main/Additional tabs, test metadata and group dialogs. Image-area questions let teachers upload a picture and drag a rectangle around the correct answer; students respond by clicking the image.
 - **Processes**: list processes, view details, terminate and restart.
 - **Files**: dual-pane local + remote browsing, upload/download, rename, delete, open on the student PC.
 - **Group commands** (selected PCs or all online PCs):
@@ -162,3 +162,5 @@ README.md
 - macOS packaging lives under `TeacherClient.Avalonia.Setup/` and produces `ClassCommander.Setup.pkg`.
 
 See `AGENTS.md` for repo rules and the Windows release script conventions.
+
+The teacher’s own PC is excluded from input and browser locking, even when a student agent is installed on the same machine. Unlocking remains available.

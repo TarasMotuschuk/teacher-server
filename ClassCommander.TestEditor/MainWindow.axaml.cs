@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using ClassCommander.TestEditor.Localization;
 using ClassCommander.TestEditor.Models;
@@ -53,6 +54,24 @@ public partial class MainWindow : Window
         MoveUpButton.Content = TestEditorText.MoveUp;
         MoveDownButton.Content = TestEditorText.MoveDown;
         ApplyChangesButton.Content = TestEditorText.ApplyChanges;
+        QuestionsMenuItem.Header = TestEditorText.QuestionsMenu;
+        TestParametersMenuItem.Header = TestEditorText.TestParametersMenu;
+        HelpMenuItem.Header = TestEditorText.HelpMenu;
+        AddQuestionMenuItem.Header = TestEditorText.AddQuestion;
+        DuplicateQuestionMenuItem.Header = TestEditorText.DuplicateQuestion;
+        DeleteQuestionMenuItem.Header = TestEditorText.DeleteQuestion;
+        MoveUpMenuItem.Header = TestEditorText.MoveUpCommand;
+        MoveDownMenuItem.Header = TestEditorText.MoveDownCommand;
+        ApplyQuestionMenuItem.Header = TestEditorText.ApplyChanges;
+        ResetQuestionMenuItem.Header = TestEditorText.ResetQuestion;
+        ResetQuestionButton.Content = TestEditorText.ResetQuestion;
+        TestSettingsMenuItem.Header = TestEditorText.TestSettings;
+        GroupsMenuItem.Header = TestEditorText.ManageGroups;
+        ExitMenuItem.Header = TestEditorText.ExitCommand;
+        EditorHelpMenuItem.Header = TestEditorText.HelpCommand;
+        NewToolbarButton.Content = TestEditorText.NewCommand;
+        OpenToolbarButton.Content = TestEditorText.OpenCommand;
+        SaveToolbarButton.Content = TestEditorText.SaveCommand;
         RefreshTestHeader();
         RefreshEmptyState();
         BindQuestions(preserveSelection: true);
@@ -313,6 +332,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (_definition.Groups.SelectMany(group => group.Questions).Any(question => question.Type == QuestionType.ImagePoint
+            && (!question.Assets.Any(item => item.Role == "prompt") || question.AnswerKey is ImagePointAnswerKeyDto { Regions.Count: 0 })))
+        {
+            await ShowErrorAsync(TestEditorText.ImagePointIncomplete);
+            return;
+        }
+
         var targetPath = _packagePath;
         if (saveAs || string.IsNullOrWhiteSpace(targetPath))
         {
@@ -363,7 +389,7 @@ public partial class MainWindow : Window
             var groupTitle = TestEditorText.GroupTitle(group.Title, group.Questions.Count);
             foreach (var question in group.Questions)
             {
-                _questions.Add(new QuestionListItem(groupTitle, question));
+                _questions.Add(new QuestionListItem(groupTitle, question, _questions.Count + 1));
             }
         }
 
@@ -400,9 +426,58 @@ public partial class MainWindow : Window
     {
         var real = FindQuestion(question.Id) ?? question;
         _selectedQuestionId = real.Id;
-        _editor.Load(real);
+        var imageRef = real.Assets.FirstOrDefault(item => item.Role == "prompt");
+        var asset = _definition?.Assets.FirstOrDefault(item => item.Id == imageRef?.AssetId);
+        var imagePath = asset is null || _workspaceDirectory is null ? null
+            : Path.Combine(_workspaceDirectory, "assets", Path.GetFileName(asset.Path));
+        _editor.Load(real, asset, imagePath, ChooseImageAsync, _definition!.Groups, groupId => MoveQuestionToGroup(real.Id, groupId));
         EmptyStateText.IsVisible = false;
+        EditorHeadingText.Text = $"{TestEditorText.QuestionNumber(_questions.ToList().FindIndex(item => item.Question.Id == real.Id) + 1)} · {TestEditorText.QuestionTypeName(real.Type)}";
         ApplyChangesButton.IsVisible = true;
+        ResetQuestionButton.IsVisible = true;
+        UpdateQuestionCommands();
+    }
+
+    private async Task<(QuestionAssetDto Asset, string Path)?> ChooseImageAsync()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = TestEditorText.ChooseImage,
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType(TestEditorText.ImageFiles) { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp"] }],
+        });
+        if (files.Count == 0 || _definition is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var source = files[0].Path.LocalPath;
+            using var bitmap = new Bitmap(source);
+            _workspaceDirectory ??= Path.Combine(Path.GetTempPath(), "ClassCommander", "TestEditor", Guid.NewGuid().ToString("N"));
+            var assetsDirectory = Path.Combine(_workspaceDirectory, "assets");
+            Directory.CreateDirectory(assetsDirectory);
+            var id = $"image_{Guid.NewGuid():N}";
+            var fileName = id + Path.GetExtension(source).ToLowerInvariant();
+            var path = Path.Combine(assetsDirectory, fileName);
+            File.Copy(source, path);
+            var mime = Path.GetExtension(source).ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".webp" => "image/webp",
+                ".bmp" => "image/bmp",
+                _ => "image/png",
+            };
+            var asset = new QuestionAssetDto(id, AssetKind.Image, mime, $"assets/{fileName}", bitmap.PixelSize.Width, bitmap.PixelSize.Height, new AssetSourceDto(Path.GetFileName(source)));
+            _definition = _definition with { Assets = _definition.Assets.Append(asset).ToList() };
+            return (asset, path);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+            return null;
+        }
     }
 
     private QuestionDto? FindQuestion(string questionId)
@@ -509,11 +584,13 @@ public partial class MainWindow : Window
 
     private void RefreshEmptyState()
     {
+        UpdateQuestionCommands();
         if (_definition is null)
         {
             EmptyStateText.Text = TestEditorText.NoTestLoaded;
             EmptyStateText.IsVisible = true;
             ApplyChangesButton.IsVisible = false;
+            ResetQuestionButton.IsVisible = false;
             return;
         }
 
@@ -522,6 +599,7 @@ public partial class MainWindow : Window
             EmptyStateText.Text = TestEditorText.EmptyTestHint;
             EmptyStateText.IsVisible = true;
             ApplyChangesButton.IsVisible = false;
+            ResetQuestionButton.IsVisible = false;
             return;
         }
 
@@ -530,11 +608,13 @@ public partial class MainWindow : Window
             EmptyStateText.Text = TestEditorText.SelectQuestionHint;
             EmptyStateText.IsVisible = true;
             ApplyChangesButton.IsVisible = false;
+            ResetQuestionButton.IsVisible = false;
             return;
         }
 
         EmptyStateText.IsVisible = false;
         ApplyChangesButton.IsVisible = true;
+        ResetQuestionButton.IsVisible = true;
     }
 
     private void RefreshTestHeader()
@@ -548,11 +628,8 @@ public partial class MainWindow : Window
 
         Title = $"{TestEditorText.WindowTitle} — {_definition.Title}";
         var questionCount = _definition.Groups.Sum(g => g.Questions.Count);
-        TestMetaText.Text = TestEditorText.TestMeta(
-            _definition.PublicId,
-            _definition.Version,
-            questionCount,
-            _definition.Groups.Count);
+        QuestionCountText.Text = TestEditorText.QuestionCount(questionCount);
+        TestMetaText.Text = TestEditorText.WorkspaceMeta(_definition.Version, _definition.Groups.Count);
     }
 
     private void ResetWorkspace()

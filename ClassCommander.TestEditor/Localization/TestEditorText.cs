@@ -3,7 +3,7 @@ using Teacher.Common.Localization;
 
 namespace ClassCommander.TestEditor.Localization;
 
-internal static class TestEditorText
+internal static partial class TestEditorText
 {
     public static UiLanguage Language { get; set; } = UiLanguageExtensions.GetDefault();
 
@@ -23,7 +23,7 @@ internal static class TestEditorText
 
     public static string ImportMyTestCommand => IsUk ? "Імпортувати MyTest XML…" : "Import MyTest XML…";
 
-    public static string GroupsHeading => IsUk ? "Питання" : "Questions";
+    public static string GroupsHeading => IsUk ? "Завдання" : "Questions";
 
     public static string EditorHeading => IsUk ? "Редагування питання" : "Edit question";
 
@@ -39,11 +39,11 @@ internal static class TestEditorText
 
     public static string MoveDown => IsUk ? "↓" : "↓";
 
-    public static string ApplyChanges => IsUk ? "Застосувати зміни" : "Apply changes";
+    public static string ApplyChanges => IsUk ? "Зберегти завдання" : "Save question";
 
     public static string EmptyTestHint => IsUk
-        ? "Новий тест створено. Додайте питання кнопкою «Додати питання» зліва."
-        : "New test created. Add questions with the “Add question” button on the left.";
+        ? "Новий тест створено. Додайте завдання через меню «Завдання» або панель команд."
+        : "New test created. Add a question using the Questions menu or toolbar.";
 
     public static string SelectQuestionHint => IsUk
         ? "Оберіть питання зліва або додайте нове."
@@ -97,9 +97,39 @@ internal static class TestEditorText
 
     public static string CaseSensitiveLabel => IsUk ? "Враховувати регістр" : "Case sensitive";
 
+    public static string SelectImageArea => IsUk ? "Виділити область (прямокутник)" : "Select an area (rectangle)";
+
+    public static string SelectImagePoint => IsUk ? "Точка з допустимим відхиленням" : "Point with allowed deviation";
+
+    public static string ImageAreaHint => IsUk
+        ? "Затисніть ліву кнопку миші й обведіть правильну область на зображенні, наприклад вкладку «Макет». Будь-яке клацання учня всередині синьої області буде правильним. Щоб замінити область, обведіть нову."
+        : "Hold the left mouse button and drag around the correct image area, such as the Layout tab. Any student click inside the blue area will be correct. Draw a new area to replace it.";
+
+    public static string SelectCorrectArea => IsUk ? "Обведіть правильну область на зображенні." : "Drag around the correct area on the image.";
+
+    public static string ImageAreaSelected => IsUk
+        ? "Правильну область позначено. Учень може клацнути будь-де всередині неї."
+        : "The correct area is marked. The student may click anywhere inside it.";
+
     public static string ImagePointHint => IsUk
-        ? "Координати правильної точки на зображенні (X, Y). Зображення можна додати пізніше через імпорт."
-        : "Correct image point coordinates (X, Y). Images can be added later via import.";
+        ? "Виберіть зображення та клацніть по правильній точці. Синя область показує допустиме відхилення у пікселях оригінального зображення."
+        : "Choose an image and click the correct point. The blue area shows the allowed deviation in original image pixels.";
+
+    public static string ChooseImage => IsUk ? "Вибрати зображення…" : "Choose image…";
+
+    public static string ImageFiles => IsUk ? "Зображення" : "Images";
+
+    public static string ImageNotSelected => IsUk ? "Зображення ще не вибрано." : "No image selected yet.";
+
+    public static string SelectCorrectPoint => IsUk ? "Клацніть по правильній точці на зображенні." : "Click the correct point on the image.";
+
+    public static string PointTolerance => IsUk ? "Допустиме відхилення (пікселі)" : "Allowed deviation (pixels)";
+
+    public static string PointSelected(int x, int y) => IsUk ? $"Вибрано точку: X = {x}, Y = {y}." : $"Selected point: X = {x}, Y = {y}.";
+
+    public static string ImagePointIncomplete => IsUk
+        ? "Для кожного питання «Область на зображенні» виберіть зображення та позначте правильну область або точку перед збереженням."
+        : "Choose an image and mark the correct area or point for each Image area question before saving.";
 
     public static string SourceWordLabel => IsUk ? "Літери / джерело" : "Letters / source";
 
@@ -150,7 +180,7 @@ internal static class TestEditorText
         QuestionType.TrueFalseGroup => IsUk ? "Так / Ні (група)" : "True / false group",
         QuestionType.NumericInputGroup => IsUk ? "Числове введення" : "Numeric input group",
         QuestionType.TextInput => IsUk ? "Текстове введення" : "Text input",
-        QuestionType.ImagePoint => IsUk ? "Точка на зображенні" : "Image point",
+        QuestionType.ImagePoint => IsUk ? "Область на зображенні" : "Image area",
         QuestionType.LetterOrdering => IsUk ? "Слово з літер" : "Letter ordering",
         _ => type.ToString(),
     };

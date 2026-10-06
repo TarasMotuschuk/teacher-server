@@ -16,7 +16,7 @@
 - `TeacherClient.Avalonia`: primary cross-platform desktop client for macOS, Linux, and Windows.
 - `TeacherClient.Avalonia.Setup`: macOS packaging project that builds a `.app` bundle and a `.pkg` installer.
 - `Teacher.Common`: shared DTOs and request contracts.
-- `ClassCommander.TestPlatform` / `ClassCommander.TestEditor` / `ClassCommander.TestRunner` / `ClassCommander.Testing.Core`: classroom testing subsystem (local API, authoring, student runner). Teacher Avalonia **Configuration → Testing** uses Test Platform on the teacher PC (auto-started; students get the LAN address). See `TestPlatform/README.md`.
+- `ClassCommander.TestPlatform` / `ClassCommander.TestEditor` / `ClassCommander.TestRunner` / `ClassCommander.Testing.Core`: classroom testing subsystem (local API, authoring, student runner). Teacher Avalonia **Testing → Tests and results…** uses Test Platform on the teacher PC (auto-started; students get the LAN address). See `TestPlatform/README.md`.
 
 User-facing branding is now `ClassCommander`. Technical repository names such as `TeacherServer`, `TeacherClient`, and `TeacherClient.Avalonia` remain unchanged for compatibility with the existing solution structure, scripts, paths, and persisted settings.
 
@@ -276,8 +276,8 @@ Build-Msi.cmd
 The installed layout under `C:\Program Files\MTD\TeacherServer` is:
 
 - `TeacherAvalonia\` — the Avalonia teacher client (teacher feature; desktop/Start Menu shortcuts named `ClassCommander`).
-- `TestEditor\` — `ClassCommander.TestEditor` test authoring app (teacher feature; Start Menu shortcut `ClassCommander Test Editor`, also launched from the teacher client via **Configuration → Test Editor…**).
-- `TestPlatform\` — `ClassCommander.TestPlatform` local test server (teacher feature; listens on `http://0.0.0.0:5050` by default, installed with a firewall exception so students can reach it). **Configuration → Testing** starts it on the teacher PC automatically.
+- `TestEditor\` — `ClassCommander.TestEditor` test authoring app (teacher feature; Start Menu shortcut `ClassCommander Test Editor`, also launched from the teacher client via **Testing → Test Editor…**).
+- `TestPlatform\` — `ClassCommander.TestPlatform` local test server (teacher feature; listens on `http://0.0.0.0:5050` by default, installed with a firewall exception so students can reach it). **Testing → Tests and results…** starts it on the teacher PC automatically.
 - `Student\` — student agent binaries (student feature).
 - `Student\TestRunner\` — `ClassCommander.TestRunner` student test app (student feature). Teacher-launched tests prefer this installed runner and only fall back to the copy deployed to `C:\Users\Public\ClassCommander\TestRunner`; the **Install student app** action in the Testing window skips PCs that already have the installed runner.
 
@@ -401,7 +401,7 @@ bash ./Build-MacInstaller.sh
    - assemble `ClassCommander.app`;
    - build a macOS installer package.
 
-   The teacher client launches the bundled Test Editor via **Configuration → Test Editor…**. **Configuration → Testing** starts the bundled Test Platform automatically (`Contents/MacOS/TestPlatform`; listens on `http://0.0.0.0:5050` by default).
+   The teacher client launches the bundled Test Editor via **Testing → Test Editor…**. **Testing → Tests and results…** starts the bundled Test Platform automatically (`Contents/MacOS/TestPlatform`; listens on `http://0.0.0.0:5050` by default).
 
    **Demonstration (WebRTC) codec note**:
    - On **macOS**, the teacher client encodes demo video as **H.264 via VideoToolbox** (system framework; no extra `vpxmd.dylib` bundling).
@@ -451,7 +451,7 @@ README.md
 
 ## Classroom testing workflow and verification
 
-Use the updated teacher client **and updated student TestRunner** for this workflow. In **Configuration → Testing**, import a test, choose **Assign test**, select the resulting assignment in the selector above the tabs, then choose **Choose students and start…**. The dialog lists online PCs with checkboxes and a selected count. **Start on all online** opens the same confirmation list with every online PC selected. The local Test Platform starts without a Windows console (`UseShellExecute=false`, `CreateNoWindow=true`); its connection status remains visible in the teacher UI.
+Use the updated teacher client **and updated student TestRunner** for this workflow. In **Testing → Tests and results…**, import a test, choose **Assign test**, select the resulting assignment in the selector above the tabs, then choose **Launch → Choose students and start…**. The dialog lists online PCs with checkboxes and a selected count. **Launch → Start on all online** opens the same confirmation list with every online PC selected. The Testing window’s **Tools** menu contains **Install student app…** and **Teacher exit codes…**. The local Test Platform starts without a Windows console (`UseShellExecute=false`, `CreateNoWindow=true`); its connection status remains visible in the teacher UI.
 
 Every student launch opens a light-themed sign-in screen with empty surname and first-name fields. Legacy `--auto-continue`, machine-name identity, and saved identity never bypass this screen. After identity confirmation, `--assignment-id` opens the intended assignment directly and filters other assignments out of the fallback list.
 
@@ -468,3 +468,24 @@ dotnet run --project tests/ClassCommander.TestRunner.SmokeTests
 The checks cover English/Ukrainian sign-in rendering, readable light styling, legacy auto-start prevention, assignment isolation, and (on non-Windows test hosts) the close/PIN and completion cleanup paths. They save screenshots under the temporary directory `classcommander-testing-ux-smoke`. Native Windows hooks are deliberately excluded from headless execution.
 
 Windows classroom verification still required: dark/light Windows themes at 100–200% DPI; one-PC and multi-PC launches; absence of a server console; correct student names in results; Alt+Tab/Win/minimize/Alt+F4 during a test; correct/incorrect exit code; successful submit; disconnected-server early exit; keyboard restoration after exit, process termination and OS sign-out. Multiple-monitor focus behavior should be checked on actual classroom hardware.
+
+
+### Viewing classroom test results
+
+**Testing → Tests and results… → Monitoring** follows the launch assignment automatically and opens after a successful launch. It fetches attempts and results immediately and every three seconds while the tab is visible. The monitor selector also includes closed assignments, independently of the launch selector. Result rows include student names; select a row and use **Attempt details** for the answer breakdown. Empty counts mean no records were returned; refresh failures display a retry message without discarding the last successful data. Closing the window stops polling. Regression checks exercise this workflow against a local HTTP fixture in the headless smoke suite.
+
+### Image-area questions
+
+In Test Editor, choose **Image area**, use **Choose image…** (PNG, JPEG, WebP or BMP), then hold the left mouse button and drag a rectangle around the correct element, such as a toolbar tab. Every student click inside the blue rectangle, including its boundary, is accepted. A new drag replaces the previous area; a click without a rectangle preserves it. Coordinates use original image pixels, independent of display scaling. **Point with allowed deviation** retains the earlier point workflow; **Allowed deviation (pixels)** sets the square around that point. Existing imported polygon keys remain unchanged until the teacher draws a new area, selects a new point or changes the point tolerance. Save embeds the image in `.cctest` without resizing it. Questions without an image or answer region must be completed before saving.
+
+The updated student runner downloads images from `GET /api/tests/v1/student/attempts/{attemptId}/assets/{assetId}` using `X-Attempt-Token`. The endpoint only serves image assets from that attempt’s test version. Students select their answer directly on the image; navigation and saved progress preserve the selected point. Scoring includes polygon boundaries and supports older single-point keys. This workflow requires updated Test Platform and TestRunner components.
+
+### Protection against locking the teacher PC
+
+Both teacher clients exclude their own computer from individual and group **input locking** (fullscreen overlay or demonstration banner) and **browser locking**. Detection uses loopback, local interface addresses (including IPv4-mapped IPv6), the computer name reported by discovered agents, and DNS resolution of manually configured hostnames. The confirmation and completion text report excluded recipients. The API clients repeat the endpoint check before sending an enabling request; disabling requests remain allowed so an existing lock can be removed. Other commands, such as power actions and Windows policy restrictions, are outside this protection.
+
+### Test Editor workspace
+
+The editor uses a compact menu/toolbar and resizable question list on the left. Questions have human-readable numbers instead of technical IDs. The **Main** tab contains the prompt; **Additional** contains the hint, score and required flag. Answers appear below, with multiline choice fields that use the available width. **Questions** provides add, duplicate, delete, move, save and reset actions; adding an answer preserves current edits. Selection changes apply edits automatically; **Reset changes** restores the last applied question.
+
+**Test parameters → Title and description…** edits title, description, author and email. **Group editor…** adds, renames and deletes groups; deleting a group transfers its questions to the first remaining group. The last group cannot be deleted. Use the group selector above the answer area to move a question. Ctrl/Cmd+N, O and S invoke new/open/save; F2 opens title and description. MyTestX-style testing modes, rich-text formatting and extra restrictions are not implemented by this workspace update.

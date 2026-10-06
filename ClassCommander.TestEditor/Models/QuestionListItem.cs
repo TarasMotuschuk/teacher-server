@@ -5,12 +5,18 @@ namespace ClassCommander.TestEditor.Models;
 
 internal sealed class QuestionListItem
 {
-    public QuestionListItem(string groupTitle, QuestionDto question)
+    public QuestionListItem(string groupTitle, QuestionDto question, int number)
     {
         GroupTitle = groupTitle;
         Question = question;
-        Display = $"{question.Id} · {TestEditorText.QuestionTypeName(question.Type)} · {Truncate(question.Prompt, 80)}";
+        Display = TestEditorText.QuestionNumber(number);
+        TypeDisplay = TestEditorText.QuestionTypeName(question.Type);
+        PromptPreview = Truncate(question.Prompt, 80);
     }
+
+    public string TypeDisplay { get; }
+
+    public string PromptPreview { get; }
 
     public string GroupTitle { get; }
 

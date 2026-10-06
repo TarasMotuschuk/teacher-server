@@ -29,11 +29,13 @@ internal sealed class QuestionEditorHost
         _descriptionBox = null;
         _scoreBox = null;
         _requiredBox = null;
+        (_typeEditor as IDisposable)?.Dispose();
         _typeEditor = null;
     }
 
-    public void Load(QuestionDto question)
+    public void Load(QuestionDto question, QuestionAssetDto? imageAsset = null, string? imagePath = null, Func<Task<(QuestionAssetDto Asset, string Path)?>>? chooseImage = null, IReadOnlyList<TestGroupDto>? groups = null, Action<string>? selectGroup = null)
     {
+        (_typeEditor as IDisposable)?.Dispose();
         _current = question;
         _root.Children.Clear();
 
@@ -109,12 +111,49 @@ internal sealed class QuestionEditorHost
             QuestionType.TextInput => new TextInputEditor(
                 (TextInputInteractionDto)question.Interaction,
                 (TextInputAnswerKeyDto)question.AnswerKey),
-            QuestionType.ImagePoint => new ImagePointEditor((ImagePointAnswerKeyDto)question.AnswerKey),
+            QuestionType.ImagePoint => new ImagePointEditor((ImagePointAnswerKeyDto)question.AnswerKey, imageAsset, imagePath, chooseImage),
             QuestionType.LetterOrdering => new LetterOrderingEditor(
                 question.Content as LetterOrderingContentDto,
                 (LetterOrderingAnswerKeyDto)question.AnswerKey),
             _ => new TextBlock { Text = question.Type.ToString() },
         };
+        _root.Children.Clear();
+        var main = new StackPanel { Spacing = 6 };
+        main.Children.Add(Label(TestEditorText.PromptLabel));
+        _promptBox.MinHeight = 170;
+        main.Children.Add(_promptBox);
+        var additional = new StackPanel { Spacing = 8 };
+        additional.Children.Add(Label(TestEditorText.DescriptionLabel));
+        additional.Children.Add(_descriptionBox);
+        additional.Children.Add(scoreRow);
+        _root.Children.Add(new TabControl
+        {
+            Items =
+            {
+                new TabItem { Header = TestEditorText.MainTab, Content = main },
+                new TabItem { Header = TestEditorText.AdditionalTab, Content = additional },
+            },
+        });
+        if (groups is { Count: > 0 })
+        {
+            var groupPicker = new ComboBox
+            {
+                ItemsSource = groups,
+                SelectedItem = groups.FirstOrDefault(group => group.Questions.Any(item => item.Id == question.Id)),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<TestGroupDto>((group, _) => new TextBlock { Text = group?.Title }),
+            };
+            groupPicker.SelectionChanged += (_, _) =>
+            {
+                if (groupPicker.SelectedItem is TestGroupDto selected)
+                {
+                    selectGroup?.Invoke(selected.Id);
+                }
+            };
+            _root.Children.Add(groupPicker);
+        }
+
+        _root.Children.Add(Label(TestEditorText.OptionsLabel));
         _root.Children.Add(_typeEditor);
     }
 
@@ -216,6 +255,9 @@ internal sealed class QuestionEditorHost
                 Score = score,
                 Required = _requiredBox.IsChecked == true,
                 AnswerKey = image.CollectAnswerKey(),
+                Assets = image.Asset is { } asset
+                    ? _current.Assets.Where(item => item.Role != "prompt").Append(new QuestionAssetRefDto(asset.Id, "prompt")).ToList()
+                    : _current.Assets,
             },
             LetterOrderingEditor letters => _current with
             {
@@ -264,6 +306,7 @@ internal sealed class ChoiceOptionsEditor : UserControl
         var add = new Button { Content = TestEditorText.AddOption, MinWidth = 120 };
         add.Click += (_, _) =>
         {
+            SyncFromUi();
             _rows.Add(new OptionEditRow($"opt_{Guid.NewGuid():N}"[..10], string.Empty, false));
             Rebuild();
         };
@@ -296,7 +339,7 @@ internal sealed class ChoiceOptionsEditor : UserControl
         _list.Children.Clear();
         foreach (var row in _rows)
         {
-            var text = new TextBox { Text = row.Text, Width = 360 };
+            var text = new TextBox { Text = row.Text, MinHeight = 60, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Stretch };
             text.LostFocus += (_, _) => row.Text = text.Text ?? string.Empty;
 
             Control marker;
@@ -331,21 +374,19 @@ internal sealed class ChoiceOptionsEditor : UserControl
             var captured = row;
             remove.Click += (_, _) =>
             {
+                SyncFromUi();
                 _rows.Remove(captured);
                 Rebuild();
             };
 
-            _list.Children.Add(new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 8,
-                Children =
-                {
-                    marker,
-                    text,
-                    remove,
-                },
-            });
+            var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("32,*,36") };
+            text.Margin = new Thickness(4, 0);
+            Grid.SetColumn(text, 1);
+            Grid.SetColumn(remove, 2);
+            panel.Children.Add(marker);
+            panel.Children.Add(text);
+            panel.Children.Add(remove);
+            _list.Children.Add(panel);
         }
     }
 
@@ -354,7 +395,7 @@ internal sealed class ChoiceOptionsEditor : UserControl
         // Text values are synced on LostFocus; ensure current edits are captured from children.
         for (var i = 0; i < _list.Children.Count && i < _rows.Count; i++)
         {
-            if (_list.Children[i] is StackPanel panel)
+            if (_list.Children[i] is Grid panel)
             {
                 foreach (var child in panel.Children)
                 {
@@ -379,30 +420,34 @@ internal sealed class ChoiceOptionsEditor : UserControl
 
 internal sealed class OrderingOptionsEditor : UserControl
 {
-    private readonly ObservableCollection<OptionDto> _items;
+    private readonly ObservableCollection<OrderingEditRow> _items;
 
     public OrderingOptionsEditor(IReadOnlyList<OptionDto> options, IReadOnlyList<string> correctOrder)
     {
         var byId = options.ToDictionary(o => o.Id, StringComparer.Ordinal);
         _items = correctOrder.Count > 0
-            ? new ObservableCollection<OptionDto>(
+            ? new ObservableCollection<OrderingEditRow>(
                 correctOrder.Where(byId.ContainsKey).Select(id => byId[id])
-                    .Concat(options.Where(o => !correctOrder.Contains(o.Id))))
-            : new ObservableCollection<OptionDto>(options.OrderBy(o => o.Order));
+                    .Concat(options.Where(o => !correctOrder.Contains(o.Id))).Select(option => new OrderingEditRow(option.Id, option.Text)))
+            : new ObservableCollection<OrderingEditRow>(options.OrderBy(o => o.Order).Select(option => new OrderingEditRow(option.Id, option.Text)));
 
         var list = new ListBox
         {
             ItemsSource = _items,
             MinHeight = 140,
-            ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<OptionDto>((item, _) =>
+            ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<OrderingEditRow>((item, _) =>
             {
-                var box = new TextBox { Text = item.Text, MinWidth = 280 };
-                box.LostFocus += (_, _) =>
+                if (item is null)
                 {
-                    var idx = _items.IndexOf(item);
-                    if (idx >= 0)
+                    return new TextBlock();
+                }
+
+                var box = new TextBox { Text = item.Text, MinWidth = 280 };
+                box.PropertyChanged += (_, args) =>
+                {
+                    if (args.Property == TextBox.TextProperty)
                     {
-                        _items[idx] = item with { Text = box.Text?.Trim() ?? string.Empty };
+                        item.Text = box.Text ?? string.Empty;
                     }
                 };
                 return box;
@@ -416,7 +461,7 @@ internal sealed class OrderingOptionsEditor : UserControl
         down.Click += (_, _) => Move(list, 1);
         add.Click += (_, _) =>
         {
-            _items.Add(new OptionDto($"opt_{Guid.NewGuid():N}"[..10], string.Empty, _items.Count + 1));
+            _items.Add(new OrderingEditRow($"opt_{Guid.NewGuid():N}"[..10], string.Empty));
         };
 
         Content = new DockPanel
@@ -436,13 +481,13 @@ internal sealed class OrderingOptionsEditor : UserControl
     }
 
     public IReadOnlyList<OptionDto> CollectOptions()
-        => _items.Select((item, index) => item with { Order = index + 1 }).Where(i => !string.IsNullOrWhiteSpace(i.Text)).ToList();
+        => _items.Select((item, index) => new OptionDto(item.Id, item.Text.Trim(), index + 1)).Where(i => !string.IsNullOrWhiteSpace(i.Text)).ToList();
 
     public IReadOnlyList<string> CollectOrderIds() => CollectOptions().Select(o => o.Id).ToList();
 
     private void Move(ListBox list, int delta)
     {
-        if (list.SelectedItem is not OptionDto selected)
+        if (list.SelectedItem is not OrderingEditRow selected)
         {
             return;
         }
@@ -456,6 +501,13 @@ internal sealed class OrderingOptionsEditor : UserControl
 
         _items.Move(index, target);
         list.SelectedItem = selected;
+    }
+
+    private sealed class OrderingEditRow(string id, string text)
+    {
+        public string Id { get; } = id;
+
+        public string Text { get; set; } = text;
     }
 }
 
@@ -569,7 +621,7 @@ internal sealed class MatchingEditor : UserControl
                 Width = 240,
                 ItemsSource = _right.ToList(),
                 ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<MatchingItemDto>((item, _) =>
-                    new TextBlock { Text = item.Text }),
+                    new TextBlock { Text = item?.Text ?? string.Empty }),
             };
             if (selected.TryGetValue(left.Id, out var rightId))
             {
@@ -812,54 +864,6 @@ internal sealed class TextInputEditor : UserControl
             .Where(t => !string.IsNullOrWhiteSpace(t))
             .ToList();
         return new TextInputAnswerKeyDto(texts, _caseSensitive.IsChecked == true, TrimWhitespace: true);
-    }
-}
-
-internal sealed class ImagePointEditor : UserControl
-{
-    private readonly TextBox _xBox;
-    private readonly TextBox _yBox;
-
-    public ImagePointEditor(ImagePointAnswerKeyDto answerKey)
-    {
-        var point = answerKey.Regions.FirstOrDefault()?.Points.FirstOrDefault() ?? new PointDto(0, 0);
-        _xBox = new TextBox { Width = 100, Text = point.X.ToString(CultureInfo.InvariantCulture) };
-        _yBox = new TextBox { Width = 100, Text = point.Y.ToString(CultureInfo.InvariantCulture) };
-        Content = new StackPanel
-        {
-            Spacing = 8,
-            Children =
-            {
-                new TextBlock { Text = TestEditorText.ImagePointHint, TextWrapping = TextWrapping.Wrap },
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        new TextBlock { Text = "X", VerticalAlignment = VerticalAlignment.Center },
-                        _xBox,
-                        new TextBlock { Text = "Y", VerticalAlignment = VerticalAlignment.Center },
-                        _yBox,
-                    },
-                },
-            },
-        };
-    }
-
-    public ImagePointAnswerKeyDto CollectAnswerKey()
-    {
-        if (!int.TryParse(_xBox.Text?.Trim(), out var x))
-        {
-            x = 0;
-        }
-
-        if (!int.TryParse(_yBox.Text?.Trim(), out var y))
-        {
-            y = 0;
-        }
-
-        return new ImagePointAnswerKeyDto([new PolygonRegionDto("point", [new PointDto(x, y)])]);
     }
 }
 
