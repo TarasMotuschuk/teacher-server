@@ -6,6 +6,28 @@ The format is based on Keep a Changelog, and this project currently starts with 
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-10-07
+
+### Added
+
+- Frequent programs can be edited (name, command and run mode) and cleared with confirmation; run-mode labels are localized and edited modes survive shortcut refresh.
+
+- Test Editor can batch-convert supported MyTest XML exports and unprotected MyTestX 10.2.0.2 MTF files into `.cctest` with per-file reports, cancellation, isolated workspaces and preservation of existing packages. Native MTF import works without Mtf2Xml, Wine, Rosetta or extra downloads on Windows, macOS and Linux.
+
+### Changed
+
+- Student testing now shows test information before sign-in for teacher-launched assignments, fixed question navigation with skip/back, full-width answer rows, progress/time and text/image zoom, then a dedicated result screen with server delivery confirmation. Scores, supplied grades and correctness respect the teacher's visibility policy.
+- Configured student time limits use the original attempt start time and trigger client-side submission with connection retry; completion clears the previous student's identity.
+
+### Fixed
+
+- Remote commands on selected PCs now use the Select checkboxes and skip offline PCs. Empty target lists and agent launch errors display explicit feedback. Administrative launches use the existing LocalSystem service in the signed-in student session, without UAC prompts; command scripts are protected against student modification and support UTF-8 paths.
+
+- MyTest XML import respects declared character encoding, recovers Cyrillic text from RTF, reads separate matching columns and numeric/text answer nodes, rejects unsupported question types and incomplete answer keys, and preserves the open test on single-file import failure instead of replacing it with an empty workspace.
+
+- Failed submission no longer looks like a completed test; answers stay available for retry. Opening an ordering question no longer counts as an entered answer.
+- New runner progress/submission snapshots correctly remove answers that students clear, while legacy request behavior remains compatible.
+
 ## [1.1.3] - 2026-10-06
 
 ### Added

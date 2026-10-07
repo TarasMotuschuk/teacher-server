@@ -7,17 +7,21 @@
         MinHeight="520"
         Title="Frequent Programs">
   <Grid RowDefinitions="Auto,*,Auto" Margin="16">
-    <StackPanel Orientation="Horizontal" Spacing="12">
+    <WrapPanel Orientation="Horizontal">
       <Button x:Name="AddButton" MinWidth="120" Click="AddButton_OnClick" />
+      <Button x:Name="EditButton" MinWidth="120" Margin="12,0,0,0" Click="EditButton_OnClick" />
+      <Button x:Name="ClearButton" MinWidth="120" Margin="12,0,12,0" Click="ClearButton_OnClick" />
       <Button x:Name="RemoveButton" MinWidth="120" Click="RemoveButton_OnClick" />
-    </StackPanel>
+    </WrapPanel>
     <DataGrid x:Name="ProgramsGrid"
               Grid.Row="1"
               Margin="0,12,0,12"
               AutoGenerateColumns="False"
               CanUserReorderColumns="False"
               IsReadOnly="True"
-              SelectionMode="Single">
+              SelectionMode="Single"
+              SelectionChanged="ProgramsGrid_OnSelectionChanged"
+              DoubleTapped="ProgramsGrid_OnDoubleTapped">
       <DataGrid.Columns>
         <DataGridTextColumn Width="2*" />
         <DataGridTextColumn Width="4*" />

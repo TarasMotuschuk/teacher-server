@@ -45,6 +45,7 @@ public partial class MainWindow : Window
         SaveMenuItem.Header = TestEditorText.SaveCommand;
         SaveAsMenuItem.Header = TestEditorText.SaveAsCommand;
         ImportMyTestMenuItem.Header = TestEditorText.ImportMyTestCommand;
+        BatchMyTestMenuItem.Header = TestEditorText.BatchMyTestCommand;
         GroupsHeadingText.Text = TestEditorText.GroupsHeading;
         EditorHeadingText.Text = TestEditorText.EditorHeading;
         TestTitleLabelText.Text = TestEditorText.TestTitleLabel;
@@ -144,7 +145,7 @@ public partial class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("xml") { Patterns = ["*.xml"] },
+                new FilePickerFileType("MyTestX") { Patterns = ["*.xml", "*.mtf"] },
             ],
         });
 
@@ -155,7 +156,17 @@ public partial class MainWindow : Window
 
         try
         {
+            if (Path.GetExtension(files[0].Path.LocalPath).Equals(".mtf", StringComparison.OrdinalIgnoreCase))
+            {
+                await ImportMtfAsync(files[0].Path.LocalPath);
+                return;
+            }
+
             await ImportMyTestAsync(files[0].Path.LocalPath);
+        }
+        catch (MyTestImportException ex)
+        {
+            await ShowErrorAsync(TestEditorText.ImportError(ex.Code) + "\n" + ex.Detail);
         }
         catch (Exception ex)
         {
@@ -303,16 +314,34 @@ public partial class MainWindow : Window
 
     private async Task ImportMyTestAsync(string xmlPath)
     {
-        ResetWorkspace();
-        _workspaceDirectory = Path.Combine(Path.GetTempPath(), "ClassCommander", "TestEditor", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_workspaceDirectory);
-        await using var stream = File.OpenRead(xmlPath);
-        var (definition, warnings) = _importer.Import(stream, Path.GetFileName(xmlPath), _workspaceDirectory);
+        var workspace = Path.Combine(Path.GetTempPath(), "ClassCommander", "TestEditor", Guid.NewGuid().ToString("N"));
+        TestDefinitionDto definition;
+        IReadOnlyList<string> warnings;
+        string originalImport;
+        try
+        {
+            Directory.CreateDirectory(workspace);
+            await using var stream = File.OpenRead(xmlPath);
+            (definition, warnings) = _importer.Import(stream, Path.GetFileName(xmlPath), workspace);
+            var importsDir = Path.Combine(workspace, "imports");
+            Directory.CreateDirectory(importsDir);
+            originalImport = Path.Combine(importsDir, Path.GetFileName(xmlPath));
+            File.Copy(xmlPath, originalImport, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                Directory.Delete(workspace, recursive: true);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            throw;
+        }
 
-        var importsDir = Path.Combine(_workspaceDirectory, "imports");
-        Directory.CreateDirectory(importsDir);
-        _originalImportPath = Path.Combine(importsDir, Path.GetFileName(xmlPath));
-        File.Copy(xmlPath, _originalImportPath, overwrite: true);
+        ResetWorkspace();
+        _workspaceDirectory = workspace;
+        _originalImportPath = originalImport;
 
         _definition = definition;
         _packagePath = null;
@@ -322,6 +351,10 @@ public partial class MainWindow : Window
         BindQuestions();
         StatusTextBlock.Text = TestEditorText.StatusImported(definition.Title, warnings.Count);
         RefreshTestHeader();
+        if (warnings.Count > 0)
+        {
+            await ShowImportReportAsync(TestEditorText.ImportError("review-required") + "\n\n" + string.Join("\n", warnings));
+        }
     }
 
     private async Task SaveAsync(bool saveAs)

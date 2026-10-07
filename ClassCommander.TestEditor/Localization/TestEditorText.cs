@@ -21,7 +21,7 @@ internal static partial class TestEditorText
 
     public static string SaveAsCommand => IsUk ? "Зберегти як…" : "Save As…";
 
-    public static string ImportMyTestCommand => IsUk ? "Імпортувати MyTest XML…" : "Import MyTest XML…";
+    public static string ImportMyTestCommand => IsUk ? "Імпортувати MyTestX…" : "Import MyTestX…";
 
     public static string GroupsHeading => IsUk ? "Завдання" : "Questions";
 
@@ -143,7 +143,7 @@ internal static partial class TestEditorText
 
     public static string SaveCctestTitle => IsUk ? "Зберегти пакет тесту" : "Save test package";
 
-    public static string ImportXmlTitle => IsUk ? "Імпортувати MyTest XML" : "Import MyTest XML";
+    public static string ImportXmlTitle => IsUk ? "Імпортувати MyTestX (XML / MTF)" : "Import MyTestX (XML / MTF)";
 
     public static string ErrorTitle => IsUk ? "Помилка" : "Error";
 

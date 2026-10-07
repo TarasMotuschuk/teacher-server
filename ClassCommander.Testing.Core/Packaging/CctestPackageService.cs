@@ -82,7 +82,8 @@ public sealed class CctestPackageService
                 Files: files,
                 Source: includedImports.Count == 0
                     ? null
-                    : new TestPackageSourceDto("mytest-xml-import", includedImports));
+                    : new TestPackageSourceDto(string.Equals(Path.GetExtension(originalImportPath), ".mtf", StringComparison.OrdinalIgnoreCase)
+                        ? "mytest-mtf-import" : "mytest-xml-import", includedImports));
             await File.WriteAllTextAsync(
                 Path.Combine(tempRoot, "manifest.json"),
                 TestPlatformJson.Serialize(manifest),

@@ -22,6 +22,10 @@ public partial class FrequentProgramsWindow : Window
         Title = CrossPlatformText.FrequentProgramsTitle;
         AddButton.Content = CrossPlatformText.AddProgram;
         RemoveButton.Content = CrossPlatformText.RemoveProgram;
+        EditButton.Content = CrossPlatformText.EditProgram;
+        ClearButton.Content = CrossPlatformText.ClearPrograms;
+        _entries.CollectionChanged += (_, _) => UpdateButtons();
+        UpdateButtons();
         CloseButton.Content = CrossPlatformText.Close;
         if (ProgramsGrid.Columns.Count >= 3)
         {
@@ -40,7 +44,7 @@ public partial class FrequentProgramsWindow : Window
             if (ProgramsGrid.Columns[2] is DataGridTextColumn runAsColumn)
             {
                 runAsColumn.Header = CrossPlatformText.RunAs;
-                runAsColumn.Binding = new Avalonia.Data.Binding(nameof(FrequentProgramEntry.RunAs));
+                runAsColumn.Binding = new Avalonia.Data.Binding(nameof(FrequentProgramEntry.RunAsDisplay));
             }
         }
     }
@@ -48,7 +52,8 @@ public partial class FrequentProgramsWindow : Window
     public static async Task<IReadOnlyList<FrequentProgramEntry>?> ShowAsync(Window owner, IReadOnlyList<FrequentProgramEntry> entries)
     {
         var dialog = new FrequentProgramsWindow(entries);
-        return await dialog.ShowDialog<IReadOnlyList<FrequentProgramEntry>?>(owner);
+        await dialog.ShowDialog<IReadOnlyList<FrequentProgramEntry>?>(owner);
+        return dialog._entries.ToList();
     }
 
     private async void AddButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -62,6 +67,45 @@ public partial class FrequentProgramsWindow : Window
 
         _entries.Add(result);
         SortEntries();
+    }
+
+    private async void EditButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await EditSelectedAsync();
+    }
+
+    private async void ProgramsGrid_OnDoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    {
+        await EditSelectedAsync();
+    }
+
+    private void ProgramsGrid_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) => UpdateButtons();
+
+    private void UpdateButtons()
+    {
+        EditButton.IsEnabled = ProgramsGrid.SelectedItem is FrequentProgramEntry;
+        RemoveButton.IsEnabled = EditButton.IsEnabled;
+        ClearButton.IsEnabled = _entries.Count > 0;
+    }
+
+    private async Task EditSelectedAsync()
+    {
+        if (ProgramsGrid.SelectedItem is not FrequentProgramEntry entry)
+            return;
+        var result = await new FrequentProgramEditWindow(entry).ShowDialog<FrequentProgramEntry?>(this);
+        if (result is null)
+            return;
+        _entries[_entries.IndexOf(entry)] = result;
+        SortEntries();
+        ProgramsGrid.SelectedItem = result;
+    }
+
+    private async void ClearButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_entries.Count == 0)
+            return;
+        if (await ConfirmationDialog.ShowAsync(this, CrossPlatformText.FrequentProgramsTitle, CrossPlatformText.ClearProgramsPrompt))
+            _entries.Clear();
     }
 
     private async void RemoveButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

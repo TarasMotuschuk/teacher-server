@@ -255,10 +255,10 @@ internal static partial class CrossPlatformText
             : $"Running command on {agent} ({agentIndex}/{agentCount})";
 
     public static string RemoteCommandCompleted(int count)
-        => IsUk ? $"Команду виконано на {count} учнівських ПК" : $"Ran command on {count} student PCs";
+        => IsUk ? $"Команду запущено на {count} учнівських ПК" : $"Started command on {count} student PCs";
 
     public static string RemoteCommandCompletedWithFailures(int succeeded, int failed)
-        => IsUk ? $"Виконання команди: успішно {succeeded}, з помилками {failed}" : $"Remote command: {succeeded} succeeded, {failed} failed";
+        => IsUk ? $"Запуск команди: успішно {succeeded}, з помилками {failed}" : $"Command launch: {succeeded} started, {failed} failed";
 
     public static string FrequentProgramsRefreshed(int count)
         => IsUk ? $"Оновлено список частих програм: {count}" : $"Refreshed frequent programs: {count}";

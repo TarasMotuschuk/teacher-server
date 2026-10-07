@@ -369,7 +369,7 @@ internal sealed class TestPlatformRepository
         return (attempt, attemptToken);
     }
 
-    public AttemptDto SaveProgress(string attemptPublicId, IReadOnlyList<AttemptAnswerDto> answers)
+    public AttemptDto SaveProgress(string attemptPublicId, IReadOnlyList<AttemptAnswerDto> answers, bool replaceAnswers = false)
     {
         return _db.InTransaction(connection =>
         {
@@ -381,7 +381,7 @@ internal sealed class TestPlatformRepository
             }
 
             var now = DateTime.UtcNow;
-            var merged = MergeAnswers(existing.Answers, answers, now);
+            var merged = MergeAnswers(replaceAnswers ? [] : existing.Answers, answers, now);
             var updated = existing with
             {
                 Answers = merged,
@@ -412,7 +412,8 @@ internal sealed class TestPlatformRepository
     public (AttemptDto Attempt, ResultDto Result) SubmitAttempt(
         string attemptPublicId,
         IReadOnlyList<AttemptAnswerDto> answers,
-        ResultDto result)
+        ResultDto result,
+        bool replaceAnswers = false)
     {
         return _db.InTransaction(connection =>
         {
@@ -426,7 +427,7 @@ internal sealed class TestPlatformRepository
             }
 
             var now = DateTime.UtcNow;
-            var merged = MergeAnswers(existing.Answers, answers, now);
+            var merged = MergeAnswers(replaceAnswers ? [] : existing.Answers, answers, now);
             var updated = existing with
             {
                 Answers = merged,

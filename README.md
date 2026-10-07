@@ -1,4 +1,4 @@
-# ClassCommander — classroom management (teacher + student PCs)
+﻿# ClassCommander — classroom management (teacher + student PCs)
 
 [![CI](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/ci.yml/badge.svg)](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/ci.yml)
 [![Release All](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/release-all.yml/badge.svg)](https://github.com/TarasMotuschuk/teacher-server/actions/workflows/release-all.yml)
@@ -15,6 +15,8 @@
 - a primary teacher client on macOS/Linux/Windows (`TeacherClient.Avalonia`, Avalonia)
 
 This project keeps an explicit safety boundary: **visible, authorized classroom administration only** (no stealth monitoring, hidden persistence, or covert control flows).
+
+Students see test information before entering their name, answer through a consistent question screen with progress and time, and receive a separate result screen only after the teacher’s server confirms submission. Text and image zoom and English/Ukrainian UI are supported.
 
 ## Table of contents
 
@@ -49,11 +51,12 @@ Avalonia teacher client (macOS example):
 - **Connect** to a selected student PC, with optional **auto-reconnect**.
 - **Remote management**: start/stop the student VNC host, view screens, open a fullscreen viewer (view-only until control is enabled in the viewer).
 - **Classroom testing**: open the top-level **Testing** menu for **Tests and results…** or **Test Editor…**; choose an assignment and use the testing window’s **Launch** menu to select student PCs, let each student enter their name, and run a readable fullscreen test with teacher-authorized early exit. Monitor attempts and student scores with automatic refresh. The test editor provides a menu and toolbar, numbered questions, Main/Additional tabs, test metadata and group dialogs. Image-area questions let teachers upload a picture and drag a rectangle around the correct answer; students respond by clicking the image.
+- **MyTestX migration**: import unprotected MyTestX 10.2.0.2 `.mtf` files directly on Windows, macOS and Linux, without Mtf2Xml, Wine or extra downloads. Batch conversion produces `.cctest` packages with per-file reports and preserves existing files. XML exports remain supported.
 - **Processes**: list processes, view details, terminate and restart.
 - **Files**: dual-pane local + remote browsing, upload/download, rename, delete, open on the student PC.
 - **Group commands** (selected PCs or all online PCs):
   - file distribution, destination-folder clear
-  - remote command scripts (run as current user or administrator)
+  - remote command scripts for checked or all online PCs (current user or LocalSystem administrator in the student session), with editable frequent-program entries and list clearing
   - collect student work folders
   - browser lock and input lock (including a visible demonstration banner mode)
   - power actions (shutdown/restart/log off, and **power on** via Wake-on-LAN using stored MAC addresses)

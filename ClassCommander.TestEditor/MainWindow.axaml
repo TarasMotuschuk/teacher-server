@@ -24,6 +24,7 @@
         <MenuItem x:Name="SaveAsMenuItem" Click="SaveAsMenuItem_OnClick" />
         <Separator />
         <MenuItem x:Name="ImportMyTestMenuItem" Click="ImportMyTestMenuItem_OnClick" />
+        <MenuItem x:Name="BatchMyTestMenuItem" Click="BatchMyTestMenuItem_OnClick" />
         <Separator />
         <MenuItem x:Name="ExitMenuItem" Click="ExitMenuItem_OnClick" />
       </MenuItem>

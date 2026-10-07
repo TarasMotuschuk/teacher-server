@@ -12,4 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Teacher.Common\Teacher.Common.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

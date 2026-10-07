@@ -7,6 +7,8 @@ obj/
 *.cache
 *.pdb
 *.log
+/Mtf2Xml.exe
+/artifacts/mytest-import/
 TeacherServer.Setup/artifacts/
 TeacherServer.Setup/Generated/
 TeacherServer.Setup/dist/

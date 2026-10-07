@@ -12,7 +12,7 @@ public partial class RemoteCommandWindow : Window
         InitializeComponent();
         Title = CrossPlatformText.RemoteCommandTitle;
         ScriptLabelTextBlock.Text = CrossPlatformText.RemoteCommandScript;
-        HintTextBlock.Text = CrossPlatformText.RemoteCommandHint;
+        HintTextBlock.Text = CrossPlatformText.RemoteCommandHint + "\n" + CrossPlatformText.AdministratorLaunchHint;
         RunAsLabelTextBlock.Text = CrossPlatformText.RunAs;
         FrequentProgramsLabelTextBlock.Text = CrossPlatformText.FrequentProgramsTitle;
         InsertSelectedButton.Content = CrossPlatformText.InsertSelected;

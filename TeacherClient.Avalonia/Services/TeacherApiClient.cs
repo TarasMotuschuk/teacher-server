@@ -302,8 +302,8 @@ public sealed class TeacherApiClient : IDisposable
 
     public async Task ExecuteRemoteCommandAsync(string script, RemoteCommandRunAs runAs, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/commands/run", new RemoteCommandRequest(script, runAs), cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var response = await _httpClient.PostAsJsonAsync("api/commands/run", new RemoteCommandRequest(script, runAs), cancellationToken);
+        await EnsureSuccessWithServerErrorAsync(response, cancellationToken);
     }
 
     public async Task<IReadOnlyList<FrequentProgramShortcutDto>> GetPublicDesktopShortcutsAsync(CancellationToken cancellationToken = default)

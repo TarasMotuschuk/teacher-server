@@ -127,7 +127,25 @@ tests.MapPost("/imports/mytest-xml", async (HttpRequest request) =>
     var workDir = Path.Combine(Path.GetTempPath(), "ClassCommander", "imports", Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(workDir);
     await using var stream = file.OpenReadStream();
-    var (definition, warnings) = importer.Import(stream, file.FileName, workDir);
+    TestDefinitionDto definition;
+    IReadOnlyList<string> warnings;
+    try
+    {
+        (definition, warnings) = importer.Import(stream, file.FileName, workDir);
+    }
+    catch (Exception ex) when (ex is MyTestImportException or System.Xml.XmlException or FormatException)
+    {
+        try
+        { Directory.Delete(workDir, recursive: true); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        return Results.BadRequest(new
+        {
+            error = "The MyTest XML structure, question type or answer key is invalid or unsupported.",
+            errorUk = "Структура MyTest XML, тип питання або ключ відповіді некоректні чи непідтримувані.",
+            code = ex is MyTestImportException importError ? importError.Code : "invalid-xml",
+        });
+    }
 
     var testDir = paths.GetTestDirectory(definition.PublicId);
     Directory.CreateDirectory(testDir);
@@ -343,6 +361,31 @@ tests.MapGet("/attempts/{attemptId}/result", (string attemptId) =>
     return result is null ? Results.NotFound() : Results.Ok(result);
 });
 
+tests.MapGet("/student/assignments/{assignmentId}/overview", (string assignmentId) =>
+{
+    var assignment = repository.GetAssignment(assignmentId);
+    var now = DateTime.UtcNow;
+    if (assignment is null || assignment.Status != AssignmentStatus.Published
+        || (assignment.Availability.StartUtc is { } start && now < start)
+        || (assignment.Availability.EndUtc is { } end && now > end))
+    {
+        return Results.NotFound();
+    }
+
+    var definition = repository.GetDefinition(assignment.TestPublicId, assignment.TestVersion);
+    if (definition is null)
+    {
+        return Results.NotFound();
+    }
+
+    var questions = definition.Groups.SelectMany(group => group.Questions).ToList();
+    return Results.Ok(new StudentTestOverviewDto(
+        assignment.PublicId, assignment.Title, definition.Description, definition.Author?.Name,
+        questions.Count, questions.Sum(question => question.Score),
+        assignment.AttemptPolicy.TimeLimitSeconds ?? definition.Settings.TimeLimitSeconds,
+        assignment.ResultPolicy));
+});
+
 tests.MapPost("/student/resolve", (ResolveStudentRequest request) =>
 {
     var student = new AttemptStudentDto(
@@ -418,7 +461,7 @@ tests.MapPut("/student/attempts/{attemptId}/progress", (string attemptId, HttpRe
 
     try
     {
-        var updated = repository.SaveProgress(attemptId, body.Answers);
+        var updated = repository.SaveProgress(attemptId, body.Answers, body.ReplaceAnswers);
         return Results.Ok(new SaveAttemptProgressResponse(updated.PublicId, updated.Status, updated.LastSavedAtUtc ?? DateTime.UtcNow));
     }
     catch (InvalidOperationException ex)
@@ -443,9 +486,9 @@ tests.MapPost("/student/attempts/{attemptId}/submit", (string attemptId, HttpReq
         var definition = repository.GetDefinition(attempt.TestPublicId, attempt.TestVersion)
             ?? throw new InvalidOperationException("Test definition was not found.");
 
-        var mergedAnswers = body.Answers.Count == 0 ? attempt.Answers : body.Answers;
+        var mergedAnswers = body.ReplaceAnswers ? body.Answers : body.Answers.Count == 0 ? attempt.Answers : body.Answers;
         var scored = AttemptScoringService.Score(definition, attemptId, mergedAnswers);
-        var (submitted, result) = repository.SubmitAttempt(attemptId, mergedAnswers, scored);
+        var (submitted, result) = repository.SubmitAttempt(attemptId, mergedAnswers, scored, body.ReplaceAnswers);
 
         var viewPolicy = assignment.ResultPolicy;
         var visibleResult = viewPolicy.ShowPerQuestionFeedback

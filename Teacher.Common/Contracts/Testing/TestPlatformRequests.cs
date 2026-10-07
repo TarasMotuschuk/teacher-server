@@ -29,9 +29,11 @@ public sealed record ClientProgressDto(
 
 public sealed record SaveAttemptProgressRequest(
     IReadOnlyList<AttemptAnswerDto> Answers,
-    ClientProgressDto? ClientProgress);
+    ClientProgressDto? ClientProgress,
+    bool ReplaceAnswers = false);
 
 public sealed record SubmitAttemptRequest(
-    IReadOnlyList<AttemptAnswerDto> Answers);
+    IReadOnlyList<AttemptAnswerDto> Answers,
+    bool ReplaceAnswers = false);
 
 #pragma warning restore SA1402

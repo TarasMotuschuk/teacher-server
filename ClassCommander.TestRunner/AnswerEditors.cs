@@ -64,7 +64,11 @@ internal sealed class SingleChoiceEditor : IAnswerEditor
         {
             var radio = new RadioButton
             {
-                Content = option.Text,
+                Content = new TextBlock { Text = option.Text, TextWrapping = TextWrapping.Wrap },
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Padding = new Thickness(12),
+                MinHeight = 52,
                 GroupName = "single-choice",
                 IsChecked = string.Equals(option.Id, selected, StringComparison.Ordinal),
             };
@@ -98,7 +102,11 @@ internal sealed class MultipleChoiceEditor : IAnswerEditor
         {
             var box = new CheckBox
             {
-                Content = option.Text,
+                Content = new TextBlock { Text = option.Text, TextWrapping = TextWrapping.Wrap },
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Padding = new Thickness(12),
+                MinHeight = 52,
                 IsChecked = selected.Contains(option.Id),
             };
             _options.Add((box, option.Id));
@@ -120,9 +128,11 @@ internal sealed class MultipleChoiceEditor : IAnswerEditor
 internal sealed class OrderingEditor : IAnswerEditor
 {
     private readonly ObservableCollection<OptionDto> _items;
+    private bool _answered;
 
     public OrderingEditor(OrderingInteractionDto interaction, OrderingAnswerValueDto? existing)
     {
+        _answered = existing is not null;
         var byId = interaction.Options.ToDictionary(o => o.Id, StringComparer.Ordinal);
         if (existing?.OrderedOptionIds is { Count: > 0 } ordered)
         {
@@ -140,9 +150,10 @@ internal sealed class OrderingEditor : IAnswerEditor
             ItemsSource = _items,
             MinHeight = 160,
             ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<OptionDto>((item, _) =>
-                new TextBlock { Text = item.Text, Margin = new Thickness(4) }),
+                new TextBlock { Text = item?.Text, Margin = new Thickness(4), TextWrapping = TextWrapping.Wrap }),
         };
 
+        list.SelectionChanged += (_, _) => _answered = true;
         var up = new Button { Content = TestRunnerText.MoveUp, MinWidth = 40 };
         var down = new Button { Content = TestRunnerText.MoveDown, MinWidth = 40 };
         up.Click += (_, _) => MoveSelected(list, -1);
@@ -166,7 +177,7 @@ internal sealed class OrderingEditor : IAnswerEditor
 
     public Control Control { get; }
 
-    public AttemptAnswerValueDto? Collect() => new OrderingAnswerValueDto(_items.Select(i => i.Id).ToList());
+    public AttemptAnswerValueDto? Collect() => _answered ? new OrderingAnswerValueDto(_items.Select(i => i.Id).ToList()) : null;
 
     private void MoveSelected(ListBox list, int delta)
     {
@@ -205,7 +216,7 @@ internal sealed class MatchingEditor : IAnswerEditor
                 PlaceholderText = TestRunnerText.ChooseAnswer,
                 ItemsSource = rightItems,
                 ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<MatchingItemDto>((item, _) =>
-                    new TextBlock { Text = item.Text, TextWrapping = TextWrapping.Wrap }),
+                    new TextBlock { Text = item?.Text, TextWrapping = TextWrapping.Wrap }),
             };
 
             if (selected.TryGetValue(left.Id, out var rightId))
@@ -435,12 +446,27 @@ internal sealed class ImagePointEditor : IAnswerEditor, IDisposable
             status.Text = TestRunnerText.PointImageMissing;
         }
 
-        Control = new StackPanel { Spacing = 8, Children = { hint, _picker, status } };
+        Control = new StackPanel
+        {
+            Spacing = 8,
+            Children =
+            {
+                hint,
+                new ScrollViewer { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, Content = _picker },
+                status,
+            },
+        };
     }
 
     public Control Control { get; }
 
     public AttemptAnswerValueDto? Collect() => _picker.SelectedPoint is { } point ? new ImagePointAnswerValueDto(point.X, point.Y) : null;
+
+    public void SetScale(double scale)
+    {
+        _picker.Height = 320 * scale;
+        _picker.MinWidth = 480 * scale;
+    }
 
     public void Dispose() => _picker.Dispose();
 }

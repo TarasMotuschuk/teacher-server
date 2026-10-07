@@ -19,6 +19,14 @@ internal sealed class TestPlatformApiClient : IDisposable
         };
     }
 
+    public async Task<StudentTestOverviewDto> GetOverviewAsync(string assignmentId)
+    {
+        using var response = await _http.GetAsync($"api/tests/v1/student/assignments/{Uri.EscapeDataString(assignmentId)}/overview");
+        await EnsureSuccessAsync(response, CancellationToken.None);
+        return await response.Content.ReadFromJsonAsync<StudentTestOverviewDto>(TestPlatformJson.Options)
+            ?? throw new InvalidOperationException("Empty test overview response.");
+    }
+
     public async Task<ResolveStudentResponse> ResolveAsync(ResolveStudentRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _http.PostAsJsonAsync("api/tests/v1/student/resolve", request, TestPlatformJson.Options, cancellationToken);

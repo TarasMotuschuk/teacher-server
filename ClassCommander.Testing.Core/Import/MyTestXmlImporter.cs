@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using Teacher.Common.Contracts.Testing;
 
@@ -18,14 +19,31 @@ public sealed class MyTestXmlImporter
         string? originalFileName,
         string workingDirectory)
     {
-        var warnings = new List<string>();
         XDocument document;
-        using (var reader = new StreamReader(xmlStream, detectEncodingFromByteOrderMarks: true, leaveOpen: true))
+        using (var reader = XmlReader.Create(xmlStream, new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            CloseInput = false,
+            MaxCharactersInDocument = 512 * 1024 * 1024,
+        }))
         {
             document = XDocument.Load(reader);
         }
 
+        return ImportDocument(document, originalFileName, workingDirectory);
+    }
+
+    internal (TestDefinitionDto Definition, IReadOnlyList<string> Warnings) ImportDocument(
+        XDocument document, string? originalFileName, string workingDirectory)
+    {
+        var warnings = new List<string>();
         var root = document.Root ?? throw new InvalidOperationException("MyTest XML root element is missing.");
+        if (root.Element("Groups") is null || !root.Elements("Groups").Elements("Group").Elements("Tasks").Elements("Task").Any())
+        {
+            throw new MyTestImportException("no-questions");
+        }
+
         var testOptions = root.Element("TestOptions");
         var title = TextValue(testOptions, "Title") ?? Path.GetFileNameWithoutExtension(originalFileName) ?? "Imported test";
         var publicId = TextValue(testOptions, "TestUID");
@@ -131,9 +149,10 @@ public sealed class MyTestXmlImporter
 
         if (!TryMapType(myTestType, out var questionType))
         {
-            warnings.Add($"{questionId}: unsupported MyTest type '{myTestType}', imported as single-choice.");
-            questionType = QuestionType.SingleChoice;
+            throw new MyTestImportException("unsupported-type", $"{questionId}: {myTestType}");
         }
+
+        ValidateAnswerKey(task, variants, questionType, questionId);
 
         var (content, interaction, answerKey, typeWarnings) = BuildQuestionParts(questionType, variants, task, prompt);
         warnings.AddRange(typeWarnings.Select(w => $"{questionId}: {w}"));
@@ -150,6 +169,46 @@ public sealed class MyTestXmlImporter
             interaction,
             answerKey,
             new QuestionSourceDto(myTestType, typeWarnings));
+    }
+
+    private static void ValidateAnswerKey(XElement task, List<XElement> variants, QuestionType type, string id)
+    {
+        var keys = variants.Select(v => v.Attribute("CorrectAnswer")?.Value).ToList();
+        var valid = type switch
+        {
+            QuestionType.SingleChoice => keys.Count > 0 && keys.All(k => BoolValue(k).HasValue)
+                && keys.Count(k => BoolValue(k) == true) == 1,
+            QuestionType.MultipleChoice => keys.Count > 0 && keys.All(k => BoolValue(k).HasValue)
+                && keys.Any(k => BoolValue(k) == true),
+            QuestionType.TrueFalseGroup => keys.Count > 0 && keys.All(k => BoolValue(k).HasValue),
+            QuestionType.Ordering => keys.Count > 0 && keys.Select(k => int.TryParse(k, out var n) ? n : 0)
+                .Order().SequenceEqual(Enumerable.Range(1, keys.Count)),
+            QuestionType.Matching => keys.Count > 0
+                && (task.Element("Variants2") is not null || variants.All(v => v.Element("PlainText2") is not null))
+                && keys.All(k => int.TryParse(k, out var n) && n >= 1
+                    && n <= (task.Element("Variants2")?.Elements("VariantText").Count() ?? keys.Count)),
+            QuestionType.NumericInputGroup => task.Element("InputNum") is { } numeric
+                ? numeric.Elements("Value").Any() && numeric.Elements("Value").All(v =>
+                    decimal.TryParse(v.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)
+                    && (v.Attribute("DX") is null || decimal.TryParse(v.Attribute("DX")!.Value,
+                        NumberStyles.Float, CultureInfo.InvariantCulture, out var dx) && dx == 0))
+                : keys.Count > 0 && keys.All(k => decimal.TryParse(k, NumberStyles.Float, CultureInfo.InvariantCulture, out _)),
+            QuestionType.ImagePoint => task.Element("QuestionImage") is not null
+                && task.Elements("Regions").Elements("Region").Any(r => ParseRegionPoints(r.Value).Count >= 3),
+            QuestionType.TextInput => task.Element("InputText") is { } text
+                ? BoolValue(text.Attribute("IsRegExpr")?.Value) != true
+                    && text.Elements("Value").Any(v => !string.IsNullOrWhiteSpace(v.Value))
+                : keys.Any(k => !string.IsNullOrWhiteSpace(k)) || variants.Any(v => !string.IsNullOrWhiteSpace(PrimaryText(v))),
+            QuestionType.LetterOrdering => keys.Any(k => !string.IsNullOrWhiteSpace(k))
+                || !string.IsNullOrWhiteSpace(task.Element("Word")?.Value)
+                || !string.IsNullOrWhiteSpace(TextValue(task.Element("QuestionText"), "PlainText2"))
+                || variants.Any(v => !string.IsNullOrWhiteSpace(PrimaryText(v))),
+            _ => false,
+        };
+        if (!valid)
+        {
+            throw new MyTestImportException("invalid-answer-key", id);
+        }
     }
 
     private static (QuestionContentDto? Content, QuestionInteractionDto Interaction, QuestionAnswerKeyDto AnswerKey, List<string> Warnings)
@@ -209,19 +268,25 @@ public sealed class MyTestXmlImporter
                     var leftItems = new List<MatchingItemDto>();
                     var rightItems = new List<MatchingItemDto>();
                     var pairs = new List<MatchingPairDto>();
+                    var rightVariants = task.Element("Variants2")?.Elements("VariantText").ToList();
+                    if (rightVariants is not null)
+                    {
+                        rightItems.AddRange(rightVariants.Select((v, i) => new MatchingItemDto($"right_{i + 1}", PrimaryText(v) ?? string.Empty, i + 1)));
+                    }
                     for (var i = 0; i < variants.Count; i++)
                     {
                         var leftId = $"left_{i + 1}";
                         var rightId = $"right_{i + 1}";
-                        var leftText = TextValue(variants[i], "PlainText") ?? PrimaryText(variants[i]) ?? string.Empty;
+                        var leftText = PrimaryText(variants[i]) ?? string.Empty;
                         var rightText = TextValue(variants[i], "PlainText2") ?? leftText;
                         leftItems.Add(new MatchingItemDto(leftId, leftText, i + 1));
-                        rightItems.Add(new MatchingItemDto(rightId, rightText, i + 1));
+                        if (rightVariants is null)
+                            rightItems.Add(new MatchingItemDto(rightId, rightText, i + 1));
 
                         var correctRaw = variants[i].Attribute("CorrectAnswer")?.Value;
                         if (int.TryParse(correctRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var rightIndex)
                             && rightIndex >= 1
-                            && rightIndex <= variants.Count)
+                            && rightIndex <= (rightVariants?.Count ?? variants.Count))
                         {
                             pairs.Add(new MatchingPairDto(leftId, $"right_{rightIndex}"));
                         }
@@ -258,13 +323,24 @@ public sealed class MyTestXmlImporter
                 {
                     var entries = new List<NumericEntryDto>();
                     var values = new List<AcceptedNumberDto>();
+                    if (task.Element("InputNum") is { } numeric)
+                    {
+                        var index = 0;
+                        foreach (var value in numeric.Elements("Value"))
+                        {
+                            var id = $"n_{++index}";
+                            entries.Add(new NumericEntryDto(id, value.Attribute("Caption")?.Value ?? string.Empty, index));
+                            values.Add(new AcceptedNumberDto(id, [decimal.Parse(value.Value, NumberStyles.Float, CultureInfo.InvariantCulture)]));
+                        }
+                        return (null, new NumericInputGroupInteractionDto(entries), new NumericInputGroupAnswerKeyDto(values), warnings);
+                    }
                     for (var i = 0; i < variants.Count; i++)
                     {
                         var entryId = $"n_{i + 1}";
                         entries.Add(new NumericEntryDto(entryId, PrimaryText(variants[i]) ?? string.Empty, i + 1));
                         var accepted = new List<decimal>();
                         var correctRaw = variants[i].Attribute("CorrectAnswer")?.Value;
-                        if (decimal.TryParse(correctRaw, NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
+                        if (decimal.TryParse(correctRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
                         {
                             accepted.Add(number);
                         }
@@ -288,6 +364,12 @@ public sealed class MyTestXmlImporter
 
             case QuestionType.TextInput:
                 {
+                    if (task.Element("InputText") is { } text)
+                    {
+                        return (null, new TextInputInteractionDto(null, null),
+                            new TextInputAnswerKeyDto(text.Elements("Value").Select(v => v.Value.Trim()).ToList(),
+                                BoolValue(text.Attribute("IsCase")?.Value) ?? false, TrimWhitespace: true), warnings);
+                    }
                     var accepted = variants
                         .Select(v => v.Attribute("CorrectAnswer")?.Value)
                         .Where(v => !string.IsNullOrWhiteSpace(v))
@@ -336,6 +418,7 @@ public sealed class MyTestXmlImporter
                     var targetWord = variants
                         .Select(v => v.Attribute("CorrectAnswer")?.Value)
                         .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))
+                        ?? task.Element("Word")?.Value
                         ?? TextValue(task.Element("QuestionText"), "PlainText2")
                         ?? string.Concat(variants.Select(PrimaryText).Where(v => !string.IsNullOrWhiteSpace(v)));
                     if (string.IsNullOrWhiteSpace(targetWord))
@@ -390,7 +473,12 @@ public sealed class MyTestXmlImporter
         try
         {
             var decoded = Convert.FromBase64String(rawBase64);
+            if (decoded.Length >= 14 && decoded[0] == 'B' && decoded[1] == 'M'
+                && System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(decoded.AsSpan(2)) == decoded.Length)
+                return rawBase64;
             var text = System.Text.Encoding.UTF8.GetString(decoded);
+            var repairEncoding = System.Text.Encoding.GetEncoding(
+                text.Any(ch => ch >= '\u0400' && ch <= '\u04ff') ? 1251 : 1252);
             var repaired = new List<byte>(text.Length);
             foreach (var ch in text)
             {
@@ -401,7 +489,7 @@ public sealed class MyTestXmlImporter
                 }
                 else
                 {
-                    repaired.AddRange(System.Text.Encoding.GetEncoding(1251).GetBytes(new[] { ch }));
+                    repaired.AddRange(repairEncoding.GetBytes(new[] { ch }));
                 }
             }
 
@@ -518,6 +606,13 @@ public sealed class MyTestXmlImporter
         if (parent is null)
         {
             return null;
+        }
+
+        if (parent.Element("RTF") is { } rtf && rtf.Value.StartsWith("{\\rtf", StringComparison.Ordinal))
+        {
+            var recovered = MyTestRtfText.Read(rtf.Value);
+            if (!string.IsNullOrWhiteSpace(recovered))
+                return recovered;
         }
 
         return TextValue(parent, "PlainText")

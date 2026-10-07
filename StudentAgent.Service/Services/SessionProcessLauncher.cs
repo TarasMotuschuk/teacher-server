@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 
 namespace StudentAgent.Service.Services;
 
@@ -88,11 +89,11 @@ internal static class SessionProcessLauncher
             throw new FileNotFoundException("Script not found.", scriptPath);
         }
 
-        StartProcessInSession(
+        _ = StartProcessInSessionInternal(
             Path.Combine(Environment.SystemDirectory, "cmd.exe"),
             $"/c {QuoteArgument(scriptPath)}",
             sessionId,
-            hideWindow: true);
+            hideWindow: true, waitForExit: false, timeout: null, showChildWindows: true);
     }
 
     public static void StartCmdScriptAsAdministrator(string scriptPath)
@@ -102,17 +103,16 @@ internal static class SessionProcessLauncher
             throw new FileNotFoundException("Script not found.", scriptPath);
         }
 
-        var startInfo = new ProcessStartInfo
+        var sessionId = GetActiveSessionId();
+        if (sessionId < 0)
         {
-            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            Arguments = $"/c {QuoteArgument(scriptPath)}",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = Path.GetDirectoryName(scriptPath),
-        };
+            throw new InvalidOperationException("No active interactive user session was found.");
+        }
 
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start command process.");
+        _ = StartProcessInSessionInternal(
+            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            $"/d /c {QuoteArgument(scriptPath)}", sessionId, hideWindow: true,
+            waitForExit: false, timeout: null, useServiceToken: true, showChildWindows: true);
     }
 
     private static bool TryFindWinlogonProcessId(int sessionId, out int processId)
@@ -319,9 +319,23 @@ internal static class SessionProcessLauncher
         }
     }
 
-    private static int StartProcessInSessionInternal(string applicationPath, string arguments, int sessionId, bool hideWindow, bool waitForExit, TimeSpan? timeout)
+    private static int StartProcessInSessionInternal(string applicationPath, string arguments, int sessionId, bool hideWindow, bool waitForExit, TimeSpan? timeout, bool useServiceToken = false, bool showChildWindows = false)
     {
-        if (!WTSQueryUserToken(sessionId, out var impersonationToken))
+        IntPtr impersonationToken;
+        if (useServiceToken)
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            if (!identity.IsSystem)
+                throw new InvalidOperationException("Administrator launch requires the installed LocalSystem agent service.");
+            EnableLaunchPrivilegesBestEffort();
+            // Require a signed-in console user; never launch administrative UI on the sign-in desktop.
+            if (!WTSQueryUserToken(sessionId, out var sessionUserToken))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "No signed-in interactive user was found.");
+            CloseHandle(sessionUserToken);
+            if (!OpenProcessToken(GetCurrentProcess(), 0x0008 | 0x0002, out impersonationToken))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenProcessToken failed.");
+        }
+        else if (!WTSQueryUserToken(sessionId, out impersonationToken))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "WTSQueryUserToken failed.");
         }
@@ -341,6 +355,8 @@ internal static class SessionProcessLauncher
 
             try
             {
+                if (useServiceToken && !SetTokenInformation(primaryToken, 12, ref sessionId, sizeof(int)))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not set the interactive session for administrator launch.");
                 if (!CreateEnvironmentBlock(out var environment, primaryToken, false))
                 {
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateEnvironmentBlock failed.");
@@ -352,8 +368,8 @@ internal static class SessionProcessLauncher
                     {
                         Cb = Marshal.SizeOf<STARTUPINFO>(),
                         LpDesktop = @"winsta0\default",
-                        DwFlags = hideWindow ? 0x00000001 : 0,
-                        WShowWindow = hideWindow ? (short)0 : (short)1,
+                        DwFlags = hideWindow && !showChildWindows ? 0x00000001 : 0,
+                        WShowWindow = hideWindow && !showChildWindows ? (short)0 : (short)1,
                     };
 
                     var commandLine = string.IsNullOrWhiteSpace(arguments)
@@ -367,7 +383,7 @@ internal static class SessionProcessLauncher
                             IntPtr.Zero,
                             IntPtr.Zero,
                             false,
-                            0x00000400 | 0x00000010 | (hideWindow ? 0x08000000 : 0),
+                            CreateUnicodeEnvironment | NormalPriorityClass | (hideWindow ? CreateNoWindow : 0x00000010),
                             environment,
                             Path.GetDirectoryName(applicationPath),
                             ref startupInfo,
@@ -439,6 +455,9 @@ internal static class SessionProcessLauncher
         int impersonationLevel,
         int tokenType,
         out IntPtr duplicateTokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool SetTokenInformation(IntPtr tokenHandle, int informationClass, ref int information, int informationLength);
 
     [DllImport("userenv.dll", SetLastError = true)]
     private static extern bool CreateEnvironmentBlock(out IntPtr environment, IntPtr token, bool inherit);

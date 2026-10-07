@@ -43,7 +43,7 @@ public partial class MainWindow : Window
         ApplySettingsToForm();
         ApplyLocalization();
         ShowPanel(identity: true);
-        Opened += (_, _) => SurnameTextBox.Focus();
+        Opened += InitializeStudentFlow;
     }
 
     private void ResolveLanguage()
@@ -129,7 +129,6 @@ public partial class MainWindow : Window
         PreviousQuestionButton.Content = TestRunnerText.PreviousCommand;
         NextQuestionButton.Content = TestRunnerText.NextCommand;
         SaveProgressButton.Content = TestRunnerText.SaveProgressCommand;
-        SubmitButton.Content = TestRunnerText.SubmitCommand;
         ResultHeadingText.Text = TestRunnerText.ResultHeading;
         DoneButton.Content = TestRunnerText.DoneCommand;
         if (_attempt is null)
@@ -137,6 +136,7 @@ public partial class MainWindow : Window
             StatusTextBlock.Text = TestRunnerText.StatusReady;
         }
 
+        LocalizeStudentFlow();
         RefreshQuestionChrome();
         RebuildCurrentEditor();
     }
@@ -154,12 +154,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(TestRunnerText.LoadingTest, async () =>
-        {
-            var response = await _api.StartAttemptAsync(new StartAttemptRequest(assignmentId, _student));
-            await LoadImagesAsync(response);
-            BeginAttempt(response);
-        });
+        await StartSelectedAssignmentAsync(assignmentId);
     }
 
     private async Task ContinueAsync()
@@ -260,15 +255,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RunBusyAsync(TestRunnerText.LoadingTest, async () =>
-        {
-            var response = await _api.StartAttemptAsync(new StartAttemptRequest(
-                selected.AssignmentPublicId,
-                _student));
-
-            await LoadImagesAsync(response);
-            BeginAttempt(response);
-        });
+        await LoadOverviewAsync(selected.AssignmentPublicId);
     }
 
     private async Task LoadImagesAsync(StartAttemptResponse response)
@@ -312,15 +299,19 @@ public partial class MainWindow : Window
         }
 
         AttemptTitleText.Text = response.Assignment.Title;
+        _timeExpired = false;
+        AnswerHost.IsEnabled = true;
+        FinishMenuItem.IsEnabled = true;
         ShowPanel(attempt: true);
         RefreshQuestionChrome();
         RebuildCurrentEditor();
+        StartProgressClock();
         StatusTextBlock.Text = TestRunnerText.StatusReady;
     }
 
     private void PreviousQuestionButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (_busy || _questionIndex <= 0)
+        if (_busy || _timeExpired || _questionIndex <= 0)
         {
             return;
         }
@@ -333,8 +324,14 @@ public partial class MainWindow : Window
 
     private void NextQuestionButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (_busy || _questionIndex >= _questions.Count - 1)
+        if (_busy || _timeExpired || _questions.Count == 0)
         {
+            return;
+        }
+
+        if (_questionIndex == _questions.Count - 1)
+        {
+            SubmitButton_OnClick(sender, e);
             return;
         }
 
@@ -357,7 +354,7 @@ public partial class MainWindow : Window
             await _api.SaveProgressAsync(
                 _attempt.AttemptPublicId,
                 _attempt.AttemptToken,
-                new SaveAttemptProgressRequest(BuildAnswers(isFinal: false), BuildClientProgress()));
+                new SaveAttemptProgressRequest(BuildAnswers(isFinal: false), BuildClientProgress(), ReplaceAnswers: true));
             StatusTextBlock.Text = TestRunnerText.ProgressSaved;
         });
     }
@@ -369,21 +366,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!await ConfirmAsync(TestRunnerText.ConfirmSubmit))
+        if (_sessionDialogOpen)
         {
             return;
         }
 
         CaptureCurrentAnswer();
-        await RunBusyAsync(TestRunnerText.Connecting, async () =>
+        if (!_timeExpired && !await ConfirmAsync(TestRunnerText.ConfirmSubmit + Environment.NewLine
+            + TestRunnerText.Unanswered(Math.Max(0, _questions.Count - _answers.Count))))
         {
-            var response = await _api.SubmitAsync(
-                _attempt.AttemptPublicId,
-                _attempt.AttemptToken,
-                new SubmitAttemptRequest(BuildAnswers(isFinal: true)));
+            return;
+        }
 
-            ShowResult(response);
-        });
+        await SubmitCurrentAsync();
     }
 
     private void DoneButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -391,27 +386,30 @@ public partial class MainWindow : Window
         _attempt = null;
         _questions = [];
         _answers.Clear();
-        _currentEditor = null;
         (_currentEditor as IDisposable)?.Dispose();
+        _currentEditor = null;
         AnswerHost.Child = null;
-        ShowPanel(assignments: true);
-        StatusTextBlock.Text = TestRunnerText.StatusReady;
+        BackToIdentityButton_OnClick(sender, e);
+        ApplySettingsToForm();
     }
 
     private void ShowResult(SubmitAttemptResponse response)
     {
         ReleaseTestSession();
+        PopulateResultSummary(response);
         var result = response.Result;
         var policy = response.ResultView;
         ResultScoreText.Text = policy.ShowScore
             ? TestRunnerText.ScoreLine(result.ScoreEarned, result.ScoreMax, result.Percent)
-            : (_attempt?.Assignment.Title ?? TestRunnerText.ResultHeading);
+            : TestRunnerText.ScoreHidden;
 
         ResultDetailsText.Text = policy.ShowPerQuestionFeedback
             ? string.Join(
                 Environment.NewLine,
                 result.QuestionResults.Select((q, i) =>
-                    $"{i + 1}. {(q.IsCorrect ? "✓" : "✗")} {q.ScoreEarned:0.##}/{q.ScoreMax:0.##}"))
+                    policy.ShowScore
+                        ? $"{i + 1}. {(q.IsCorrect ? "✓" : "✗")} {q.ScoreEarned:0.##}/{q.ScoreMax:0.##}"
+                        : $"{i + 1}. {(q.IsCorrect ? "✓" : "✗")}"))
             : string.Empty;
 
         ShowPanel(result: true);
@@ -464,7 +462,9 @@ public partial class MainWindow : Window
             ? question.Prompt
             : $"{question.Prompt}{Environment.NewLine}{Environment.NewLine}{question.Description}";
         PreviousQuestionButton.IsEnabled = _questionIndex > 0;
-        NextQuestionButton.IsEnabled = _questionIndex < _questions.Count - 1;
+        NextQuestionButton.IsEnabled = !_timeExpired;
+        NextQuestionButton.Content = _questionIndex == _questions.Count - 1 ? TestRunnerText.FinishCommand : TestRunnerText.NextCommand;
+        SkipQuestionButton.IsEnabled = !_timeExpired;
     }
 
     private void RebuildCurrentEditor()
@@ -483,6 +483,8 @@ public partial class MainWindow : Window
         var image = imageId is not null && _imageAssets.TryGetValue(imageId, out var bytes) ? bytes : null;
         _currentEditor = AnswerEditorFactory.Create(question, existing, image);
         AnswerHost.Child = _currentEditor.Control;
+        ApplyContentScale();
+        AnswersScrollViewer.Offset = default;
     }
 
     private void CaptureCurrentAnswer()
@@ -518,8 +520,9 @@ public partial class MainWindow : Window
         return new ClientProgressDto(_answers.Count, _questions.Count, currentId);
     }
 
-    private void ShowPanel(bool identity = false, bool assignments = false, bool attempt = false, bool result = false)
+    private void ShowPanel(bool identity = false, bool assignments = false, bool attempt = false, bool result = false, bool overview = false)
     {
+        OverviewPanel.IsVisible = overview;
         IdentityPanel.IsVisible = identity;
         AssignmentsPanel.IsVisible = assignments;
         AttemptPanel.IsVisible = attempt;
@@ -604,6 +607,8 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _progressTimer.Stop();
+        _progressTimer.Tick -= UpdateAttemptProgress;
         (_currentEditor as IDisposable)?.Dispose();
         ReleaseTestSession();
         _api?.Dispose();

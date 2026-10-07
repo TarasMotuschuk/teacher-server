@@ -7,6 +7,17 @@
         MinHeight="480"
         Title="ClassCommander Testing">
   <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem x:Name="TestMenu">
+        <MenuItem x:Name="TestInfoMenuItem" Click="TestInfoMenuItem_OnClick" />
+        <MenuItem x:Name="FinishMenuItem" Click="SubmitButton_OnClick" IsEnabled="False" />
+      </MenuItem>
+      <MenuItem x:Name="ViewMenu">
+        <MenuItem x:Name="ZoomInMenuItem" Click="ZoomIn_OnClick" />
+        <MenuItem x:Name="ZoomOutMenuItem" Click="ZoomOut_OnClick" />
+        <MenuItem x:Name="ResetZoomMenuItem" Click="ResetZoom_OnClick" />
+      </MenuItem>
+    </Menu>
     <Border DockPanel.Dock="Top" x:Name="SessionBanner" IsVisible="False" Background="#DBEAFE" Padding="12">
       <DockPanel>
         <Button x:Name="ExitTestButton" DockPanel.Dock="Right" Margin="12,0,0,0" Click="ExitTestButton_OnClick" />
@@ -18,10 +29,27 @@
             BorderBrush="#D0D5DD"
             BorderThickness="0,1,0,0"
             Background="#F8FAFC">
-      <TextBlock x:Name="StatusTextBlock" Text="Ready" />
+      <TextBlock x:Name="StatusTextBlock" Text="Ready" TextWrapping="Wrap" />
     </Border>
 
-    <Grid Margin="16">
+    <Grid Margin="16" x:Name="ContentArea">
+      <Border x:Name="OverviewPanel" IsVisible="False" Background="White" BorderBrush="#D0D5DD" BorderThickness="1" CornerRadius="8" Padding="20" MaxWidth="760" HorizontalAlignment="Stretch">
+        <DockPanel>
+          <WrapPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+            <Button x:Name="OverviewRetryButton" Click="OverviewRetry_OnClick" Margin="0,0,8,0" />
+            <Button x:Name="OverviewContinueButton" Classes="accent" Click="OverviewContinue_OnClick" MinHeight="44" />
+          </WrapPanel>
+          <ScrollViewer>
+            <StackPanel Spacing="16">
+              <TextBlock x:Name="OverviewHeadingText" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock x:Name="OverviewTitleText" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock x:Name="OverviewDescriptionText" TextWrapping="Wrap" />
+              <TextBlock x:Name="OverviewFactsText" TextWrapping="Wrap" />
+              <TextBlock x:Name="OverviewRulesText" TextWrapping="Wrap" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
       <!-- Identity -->
       <Border x:Name="IdentityPanel"
               Background="#FFFFFF"
@@ -32,7 +60,7 @@
               MaxWidth="560"
               HorizontalAlignment="Center"
               VerticalAlignment="Center">
-        <StackPanel Spacing="12">
+        <ScrollViewer><StackPanel Spacing="12">
           <TextBlock x:Name="IdentityHeadingText" FontSize="22" FontWeight="SemiBold" Text="Student sign-in" />
           <TextBlock x:Name="TeacherLaunchHintText"
                      TextWrapping="Wrap"
@@ -47,7 +75,7 @@
           <TextBlock IsVisible="False" x:Name="DeviceLabelText" Text="Device ID (optional)" />
           <TextBox IsVisible="False" x:Name="DeviceTextBox" IsReadOnly="True" />
           <Button MinHeight="44" Classes="accent" x:Name="ContinueButton" Content="Continue" HorizontalAlignment="Right" Click="ContinueButton_OnClick" />
-        </StackPanel>
+        </StackPanel></ScrollViewer>
       </Border>
 
       <!-- Assignments -->
@@ -84,60 +112,57 @@
         </DockPanel>
       </Border>
 
-      <!-- Attempt -->
-      <Border x:Name="AttemptPanel"
-              IsVisible="False"
-              Background="#FFFFFF"
-              BorderBrush="#D0D5DD"
-              BorderThickness="1"
-              CornerRadius="8"
-              Padding="16">
+      <!-- Attempt: fixed navigation, independently scrolling question and answers. -->
+      <Border x:Name="AttemptPanel" IsVisible="False" Background="White" BorderBrush="#D0D5DD" BorderThickness="1" CornerRadius="8" Padding="12">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
+          <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
             <TextBlock x:Name="AttemptTitleText" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
-            <TextBlock x:Name="QuestionProgressText" Opacity="0.75" />
+            <WrapPanel>
+              <TextBlock x:Name="QuestionProgressText" Margin="0,0,18,0" />
+              <TextBlock x:Name="AnsweredProgressText" Margin="0,0,18,0" />
+              <TextBlock x:Name="ElapsedText" Margin="0,0,18,0" />
+              <TextBlock x:Name="RemainingText" />
+            </WrapPanel>
+            <ProgressBar x:Name="AttemptProgressBar" Height="6" Minimum="0" Maximum="100" />
           </StackPanel>
-
-          <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
-            <Button Margin="0,4,8,0" x:Name="PreviousQuestionButton" Content="Previous" Click="PreviousQuestionButton_OnClick" />
-            <Button Margin="0,4,8,0" x:Name="NextQuestionButton" Content="Next" Click="NextQuestionButton_OnClick" />
-            <Button Margin="0,4,8,0" x:Name="SaveProgressButton" Content="Save progress" Click="SaveProgressButton_OnClick" />
-            <Button Margin="0,4,8,0" Classes="accent" x:Name="SubmitButton" Content="Submit" HorizontalAlignment="Right" Click="SubmitButton_OnClick" />
+          <WrapPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button Margin="0,4,8,0" MinHeight="44" x:Name="PreviousQuestionButton" Click="PreviousQuestionButton_OnClick" />
+            <Button Margin="0,4,8,0" MinHeight="44" x:Name="SkipQuestionButton" Click="SkipQuestionButton_OnClick" />
+            <Button Margin="0,4,8,0" MinHeight="44" x:Name="SaveProgressButton" Click="SaveProgressButton_OnClick" />
+            <Button Margin="0,4,0,0" MinHeight="44" MinWidth="140" Classes="accent" x:Name="NextQuestionButton" Click="NextQuestionButton_OnClick" />
           </WrapPanel>
-
-          <ScrollViewer>
-            <StackPanel Spacing="12">
-              <TextBlock x:Name="QuestionPromptText" FontSize="16" TextWrapping="Wrap" />
-              <TextBlock x:Name="AnswerHintText" TextWrapping="Wrap" Foreground="#475569" />
-              <Border x:Name="AnswerHost"
-                      Background="#F8FAFC"
-                      BorderBrush="#E4E7EC"
-                      BorderThickness="1"
-                      CornerRadius="6"
-                      Padding="12"
-                      MinHeight="180" />
-            </StackPanel>
-          </ScrollViewer>
+          <Grid RowDefinitions="Auto,Auto,*">
+            <ScrollViewer MaxHeight="180" Margin="0,0,0,12">
+              <TextBlock x:Name="QuestionPromptText" TextWrapping="Wrap" />
+            </ScrollViewer>
+            <TextBlock Grid.Row="1" x:Name="AnswerHintText" Margin="0,0,0,10" TextWrapping="Wrap" Foreground="#475569" />
+            <ScrollViewer Grid.Row="2" x:Name="AnswersScrollViewer">
+              <Border x:Name="AnswerHost" Background="#F8FAFC" BorderBrush="#E4E7EC" BorderThickness="1" CornerRadius="6" Padding="10" />
+            </ScrollViewer>
+          </Grid>
         </DockPanel>
       </Border>
 
-      <!-- Result -->
-      <Border x:Name="ResultPanel"
-              IsVisible="False"
-              Background="#FFFFFF"
-              BorderBrush="#D0D5DD"
-              BorderThickness="1"
-              CornerRadius="8"
-              Padding="20"
-              MaxWidth="640"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center">
-        <StackPanel Spacing="12">
-          <TextBlock x:Name="ResultHeadingText" FontSize="22" FontWeight="SemiBold" Text="Result" />
-          <TextBlock x:Name="ResultScoreText" FontSize="18" TextWrapping="Wrap" />
-          <TextBlock x:Name="ResultDetailsText" TextWrapping="Wrap" Opacity="0.8" />
-          <Button x:Name="DoneButton" Content="Done" HorizontalAlignment="Right" Click="DoneButton_OnClick" />
-        </StackPanel>
+      <!-- A completed attempt has its own screen, without empty answer controls. -->
+      <Border x:Name="ResultPanel" IsVisible="False" Background="White" BorderBrush="#D0D5DD" BorderThickness="1" CornerRadius="8" Padding="20" MaxWidth="760" HorizontalAlignment="Stretch">
+        <DockPanel>
+          <Button DockPanel.Dock="Bottom" x:Name="DoneButton" HorizontalAlignment="Right" MinHeight="44" Margin="0,16,0,0" Click="DoneButton_OnClick" />
+          <ScrollViewer>
+            <StackPanel Spacing="14">
+              <TextBlock x:Name="ResultHeadingText" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock x:Name="ResultTitleText" TextWrapping="Wrap" />
+              <Border Background="#DCFCE7" Padding="12" CornerRadius="6">
+                <TextBlock x:Name="ResultDeliveryText" TextWrapping="Wrap" Foreground="#166534" />
+              </Border>
+              <TextBlock x:Name="ResultStudentText" TextWrapping="Wrap" />
+              <TextBlock x:Name="ResultGradeText" FontSize="32" FontWeight="Bold" TextWrapping="Wrap" />
+              <TextBlock x:Name="ResultScoreText" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock x:Name="ResultSummaryText" TextWrapping="Wrap" />
+              <TextBlock x:Name="ResultTimeText" TextWrapping="Wrap" />
+              <TextBlock x:Name="ResultDetailsText" TextWrapping="Wrap" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
       </Border>
     </Grid>
   </DockPanel>

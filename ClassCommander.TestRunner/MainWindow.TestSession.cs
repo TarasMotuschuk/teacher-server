@@ -160,7 +160,7 @@ public partial class MainWindow
                 if (_api is not null && _attempt is not null)
                 {
                     await _api.SaveProgressAsync(_attempt.AttemptPublicId, _attempt.AttemptToken,
-                        new SaveAttemptProgressRequest(BuildAnswers(isFinal: false), BuildClientProgress()));
+                        new SaveAttemptProgressRequest(BuildAnswers(isFinal: false), BuildClientProgress(), ReplaceAnswers: true));
                 }
             }
             catch

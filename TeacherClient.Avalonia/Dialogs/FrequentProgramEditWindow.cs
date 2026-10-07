@@ -9,6 +9,7 @@ namespace TeacherClient.CrossPlatform.Dialogs;
 
 internal sealed class FrequentProgramEditWindow : Window
 {
+    private string? _entryId;
     private readonly TextBox _nameTextBox;
     private readonly TextBox _commandTextBox;
     private readonly ComboBox _runAsComboBox;
@@ -24,7 +25,7 @@ internal sealed class FrequentProgramEditWindow : Window
         var grid = new Grid
         {
             Margin = new Thickness(16),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto"),
             ColumnDefinitions = new ColumnDefinitions("160,*"),
         };
 
@@ -33,13 +34,17 @@ internal sealed class FrequentProgramEditWindow : Window
         Grid.SetColumn(_nameTextBox, 1);
         grid.Children.Add(_nameTextBox);
 
-        grid.Children.Add(new TextBlock { Text = CrossPlatformText.CommandText, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+        var commandLabel = new TextBlock { Text = CrossPlatformText.CommandText, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetRow(commandLabel, 1);
+        grid.Children.Add(commandLabel);
         _commandTextBox = new TextBox();
         Grid.SetRow(_commandTextBox, 1);
         Grid.SetColumn(_commandTextBox, 1);
         grid.Children.Add(_commandTextBox);
 
-        grid.Children.Add(new TextBlock { Text = CrossPlatformText.RunAs, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+        var runAsLabel = new TextBlock { Text = CrossPlatformText.RunAs, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetRow(runAsLabel, 2);
+        grid.Children.Add(runAsLabel);
         _runAsComboBox = new ComboBox
         {
             ItemsSource = new[]
@@ -68,7 +73,11 @@ internal sealed class FrequentProgramEditWindow : Window
         cancelButton.Click += CancelButton_OnClick;
         buttons.Children.Add(cancelButton);
 
-        Grid.SetRow(buttons, 3);
+        var hint = new TextBlock { Text = CrossPlatformText.AdministratorLaunchHint, TextWrapping = Avalonia.Media.TextWrapping.Wrap, Margin = new Thickness(0, 12) };
+        Grid.SetRow(hint, 3);
+        Grid.SetColumnSpan(hint, 2);
+        grid.Children.Add(hint);
+        Grid.SetRow(buttons, 4);
         Grid.SetColumnSpan(buttons, 2);
         grid.Children.Add(buttons);
         Content = grid;
@@ -77,6 +86,8 @@ internal sealed class FrequentProgramEditWindow : Window
     public FrequentProgramEditWindow(FrequentProgramEntry entry)
         : this()
     {
+        Title = CrossPlatformText.EditProgram;
+        _entryId = entry.Id;
         _nameTextBox.Text = entry.DisplayName;
         _commandTextBox.Text = entry.CommandText;
         _runAsComboBox.SelectedIndex = entry.RunAs == RemoteCommandRunAs.Administrator ? 1 : 0;
@@ -91,25 +102,21 @@ internal sealed class FrequentProgramEditWindow : Window
             return null;
         }
 
-        return FrequentProgramEntry.Create(
+        return new FrequentProgramEntry(
+            id ?? _entryId ?? Guid.NewGuid().ToString("N"),
             displayName,
             commandText,
             _runAsComboBox.SelectedIndex == 1 ? RemoteCommandRunAs.Administrator : RemoteCommandRunAs.CurrentUser);
     }
 
-    private void OkButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void OkButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (ToEntry() is null)
-        {
-            return;
-        }
-
         var entry = ToEntry();
         if (entry is null)
         {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.Validation, CrossPlatformText.ProgramFieldsRequired);
             return;
         }
-
         Close(entry);
     }
 

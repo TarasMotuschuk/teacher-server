@@ -3,7 +3,7 @@ using Teacher.Common.Localization;
 
 namespace ClassCommander.TestRunner.Localization;
 
-internal static class TestRunnerText
+internal static partial class TestRunnerText
 {
     public static UiLanguage Language { get; set; } = UiLanguageExtensions.GetDefault();
 

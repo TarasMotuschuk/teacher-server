@@ -22,6 +22,16 @@ public sealed record ActiveAssignmentDto(
     DateTime? StartUtc,
     DateTime? EndUtc);
 
+public sealed record StudentTestOverviewDto(
+    string AssignmentPublicId,
+    string Title,
+    string? Description,
+    string? AuthorName,
+    int QuestionCount,
+    decimal MaximumScore,
+    int? TimeLimitSeconds,
+    ResultPolicyDto ResultPolicy);
+
 public sealed record ResolveStudentResponse(
     AttemptStudentDto Student,
     IReadOnlyList<ActiveAssignmentDto> ActiveAssignments);

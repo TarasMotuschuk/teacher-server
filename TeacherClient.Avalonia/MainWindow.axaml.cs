@@ -662,8 +662,10 @@ public partial class MainWindow : Window, IDisposable
                 {
                     var client = new TeacherApiClient($"http://{agent.RespondingAddress}:{agent.Port}", _clientSettings.SharedSecret);
                     var shortcuts = await client.GetPublicDesktopShortcutsAsync();
+                    var knownCommands = collected.Select(x => x.CommandText.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
                     collected.AddRange(shortcuts
-                        .Where(x => !string.IsNullOrWhiteSpace(x.DisplayName) && !string.IsNullOrWhiteSpace(x.CommandText))
+                        .Where(x => !string.IsNullOrWhiteSpace(x.DisplayName) && !string.IsNullOrWhiteSpace(x.CommandText)
+                            && knownCommands.Add(x.CommandText.Trim()))
                         .Select(x => FrequentProgramEntry.Create(x.DisplayName, x.CommandText, RemoteCommandRunAs.CurrentUser)));
                 }
                 catch (Exception ex)
@@ -2576,31 +2578,35 @@ public partial class MainWindow : Window, IDisposable
         }
     }
 
-    private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        var targetAgents = GetSelectedAgents();
-        if (targetAgents.Count == 0)
-        {
-            SetStatus(CrossPlatformText.ChooseAgentsForDistribution);
-            return;
-        }
+    private List<DiscoveredAgentRow> GetRemoteCommandTargets(bool selectedOnly) => _allAgents
+        .Where(x => !selectedOnly || x.GroupCommandSelected)
+        .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
+        .ToList();
 
-        await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: true);
-    }
+    private async void RunCommandSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => await RunRemoteCommandMenuAsync(selectedOnly: true);
 
     private async void RunCommandAllMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => await RunRemoteCommandMenuAsync(selectedOnly: false);
+
+    private async Task RunRemoteCommandMenuAsync(bool selectedOnly)
     {
-        var targetAgents = _allAgents
-            .Where(x => string.Equals(x.Status, CrossPlatformText.Online, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (targetAgents.Count == 0)
+        try
         {
-            SetStatus(CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand);
-            return;
+            var targetAgents = GetRemoteCommandTargets(selectedOnly);
+            if (targetAgents.Count == 0)
+            {
+                var message = selectedOnly ? CrossPlatformText.SelectOnlineCommandTargets : CrossPlatformText.NoOnlineAgentsAvailableForGroupCommand;
+                SetStatus(message);
+                await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.RemoteCommandTitle, message);
+                return;
+            }
+            await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly);
         }
-
-        await ExecuteRemoteCommandOnAgentsAsync(targetAgents, selectedOnly: false);
+        catch (Exception ex)
+        {
+            await ConfirmationDialog.ShowInfoAsync(this, CrossPlatformText.RemoteCommandTitle, ex.Message);
+        }
     }
 
     private async void ClearBrowserHistoryCacheSelectedMenuItem_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

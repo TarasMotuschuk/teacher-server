@@ -33,7 +33,7 @@ foreach (var language in new[] { "uk", "en" })
 {
     // A previous student and legacy auto-start arguments must not bypass sign-in.
     var settings = new RunnerSettingsStore(Path.Combine(output, $"settings-{language}.json"));
-    settings.Save(new RunnerSettings { Surname = "Previous", Name = "Student" });
+    settings.Save(new RunnerSettings { ServerUrl = string.Empty, Surname = "Previous", Name = "Student" });
     RunnerLaunchOptions.Apply(["--assignment-id", "chosen", "--surname", "PC01", "--name", "WindowsUser", "--auto-continue", "--language", language]);
     var window = new MainWindow(settings) { Width = 800, Height = 600 };
     window.Show();
@@ -139,10 +139,13 @@ Require(
     "Teacher launch must not inject machine identity or skip sign-in.");
 Require(script.Contains("--exit-code-hash", StringComparison.Ordinal), "Teacher launches must include the exit-code verifier.");
 
+ClassCommander.TestRunner.SmokeTests.StudentFlowChecks.Run();
 ClassCommander.TestRunner.SmokeTests.MonitoringChecks.Run();
 ClassCommander.TestRunner.SmokeTests.ImagePointChecks.Run();
 ClassCommander.TestRunner.SmokeTests.LocalComputerChecks.Run();
+ClassCommander.TestRunner.SmokeTests.RemoteCommandChecks.Run();
 ClassCommander.TestRunner.SmokeTests.EditorWorkspaceChecks.Run();
 ClassCommander.TestRunner.SmokeTests.OrderingEditorChecks.Run();
+ClassCommander.TestRunner.SmokeTests.MyTestImportChecks.Run();
 
 Console.WriteLine($"PASS: sign-in, localization, theme, assignment isolation, session cleanup. Screenshots: {output}");
